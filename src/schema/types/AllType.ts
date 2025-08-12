@@ -1,7 +1,6 @@
 import {
   GraphQLID,
   GraphQLInterfaceType,
-  GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
   GraphQLString,
@@ -9,21 +8,7 @@ import {
 } from "graphql";
 import { promises as fs } from "fs";
 import { All } from "../model";
-
-export const MetaType: GraphQLObjectType = new GraphQLObjectType({
-  name: "Meta",
-  fields: (): GraphQLFieldConfigMap<any, any> => ({
-    title: { description: "Human-readable title", type: GraphQLString },
-    description: { description: "Longer description", type: GraphQLString },
-    tags: {
-      description: "List of tags attached to the element",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(GraphQLString))
-      ),
-      resolve: (node: { tags?: string[] }) => node?.tags ?? [],
-    },
-  }),
-});
+import { MetaType } from "./MetaType";
 
 export const BaseElementInterface: GraphQLInterfaceType =
   new GraphQLInterfaceType({

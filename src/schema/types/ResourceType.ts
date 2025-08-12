@@ -8,11 +8,14 @@ import {
   type GraphQLFieldConfigMap,
 } from "graphql";
 
-import { BaseElementInterface, MetaType } from "./AllType";
+import { BaseElementInterface } from "./AllType";
+import { MetaType } from "./MetaType";
 import { MiddlewareType } from "./MiddlewareType";
 import { TaskInterface, TaskType } from "./TaskType";
 import { EventType } from "./EventType";
 import { CustomGraphQLContext } from "../../graphql/context";
+import { TaskMiddlewareUsageType } from "./TaskType";
+import { definitions } from "@bluelibs/runner";
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
@@ -42,6 +45,14 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       resolve: async (node, _args, ctx) => {
         return ctx.introspector.getMiddlewaresByIds(node.middleware);
       },
+    },
+    middlewareResolvedDetailed: {
+      description: "Middlewares applied to this resource with per-usage config",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
+      ),
+      resolve: (node, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getMiddlewareUsagesForResource(node.id),
     },
     overrides: {
       description: "Ids of items this resource overrides",
@@ -104,16 +115,8 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       description:
         "Events emitted by tasks/listeners that depend on this resource",
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
-      resolve: async (node, _args, ctx: CustomGraphQLContext) => {
-        const taskLikes = await ctx.introspector.getTaskLikesUsingResource(
-          node.id
-        );
-        const emitted = new Set<string>();
-        for (const t of taskLikes) {
-          for (const e of t.emits) emitted.add(e);
-        }
-        return ctx.introspector.getEventsByIds(Array.from(emitted));
-      },
+      resolve: (node, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getEmittedEventsForResource(node.id),
     },
     context: {
       description: "Serialized context (if any)",

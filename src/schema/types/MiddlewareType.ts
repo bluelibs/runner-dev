@@ -8,10 +8,43 @@ import {
   type GraphQLFieldConfigMap,
 } from "graphql";
 
-import { BaseElementInterface, MetaType } from "./AllType";
+import { BaseElementInterface } from "./AllType";
+import { MetaType } from "./MetaType";
 import { TaskInterface } from "./TaskType";
 import { EventType } from "./EventType";
 import { ResourceType } from "./ResourceType";
+import { definitions } from "@bluelibs/runner";
+import type { CustomGraphQLContext } from "../../graphql/context";
+
+function safeStringify(value: unknown): string | null {
+  if (value == null) return null;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+export const MiddlewareTaskUsageType: GraphQLObjectType = new GraphQLObjectType(
+  {
+    name: "MiddlewareTaskUsage",
+    fields: (): GraphQLFieldConfigMap<any, any> => ({
+      id: { type: new GraphQLNonNull(GraphQLID) },
+      config: { type: GraphQLString },
+      node: { type: new GraphQLNonNull(TaskInterface) },
+    }),
+  }
+);
+
+export const MiddlewareResourceUsageType: GraphQLObjectType =
+  new GraphQLObjectType({
+    name: "MiddlewareResourceUsage",
+    fields: (): GraphQLFieldConfigMap<any, any> => ({
+      id: { type: new GraphQLNonNull(GraphQLID) },
+      config: { type: GraphQLString },
+      node: { type: new GraphQLNonNull(ResourceType) },
+    }),
+  });
 
 export const MiddlewareGlobalType: GraphQLObjectType = new GraphQLObjectType({
   name: "GlobalMiddleware",
@@ -21,17 +54,12 @@ export const MiddlewareGlobalType: GraphQLObjectType = new GraphQLObjectType({
       type: new GraphQLNonNull(GraphQLBoolean),
     },
     tasks: {
-      description: "Ids of tasks to which the middleware is attached globally",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(GraphQLString))
-      ),
+      description: "Globally enabled for tasks",
+      type: new GraphQLNonNull(GraphQLBoolean),
     },
     resources: {
-      description:
-        "Ids of resources to which the middleware is attached globally",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(GraphQLString))
-      ),
+      description: "Globally enabled for resources",
+      type: new GraphQLNonNull(GraphQLBoolean),
     },
   }),
 });
@@ -76,6 +104,22 @@ export const MiddlewareType: GraphQLObjectType = new GraphQLObjectType({
       ),
       resolve: (node, _args, ctx) =>
         ctx.introspector.getResourcesByIds(node.usedByResources),
+    },
+    usedByTasksDetailed: {
+      description: "Detailed task/listener usages with per-usage config",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(MiddlewareTaskUsageType))
+      ),
+      resolve: (node, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getTaskLikesUsingMiddlewareDetailed(String(node.id)),
+    },
+    usedByResourcesDetailed: {
+      description: "Detailed resource usages with per-usage config",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(MiddlewareResourceUsageType))
+      ),
+      resolve: (node, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getResourcesUsingMiddlewareDetailed(String(node.id)),
     },
     emits: {
       description:

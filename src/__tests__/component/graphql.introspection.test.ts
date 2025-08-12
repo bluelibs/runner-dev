@@ -1,4 +1,4 @@
-import { resource, run } from "@bluelibs/runner";
+import { resource, run, globals } from "@bluelibs/runner";
 import { schema } from "../../schema";
 import { createDummyApp } from "../dummy/dummyApp";
 import { introspector } from "../../resources/introspector.resource";
@@ -14,11 +14,11 @@ describe("GraphQL schema (integration)", () => {
 
     const probe = resource({
       id: "probe.graphql-1",
-      dependencies: { introspector },
-      async init(_config, { introspector }) {
+      dependencies: { introspector, store: globals.resources.store },
+      async init(_config, { introspector, store }) {
         ctx = {
           // Minimal GraphQLContext required by resolvers
-          store: undefined,
+          store,
           logger: console,
           introspector,
           live: { logs: [] },
@@ -82,8 +82,10 @@ describe("GraphQL schema (integration)", () => {
           id
           usedByTasks
           usedByTasksResolved { id }
+          usedByTasksDetailed { id config node { id } }
           usedByResources
           usedByResourcesResolved { id }
+          usedByResourcesDetailed { id config node { id } }
           emits { id }
         }
       }
@@ -94,7 +96,7 @@ describe("GraphQL schema (integration)", () => {
     expect(result.errors).toBeUndefined();
 
     const data: any = result.data;
-    expect(Array.isArray(data.tasks)).toBe(true);
+    expect(Array.isArray(data?.tasks)).toBe(true);
     expect(Array.isArray(data.listeners)).toBe(true);
     expect(Array.isArray(data.resources)).toBe(true);
     expect(Array.isArray(data.events)).toBe(true);

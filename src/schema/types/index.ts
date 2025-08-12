@@ -1,4 +1,5 @@
-export { AllType, BaseElementInterface, MetaType } from "./AllType";
+export { AllType, BaseElementInterface } from "./AllType";
+export { MetaType, MetaTagUsageType } from "./MetaType";
 export { EventType } from "./EventType";
 export { MiddlewareGlobalType, MiddlewareType } from "./MiddlewareType";
 export { ResourceType } from "./ResourceType";

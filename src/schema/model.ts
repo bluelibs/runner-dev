@@ -1,9 +1,17 @@
 import { definitions } from "@bluelibs/runner";
 
+export interface TagUsage {
+  id: string;
+  config?: string | null;
+}
+
 export interface Meta {
   title?: string | null;
   description?: string | null;
-  tags?: Array<string | definitions.ITagDefinition> | null;
+  // Normalized tag ids
+  tags?: string[] | null;
+  // Detailed tag usages with serialized config when present
+  tagsDetailed?: TagUsage[] | null;
 }
 
 export interface BaseElement {
@@ -27,8 +35,13 @@ export interface Event extends BaseElement {
 
 export interface MiddlewareGlobal {
   enabled: boolean;
-  tasks: string[];
-  resources: string[];
+  tasks: boolean;
+  resources: boolean;
+}
+
+export interface MiddlewareUsage {
+  id: string;
+  config?: string | null;
 }
 
 export interface Middleware extends BaseElement {
@@ -48,6 +61,7 @@ export interface TaskBase extends BaseElement {
   emits: string[];
   dependsOn: string[];
   middleware: string[];
+  middlewareDetailed?: MiddlewareUsage[];
   overriddenBy?: string | null;
 }
 
@@ -70,6 +84,7 @@ export interface Resource extends BaseElement {
   emits?: string[];
   config?: string | null;
   middleware: string[];
+  middlewareDetailed?: MiddlewareUsage[];
   overrides: string[];
   registers: string[];
   context?: string | null;

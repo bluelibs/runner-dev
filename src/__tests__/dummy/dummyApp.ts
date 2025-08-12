@@ -82,6 +82,16 @@ export const aggregateTask = task({
   },
 });
 
+// Another task using the same configurable middleware with a different config
+export const taggedTask = task({
+  id: "task.tagged",
+  dependencies: () => ({ db: dbRes }),
+  middleware: [tagMw.with({ label: "beta" })],
+  async run() {
+    return "ok" as const;
+  },
+});
+
 // Helper to build a dummy app resource with optional extra registrations
 export function createDummyApp(extra: any[] = []) {
   return resource({
@@ -95,6 +105,7 @@ export function createDummyApp(extra: any[] = []) {
       helloListener,
       allEventsListener,
       aggregateTask,
+      taggedTask,
       evtHello,
       ...extra,
     ],

@@ -10,10 +10,23 @@ import {
 } from "graphql";
 
 import type { Listener, Task } from "../model";
-import { BaseElementInterface, MetaType } from "./AllType";
+import { BaseElementInterface } from "./AllType";
+import { MetaType } from "./MetaType";
 import { ResourceType } from "./ResourceType";
 import { EventType } from "./EventType";
 import { MiddlewareType } from "./MiddlewareType";
+import type { GraphQLFieldConfigMap } from "graphql";
+import type { CustomGraphQLContext } from "../../graphql/context";
+import { definitions } from "@bluelibs/runner";
+
+export const TaskMiddlewareUsageType = new GraphQLObjectType({
+  name: "TaskMiddlewareUsage",
+  fields: (): GraphQLFieldConfigMap<any, any> => ({
+    id: { type: new GraphQLNonNull(GraphQLID) },
+    config: { type: GraphQLString },
+    node: { type: new GraphQLNonNull(MiddlewareType) },
+  }),
+});
 
 export const TaskInterface = new GraphQLInterfaceType({
   name: "TaskInterface",
@@ -50,6 +63,15 @@ export const TaskInterface = new GraphQLInterfaceType({
         return ctx.introspector.getMiddlewaresByIds(node.middleware);
       },
     },
+    middlewareResolvedDetailed: {
+      description: "Middlewares applied to this task with per-usage config",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
+      ),
+      resolve: (node, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getMiddlewareUsagesForTaskLike(node.id),
+    },
+
     emitsResolved: {
       description: "Events emitted by this task (resolved)",
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
@@ -101,6 +123,23 @@ export const TaskType = new GraphQLObjectType({
       ),
       resolve: async (node, _args, ctx) => {
         return ctx.introspector.getMiddlewaresByIds(node.middleware);
+      },
+    },
+    middlewareResolvedDetailed: {
+      description: "Middlewares applied to this task with per-usage config",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
+      ),
+      resolve: (node, _args, ctx: CustomGraphQLContext) => {
+        const storeTask = ctx.store?.tasks?.get(node.id)?.task as any;
+        if (!storeTask) return [];
+        return (storeTask.middleware || []).map((m: any) => ({
+          id: String(m.id),
+          config: m[definitions.symbolMiddlewareConfigured]
+            ? JSON.stringify(m.config)
+            : null,
+          node: m,
+        }));
       },
     },
     emitsResolved: {
@@ -197,6 +236,14 @@ export const ListenerType = new GraphQLObjectType({
       resolve: async (node, _args, ctx) => {
         return ctx.introspector.getMiddlewaresByIds(node.middleware);
       },
+    },
+    middlewareResolvedDetailed: {
+      description: "Middlewares applied to this listener with per-usage config",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
+      ),
+      resolve: (node, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getMiddlewareUsagesForTaskLike(node.id),
     },
     overriddenBy: {
       description: "Id of the resource that overrides this listener (if any)",

@@ -65,28 +65,59 @@ export const probe = resource({
 
 All arrays are non-null lists with non-null items, and ids are complemented by resolved fields for deep traversal.
 
-- Root
-  - `all { id, filePath, fileContents, markdownDescription }`
-- Tasks/Listeners
-  - `emits: [String!]!`, `dependsOn: [String!]!`, `middleware: [String!]!`
-  - `emitsResolved: [Event!]!`, `middlewareResolved: [Middleware!]!`
-  - `dependsOnResolved { tasks {…} listeners {…} resources {…} emitters {…} }`
+- Common
+
+  - `BaseElement`: `id: ID!`, `meta: Meta`, `filePath: String`
+  - `Meta`: `title: String`, `description: String`, `tags: [String!]!`
+
+- Query root
+
+  - `all: All`
+  - `event(id: ID!): Event`, `events: [Event!]!`
+  - `task(id: ID!): Task`, `tasks: [Task!]!`
+  - `listeners: [Listener!]!`
+  - `middleware(id: ID!): Middleware`, `middlewares: [Middleware!]!`
+  - `resource(id: ID!): Resource`, `resources: [Resource!]!`
+  - `live: Live!`
+
+- All
+
+  - `id`, `meta`, `filePath`, `fileContents`, `markdownDescription`
+
+- Tasks/Listeners (TaskInterface implemented by `Task` and `Listener`)
+
+  - `emits: [String!]!`, `emitsResolved: [Event!]!`
+  - `dependsOn: [String!]!`
+  - `middleware: [String!]!`, `middlewareResolved: [Middleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
   - `overriddenBy: String` (if overridden)
+  - Task-specific: `dependsOnResolved { tasks, listeners, resources, emitters }`
+  - Listener-specific: `event: String!`, `listenerOrder: Int`, `dependsOnResolved {…}`
+
 - Resources
-  - `middleware`, `middlewareResolved`
+
+  - `config: String`, `context: String`
+  - `middleware`, `middlewareResolved`, `middlewareResolvedDetailed`
   - `overrides`, `overridesResolved`
   - `registers`, `registersResolved`
-  - `usedBy: [TaskInterface!]!` (tasks/listeners using the resource)
+  - `usedBy: [TaskInterface!]!`
   - `emits: [Event!]!` (inferred from task/listener emissions)
+
 - Events
-  - `emittedBy: [String!]!`
-  - `emittedByResolved: [TaskInterface!]!`
-  - `listenedToBy: [String!]!`
-  - `listenedToByResolved: [TaskInterface!]!`
+
+  - `emittedBy: [String!]!`, `emittedByResolved: [TaskInterface!]!`
+  - `listenedToBy: [String!]!`, `listenedToByResolved: [TaskInterface!]!`
+
 - Middleware
-  - `usedByTasks`, `usedByTasksResolved`
-  - `usedByResources`, `usedByResourcesResolved`
-  - `emits: [Event!]!` (events emitted by task/listener nodes that use this middleware)
+
+  - `global: GlobalMiddleware` (flags: `enabled`, `tasks`, `resources`)
+  - `usedByTasks`, `usedByTasksResolved`, `usedByTasksDetailed: [MiddlewareTaskUsage!]!`
+  - `usedByResources`, `usedByResourcesResolved`, `usedByResourcesDetailed: [MiddlewareResourceUsage!]!`
+  - `emits: [Event!]!` (events from task/listener nodes using this middleware)
+  - `overriddenBy: String`
+
+- Live
+  - `logs(afterTimestamp: Float): [LogEntry!]!` → `LogEntry { timestampMs, level, message, data }`
+  - `emissions(afterTimestamp: Float): [EmissionEntry!]!` → `EmissionEntry { timestampMs, eventId, emitterId, payload }`
 
 ### Example Queries
 

@@ -48,6 +48,19 @@ export interface Introspector {
   getEmittersOfEvent(eventId: string): (Task | Listener)[];
   getListenersOfEvent(eventId: string): Listener[];
   getMiddlewareEmittedEvents(middlewareId: string): Event[];
+  getMiddlewareUsagesForTaskLike(
+    taskLikeId: string
+  ): Array<{ id: string; config: string | null; node: Middleware }>;
+  getMiddlewareUsagesForResource(
+    resourceId: string
+  ): Array<{ id: string; config: string | null; node: Middleware }>;
+  getTaskLikesUsingMiddlewareDetailed(
+    middlewareId: string
+  ): Array<{ id: string; config: string | null; node: Task | Listener }>;
+  getResourcesUsingMiddlewareDetailed(
+    middlewareId: string
+  ): Array<{ id: string; config: string | null; node: Resource }>;
+  getEmittedEventsForResource(resourceId: string): Event[];
 }
 
 export const introspector = resource({
@@ -76,11 +89,8 @@ export const introspector = resource({
     );
 
     // Build events
-    const eventsCollection = Array.from(store.events.values()).map(
-      (v) => v.event
-    );
     const events: Event[] = buildEvents(
-      eventsCollection,
+      Array.from(store.events.values()).map((v) => v.event),
       tasks,
       listeners,
       resources
@@ -88,7 +98,7 @@ export const introspector = resource({
 
     // Build middlewares
     const middlewares: Middleware[] = buildMiddlewares(
-      store.middlewares,
+      Array.from(store.middlewares.values()).map((v) => v.middleware),
       tasks,
       listeners,
       resources
@@ -183,6 +193,80 @@ export const introspector = resource({
           }
         }
         return events.filter((e) => emittedIds.has(e.id));
+      },
+      getMiddlewareUsagesForTaskLike: (taskLikeId) => {
+        const taskLike = taskMap.get(taskLikeId) ?? listenerMap.get(taskLikeId);
+        if (!taskLike) return [];
+        const detailed = taskLike.middlewareDetailed ?? [];
+        return detailed
+          .map((d) => ({
+            id: d.id,
+            config: d.config ?? null,
+            node: middlewareMap.get(d.id),
+          }))
+          .filter(
+            (x): x is { id: string; config: string | null; node: Middleware } =>
+              Boolean(x.node)
+          );
+      },
+      getMiddlewareUsagesForResource: (resourceId) => {
+        const res = resourceMap.get(resourceId);
+        if (!res) return [];
+        const detailed = res.middlewareDetailed ?? [];
+        return detailed
+          .map((d) => ({
+            id: d.id,
+            config: d.config ?? null,
+            node: middlewareMap.get(d.id),
+          }))
+          .filter(
+            (x): x is { id: string; config: string | null; node: Middleware } =>
+              Boolean(x.node)
+          );
+      },
+      getTaskLikesUsingMiddlewareDetailed: (middlewareId) => {
+        const result: Array<{
+          id: string;
+          config: string | null;
+          node: Task | Listener;
+        }> = [];
+        const addFrom = (arr: Array<Task | Listener>) => {
+          for (const tl of arr) {
+            if ((tl.middleware || []).includes(middlewareId)) {
+              const conf =
+                (tl.middlewareDetailed || []).find((m) => m.id === middlewareId)
+                  ?.config ?? null;
+              result.push({ id: tl.id, config: conf ?? null, node: tl });
+            }
+          }
+        };
+        addFrom(tasks);
+        addFrom(listeners);
+        return result;
+      },
+      getResourcesUsingMiddlewareDetailed: (middlewareId) => {
+        const result: Array<{
+          id: string;
+          config: string | null;
+          node: Resource;
+        }> = [];
+        for (const r of resources) {
+          if ((r.middleware || []).includes(middlewareId)) {
+            const conf =
+              (r.middlewareDetailed || []).find((m) => m.id === middlewareId)
+                ?.config ?? null;
+            result.push({ id: r.id, config: conf ?? null, node: r });
+          }
+        }
+        return result;
+      },
+      getEmittedEventsForResource: (resourceId) => {
+        const taskLikes = api.getTaskLikesUsingResource(resourceId);
+        const emitted = new Set<string>();
+        for (const t of taskLikes) {
+          for (const e of ensureStringArray((t as any).emits)) emitted.add(e);
+        }
+        return api.getEventsByIds(Array.from(emitted));
       },
     };
 

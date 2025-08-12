@@ -42,6 +42,28 @@ export function stringifyIfObject(input: any): string | null {
   }
 }
 
+function normalizeTags(
+  tags: Array<string | definitions.ITagDefinition> | null | undefined
+): {
+  ids: string[];
+  detailed: { id: string; config: string | null }[];
+} {
+  const ids: string[] = [];
+  const detailed: { id: string; config: string | null }[] = [];
+  for (const t of toArray(tags)) {
+    if (typeof t === "string") {
+      ids.push(t);
+    } else if (t && typeof t === "object" && "id" in t) {
+      // t can be ITagDefinition or ITagWithConfig
+      const id = String((t as any).id);
+      ids.push(id);
+      const config = (t as any).config ?? null;
+      detailed.push({ id, config: stringifyIfObject(config) });
+    }
+  }
+  return { ids: Array.from(new Set(ids)), detailed };
+}
+
 export function findById(collection: any, id: string): any | undefined {
   if (!collection) return undefined;
   if (collection instanceof Map) return collection.get(id);
@@ -60,13 +82,25 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
   const depsObj = normalizeDependencies(task?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
+  const middlewareDetailed = (task.middleware || []).map((m: any) => ({
+    id: String(m.id),
+    config: m[definitions.symbolMiddlewareConfigured]
+      ? stringifyIfObject(m.config)
+      : null,
+  }));
 
   return {
     id: task.id.toString(),
-    meta: task.meta ?? null,
+    meta: (() => {
+      const base = task.meta ?? null;
+      if (!base) return base;
+      const { ids, detailed } = normalizeTags((base as any).tags);
+      return { ...base, tags: ids, tagsDetailed: detailed } as any;
+    })(),
     filePath: task[definitions.symbolFilePath],
     dependsOn: resourceIdsFromDeps,
     middleware: task.middleware.map((m) => m.id.toString()),
+    middlewareDetailed,
     kind: "TASK",
     // Emits any events present in its dependencies
     emits: eventIdsFromDeps,
@@ -79,14 +113,26 @@ export function mapStoreTaskToListenerModel(
   const depsObj = normalizeDependencies(task?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
+  const middlewareDetailed = (task.middleware || []).map((m: any) => ({
+    id: String(m.id),
+    config: m[definitions.symbolMiddlewareConfigured]
+      ? stringifyIfObject(m.config)
+      : null,
+  }));
 
   return {
     id: task.id.toString(),
-    meta: task.meta ?? null,
+    meta: (() => {
+      const base = task.meta ?? null;
+      if (!base) return base;
+      const { ids, detailed } = normalizeTags((base as any).tags);
+      return { ...base, tags: ids, tagsDetailed: detailed } as any;
+    })(),
     filePath: task[definitions.symbolFilePath] ?? null,
     emits: eventIdsFromDeps,
     dependsOn: resourceIdsFromDeps,
     middleware: task.middleware.map((m) => m.id.toString()),
+    middlewareDetailed,
     // They are stored later.
     overriddenBy: null,
     kind: "LISTENER",
@@ -109,13 +155,25 @@ export function mapStoreResourceToResourceModel(
 
   const depsObj = normalizeDependencies(resource?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
+  const middlewareDetailed = (resource.middleware || []).map((m: any) => ({
+    id: String(m.id),
+    config: m[definitions.symbolMiddlewareConfigured]
+      ? stringifyIfObject(m.config)
+      : null,
+  }));
 
   return {
     id: resource.id.toString(),
-    meta: resource.meta ?? null,
+    meta: (() => {
+      const base = resource.meta ?? null;
+      if (!base) return base;
+      const { ids, detailed } = normalizeTags((base as any).tags);
+      return { ...base, tags: ids, tagsDetailed: detailed } as any;
+    })(),
     emits: eventIdsFromDeps,
     filePath: resource[definitions.symbolFilePath] ?? null,
     middleware: resource.middleware.map((m) => m.id.toString()),
+    middlewareDetailed,
     overrides: resource.overrides.map((o) => o.id.toString()),
     registers: register.map((r) => r.id.toString()) as string[],
     context: stringifyIfObject(resource.context),
@@ -128,9 +186,9 @@ export function buildEvents(
   listeners: Listener[],
   resources: Resource[]
 ): Event[] {
-  const eventIdsFromStore: string[] = toArray(eventsCollection)
-    .map((e: any) => readId(e))
-    .filter(Boolean) as string[];
+  const eventIdsFromStore: string[] = eventsCollection.map((e) =>
+    e.id.toString()
+  );
   const inferredFromTasks = tasks.flatMap((t) => t.emits || []);
   const inferredFromListeners = listeners.map((l) => l.event);
   const inferredFromResources = resources.flatMap((r) => r.emits || []);
@@ -156,26 +214,31 @@ export function buildEvents(
 }
 
 export function buildMiddlewares(
-  middlewaresCollection: any,
+  middlewaresCollection: definitions.IMiddleware[],
   tasks: Task[],
   listeners: Listener[],
   resources: Resource[]
 ): Middleware[] {
-  return toArray(middlewaresCollection).map((m: any) => {
-    const mw = m && m.middleware ? m.middleware : m;
+  return toArray(middlewaresCollection).map((entry: any) => {
+    const mw = entry?.middleware ?? entry;
     const id = readId(mw);
-    const globalConf = mw?.global ?? mw?.config?.global ?? undefined;
-    const globalValue = globalConf
+
+    // Global flags are stored via .everywhere({ tasks?, resources? })
+    const isEverywhereTasks = Boolean(
+      Reflect.get(mw, definitions.symbolMiddlewareEverywhereTasks)
+    );
+    const isEverywhereResources = Boolean(
+      Reflect.get(mw, definitions.symbolMiddlewareEverywhereResources)
+    );
+    const hasEverywhere = isEverywhereTasks || isEverywhereResources;
+
+    const globalValue = hasEverywhere
       ? {
-          enabled: Boolean(globalConf.enabled ?? globalConf?.active ?? false),
-          tasks: ensureStringArray(
-            globalConf.tasks ?? globalConf?.taskIds ?? []
-          ),
-          resources: ensureStringArray(
-            globalConf.resources ?? globalConf?.resourceIds ?? []
-          ),
+          enabled: true,
+          tasks: isEverywhereTasks,
+          resources: isEverywhereResources,
         }
-      : undefined;
+      : { enabled: false, tasks: false, resources: false };
 
     const usedByTasks = [...tasks, ...listeners]
       .filter((t) => (t.middleware || []).includes(id))
@@ -188,11 +251,8 @@ export function buildMiddlewares(
       id,
       meta: mw?.meta ?? null,
       filePath:
-        (mw && mw[definitions.symbolFilePath]) ||
-        mw?.filePath ||
-        mw?.path ||
-        null,
-      global: globalValue ?? null,
+        mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null,
+      global: globalValue,
       usedByTasks,
       usedByResources,
       overriddenBy: mw?.overriddenBy ?? null,

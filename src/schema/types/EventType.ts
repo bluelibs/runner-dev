@@ -7,7 +7,8 @@ import {
   type GraphQLFieldConfigMap,
 } from "graphql";
 
-import { BaseElementInterface, MetaType } from "./AllType";
+import { BaseElementInterface } from "./AllType";
+import { MetaType } from "./MetaType";
 import { TaskInterface } from "./TaskType";
 import { CustomGraphQLContext } from "../../graphql/context";
 

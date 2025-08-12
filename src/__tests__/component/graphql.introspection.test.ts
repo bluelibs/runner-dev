@@ -73,6 +73,8 @@ describe("GraphQL schema (integration)", () => {
         }
         events {
           id
+          emittedBy
+          emittedByResolved { id }
           listenedToBy
           listenedToByResolved { id }
         }

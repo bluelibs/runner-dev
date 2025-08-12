@@ -9,6 +9,7 @@ import {
 
 import { BaseElementInterface, MetaType } from "./AllType";
 import { TaskInterface } from "./TaskType";
+import { CustomGraphQLContext } from "../../graphql/context";
 
 export const EventType: GraphQLObjectType = new GraphQLObjectType({
   name: "Event",
@@ -18,6 +19,22 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
     id: { description: "Event id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Event metadata", type: MetaType },
     filePath: { description: "Path to event file", type: GraphQLString },
+    emittedBy: {
+      description: "Ids of task/listener nodes that emit this event",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+      resolve: (node, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getEmittersOfEvent(node.id).map((t: any) => t.id),
+    },
+    emittedByResolved: {
+      description: "Task/listener nodes that emit this event (resolved)",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(TaskInterface))
+      ),
+      resolve: (node, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getEmittersOfEvent(node.id),
+    },
     listenedToBy: {
       description: "Ids of task/listener nodes listening to this event",
       type: new GraphQLNonNull(

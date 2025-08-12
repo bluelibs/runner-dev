@@ -86,14 +86,17 @@ export const TaskInterface = new GraphQLInterfaceType({
   }),
   resolveType: (value) => {
     const node = value as Task | Listener;
-    return node.kind === "LISTENER" ? "Listener" : "Task";
+    return typeof (node as Listener).event === "string" ? "Listener" : "Task";
   },
 });
 
 export const TaskType = new GraphQLObjectType({
   name: "Task",
   interfaces: [TaskInterface, BaseElementInterface],
-  isTypeOf: (value) => (value as any)?.kind === "TASK",
+  isTypeOf: (value) =>
+    Array.isArray((value as any)?.emits) &&
+    Array.isArray((value as any)?.dependsOn) &&
+    !("event" in (value as any)),
   fields: () => ({
     id: { description: "Task id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Task metadata", type: MetaType },
@@ -198,7 +201,7 @@ export const TaskType = new GraphQLObjectType({
 export const ListenerType = new GraphQLObjectType({
   name: "Listener",
   interfaces: [TaskInterface, BaseElementInterface],
-  isTypeOf: (value) => (value as any)?.kind === "LISTENER",
+  isTypeOf: (value) => typeof (value as any)?.event === "string",
   fields: () => ({
     id: { description: "Listener id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Listener metadata", type: MetaType },

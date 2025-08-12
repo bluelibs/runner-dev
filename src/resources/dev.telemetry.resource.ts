@@ -16,13 +16,13 @@ const telemetryMiddleware = middleware({
       return next(task.input as any);
     }
 
-    const nodeKind: "TASK" | "LISTENER" = (task?.definition as any)?.on
+    const nodeKind: "TASK" | "LISTENER" = task.definition.on
       ? "LISTENER"
       : "TASK";
 
     const startedAt = Date.now();
     try {
-      const result = await next(task?.input as any);
+      const result = await next(task.input);
       const durationMs = Date.now() - startedAt;
       try {
         live.recordRun(id, nodeKind, durationMs, true);

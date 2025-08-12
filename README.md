@@ -10,7 +10,7 @@ npm install @bluelibs/runner-dev
 
 ## What you get
 
-- Introspector: programmatic API to inspect tasks, listeners, resources, events, and middleware
+- Introspector: programmatic API to inspect tasks, listeners, resources, events, middleware, and diagnostics
 - Live: in-memory logs and event emissions
 - GraphQL server: deep graph navigation over your app’s topology and live data
 
@@ -57,6 +57,15 @@ export const probe = resource({
     const middlewares = introspector.getMiddlewares(); // Middleware[]
 
     const deps = introspector.getDependencies(tasks[0]); // tasks/listeners/resources/emitters
+
+    // Diagnostics
+    const diagnostics = introspector.getDiagnostics();
+    // Or granular helpers
+    // introspector.getOrphanEvents();
+    // introspector.getUnemittedEvents();
+    // introspector.getUnusedMiddleware();
+    // introspector.getMissingFiles();
+    // introspector.getOverrideConflicts();
   },
 });
 ```
@@ -79,6 +88,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
   - `middleware(id: ID!): Middleware`, `middlewares: [Middleware!]!`
   - `resource(id: ID!): Resource`, `resources: [Resource!]!`
   - `live: Live!`
+  - `diagnostics: [Diagnostic!]!`
 
 - All
 
@@ -116,8 +126,27 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
   - `overriddenBy: String`
 
 - Live
-  - `logs(afterTimestamp: Float): [LogEntry!]!` → `LogEntry { timestampMs, level, message, data }`
-  - `emissions(afterTimestamp: Float): [EmissionEntry!]!` → `EmissionEntry { timestampMs, eventId, emitterId, payload }`
+
+  - `logs(afterTimestamp: Float, last: Int, filter: LogFilterInput): [LogEntry!]!`
+    - `LogEntry { timestampMs, level, message, data }`
+    - `LogFilterInput { levels: [LogLevelEnum!], messageIncludes: String }`
+  - `emissions(afterTimestamp: Float, last: Int, filter: EmissionFilterInput): [EmissionEntry!]!`
+    - `EmissionEntry { timestampMs, eventId, emitterId, payload }`
+    - `EmissionFilterInput { eventIds: [String!], emitterIds: [String!] }`
+  - `errors(afterTimestamp: Float, last: Int, filter: ErrorFilterInput): [ErrorEntry!]!`
+    - `ErrorEntry { timestampMs, sourceId, sourceKind, message, stack, data }`
+    - `ErrorFilterInput { sourceKinds: [SourceKindEnum!], sourceIds: [ID!], messageIncludes: String }`
+  - `runs(afterTimestamp: Float, last: Int, filter: RunFilterInput): [RunRecord!]!`
+    - `RunRecord { timestampMs, nodeId, nodeKind, durationMs, ok, error }`
+    - `RunFilterInput { nodeKinds: [NodeKindEnum!], nodeIds: [String!], ok: Boolean }`
+
+  Enums: `LogLevelEnum` = `trace|debug|info|warn|error|fatal|log`, `SourceKindEnum` = `TASK|LISTENER|RESOURCE|MIDDLEWARE|INTERNAL`, `NodeKindEnum` = `TASK|LISTENER`.
+
+- Diagnostics
+
+  - `Diagnostic { severity: String!, code: String!, message: String!, nodeId: ID, nodeKind: String }`
+  - Exposed via `diagnostics: [Diagnostic!]!` on the root query; diagnostics are computed from the in-memory introspected graph with safe filesystem checks.
+  - Example codes: `ORPHAN_EVENT`, `UNEMITTED_EVENT`, `UNUSED_MIDDLEWARE`, `MISSING_FILE`, `OVERRIDE_CONFLICT`.
 
 ### Example Queries
 
@@ -151,6 +180,20 @@ query {
         id
       }
     }
+  }
+}
+```
+
+- Diagnostics
+
+```graphql
+query {
+  diagnostics {
+    severity
+    code
+    message
+    nodeId
+    nodeKind
   }
 }
 ```
@@ -202,7 +245,7 @@ The `live` resource records:
 - Logs emitted via `globals.events.log`
 - All event emissions (via an internal global `on: "*"` listener)
 
-GraphQL:
+GraphQL (basic):
 
 ```graphql
 query {
@@ -219,11 +262,60 @@ query {
       emitterId
       payload # stringified JSON if object, otherwise null
     }
+    errors(afterTimestamp: 0) {
+      timestampMs
+      sourceId
+      sourceKind
+      message
+    }
+    runs(afterTimestamp: 0) {
+      timestampMs
+      nodeId
+      nodeKind
+      durationMs
+      ok
+    }
   }
 }
 ```
 
 Filter by timestamp (ms) to retrieve only recent entries.
+
+GraphQL (with filters and last):
+
+```graphql
+query {
+  live {
+    logs(
+      last: 100
+      filter: { levels: [debug, error], messageIncludes: "probe" }
+    ) {
+      timestampMs
+      level
+      message
+    }
+    emissions(
+      last: 50
+      filter: { eventIds: ["evt.hello"], emitterIds: ["task.id"] }
+    ) {
+      eventId
+      emitterId
+    }
+    errors(
+      last: 10
+      filter: { sourceKinds: [TASK, RESOURCE], messageIncludes: "boom" }
+    ) {
+      sourceKind
+      message
+    }
+    runs(afterTimestamp: 0, last: 5, filter: { ok: true, nodeKinds: [TASK] }) {
+      nodeId
+      durationMs
+      ok
+    }
+  }
+}
+```
 
 ## Emitting Events (Runner-native)
 
@@ -261,14 +353,9 @@ import { globals, task } from "@bluelibs/runner";
 
 export const logSomething = task({
   id: "task.log",
-  dependencies: { emitLog: globals.events.log },
-  async run(_i, { emitLog }) {
-    await emitLog({
-      timestamp: new Date(),
-      level: "info",
-      message: "Something happened",
-      data: { context: "demo" },
-    });
+  dependencies: { logger: globals.resources.logger },
+  async run(_i, { logger }) {
+    logger.info("Hello world!");
   },
 });
 ```
@@ -296,3 +383,14 @@ export const logSomething = task({
   - Overrides, middleware usage, and deep traversal
   - Live logs and emissions (with timestamp filtering)
 - Contributions welcome!
+
+### Type-safe GraphQL resolvers
+
+- We generate resolver arg types from the schema using GraphQL Code Generator.
+- Run this after any schema change:
+
+```bash
+npm run codegen
+```
+
+- Generated types are in `src/generated/resolvers-types.ts` and used in schema resolvers (for example `LiveLogsArgs`, `QueryEventArgs`).

@@ -10,3 +10,4 @@ export {
   EmissionEntryType,
   ErrorEntryType,
 } from "./LiveType";
+export { DiagnosticType } from "./DiagnosticsType";

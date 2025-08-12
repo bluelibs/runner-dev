@@ -89,3 +89,12 @@ export interface Resource extends BaseElement {
   registers: string[];
   context?: string | null;
 }
+
+// Diagnostics
+export interface DiagnosticItem {
+  severity: string;
+  code: string;
+  message: string;
+  nodeId?: string;
+  nodeKind?: string;
+}

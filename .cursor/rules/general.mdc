@@ -13,5 +13,7 @@ alwaysApply: true
 - IMPORTANT REITERATION: Do not write, not accept code that forces (as any) just to satisfy something. Stop and ask if you are unsure.
 - After every implementation suggest 3 possible ways to improve it.
 - Avoid almost completely having logic in GraphQL resolvers, move to other simple functions, to resources or even tasks (within Runner framework ecosystem)
+- When creating types always strive to provide verbose description and helpful dev guides.
 - Everything we do should have a test and we can run tests for it "npm run test -- {context}"
-- If the changes is a new feature or a change we should at the end, after tests are passing, see how we can update README.md intelligently
+- If the changes is a new feature or a change we should at the end, after tests are passing, see how we can update README.md intelligently.
+- If you make schema changes to GraphQL, ensure you work in a type-safe manner (npm run codegen) to update the types.

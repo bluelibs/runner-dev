@@ -205,9 +205,25 @@ describe("GraphQL Live (integration)", () => {
       query WithFilters {
         live {
           logs(last: 2, filter: { levels: [debug], messageIncludes: "dbg" }) { message level }
-          emissions(last: 1, filter: { eventIds: ["evt.hello"], emitterIds: ["probe.graphql-live.filters"] }) { eventId emitterId }
-          errors(last: 5, filter: { sourceKinds: [TASK], messageIncludes: "boom" }) { message sourceKind }
-          runs(afterTimestamp: 0, last: 50, filter: { ok: true, nodeKinds: [TASK] }) { ok nodeKind }
+          emissions(
+            last: 1
+            filter: { eventIds: ["evt.hello"], emitterIds: ["probe.graphql-live.filters"] }
+          ) {
+            eventId
+            emitterId
+            eventResolved { id }
+            emitterResolved { id }
+          }
+          errors(last: 5, filter: { sourceKinds: [TASK], messageIncludes: "boom" }) {
+            message
+            sourceKind
+            sourceResolved { id }
+          }
+          runs(afterTimestamp: 0, last: 50, filter: { ok: true, nodeKinds: [LISTENER] }) {
+            ok
+            nodeKind
+            nodeResolved { id }
+          }
         }
       }
     `;
@@ -227,6 +243,8 @@ describe("GraphQL Live (integration)", () => {
     expect(data.live.emissions.length).toBe(1);
     expect(data.live.emissions[0].eventId).toBe("evt.hello");
     expect(data.live.emissions[0].emitterId).toBe("probe.graphql-live.filters");
+    expect(data.live.emissions[0].eventResolved?.id).toBe("evt.hello");
+    expect(typeof data.live.emissions[0].emitterResolved?.id).toBe("string");
 
     // errors: include the boom error coming from a task
     const hasBoom = data.live.errors.some((e: any) =>
@@ -237,12 +255,16 @@ describe("GraphQL Live (integration)", () => {
       (e: any) => e.sourceKind === "TASK"
     );
     expect(allTaskErrors).toBe(true);
+    expect(typeof data.live.errors[0].sourceResolved?.id).toBe("string");
 
     // runs: filtered to ok tasks only
     expect(Array.isArray(data.live.runs)).toBe(true);
     const allOkTasks = data.live.runs.every(
-      (r: any) => r.ok === true && r.nodeKind === "TASK"
+      (r: any) => r.ok === true && r.nodeKind === "LISTENER"
     );
     expect(allOkTasks).toBe(true);
+    if (data.live.runs.length > 0) {
+      expect(typeof data.live.runs[0].nodeResolved?.id).toBe("string");
+    }
   });
 });

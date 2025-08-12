@@ -10,6 +10,7 @@ import {
 import { readFile } from "../../graphql/utils";
 import { All } from "../model";
 import { MetaType } from "./MetaType";
+import type { AllFileContentsArgs } from "../../generated/resolvers-types";
 
 export const BaseElementInterface: GraphQLInterfaceType =
   new GraphQLInterfaceType({
@@ -30,16 +31,24 @@ export const BaseElementInterface: GraphQLInterfaceType =
       },
     }),
     resolveType: (value: any) => {
-      if (value?.kind === "LISTENER") return "Listener";
-      if (value?.kind === "TASK") return "Task";
-      if (Array.isArray(value?.registers) && Array.isArray(value?.overrides))
+      if (Array.isArray(value?.registers) && Array.isArray(value?.overrides)) {
         return "Resource";
+      }
       if (
         Array.isArray(value?.usedByTasks) &&
         Array.isArray(value?.usedByResources)
-      )
+      ) {
         return "Middleware";
-      if (Array.isArray(value?.listenedToBy)) return "Event";
+      }
+      if (Array.isArray(value?.listenedToBy)) {
+        return "Event";
+      }
+      if (typeof value?.event === "string") {
+        return "Listener";
+      }
+      if (Array.isArray(value?.emits) && Array.isArray(value?.dependsOn)) {
+        return "Task";
+      }
       return "All";
     },
   });
@@ -75,7 +84,7 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       },
       resolve: async (
         node: { filePath?: string | null },
-        args: { startLine?: number | null; endLine?: number | null }
+        args: AllFileContentsArgs
       ) => {
         if (!node?.filePath) return null;
         return await readFile(node.filePath, args);

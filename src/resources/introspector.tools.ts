@@ -6,6 +6,9 @@ import type {
   Middleware,
 } from "../schema/model";
 import { definitions } from "@bluelibs/runner";
+import type { Introspector } from "./introspector.resource";
+import type { DiagnosticItem } from "../schema/model";
+import { accessSync, constants as fsConstants } from "fs";
 
 export function toArray(collection: any): any[] {
   if (!collection) return [];
@@ -345,4 +348,158 @@ function extractResourceIdsFromDependencies(
     }
   }
   return Array.from(new Set(result));
+}
+
+// Diagnostics helpers
+export function computeOrphanEvents(
+  introspector: Introspector
+): { id: string }[] {
+  // Events with no specific listeners (wildcard listeners are ignored by buildEvents)
+  const events = introspector.getEvents();
+  return events
+    .filter((e) => (e.listenedToBy ?? []).length === 0)
+    .map((e) => ({ id: e.id }));
+}
+
+export function computeUnemittedEvents(
+  introspector: Introspector
+): { id: string }[] {
+  const events = introspector.getEvents();
+  return events
+    .filter((e) => introspector.getEmittersOfEvent(e.id).length === 0)
+    .map((e) => ({ id: e.id }));
+}
+
+export function computeUnusedMiddleware(
+  introspector: Introspector
+): { id: string }[] {
+  const middlewares = introspector.getMiddlewares();
+  return middlewares
+    .filter((m) => {
+      const used =
+        (m.usedByTasks?.length ?? 0) > 0 ||
+        (m.usedByResources?.length ?? 0) > 0;
+      const globalEnabled = Boolean(m.global?.enabled);
+      return !used && !globalEnabled;
+    })
+    .map((m) => ({ id: m.id }));
+}
+
+export function computeMissingFiles(
+  introspector: Introspector
+): Array<{ id: string; filePath: string }> {
+  const nodes: Array<{ id: string; filePath: string | null | undefined }> = [];
+  nodes.push(
+    ...introspector.getTasks().map((t) => ({ id: t.id, filePath: t.filePath })),
+    ...introspector
+      .getListeners()
+      .map((l) => ({ id: l.id, filePath: l.filePath })),
+    ...introspector
+      .getResources()
+      .map((r) => ({ id: r.id, filePath: r.filePath })),
+    ...introspector
+      .getEvents()
+      .map((e) => ({ id: e.id, filePath: e.filePath })),
+    ...introspector
+      .getMiddlewares()
+      .map((m) => ({ id: m.id, filePath: m.filePath }))
+  );
+
+  const result: Array<{ id: string; filePath: string }> = [];
+  for (const n of nodes) {
+    if (!n.filePath) continue;
+    try {
+      accessSync(n.filePath, fsConstants.R_OK);
+    } catch {
+      result.push({ id: n.id, filePath: n.filePath });
+    }
+  }
+  return result;
+}
+
+export function computeOverrideConflicts(
+  introspector: Introspector
+): Array<{ targetId: string; by: string }> {
+  // If multiple resources declare overrides for the same target, it is a conflict.
+  const resources = introspector.getResources();
+  const targetToBy = new Map<string, Set<string>>();
+  for (const r of resources) {
+    for (const target of r.overrides ?? []) {
+      if (!targetToBy.has(target)) targetToBy.set(target, new Set());
+      targetToBy.get(target)!.add(r.id);
+    }
+  }
+  const result: Array<{ targetId: string; by: string }> = [];
+  for (const [target, bySet] of targetToBy) {
+    if (bySet.size > 1) {
+      for (const by of bySet) {
+        result.push({ targetId: target, by });
+      }
+    }
+  }
+  // stable ordering
+  result.sort((a, b) =>
+    a.targetId === b.targetId
+      ? a.by.localeCompare(b.by)
+      : a.targetId.localeCompare(b.targetId)
+  );
+  return result;
+}
+
+export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
+  const diags: DiagnosticItem[] = [];
+
+  for (const e of computeOrphanEvents(introspector)) {
+    diags.push({
+      severity: "warning",
+      code: "ORPHAN_EVENT",
+      message: `Event has no listeners: ${e.id}`,
+      nodeId: e.id,
+      nodeKind: "EVENT",
+    });
+  }
+  for (const e of computeUnemittedEvents(introspector)) {
+    diags.push({
+      severity: "warning",
+      code: "UNEMITTED_EVENT",
+      message: `Event has no emitters: ${e.id}`,
+      nodeId: e.id,
+      nodeKind: "EVENT",
+    });
+  }
+  for (const m of computeUnusedMiddleware(introspector)) {
+    diags.push({
+      severity: "info",
+      code: "UNUSED_MIDDLEWARE",
+      message: `Middleware is defined but not used: ${m.id}`,
+      nodeId: m.id,
+      nodeKind: "MIDDLEWARE",
+    });
+  }
+  for (const n of computeMissingFiles(introspector)) {
+    diags.push({
+      severity: "warning",
+      code: "MISSING_FILE",
+      message: `File not readable: ${n.filePath}`,
+      nodeId: n.id,
+    });
+  }
+  for (const c of computeOverrideConflicts(introspector)) {
+    diags.push({
+      severity: "error",
+      code: "OVERRIDE_CONFLICT",
+      message: `Override conflict on ${c.targetId} by ${c.by}`,
+      nodeId: c.targetId,
+    });
+  }
+
+  diags.sort((a, b) => {
+    if (a.code !== b.code) return a.code.localeCompare(b.code);
+    const an = a.nodeId ?? "";
+    const bn = b.nodeId ?? "";
+    if (an !== bn) return an.localeCompare(bn);
+    return a.message.localeCompare(b.message);
+  });
+
+  return diags;
 }

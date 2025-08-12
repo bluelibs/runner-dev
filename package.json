@@ -20,7 +20,8 @@
     "test:ci": "npm run coverage -- --ci --maxWorkers=2  --reporters=default --reporters=jest-junit",
     "prepublishOnly": "npm run build",
     "typedoc": "typedoc --options typedoc.json",
-    "benchmark": "jest --testMatch=\"**/__tests__/benchmark/benchmark.test.ts\" --testTimeout 10000"
+    "benchmark": "jest --testMatch=\"**/__tests__/benchmark/benchmark.test.ts\" --testTimeout 10000",
+    "codegen": "graphql-codegen --config codegen.ts"
   },
   "devDependencies": {
     "@types/benchmark": "^2.1.5",
@@ -42,6 +43,11 @@
     "source-map-support": "^0.5.13",
     "ts-jest": "^29.0.0",
     "typedoc": "^0.26.7",
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typescript": "^4.0.7",
+    "@graphql-codegen/typescript-resolvers": "^4.4.0",
+    "@graphql-codegen/schema-ast": "^4.1.0",
+    "ts-node": "^10.9.2",
     "typedoc-material-theme": "^1.1.0",
     "typescript": "^5.6.2"
   },

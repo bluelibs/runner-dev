@@ -14,7 +14,14 @@ import {
   ResourceType,
   TaskType,
   LiveType,
+  DiagnosticType,
 } from "./types/index";
+import type {
+  QueryEventArgs,
+  QueryMiddlewareArgs,
+  QueryResourceArgs,
+  QueryTaskArgs,
+} from "../generated/resolvers-types";
 
 export const QueryType = new GraphQLObjectType({
   name: "Query",
@@ -27,7 +34,7 @@ export const QueryType = new GraphQLObjectType({
     event: {
       type: EventType,
       args: { id: { type: new GraphQLNonNull(GraphQLID) } },
-      resolve: (_root, args, ctx: CustomGraphQLContext) =>
+      resolve: (_root, args: QueryEventArgs, ctx: CustomGraphQLContext) =>
         ctx.introspector.getEvent(args.id),
     },
     events: {
@@ -38,7 +45,7 @@ export const QueryType = new GraphQLObjectType({
     task: {
       type: TaskType,
       args: { id: { type: new GraphQLNonNull(GraphQLID) } },
-      resolve: (_root, args, ctx: CustomGraphQLContext) =>
+      resolve: (_root, args: QueryTaskArgs, ctx: CustomGraphQLContext) =>
         ctx.introspector.getTask(args.id),
     },
     tasks: {
@@ -56,7 +63,7 @@ export const QueryType = new GraphQLObjectType({
     middleware: {
       type: MiddlewareType,
       args: { id: { type: new GraphQLNonNull(GraphQLID) } },
-      resolve: (_root, args, ctx: CustomGraphQLContext) =>
+      resolve: (_root, args: QueryMiddlewareArgs, ctx: CustomGraphQLContext) =>
         ctx.introspector.getMiddleware(args.id),
     },
     middlewares: {
@@ -69,7 +76,7 @@ export const QueryType = new GraphQLObjectType({
     resource: {
       type: ResourceType,
       args: { id: { type: new GraphQLNonNull(GraphQLID) } },
-      resolve: (_root, args, ctx: CustomGraphQLContext) =>
+      resolve: (_root, args: QueryResourceArgs, ctx: CustomGraphQLContext) =>
         ctx.introspector.getResource(args.id),
     },
     resources: {
@@ -82,6 +89,13 @@ export const QueryType = new GraphQLObjectType({
     live: {
       type: new GraphQLNonNull(LiveType),
       resolve: () => ({}),
+    },
+    diagnostics: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(DiagnosticType))
+      ),
+      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getDiagnostics(),
     },
   }),
 });

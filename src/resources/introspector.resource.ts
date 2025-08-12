@@ -10,6 +10,14 @@ import {
   buildIdMap,
   attachOverrides,
 } from "./introspector.tools";
+import {
+  buildDiagnostics,
+  computeMissingFiles,
+  computeOrphanEvents,
+  computeOverrideConflicts,
+  computeUnemittedEvents,
+  computeUnusedMiddleware,
+} from "./introspector.tools";
 import type {
   All,
   Event,
@@ -61,6 +69,19 @@ export interface Introspector {
     middlewareId: string
   ): Array<{ id: string; config: string | null; node: Resource }>;
   getEmittedEventsForResource(resourceId: string): Event[];
+  // Diagnostics API
+  getOrphanEvents(): { id: string }[];
+  getUnemittedEvents(): { id: string }[];
+  getUnusedMiddleware(): { id: string }[];
+  getMissingFiles(): Array<{ id: string; filePath: string }>;
+  getOverrideConflicts(): Array<{ targetId: string; by: string }>;
+  getDiagnostics(): Array<{
+    severity: string;
+    code: string;
+    message: string;
+    nodeId?: string;
+    nodeKind?: string;
+  }>;
 }
 
 export const introspector = resource({
@@ -268,6 +289,13 @@ export const introspector = resource({
         }
         return api.getEventsByIds(Array.from(emitted));
       },
+      // Diagnostics
+      getOrphanEvents: () => computeOrphanEvents(api),
+      getUnemittedEvents: () => computeUnemittedEvents(api),
+      getUnusedMiddleware: () => computeUnusedMiddleware(api),
+      getMissingFiles: () => computeMissingFiles(api),
+      getOverrideConflicts: () => computeOverrideConflicts(api),
+      getDiagnostics: () => buildDiagnostics(api),
     };
 
     return api;

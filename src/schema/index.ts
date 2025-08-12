@@ -12,6 +12,7 @@ import {
   TaskInterface,
   TaskType,
   LiveType,
+  DiagnosticType,
 } from "./types/index";
 
 export const schema = new GraphQLSchema({
@@ -28,6 +29,7 @@ export const schema = new GraphQLSchema({
     TaskInterface,
     TaskType,
     LiveType,
+    DiagnosticType,
   ],
 });
 

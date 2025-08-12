@@ -10,3 +10,6 @@ alwaysApply: true
 - Never rely on 'any' unless asked by User. Always strive to reach 100% typesafety and great DX.
 - Important: ask questions when you are not confident in your approach. Ask them in a easy way to answer for the user.
 - Do not rely to (as any) to fix issues. Stop and ask, better than being type unsafe.
+- After every implementation suggest 3 possible ways to improve it.
+- Avoid almost completely having logic in GraphQL resolvers, move to other simple functions, to resources or even tasks (within Runner framework ecosystem)
+- Everything we do should have a test and we can run tests for it "npm run test -- {context}"

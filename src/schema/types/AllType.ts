@@ -3,10 +3,11 @@ import {
   GraphQLInterfaceType,
   GraphQLNonNull,
   GraphQLObjectType,
+  GraphQLInt,
   GraphQLString,
   type GraphQLFieldConfigMap,
 } from "graphql";
-import { promises as fs } from "fs";
+import { readFile } from "../../graphql/utils";
 import { All } from "../model";
 import { MetaType } from "./MetaType";
 
@@ -59,15 +60,25 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       type: GraphQLString,
     },
     fileContents: {
-      description: "Contents of the file at filePath (if accessible)",
+      description:
+        "Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine.",
       type: GraphQLString,
-      resolve: async (node: { filePath?: string | null }) => {
+      args: {
+        startLine: {
+          description: "1-based inclusive start line",
+          type: GraphQLInt,
+        },
+        endLine: {
+          description: "1-based inclusive end line",
+          type: GraphQLInt,
+        },
+      },
+      resolve: async (
+        node: { filePath?: string | null },
+        args: { startLine?: number | null; endLine?: number | null }
+      ) => {
         if (!node?.filePath) return null;
-        try {
-          return await fs.readFile(node.filePath, "utf8");
-        } catch {
-          return null;
-        }
+        return await readFile(node.filePath, args);
       },
     },
     markdownDescription: {

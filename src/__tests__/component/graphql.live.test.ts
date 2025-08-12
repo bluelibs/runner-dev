@@ -74,4 +74,63 @@ describe("GraphQL Live (integration)", () => {
     const hasHelloEmission = data.live.emissions.some((e: any) => e.eventId);
     expect(hasHelloEmission).toBe(true);
   });
+
+  test("query live errors after a failing task", async () => {
+    let ctx: any;
+
+    const failing = task({
+      id: "probe.graphql-live.failing",
+      async run() {
+        throw new Error("boom");
+      },
+    });
+
+    const trigger = task({
+      id: "probe.graphql-live.trigger-error",
+      on: globals.events.afterInit,
+      listenerOrder: 1,
+      dependencies: { failing },
+      async run(_e, { failing }) {
+        try {
+          await failing();
+        } catch {
+          // noop
+        }
+      },
+    });
+
+    const probe = resource({
+      id: "probe.graphql-live-errors",
+      register: [failing, trigger],
+      dependencies: { live, introspector },
+      async init(_config, { live, introspector }) {
+        ctx = { store: undefined, logger: console, introspector, live };
+      },
+    });
+
+    const app = createDummyApp([live, introspector, probe]);
+    await run(app);
+
+    const query = `
+      query LiveErrors($ts: Float) {
+        live {
+          errors(afterTimestamp: $ts) { timestampMs sourceId sourceKind message stack }
+        }
+      }
+    `;
+
+    const result = await graphql({
+      schema,
+      source: query,
+      contextValue: ctx,
+      variableValues: { ts: 0 },
+    });
+    expect(result.errors).toBeUndefined();
+    const data: any = result.data;
+    expect(Array.isArray(data.live.errors)).toBe(true);
+    const hasBoom = data.live.errors.some((e: any) =>
+      e.message.includes("boom")
+    );
+    expect(hasBoom).toBe(true);
+  });
 });

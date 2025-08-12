@@ -1,5 +1,6 @@
 import {
   GraphQLFloat,
+  GraphQLID,
   GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
@@ -46,6 +47,27 @@ export const EmissionEntryType = new GraphQLObjectType({
   }),
 });
 
+export const ErrorEntryType = new GraphQLObjectType({
+  name: "ErrorEntry",
+  fields: () => ({
+    timestampMs: { type: new GraphQLNonNull(GraphQLFloat) },
+    sourceId: { type: new GraphQLNonNull(GraphQLID) },
+    sourceKind: { type: new GraphQLNonNull(GraphQLString) },
+    message: { type: new GraphQLNonNull(GraphQLString) },
+    stack: { type: GraphQLString },
+    data: {
+      description: "Stringified JSON if object",
+      type: GraphQLString,
+      resolve: (node: any) =>
+        node?.data == null
+          ? null
+          : typeof node.data === "string"
+          ? node.data
+          : safeStringify(node.data),
+    },
+  }),
+});
+
 export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
   name: "Live",
   fields: () => ({
@@ -69,6 +91,17 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
       ),
       resolve: (_root, args, ctx) => {
         return ctx.live.getEmissions(args?.afterTimestamp ?? undefined);
+      },
+    },
+    errors: {
+      args: {
+        afterTimestamp: { type: GraphQLFloat },
+      },
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(ErrorEntryType))
+      ),
+      resolve: (_root, args, ctx) => {
+        return ctx.live.getErrors(args?.afterTimestamp ?? undefined);
       },
     },
   }),

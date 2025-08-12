@@ -1,0 +1,11 @@
+.DS_Store
+TODO.md
+coverage
+dist
+node_modules
+npm-debug.log
+typings
+yarn-error.log
+yarn.lock
+.vscode
+.aider*

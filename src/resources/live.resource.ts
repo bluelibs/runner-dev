@@ -31,10 +31,64 @@ export interface ErrorEntry {
   data?: unknown;
 }
 
+export interface RunRecord {
+  timestampMs: number;
+  nodeId: string;
+  nodeKind: "TASK" | "LISTENER";
+  durationMs: number;
+  ok: boolean;
+  error?: string | null;
+}
+
 export interface Live {
-  getLogs(afterTimestamp?: number): LogEntry[];
-  getEmissions(afterTimestamp?: number): EmissionEntry[];
-  getErrors(afterTimestamp?: number): ErrorEntry[];
+  getLogs(
+    options?:
+      | number
+      | {
+          afterTimestamp?: number;
+          last?: number;
+          levels?: LogLevel[];
+          messageIncludes?: string;
+        }
+  ): LogEntry[];
+  getEmissions(
+    options?:
+      | number
+      | {
+          afterTimestamp?: number;
+          last?: number;
+          eventIds?: string[];
+          emitterIds?: string[];
+        }
+  ): EmissionEntry[];
+  getErrors(
+    options?:
+      | number
+      | {
+          afterTimestamp?: number;
+          last?: number;
+          sourceKinds?: (
+            | "TASK"
+            | "LISTENER"
+            | "RESOURCE"
+            | "MIDDLEWARE"
+            | "INTERNAL"
+          )[];
+          sourceIds?: string[];
+          messageIncludes?: string;
+        }
+  ): ErrorEntry[];
+  getRuns(
+    options?:
+      | number
+      | {
+          afterTimestamp?: number;
+          last?: number;
+          nodeKinds?: ("TASK" | "LISTENER")[];
+          nodeIds?: string[];
+          ok?: boolean;
+        }
+  ): RunRecord[];
   recordLog(level: LogLevel, message: string, data?: unknown): void;
   recordEmission(
     eventId: string,
@@ -47,6 +101,13 @@ export interface Live {
     error: unknown,
     data?: unknown
   ): void;
+  recordRun(
+    nodeId: string,
+    nodeKind: "TASK" | "LISTENER",
+    durationMs: number,
+    ok: boolean,
+    error?: unknown
+  ): void;
 }
 
 const liveService = resource({
@@ -56,6 +117,7 @@ const liveService = resource({
     const logs: LogEntry[] = [];
     const emissions: EmissionEntry[] = [];
     const errors: ErrorEntry[] = [];
+    const runs: RunRecord[] = [];
     const trim = <T>(arr: T[]) => {
       const overflow = arr.length - maxEntries;
       if (overflow > 0) arr.splice(0, overflow);
@@ -73,15 +135,49 @@ const liveService = resource({
       }
     };
 
+    const toOptions = <T extends object>(arg: number | T | undefined): T => {
+      if (typeof arg === "number") {
+        return { ...(arg != null ? { afterTimestamp: arg } : {}) } as T;
+      }
+      return (arg ?? ({} as T)) as T;
+    };
+
+    const sliceLast = <T>(arr: T[], last?: number): T[] => {
+      if (typeof last !== "number") return arr;
+      if (last <= 0) return [];
+      return arr.slice(-last);
+    };
+
     return {
       recordLog(level, message, data) {
         logs.push({ timestampMs: Date.now(), level, message, data });
         trim(logs);
       },
-      getLogs(afterTimestamp) {
-        return typeof afterTimestamp === "number"
-          ? logs.filter((l) => l.timestampMs > afterTimestamp)
-          : [...logs];
+      getLogs(input) {
+        const options = toOptions<{
+          afterTimestamp?: number;
+          last?: number;
+          levels?: LogLevel[];
+          messageIncludes?: string;
+        }>(input);
+
+        let result = [...logs];
+
+        if (typeof options.afterTimestamp === "number") {
+          result = result.filter(
+            (l) => l.timestampMs > options.afterTimestamp!
+          );
+        }
+        if (options.levels && options.levels.length > 0) {
+          const allowed = new Set(options.levels);
+          result = result.filter((l) => allowed.has(l.level));
+        }
+        if (options.messageIncludes) {
+          result = result.filter((l) =>
+            l.message.includes(options.messageIncludes!)
+          );
+        }
+        return sliceLast(result, options.last);
       },
       recordEmission(eventId, payload, emitterId) {
         emissions.push({
@@ -92,10 +188,31 @@ const liveService = resource({
         });
         trim(emissions);
       },
-      getEmissions(afterTimestamp) {
-        return typeof afterTimestamp === "number"
-          ? emissions.filter((e) => e.timestampMs > afterTimestamp)
-          : [...emissions];
+      getEmissions(input) {
+        const options = toOptions<{
+          afterTimestamp?: number;
+          last?: number;
+          eventIds?: string[];
+          emitterIds?: string[];
+        }>(input);
+
+        let result = [...emissions];
+        if (typeof options.afterTimestamp === "number") {
+          result = result.filter(
+            (e) => e.timestampMs > options.afterTimestamp!
+          );
+        }
+        if (options.eventIds && options.eventIds.length > 0) {
+          const allowed = new Set(options.eventIds);
+          result = result.filter((e) => allowed.has(e.eventId));
+        }
+        if (options.emitterIds && options.emitterIds.length > 0) {
+          const allowed = new Set(options.emitterIds);
+          result = result.filter(
+            (e) => e.emitterId != null && allowed.has(String(e.emitterId))
+          );
+        }
+        return sliceLast(result, options.last);
       },
       recordError(sourceId, sourceKind, error, data) {
         const { message, stack } = normalizeError(error);
@@ -109,10 +226,90 @@ const liveService = resource({
         });
         trim(errors);
       },
-      getErrors(afterTimestamp) {
-        return typeof afterTimestamp === "number"
-          ? errors.filter((e) => e.timestampMs > afterTimestamp)
-          : [...errors];
+      getErrors(input) {
+        const options = toOptions<{
+          afterTimestamp?: number;
+          last?: number;
+          sourceKinds?: (
+            | "TASK"
+            | "LISTENER"
+            | "RESOURCE"
+            | "MIDDLEWARE"
+            | "INTERNAL"
+          )[];
+          sourceIds?: string[];
+          messageIncludes?: string;
+        }>(input);
+
+        let result = [...errors];
+        if (typeof options.afterTimestamp === "number") {
+          result = result.filter(
+            (e) => e.timestampMs > options.afterTimestamp!
+          );
+        }
+        if (options.sourceKinds && options.sourceKinds.length > 0) {
+          const allowed = new Set(options.sourceKinds);
+          result = result.filter((e) => allowed.has(e.sourceKind));
+        }
+        if (options.sourceIds && options.sourceIds.length > 0) {
+          const allowed = new Set(options.sourceIds.map(String));
+          result = result.filter((e) => allowed.has(String(e.sourceId)));
+        }
+        if (options.messageIncludes) {
+          result = result.filter((e) =>
+            e.message.includes(options.messageIncludes!)
+          );
+        }
+        return sliceLast(result, options.last);
+      },
+      recordRun(nodeId, nodeKind, durationMs, ok, error) {
+        const errStr = (() => {
+          if (error == null) return null;
+          if (typeof error === "string") return error;
+          if (error instanceof Error) return error.message;
+          try {
+            return JSON.stringify(error);
+          } catch {
+            return String(error);
+          }
+        })();
+        runs.push({
+          timestampMs: Date.now(),
+          nodeId,
+          nodeKind,
+          durationMs,
+          ok,
+          error: errStr,
+        });
+        trim(runs);
+      },
+      getRuns(input) {
+        const options = toOptions<{
+          afterTimestamp?: number;
+          last?: number;
+          nodeKinds?: ("TASK" | "LISTENER")[];
+          nodeIds?: string[];
+          ok?: boolean;
+        }>(input);
+
+        let result = [...runs];
+        if (typeof options.afterTimestamp === "number") {
+          result = result.filter(
+            (r) => r.timestampMs > options.afterTimestamp!
+          );
+        }
+        if (options.nodeKinds && options.nodeKinds.length > 0) {
+          const allowed = new Set(options.nodeKinds);
+          result = result.filter((r) => allowed.has(r.nodeKind));
+        }
+        if (options.nodeIds && options.nodeIds.length > 0) {
+          const allowed = new Set(options.nodeIds.map(String));
+          result = result.filter((r) => allowed.has(String(r.nodeId)));
+        }
+        if (typeof options.ok === "boolean") {
+          result = result.filter((r) => r.ok === options.ok);
+        }
+        return sliceLast(result, options.last);
       },
     };
   },

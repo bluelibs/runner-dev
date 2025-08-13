@@ -23,6 +23,9 @@
     "benchmark": "jest --testMatch=\"**/__tests__/benchmark/benchmark.test.ts\" --testTimeout 10000",
     "codegen": "graphql-codegen --config codegen.ts"
   },
+  "bin": {
+    "runner-dev": "dist/cli.js"
+  },
   "devDependencies": {
     "@types/benchmark": "^2.1.5",
     "@types/express": "^5.0.3",

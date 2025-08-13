@@ -4,10 +4,11 @@ import {
   startStandaloneServer,
   StartStandaloneServerOptions,
 } from "@apollo/server/standalone";
-import { schema } from "../schema";
+import { graphql as graphqlResource } from "./graphql-accumulator.resource";
 import type { CustomGraphQLContext } from "../graphql/context";
 import { introspector } from "./introspector.resource";
 import { live } from "./live.resource";
+import { swapManager } from "./swap.resource";
 
 export interface ServerConfig {
   port?: number;
@@ -21,9 +22,14 @@ export const server = resource({
     logger: globals.resources.logger,
     introspector,
     live,
+    swapManager,
+    graphql: graphqlResource,
   },
-  async init(config: ServerConfig, { store, logger, introspector, live }) {
-    const server = new ApolloServer({ schema });
+  async init(
+    config: ServerConfig,
+    { store, logger, introspector, live, swapManager, graphql }
+  ) {
+    const server = new ApolloServer({ schema: graphql.getSchema() });
     const port = config.port ?? 1337;
     const apolloConfig = config.apollo ?? {};
 
@@ -35,6 +41,7 @@ export const server = resource({
           logger,
           introspector,
           live,
+          swapManager,
         };
       },
       ...apolloConfig,

@@ -16,6 +16,7 @@ import { definitions } from "@bluelibs/runner";
 import type { CustomGraphQLContext } from "../../graphql/context";
 import { ResourceType } from "./ResourceType";
 import { baseElementCommonFields } from "./BaseElementCommon";
+import { sanitizePath } from "../../utils/path";
 
 function safeStringify(value: unknown): string | null {
   if (value == null) return null;
@@ -73,7 +74,11 @@ export const MiddlewareType: GraphQLObjectType = new GraphQLObjectType({
   fields: (): GraphQLFieldConfigMap<any, any> => ({
     id: { description: "Middleware id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Middleware metadata", type: MetaType },
-    filePath: { description: "Path to middleware file", type: GraphQLString },
+    filePath: {
+      description: "Path to middleware file",
+      type: GraphQLString,
+      resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
     global: {
       description: "Global middleware configuration",
       type: MiddlewareGlobalType,

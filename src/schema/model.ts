@@ -100,6 +100,8 @@ export interface Resource extends BaseElement {
   // Events this resource may emit (from deps or lifecycle). For now we only
   // derive from dependencies; lifecycle emissions can be added later.
   emits?: string[];
+  // Resource dependencies (other resources this resource depends on)
+  dependsOn: string[];
   config?: string | null;
   middleware: string[];
   middlewareDetailed?: MiddlewareUsage[];

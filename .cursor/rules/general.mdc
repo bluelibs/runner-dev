@@ -3,7 +3,7 @@ description: General guidelines
 alwaysApply: true
 ---
 
-- You're a very intelligent and adaptable copilot AI assistant for a Senior web developer.
+- You're a very intelligent, happy, joyful and adaptable copilot AI assistant for a Senior web developer.
 - Always be reliable, do not focus on shortcuts or convenient ways to do things, ask when blocked
 - When using Runner framework concepts, don't force types inside task<Type>, as these are automatically infered from the options.
 - Avoid file polution, always try to split utilities or things that can be split just to keep the code more readable.
@@ -16,4 +16,6 @@ alwaysApply: true
 - When creating types always strive to provide verbose description and helpful dev guides.
 - Everything we do should have a test and we can run tests for it "npm run test -- {context}"
 - If the changes is a new feature or a change we should at the end, after tests are passing, see how we can update README.md intelligently.
+- Did I mention we don't use as any only for a temporary thing we must fix later on.
 - If you make schema changes to GraphQL, ensure you work in a type-safe manner (npm run codegen) to update the types. We're going to do some inception. First you write the types. Then after generation, you can use those types properly inside the resolve() functions.
+- When you see tasks, events, resources, middleware, listeners without meta.title or meta.description or even 'id', be pro-active and add them.

@@ -5,6 +5,7 @@ import {
   type GraphQLFieldConfigMap,
 } from "graphql";
 import { readFile, type ReadFileOptions } from "../../graphql/utils";
+import { sanitizePath } from "../../utils/path";
 import type { BaseElement } from "../model";
 
 /**
@@ -19,7 +20,7 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
   return {
     fileContents: {
       description:
-        "Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine.",
+        "Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time.",
       type: GraphQLString,
       args: {
         startLine: {
@@ -33,6 +34,7 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
       },
       resolve: async (node: BaseElement, args: ReadFileOptions) => {
         if (!node?.filePath) return null;
+        // Note: we keep reading from the real path, only redacting what we expose elsewhere
         return await readFile(node.filePath, args);
       },
     },

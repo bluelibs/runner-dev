@@ -14,6 +14,7 @@ import { TaskInterface } from "./TaskType";
 import { CustomGraphQLContext } from "../../graphql/context";
 import { ResourceType } from "./ResourceType";
 import { baseElementCommonFields } from "./BaseElementCommon";
+import { sanitizePath } from "../../utils/path";
 
 export const EventType: GraphQLObjectType = new GraphQLObjectType({
   name: "Event",
@@ -22,7 +23,11 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
   fields: (): GraphQLFieldConfigMap<any, any> => ({
     id: { description: "Event id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Event metadata", type: MetaType },
-    filePath: { description: "Path to event file", type: GraphQLString },
+    filePath: {
+      description: "Path to event file",
+      type: GraphQLString,
+      resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
     emittedBy: {
       description: "Ids of task/listener nodes that emit this event",
       type: new GraphQLNonNull(
@@ -85,9 +90,20 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
 
 export const EventFilterInput = new GraphQLInputObjectType({
   name: "EventFilterInput",
+  description: "Filters for events in the system",
   fields: {
-    hasNoListeners: { type: GraphQLBoolean },
-    hideSystem: { type: GraphQLBoolean },
-    idStartsWith: { type: GraphQLString },
+    hasNoListeners: {
+      description: "When true, only events without listeners are returned.",
+      type: GraphQLBoolean,
+    },
+    hideSystem: {
+      description:
+        "When true, hides internal/system events (runner-dev/globals).",
+      type: GraphQLBoolean,
+    },
+    idStartsWith: {
+      description: "Return only events whose id starts with this prefix.",
+      type: GraphQLString,
+    },
   },
 });

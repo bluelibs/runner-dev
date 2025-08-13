@@ -1,5 +1,6 @@
 import { middleware, resource } from "@bluelibs/runner";
 import { live } from "./live.resource";
+import { deriveParentAndRoot, withTaskRunContext } from "./dev.telemetry.chain";
 
 const telemetryMiddleware = middleware({
   id: "runner-dev.telemetry.middleware",
@@ -20,31 +21,51 @@ const telemetryMiddleware = middleware({
       ? "LISTENER"
       : "TASK";
 
+    const { parentId, rootId } = deriveParentAndRoot(id);
+
     const startedAt = Date.now();
-    try {
-      const result = await next(task.input);
-      const durationMs = Date.now() - startedAt;
+    return withTaskRunContext(id, async () => {
       try {
-        live.recordRun(id, nodeKind, durationMs, true);
-      } catch {
-        // ignore if live lacks recordRun
+        const result = await next(task.input);
+        const durationMs = Date.now() - startedAt;
+        try {
+          live.recordRun(
+            id,
+            nodeKind,
+            durationMs,
+            true,
+            undefined,
+            parentId,
+            rootId
+          );
+        } catch {
+          // ignore if live lacks recordRun
+        }
+        return result as any;
+      } catch (error) {
+        const durationMs = Date.now() - startedAt;
+        // Best-effort error capture via Live (errors buffer)
+        try {
+          (live as any).recordError?.(id, nodeKind, error);
+        } catch {
+          // ignore
+        }
+        try {
+          live.recordRun(
+            id,
+            nodeKind,
+            durationMs,
+            false,
+            error,
+            parentId,
+            rootId
+          );
+        } catch {
+          // ignore if live lacks recordRun
+        }
+        throw error;
       }
-      return result;
-    } catch (error) {
-      const durationMs = Date.now() - startedAt;
-      // Best-effort error capture via Live (errors buffer)
-      try {
-        (live as any).recordError?.(id, nodeKind, error);
-      } catch {
-        // ignore
-      }
-      try {
-        live.recordRun(id, nodeKind, durationMs, false, error);
-      } catch {
-        // ignore if live lacks recordRun
-      }
-      throw error;
-    }
+    });
   },
 });
 

@@ -18,6 +18,7 @@ import { TaskMiddlewareUsageType } from "./TaskType";
 import { definitions } from "@bluelibs/runner";
 import { Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
+import { sanitizePath } from "../../utils/path";
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
@@ -28,7 +29,26 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   fields: (): GraphQLFieldConfigMap<any, any> => ({
     id: { description: "Resource id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Resource metadata", type: MetaType },
-    filePath: { description: "Path to resource file", type: GraphQLString },
+    filePath: {
+      description: "Path to resource file",
+      type: GraphQLString,
+      resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
+    dependsOn: {
+      description: "Ids of resources this resource depends on",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    dependsOnResolved: {
+      description: "Resources this resource depends on (resolved)",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(ResourceType))
+      ),
+      resolve: async (node: Resource, _args, ctx: CustomGraphQLContext) => {
+        return ctx.introspector.getResourcesByIds(node.dependsOn);
+      },
+    },
     config: {
       description: "Serialized resource config (if any)",
       type: GraphQLString,

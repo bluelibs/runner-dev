@@ -20,24 +20,77 @@ Register the Dev resources in your Runner root:
 
 ```ts
 import { resource } from "@bluelibs/runner";
-import { resources as dev } from "@bluelibs/runner-dev";
+import { dev } from "@bluelibs/runner-dev";
+
+const register = [
+  // rest of your app elements
+];
+
+if (process.env.DEV_MODE) {
+  register.push(dev);
+}
 
 export const app = resource({
   id: "app",
   register: [
-    // Live telemetry provider (logs + emissions)
-    dev.live,
-
-    // In-memory introspection API
-    dev.introspector,
-
-    // GraphQL server to expose introspection + live
-    dev.server.with({ port: 2000 }),
+    // You can omit .with() if you are fine with defaults.
+    dev.with({
+      port: 1337, // default
+      maxEntries: 1000, // default
+    }),
+    // rest of your app.
   ],
 });
 ```
 
+Add it as an MCP Server:
+
+```json
+{
+  "mcpServers": {
+    "mcp-graphql": {
+      "description": "MCP Server for Active Running Context App",
+      "command": "npx",
+      "args": ["runner-dev", "mcp"],
+      "env": {
+        "ENDPOINT": "http://localhost:1337/graphql",
+        "ALLOW_MUTATIONS": "true"
+      }
+    }
+  }
+}
+```
+
 Then start your app as usual. The Dev GraphQL server will be available at http://localhost:2000/graphql.
+
+### CLI usage (MCP server)
+
+After installing, you can start the MCP server from this package via stdio.
+
+Using npx:
+
+```bash
+ENDPOINT=http://localhost:2000/graphql npx -y @bluelibs/runner-dev mcp
+```
+
+Or using the dedicated binary name:
+
+```bash
+ENDPOINT=http://localhost:2000/graphql npx -y mcp-graphql
+```
+
+Optional environment variables:
+
+- `ALLOW_MUTATIONS=true` to enable `graphql.mutation`
+- `HEADERS='{"Authorization":"Bearer token"}'` to pass extra headers
+
+Available tools once connected:
+
+- `graphql.query` — run read-only queries
+- `graphql.mutation` — run mutations (requires `ALLOW_MUTATIONS=true`)
+- `graphql.introspect` — fetch schema
+- `graphql.ping` — reachability check
+- `project.overview` — dynamic Markdown overview aggregated from the API
 
 ## Programmatic Introspection (without GraphQL)
 
@@ -128,17 +181,17 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - Live
 
   - `logs(afterTimestamp: Float, last: Int, filter: LogFilterInput): [LogEntry!]!`
-    - `LogEntry { timestampMs, level, message, data }`
-    - `LogFilterInput { levels: [LogLevelEnum!], messageIncludes: String }`
+    - `LogEntry { timestampMs, level, message, data, correlationId }`
+    - `LogFilterInput { levels: [LogLevelEnum!], messageIncludes: String, correlationIds: [String!] }`
   - `emissions(afterTimestamp: Float, last: Int, filter: EmissionFilterInput): [EmissionEntry!]!`
-    - `EmissionEntry { timestampMs, eventId, emitterId, payload }`
+    - `EmissionEntry { timestampMs, eventId, emitterId, payload, correlationId }`
     - `EmissionFilterInput { eventIds: [String!], emitterIds: [String!] }`
   - `errors(afterTimestamp: Float, last: Int, filter: ErrorFilterInput): [ErrorEntry!]!`
-    - `ErrorEntry { timestampMs, sourceId, sourceKind, message, stack, data }`
+    - `ErrorEntry { timestampMs, sourceId, sourceKind, message, stack, data, correlationId }`
     - `ErrorFilterInput { sourceKinds: [SourceKindEnum!], sourceIds: [ID!], messageIncludes: String }`
   - `runs(afterTimestamp: Float, last: Int, filter: RunFilterInput): [RunRecord!]!`
-    - `RunRecord { timestampMs, nodeId, nodeKind, durationMs, ok, error }`
-    - `RunFilterInput { nodeKinds: [NodeKindEnum!], nodeIds: [String!], ok: Boolean }`
+    - `RunRecord { timestampMs, nodeId, nodeKind, durationMs, ok, error, parentId, rootId, correlationId }`
+    - `RunFilterInput { nodeKinds: [NodeKindEnum!], nodeIds: [String!], ok: Boolean, parentIds: [String!], rootIds: [String!] }`
 
   Enums: `LogLevelEnum` = `trace|debug|info|warn|error|fatal|log`, `SourceKindEnum` = `TASK|LISTENER|RESOURCE|MIDDLEWARE|INTERNAL`, `NodeKindEnum` = `TASK|LISTENER`.
 
@@ -274,6 +327,9 @@ query {
       nodeKind
       durationMs
       ok
+      parentId
+      rootId
+      correlationId
     }
   }
 }
@@ -293,6 +349,7 @@ query {
       timestampMs
       level
       message
+      correlationId
     }
     emissions(
       last: 50
@@ -312,6 +369,89 @@ query {
       nodeId
       durationMs
       ok
+      correlationId
+    }
+  }
+}
+```
+
+### Live system health
+
+Add this under the Live section of the README.
+
+- **memory: `MemoryStats!`**
+  - Fields: `heapUsed` (bytes), `heapTotal` (bytes), `rss` (bytes)
+- **cpu: `CpuStats!`**
+  - Fields: `usage` (0..1 event loop utilization), `loadAverage` (1‑minute load avg)
+- **eventLoop(reset: Boolean): `EventLoopStats!`**
+  - Fields: `lag` (ms, avg delay via `monitorEventLoopDelay`)
+  - Args: `reset` optionally clears the histogram after reading
+- **gc(windowMs: Float): `GcStats!`**
+  - Fields: `collections` (count), `duration` (ms)
+  - Args: `windowMs` returns stats only within the last window; omitted = totals since process start
+
+Example query:
+
+```graphql
+query SystemHealth {
+  live {
+    memory {
+      heapUsed
+      heapTotal
+      rss
+    }
+    cpu {
+      usage
+      loadAverage
+    }
+    eventLoop(reset: true) {
+      lag
+    }
+    gc(windowMs: 10000) {
+      collections
+      duration
+    }
+  }
+}
+```
+
+Notes:
+
+- `heap*` and `rss` are bytes.
+- `cpu.usage` is a ratio; `loadAverage` is 1‑minute OS load.
+- `eventLoop.lag` may be 0 if `monitorEventLoopDelay` is unavailable.
+
+### Correlation and call chains
+
+- What is correlationId? An opaque UUID (via `crypto.randomUUID()`) created for the first task in a run chain.
+- How is it formed?
+  - When a task starts, a middleware opens an AsyncLocalStorage scope containing:
+    - `correlationId`: a UUID for the chain
+    - `chain`: ordered array of node ids representing the call path
+  - Nested tasks and listeners reuse the same AsyncLocalStorage scope, so the same `correlationId` flows throughout the chain.
+- What does it contain? Only a UUID string. No payload, no PII.
+- Where is it recorded?
+  - `logs.correlationId`
+  - `emissions.correlationId`
+  - `errors.correlationId`
+  - `runs.correlationId` plus `runs.parentId` and `runs.rootId` for chain topology
+- How to use it
+  - Read a recent run to discover a correlation id, then filter logs by it:
+
+```graphql
+query TraceByCorrelation($ts: Float, $cid: String!) {
+  live {
+    runs(afterTimestamp: $ts, last: 10) {
+      nodeId
+      parentId
+      rootId
+      correlationId
+    }
+    logs(last: 100, filter: { correlationIds: [$cid] }) {
+      timestampMs
+      level
+      message
+      correlationId
     }
   }
 }
@@ -394,3 +534,548 @@ npm run codegen
 ```
 
 - Generated types are in `src/generated/resolvers-types.ts` and used in schema resolvers (for example `LiveLogsArgs`, `QueryEventArgs`).
+
+## 🔥 Hot-Swapping Debugging System
+
+**Revolutionary live debugging feature that allows AI assistants and developers to dynamically replace task run functions in live applications.**
+
+### Overview
+
+The hot-swapping system enables:
+
+- **Live Function Replacement**: Replace any task's `run` function with new TypeScript/JavaScript code without restarting the application
+- **TypeScript Compilation**: Automatic compilation and validation of swapped code
+- **GraphQL API**: Remote swap operations via GraphQL mutations
+- **Live Telemetry Integration**: Real-time capture of debug logs from swapped functions
+- **Rollback Support**: Easy restoration to original functions
+- **Type Safety**: 100% type-safe implementation with comprehensive error handling
+
+### Quick Setup
+
+Add the swap manager to your app:
+
+```ts
+import { resource } from "@bluelibs/runner";
+import { resources as dev } from "@bluelibs/runner-dev";
+
+export const app = resource({
+  id: "app",
+  register: [
+    // Core dev resources
+    dev.live,
+    dev.introspector,
+
+    // Add the swap manager for hot-swapping
+    dev.swapManager,
+
+    // GraphQL server with swap mutations
+    dev.server.with({ port: 2000 }),
+  ],
+});
+```
+
+### GraphQL API
+
+#### Queries
+
+**Get currently swapped tasks:**
+
+```graphql
+query {
+  swappedTasks {
+    taskId
+    swappedAt
+    originalCode
+  }
+}
+```
+
+#### Mutations
+
+**Swap a task's run function:**
+
+```graphql
+mutation SwapTask($taskId: ID!, $runCode: String!) {
+  swapTask(taskId: $taskId, runCode: $runCode) {
+    success
+    error
+    taskId
+  }
+}
+```
+
+**Restore original function:**
+
+```graphql
+mutation UnswapTask($taskId: ID!) {
+  unswapTask(taskId: $taskId) {
+    success
+    error
+    taskId
+  }
+}
+```
+
+**Restore all swapped tasks:**
+
+```graphql
+mutation UnswapAllTasks {
+  unswapAllTasks {
+    success
+    error
+    taskId
+  }
+}
+```
+
+### Usage Examples
+
+#### Basic Function Swapping
+
+Replace a task's logic with enhanced debugging:
+
+```graphql
+mutation {
+  swapTask(
+    taskId: "user.create"
+    runCode: """
+    async function run(input, deps) {
+      // Add comprehensive logging
+      if (deps.emitLog) {
+        await deps.emitLog({
+          timestamp: new Date(),
+          level: "info",
+          message: "🔍 DEBUG: Creating user started",
+          data: { input }
+        });
+      }
+
+      // Enhanced validation
+      if (!input.email || !input.email.includes('@')) {
+        throw new Error('Invalid email address');
+      }
+
+      // Original logic with debugging
+      const result = {
+        id: crypto.randomUUID(),
+        email: input.email,
+        createdAt: new Date().toISOString(),
+        debugInfo: {
+          swappedAt: Date.now(),
+          inputValidated: true
+        }
+      };
+
+      if (deps.emitLog) {
+        await deps.emitLog({
+          timestamp: new Date(),
+          level: "info",
+          message: "🔍 DEBUG: User created successfully",
+          data: { result }
+        });
+      }
+
+      return result;
+    }
+    """
+  ) {
+    success
+    error
+  }
+}
+```
+
+#### TypeScript Support
+
+The system supports full TypeScript syntax:
+
+```graphql
+mutation {
+  swapTask(
+    taskId: "data.processor"
+    runCode: """
+    async function run(input: { items: string[] }, deps: any): Promise<{ processed: number }> {
+      const items: string[] = input.items || [];
+      let processed: number = 0;
+
+      for (const item of items) {
+        if (typeof item === 'string' && item.length > 0) {
+          processed++;
+        }
+      }
+
+      return { processed };
+    }
+    """
+  ) {
+    success
+    error
+  }
+}
+```
+
+#### Arrow Functions and Function Bodies
+
+Multiple code formats are supported:
+
+```graphql
+# Arrow function
+mutation {
+  swapTask(
+    taskId: "simple.task"
+    runCode: "() => ({ message: 'Hello from arrow function!' })"
+  ) {
+    success
+  }
+}
+
+# Function body only
+mutation {
+  swapTask(
+    taskId: "another.task"
+    runCode: """
+    const result = { timestamp: Date.now() };
+    return result;
+    """
+  ) {
+    success
+  }
+}
+```
+
+### Live Telemetry Integration
+
+Swapped functions can emit logs that are captured by the live telemetry system:
+
+```graphql
+# After swapping with debug logging, query the logs
+query RecentDebugLogs {
+  live {
+    logs(last: 50, filter: { messageIncludes: "🔍 DEBUG" }) {
+      timestampMs
+      level
+      message
+      data
+      correlationId
+    }
+  }
+}
+```
+
+### Programmatic Usage
+
+Use the swap manager directly in your code:
+
+```ts
+import { resource } from "@bluelibs/runner";
+import type { SwapManager } from "@bluelibs/runner-dev/dist/resources/swap.resource";
+import { swapManager } from "@bluelibs/runner-dev/dist/resources/swap.resource";
+
+export const debugger = resource({
+  id: "my.debugger",
+  dependencies: { swapManager },
+  async init(_c, { swapManager }: { swapManager: SwapManager }) {
+    // Swap a task programmatically
+    const result = await swapManager.swap("user.create", `
+      async function run(input, deps) {
+        console.log("Debug: Enhanced user creation");
+        return { id: "debug-user", ...input };
+      }
+    `);
+
+    if (result.success) {
+      console.log(`Task ${result.taskId} swapped successfully`);
+    } else {
+      console.error(`Swap failed: ${result.error}`);
+    }
+
+    // Check what's currently swapped
+    const swappedTasks = swapManager.getSwappedTasks();
+    console.log(`Currently swapped: ${swappedTasks.map(t => t.taskId).join(', ')}`);
+
+    // Restore original function
+    await swapManager.unswap("user.create");
+  },
+});
+```
+
+### Error Handling
+
+The system provides comprehensive error handling:
+
+```graphql
+mutation {
+  swapTask(taskId: "nonexistent.task", runCode: "invalid javascript code {") {
+    success # false
+    error # "Task 'nonexistent.task' not found" or "Compilation failed: ..."
+    taskId # "nonexistent.task"
+  }
+}
+```
+
+### Safety and Best Practices
+
+#### Type Safety
+
+- No `as any` usage throughout the implementation
+- Full TypeScript type checking and compilation
+- Comprehensive error validation and reporting
+
+#### Security Considerations
+
+- Code is executed via `eval()` in the Node.js context
+- Intended for development/debugging environments only
+- Swapped functions have access to the same context as original functions
+
+#### Best Practices
+
+- Use descriptive debug messages in swapped functions
+- Leverage the logging system for telemetry capture
+- Test swapped functions thoroughly before deployment
+- Always restore original functions after debugging
+
+#### Error Recovery
+
+- Failed swaps don't affect the original function
+- State tracking prevents inconsistencies
+- Easy rollback with `unswapAllTasks` mutation
+
+### AI Assistant Integration
+
+This system is specifically designed for AI debugging workflows:
+
+1. **AI analyzes application behavior** via introspection and live telemetry
+2. **AI identifies issues** in specific tasks or functions
+3. **AI generates enhanced debug code** with additional logging and validation
+4. **AI swaps the function remotely** via GraphQL mutations
+5. **AI monitors enhanced telemetry** to understand the issue
+6. **AI restores original function** once debugging is complete
+
+### Remote Task Execution
+
+The system provides `invokeTask` functionality for remotely executing tasks with JSON input/output serialization, perfect for AI-driven debugging and testing.
+
+#### Basic Task Invocation
+
+```graphql
+mutation {
+  invokeTask(taskId: "user.create") {
+    success
+    error
+    taskId
+    result
+    executionTimeMs
+    invocationId
+  }
+}
+```
+
+#### Task Invocation with Input
+
+```graphql
+mutation {
+  invokeTask(
+    taskId: "user.create"
+    inputJson: "{\"email\": \"test@example.com\", \"name\": \"John Doe\"}"
+  ) {
+    success
+    result
+    executionTimeMs
+  }
+}
+```
+
+#### JavaScript Input Evaluation
+
+For advanced debugging scenarios, use `evalInput: true` to evaluate JavaScript expressions instead of parsing JSON:
+
+```graphql
+mutation {
+  invokeTask(
+    taskId: "data.processor"
+    inputJson: """
+    {
+      timestamp: new Date("2023-01-01"),
+      data: [1, 2, 3].map(x => x * 2),
+      config: {
+        retries: Math.max(3, process.env.NODE_ENV === 'prod' ? 5 : 1),
+        timeout: 30 * 1000
+      },
+      processData: (items) => items.filter(x => x > 0)
+    }
+    """
+    evalInput: true
+  ) {
+    success
+    result
+    executionTimeMs
+  }
+}
+```
+
+#### Pure Mode (Bypass Middleware)
+
+Pure mode executes tasks with computed dependencies directly from the store, bypassing the middleware pipeline and authentication systems for clean testing:
+
+```graphql
+mutation {
+  invokeTask(
+    taskId: "user.create"
+    inputJson: "{\"email\": \"test@example.com\"}"
+    pure: true
+  ) {
+    success
+    result
+    executionTimeMs
+  }
+}
+```
+
+#### AI Debugging Workflow
+
+1. **Swap task with enhanced debugging**:
+
+```graphql
+mutation {
+  swapTask(
+    taskId: "user.create"
+    runCode: """
+    async function run(input, deps) {
+      console.log('Input received:', input);
+      const result = { id: Math.random(), ...input };
+      console.log('Result generated:', result);
+      return result;
+    }
+    """
+  ) {
+    success
+  }
+}
+```
+
+2. **Invoke task to test behavior**:
+
+```graphql
+mutation {
+  invokeTask(
+    taskId: "user.create"
+    inputJson: """
+    {
+      email: "debug@test.com",
+      createdAt: new Date(),
+      metadata: {
+        source: "ai-debug",
+        sessionId: crypto.randomUUID(),
+        testData: [1, 2, 3].map(x => x * 10)
+      }
+    }
+    """
+    pure: true
+    # Activation of eval() for smarter inputs.
+    evalInput: true
+  ) {
+    success
+    result
+    executionTimeMs
+  }
+}
+```
+
+3. **Monitor live telemetry for debug output**:
+
+```graphql
+query {
+  live {
+    logs(last: 10) {
+      level
+      message
+      data
+      timestampMs
+    }
+  }
+}
+```
+
+#### JSON Serialization
+
+The system automatically handles complex JavaScript types:
+
+- **Primitives**: strings, numbers, booleans preserved exactly
+- **Objects/Arrays**: Deep serialization with proper structure
+- **Functions**: Converted to `[Function: name]` strings
+- **Undefined**: Converted to `[undefined]` strings
+- **Dates**: Serialized as ISO strings
+- **Circular References**: Safely handled to prevent errors
+
+#### Input Processing Modes
+
+**JSON Mode (default)**: `evalInput: false`
+
+- Input is parsed as JSON using `JSON.parse()`
+- Safe for structured data
+- Limited to JSON-compatible types
+
+**JavaScript Evaluation Mode**: `evalInput: true`
+
+- Input is evaluated as JavaScript using `eval()`
+- Supports complex expressions, function calls, Date objects, calculations
+- Full access to JavaScript runtime and built-in objects
+- Perfect for AI-driven testing with dynamic inputs
+
+### Arbitrary Code Evaluation
+
+For advanced debugging, the system provides an `eval` mutation to execute arbitrary JavaScript/TypeScript code on the server.
+
+**⚠️ Security Warning**: This feature is powerful and executes code with the same privileges as the application. It is intended for development environments only and is disabled by default in production. To enable it, set the environment variable `RUNNER_DEV_EVAL=1`.
+
+#### `eval` Mutation
+
+**Execute arbitrary code:**
+
+```graphql
+mutation EvalCode($code: String!, $inputJson: String, $evalInput: Boolean) {
+  eval(code: $code, inputJson: $inputJson, evalInput: $evalInput) {
+    success
+    error
+    result # JSON string
+    executionTimeMs
+  }
+}
+```
+
+- `code`: The JavaScript/TypeScript code to execute.
+- `inputJson`: Optional input string, parsed as JSON by default.
+- `evalInput`: If `true`, `inputJson` is evaluated as a JavaScript expression.
+
+**Example:**
+
+```graphql
+mutation {
+  eval(code: "return { a: 1, b: process.version }") {
+    success
+    result
+  }
+}
+```
+
+### Use Cases
+
+- **Production Debugging**: Add logging to specific functions without restarts
+- **A/B Testing**: Compare different function implementations live
+- **Performance Monitoring**: Inject performance measurements
+- **Error Investigation**: Add error handling and detailed logging
+- **Feature Development**: Test new logic before permanent implementation
+- **AI-Driven Debugging**: Enable AI assistants to debug applications autonomously
+
+### Architecture
+
+The hot-swapping system consists of:
+
+- **SwapManager Resource** (`src/resources/swap.resource.ts`): Core swapping logic
+- **GraphQL Types** (`src/schema/types/SwapType.ts`): Type definitions for GraphQL API
+- **GraphQL Mutations** (`src/schema/mutation.ts`): Remote swap operations
+- **TypeScript Compiler**: Automatic code compilation and validation
+- **State Management**: Tracking of swapped functions and original code
+- **Error Handling**: Comprehensive validation and recovery mechanisms
+
+The implementation maintains 100% type safety and provides extensive test coverage with both unit tests and GraphQL integration tests.

@@ -1,4 +1,5 @@
 import { globals, resource, task } from "@bluelibs/runner";
+import { getCorrelationId } from "./dev.telemetry.chain";
 
 export type LogLevel =
   | "trace"
@@ -14,12 +15,14 @@ export interface LogEntry {
   level: LogLevel;
   message: string;
   data?: unknown;
+  correlationId?: string | null;
 }
 export interface EmissionEntry {
   timestampMs: number;
   eventId: string;
   emitterId?: string | null;
   payload?: unknown;
+  correlationId?: string | null;
 }
 
 export interface ErrorEntry {
@@ -29,6 +32,7 @@ export interface ErrorEntry {
   message: string;
   stack?: string | null;
   data?: unknown;
+  correlationId?: string | null;
 }
 
 export interface RunRecord {
@@ -38,6 +42,9 @@ export interface RunRecord {
   durationMs: number;
   ok: boolean;
   error?: string | null;
+  parentId?: string | null;
+  rootId?: string | null;
+  correlationId?: string | null;
 }
 
 export interface Live {
@@ -49,6 +56,7 @@ export interface Live {
           last?: number;
           levels?: LogLevel[];
           messageIncludes?: string;
+          correlationIds?: string[];
         }
   ): LogEntry[];
   getEmissions(
@@ -87,9 +95,16 @@ export interface Live {
           nodeKinds?: ("TASK" | "LISTENER")[];
           nodeIds?: string[];
           ok?: boolean;
+          parentIds?: string[];
+          rootIds?: string[];
         }
   ): RunRecord[];
-  recordLog(level: LogLevel, message: string, data?: unknown): void;
+  recordLog(
+    level: LogLevel,
+    message: string,
+    data?: unknown,
+    correlationId?: string | null
+  ): void;
   recordEmission(
     eventId: string,
     payload?: unknown,
@@ -106,7 +121,9 @@ export interface Live {
     nodeKind: "TASK" | "LISTENER",
     durationMs: number,
     ok: boolean,
-    error?: unknown
+    error?: unknown,
+    parentId?: string | null,
+    rootId?: string | null
   ): void;
 }
 
@@ -149,8 +166,14 @@ const liveService = resource({
     };
 
     return {
-      recordLog(level, message, data) {
-        logs.push({ timestampMs: Date.now(), level, message, data });
+      recordLog(level, message, data, correlationId) {
+        logs.push({
+          timestampMs: Date.now(),
+          level,
+          message,
+          data,
+          correlationId: correlationId ?? getCorrelationId() ?? null,
+        });
         trim(logs);
       },
       getLogs(input) {
@@ -159,6 +182,7 @@ const liveService = resource({
           last?: number;
           levels?: LogLevel[];
           messageIncludes?: string;
+          correlationIds?: string[];
         }>(input);
 
         let result = [...logs];
@@ -177,6 +201,10 @@ const liveService = resource({
             l.message.includes(options.messageIncludes!)
           );
         }
+        if (options.correlationIds && options.correlationIds.length > 0) {
+          const allowed = new Set(options.correlationIds.map(String));
+          result = result.filter((l) => allowed.has(String(l.correlationId)));
+        }
         return sliceLast(result, options.last);
       },
       recordEmission(eventId, payload, emitterId) {
@@ -185,6 +213,7 @@ const liveService = resource({
           eventId,
           emitterId: emitterId ?? null,
           payload,
+          correlationId: getCorrelationId(),
         });
         trim(emissions);
       },
@@ -194,6 +223,7 @@ const liveService = resource({
           last?: number;
           eventIds?: string[];
           emitterIds?: string[];
+          correlationIds?: string[];
         }>(input);
 
         let result = [...emissions];
@@ -211,6 +241,10 @@ const liveService = resource({
           result = result.filter(
             (e) => e.emitterId != null && allowed.has(String(e.emitterId))
           );
+        }
+        if (options.correlationIds && options.correlationIds.length > 0) {
+          const allowed = new Set(options.correlationIds.map(String));
+          result = result.filter((e) => allowed.has(String(e.correlationId)));
         }
         return sliceLast(result, options.last);
       },
@@ -239,6 +273,7 @@ const liveService = resource({
           )[];
           sourceIds?: string[];
           messageIncludes?: string;
+          correlationIds?: string[];
         }>(input);
 
         let result = [...errors];
@@ -260,9 +295,13 @@ const liveService = resource({
             e.message.includes(options.messageIncludes!)
           );
         }
+        if (options.correlationIds && options.correlationIds.length > 0) {
+          const allowed = new Set(options.correlationIds.map(String));
+          result = result.filter((e) => allowed.has(String(e.correlationId)));
+        }
         return sliceLast(result, options.last);
       },
-      recordRun(nodeId, nodeKind, durationMs, ok, error) {
+      recordRun(nodeId, nodeKind, durationMs, ok, error, parentId, rootId) {
         const errStr = (() => {
           if (error == null) return null;
           if (typeof error === "string") return error;
@@ -280,6 +319,9 @@ const liveService = resource({
           durationMs,
           ok,
           error: errStr,
+          parentId: parentId ?? null,
+          rootId: rootId ?? null,
+          correlationId: getCorrelationId(),
         });
         trim(runs);
       },
@@ -290,6 +332,8 @@ const liveService = resource({
           nodeKinds?: ("TASK" | "LISTENER")[];
           nodeIds?: string[];
           ok?: boolean;
+          parentIds?: string[];
+          rootIds?: string[];
         }>(input);
 
         let result = [...runs];
@@ -308,6 +352,14 @@ const liveService = resource({
         }
         if (typeof options.ok === "boolean") {
           result = result.filter((r) => r.ok === options.ok);
+        }
+        if (options.parentIds && options.parentIds.length > 0) {
+          const allowed = new Set(options.parentIds.map(String));
+          result = result.filter((r) => allowed.has(String(r.parentId)));
+        }
+        if (options.rootIds && options.rootIds.length > 0) {
+          const allowed = new Set(options.rootIds.map(String));
+          result = result.filter((r) => allowed.has(String(r.rootId)));
         }
         return sliceLast(result, options.last);
       },
@@ -374,8 +426,14 @@ const onResourceError = task({
 export const live = resource({
   id: "runner-dev.live",
   dependencies: { liveService },
-  register: [liveService, onLog, onEvent, onTaskError, onResourceError],
-  async init(_config: unknown, { liveService }) {
+  register: (config: { maxEntries?: number }) => [
+    liveService.with({ maxEntries: config.maxEntries }),
+    onLog,
+    onEvent,
+    onTaskError,
+    onResourceError,
+  ],
+  async init(_config, { liveService }) {
     return liveService;
   },
 });

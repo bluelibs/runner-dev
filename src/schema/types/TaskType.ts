@@ -21,6 +21,7 @@ import type { CustomGraphQLContext } from "../../graphql/context";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { taskLikeCommonFields } from "./TaskLikeCommon";
 import { definitions } from "@bluelibs/runner";
+import { sanitizePath } from "../../utils/path";
 
 export const TaskMiddlewareUsageType = new GraphQLObjectType({
   name: "TaskMiddlewareUsage",
@@ -33,12 +34,17 @@ export const TaskMiddlewareUsageType = new GraphQLObjectType({
 
 export const TaskInterface = new GraphQLInterfaceType({
   name: "TaskInterface",
-  description: "Common fields for Task and Listener",
+  description:
+    "Common fields for Task and Listener. These nodes are executable via Runner and can emit events, depend on resources and be wrapped by middleware.",
   interfaces: [BaseElementInterface],
   fields: () => ({
     id: { description: "Task id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Task metadata", type: MetaType },
-    filePath: { description: "Path to task file", type: GraphQLString },
+    filePath: {
+      description: "Path to task file",
+      type: GraphQLString,
+      resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
     fileContents: {
       description:
         "Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine.",
@@ -103,7 +109,8 @@ export const TaskInterface = new GraphQLInterfaceType({
       },
     },
     overriddenBy: {
-      description: "Id of the resource that overrides this task (if any)",
+      description:
+        "Id of the resource that overrides this task (if any). Overriding replaces registrations at runtime.",
       type: GraphQLString,
     },
     depenendsOnResolved: {
@@ -119,7 +126,8 @@ export const TaskInterface = new GraphQLInterfaceType({
       },
     },
     registeredBy: {
-      description: "Id of the resource that registered this task (if any)",
+      description:
+        "Id of the resource that registered this task (if any). Useful to trace provenance.",
       type: GraphQLString,
       resolve: (node, _args, ctx: CustomGraphQLContext) => {
         if ((node as any).registeredBy) return (node as any).registeredBy;
@@ -240,7 +248,11 @@ export const ListenerType = new GraphQLObjectType({
   fields: () => ({
     id: { description: "Listener id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Listener metadata", type: MetaType },
-    filePath: { description: "Path to listener file", type: GraphQLString },
+    filePath: {
+      description: "Path to listener file",
+      type: GraphQLString,
+      resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
     emits: {
       description: "Event ids this listener may emit (from dependencies)",
       type: new GraphQLNonNull(

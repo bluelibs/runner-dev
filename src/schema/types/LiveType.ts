@@ -27,6 +27,13 @@ import type {
 import { AllType, BaseElementInterface } from "./AllType";
 import { TaskInterface } from "./TaskType";
 import { EventType } from "./EventType";
+import * as os from "node:os";
+import {
+  monitorEventLoopDelay,
+  performance,
+  PerformanceObserver,
+  type EventLoopUtilization,
+} from "node:perf_hooks";
 
 export const LogEntryType = new GraphQLObjectType<
   LiveLogEntry,
@@ -55,6 +62,10 @@ export const LogEntryType = new GraphQLObjectType<
           : typeof node.data === "string"
           ? node.data
           : safeStringify(node.data),
+    },
+    correlationId: {
+      description: "Correlation id for tracing",
+      type: GraphQLString,
     },
   }),
 });
@@ -86,6 +97,10 @@ export const EmissionEntryType = new GraphQLObjectType<
           : typeof node.payload === "string"
           ? node.payload
           : safeStringify(node.payload),
+    },
+    correlationId: {
+      description: "Correlation id for tracing",
+      type: GraphQLString,
     },
     eventResolved: {
       description: "Resolved event from eventId",
@@ -145,6 +160,10 @@ export const ErrorEntryType = new GraphQLObjectType<
           : typeof node.data === "string"
           ? node.data
           : safeStringify(node.data),
+    },
+    correlationId: {
+      description: "Correlation id for tracing",
+      type: GraphQLString,
     },
     sourceResolved: {
       description:
@@ -220,6 +239,18 @@ export const RunRecordType = new GraphQLObjectType<
       type: new GraphQLNonNull(GraphQLBoolean),
     },
     error: { description: "Error message (if failed)", type: GraphQLString },
+    parentId: {
+      description: "Immediate parent caller id if available",
+      type: GraphQLString,
+    },
+    rootId: {
+      description: "Root caller id that initiated the chain",
+      type: GraphQLString,
+    },
+    correlationId: {
+      description: "Correlation id for tracing",
+      type: GraphQLString,
+    },
     nodeResolved: {
       description: "Resolved task/listener node",
       type: TaskInterface,
@@ -235,9 +266,217 @@ export const RunRecordType = new GraphQLObjectType<
   }),
 });
 
+// System health types
+type MemoryStats = { heapUsed: number; heapTotal: number; rss: number };
+type CpuStats = { usage: number; loadAverage: number };
+type EventLoopStats = { lag: number };
+type GcStats = { collections: number; duration: number };
+
+// Event loop delay histogram (nanoseconds)
+const __eventLoopDelayHistogram = (() => {
+  try {
+    const h = monitorEventLoopDelay({ resolution: 10 });
+    h.enable();
+    return h;
+  } catch {
+    return undefined;
+  }
+})();
+
+// GC observer to aggregate stats since process start
+let __gcCollections = 0;
+let __gcDurationMs = 0;
+const __gcEvents: { ts: number; duration: number }[] = [];
+const __gcEventsMax = 10000;
+function pushGcEvent(duration: number) {
+  __gcEvents.push({ ts: Date.now(), duration });
+  if (__gcEvents.length > __gcEventsMax) {
+    // Trim 10% oldest to amortize cost
+    __gcEvents.splice(0, Math.floor(__gcEventsMax * 0.1));
+  }
+}
+try {
+  const obs = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      __gcCollections += 1;
+      __gcDurationMs += entry.duration;
+      pushGcEvent(entry.duration);
+    }
+  });
+  // buffered picks up prior GC entries as well
+  obs.observe({ entryTypes: ["gc"], buffered: true });
+} catch {
+  // noop if unsupported
+}
+
+let __prevElu: EventLoopUtilization | undefined = undefined;
+function getCpuEluUtilization(): number {
+  try {
+    const current = performance.eventLoopUtilization(__prevElu as any);
+    __prevElu = current;
+    return Number.isFinite(current.utilization) ? current.utilization : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export const MemoryStatsType = new GraphQLObjectType<
+  MemoryStats,
+  CustomGraphQLContext
+>({
+  name: "MemoryStats",
+  fields: () => ({
+    heapUsed: {
+      description: "V8 heap used in bytes",
+      type: new GraphQLNonNull(GraphQLFloat),
+    },
+    heapTotal: {
+      description: "V8 heap total in bytes",
+      type: new GraphQLNonNull(GraphQLFloat),
+    },
+    rss: {
+      description: "Resident Set Size in bytes",
+      type: new GraphQLNonNull(GraphQLFloat),
+    },
+  }),
+});
+
+export const CpuStatsType = new GraphQLObjectType<
+  CpuStats,
+  CustomGraphQLContext
+>({
+  name: "CpuStats",
+  fields: () => ({
+    usage: {
+      description:
+        "Event loop utilization ratio (0..1) since last sample or process start",
+      type: new GraphQLNonNull(GraphQLFloat),
+    },
+    loadAverage: {
+      description: "System 1-minute load average",
+      type: new GraphQLNonNull(GraphQLFloat),
+    },
+  }),
+});
+
+export const EventLoopStatsType = new GraphQLObjectType<
+  EventLoopStats,
+  CustomGraphQLContext
+>({
+  name: "EventLoopStats",
+  fields: () => ({
+    lag: {
+      description:
+        "Average event loop delay (ms) measured via monitorEventLoopDelay",
+      type: new GraphQLNonNull(GraphQLFloat),
+    },
+  }),
+});
+
+export const GcStatsType = new GraphQLObjectType<GcStats, CustomGraphQLContext>(
+  {
+    name: "GcStats",
+    fields: () => ({
+      collections: {
+        description: "Number of GC cycles since process start",
+        type: new GraphQLNonNull(GraphQLInt),
+      },
+      duration: {
+        description: "Total time spent in GC (ms) since process start",
+        type: new GraphQLNonNull(GraphQLFloat),
+      },
+    }),
+  }
+);
+
 export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
   name: "Live",
+  description:
+    "Real-time telemetry access: logs, event emissions, errors, runs, and system health.",
   fields: () => ({
+    memory: {
+      description: "Process memory usage",
+      type: new GraphQLNonNull(MemoryStatsType),
+      resolve: () => {
+        const m = process.memoryUsage();
+        const node: MemoryStats = {
+          heapUsed: m.heapUsed,
+          heapTotal: m.heapTotal,
+          rss: m.rss,
+        };
+        return node;
+      },
+    },
+    cpu: {
+      description: "CPU-related statistics",
+      type: new GraphQLNonNull(CpuStatsType),
+      resolve: () => {
+        const node: CpuStats = {
+          usage: getCpuEluUtilization(),
+          loadAverage: os.loadavg()[0] ?? 0,
+        };
+        return node;
+      },
+    },
+    eventLoop: {
+      description: "Event loop statistics",
+      args: {
+        reset: {
+          description:
+            "Reset accumulated event loop delay histogram after read",
+          type: GraphQLBoolean,
+        },
+      },
+      type: new GraphQLNonNull(EventLoopStatsType),
+      resolve: (_root, args: { reset?: boolean }) => {
+        const meanNs = __eventLoopDelayHistogram?.mean ?? 0;
+        const node: EventLoopStats = {
+          lag: Number.isFinite(meanNs) ? meanNs / 1e6 : 0,
+        };
+        if (args?.reset) {
+          try {
+            __eventLoopDelayHistogram?.reset();
+          } catch {
+            // ignore
+          }
+        }
+        return node;
+      },
+    },
+    gc: {
+      description:
+        "Garbage collector statistics. By default totals since process start; when windowMs provided, returns stats within that window.",
+      args: {
+        windowMs: {
+          description:
+            "Optional window in milliseconds to compute stats over recent period.",
+          type: GraphQLFloat,
+        },
+      },
+      type: new GraphQLNonNull(GcStatsType),
+      resolve: (_root, args: { windowMs?: number }) => {
+        const w = args?.windowMs;
+        if (typeof w === "number" && w > 0) {
+          const since = Date.now() - w;
+          let collections = 0;
+          let duration = 0;
+          // __gcEvents is time-ordered; find first index >= since
+          // Linear scan is fine for modest sizes
+          for (let i = __gcEvents.length - 1; i >= 0; i--) {
+            const ev = __gcEvents[i];
+            if (ev.ts < since) break;
+            collections += 1;
+            duration += ev.duration;
+          }
+          return { collections, duration } as GcStats;
+        }
+        const node: GcStats = {
+          collections: __gcCollections,
+          duration: __gcDurationMs,
+        };
+        return node;
+      },
+    },
     logs: {
       description:
         "Live logs with optional timestamp cursor, filters and last N",
@@ -262,6 +501,7 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           last: args.last ?? undefined,
           levels: args.filter?.levels ?? undefined,
           messageIncludes: args.filter?.messageIncludes ?? undefined,
+          correlationIds: (args as any).filter?.correlationIds ?? undefined,
         });
       },
     },
@@ -342,6 +582,8 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           nodeKinds: args.filter?.nodeKinds ?? undefined,
           nodeIds: args.filter?.nodeIds ?? undefined,
           ok: args.filter?.ok ?? undefined,
+          parentIds: (args as any).filter?.parentIds ?? undefined,
+          rootIds: (args as any).filter?.rootIds ?? undefined,
         });
       },
     },
@@ -404,6 +646,10 @@ export const LogFilterInput = new GraphQLInputObjectType({
       description: "Substring match inside message",
       type: GraphQLString,
     },
+    correlationIds: {
+      description: "Filter by correlation ids",
+      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
+    },
   },
 });
 
@@ -417,6 +663,10 @@ export const EmissionFilterInput = new GraphQLInputObjectType({
     },
     emitterIds: {
       description: "Only include specific emitter ids",
+      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
+    },
+    correlationIds: {
+      description: "Filter by correlation ids",
       type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
     },
   },
@@ -438,6 +688,10 @@ export const ErrorFilterInput = new GraphQLInputObjectType({
       description: "Substring match inside error message",
       type: GraphQLString,
     },
+    correlationIds: {
+      description: "Filter by correlation ids",
+      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
+    },
   },
 });
 
@@ -454,5 +708,17 @@ export const RunFilterInput = new GraphQLInputObjectType({
       type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
     },
     ok: { description: "Filter by success status", type: GraphQLBoolean },
+    parentIds: {
+      description: "Only include runs with specific parent ids",
+      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
+    },
+    rootIds: {
+      description: "Only include runs with specific root ids",
+      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
+    },
+    correlationIds: {
+      description: "Filter by correlation ids",
+      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
+    },
   },
 });

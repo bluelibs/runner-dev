@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "mcp-graphql": {
+      "description": "GraphQL MCP server for Runner Dev; exposes your GraphQL schema as AI tools. Configure the target with the ENDPOINT env.",
+      "command": "npx",
+      "args": ["-y", "mcp-graphql"],
+      "env": {
+        "ENDPOINT": "http://localhost:1337/graphql",
+        "ALLOW_MUTATIONS": "true"
+      }
+    }
+  }
+}

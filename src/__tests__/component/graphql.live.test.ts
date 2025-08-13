@@ -267,4 +267,45 @@ describe("GraphQL Live (integration)", () => {
       expect(typeof data.live.runs[0].nodeResolved?.id).toBe("string");
     }
   });
+
+  test("system health metrics available and work with args", async () => {
+    let ctx: any;
+
+    const probe = resource({
+      id: "probe.graphql-live-health",
+      dependencies: { live, introspector },
+      async init(_config, { live, introspector }) {
+        ctx = { store: undefined, logger: console, introspector, live };
+      },
+    });
+
+    const app = createDummyApp([live, introspector, telemetry, probe]);
+    await run(app);
+
+    const query = `
+      query Health($win: Float) {
+        live {
+          memory { heapUsed heapTotal rss }
+          cpu { usage loadAverage }
+          eventLoop(reset: true) { lag }
+          gc(windowMs: $win) { collections duration }
+        }
+      }
+    `;
+
+    const res = await graphql({
+      schema,
+      source: query,
+      contextValue: ctx,
+      variableValues: { win: 10 },
+    });
+    expect(res.errors).toBeUndefined();
+    const data: any = res.data;
+    expect(data.live.memory.heapTotal).toBeGreaterThan(0);
+    expect(data.live.memory.heapUsed).toBeGreaterThan(0);
+    expect(typeof data.live.cpu.usage).toBe("number");
+    expect(data.live.eventLoop.lag).toBeGreaterThanOrEqual(0);
+    expect(data.live.gc.collections).toBeGreaterThanOrEqual(0);
+    expect(data.live.gc.duration).toBeGreaterThanOrEqual(0);
+  });
 });

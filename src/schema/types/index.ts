@@ -9,6 +9,16 @@ export {
   LogEntryType,
   EmissionEntryType,
   ErrorEntryType,
+  MemoryStatsType,
+  CpuStatsType,
+  EventLoopStatsType,
+  GcStatsType,
 } from "./LiveType";
 export { DiagnosticType } from "./DiagnosticsType";
 export { EventFilterInput } from "./EventType";
+export {
+  SwapResultType,
+  SwappedTaskType,
+  InvokeResultType,
+  EvalResultType,
+} from "./SwapType";

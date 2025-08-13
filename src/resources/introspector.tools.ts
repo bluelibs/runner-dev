@@ -12,6 +12,7 @@ import { definitions } from "@bluelibs/runner";
 import type { Introspector } from "./introspector.resource";
 import type { DiagnosticItem } from "../schema/model";
 import { accessSync, constants as fsConstants } from "fs";
+import { sanitizePath } from "../utils/path";
 
 export function toArray(collection: any): any[] {
   if (!collection) return [];
@@ -187,6 +188,7 @@ export function mapStoreResourceToResourceModel(
 
   const depsObj = normalizeDependencies(resource?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
+  const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
   const middlewareDetailed = (resource.middleware || []).map((m: any) => ({
     id: String(m.id),
     config: m[definitions.symbolMiddlewareConfigured]
@@ -204,6 +206,7 @@ export function mapStoreResourceToResourceModel(
         return { ...base, tags: ids, tagsDetailed: detailed } as any;
       })(),
       emits: eventIdsFromDeps,
+      dependsOn: resourceIdsFromDeps,
       filePath: resource[definitions.symbolFilePath] ?? null,
       middleware: resource.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
@@ -548,7 +551,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
     diags.push({
       severity: "warning",
       code: "MISSING_FILE",
-      message: `File not readable: ${n.filePath}`,
+      message: `File not readable: ${sanitizePath(n.filePath) ?? "<unknown>"}`,
       nodeId: n.id,
     });
   }

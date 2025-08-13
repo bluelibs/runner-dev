@@ -7,7 +7,8 @@ import {
   GraphQLString,
   type GraphQLFieldConfigMap,
 } from "graphql";
-import { All, elementKindSymbol } from "../model";
+import { All, elementKindSymbol, ElementKind } from "../model";
+import { sanitizePath } from "../../utils/path";
 import { MetaType } from "./MetaType";
 import { baseElementCommonFields } from "./BaseElementCommon";
 
@@ -96,18 +97,59 @@ export const BaseElementInterface: GraphQLInterfaceType =
 
 export const AllType: GraphQLObjectType = new GraphQLObjectType({
   name: "All",
+  description:
+    "Minimal, generic element used for root and as a fallback when a specific concrete type cannot be resolved.",
   interfaces: [BaseElementInterface],
-  isTypeOf: (value) =>
-    typeof (value as any)?.id === "string" && !("kind" in (value as any)),
+  isTypeOf: (value) => {
+    // Only use All type as fallback when no specific type can be determined
+    const kind = (value && (value as any)[elementKindSymbol]) as
+      | ElementKind
+      | undefined;
+
+    // If it has a kind symbol, it should resolve to a specific type, not All
+    if (
+      kind === "TASK" ||
+      kind === "LISTENER" ||
+      kind === "RESOURCE" ||
+      kind === "MIDDLEWARE" ||
+      kind === "EVENT"
+    ) {
+      return false;
+    }
+
+    // Structural checks - if it matches a specific type, don't use All
+    if (Array.isArray(value?.registers) && Array.isArray(value?.overrides)) {
+      return false; // Resource
+    }
+    if (
+      Array.isArray(value?.usedByTasks) &&
+      Array.isArray(value?.usedByResources)
+    ) {
+      return false; // Middleware
+    }
+    if (Array.isArray(value?.listenedToBy)) {
+      return false; // Event
+    }
+    if (typeof value?.event === "string") {
+      return false; // Listener
+    }
+    if (Array.isArray(value?.emits) && Array.isArray(value?.dependsOn)) {
+      return false; // Task
+    }
+
+    // Only use All type for objects that truly can't be resolved to a specific type
+    return typeof (value as any)?.id === "string";
+  },
   fields: (): GraphQLFieldConfigMap<any, any> => ({
     id: {
-      description: "Application root id",
+      description: "Element ID",
       type: new GraphQLNonNull(GraphQLID),
     },
-    meta: { description: "Application root metadata", type: MetaType },
+    meta: { description: "Element metadata", type: MetaType },
     filePath: {
-      description: "Path to root resource file",
+      description: "Path to element file",
       type: GraphQLString,
+      resolve: (node: any) => sanitizePath(node?.filePath ?? null),
     },
     ...baseElementCommonFields(),
   }),

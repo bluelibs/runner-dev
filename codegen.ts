@@ -1,5 +1,5 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import path from "path";
+import * as path from "path";
 
 const config: CodegenConfig = {
   // Load schema from code-first module (TypeScript)

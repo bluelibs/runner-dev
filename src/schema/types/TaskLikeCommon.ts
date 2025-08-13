@@ -95,7 +95,7 @@ export function taskLikeCommonFields(params: {
         );
       },
     },
-    depenendsOnResolved: {
+    dependsOnResolved: {
       description:
         "Flattened dependencies resolved to BaseElement (tasks, listeners, resources)",
       type: new GraphQLNonNull(

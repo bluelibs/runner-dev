@@ -4,7 +4,10 @@ import type {
   Resource,
   Event,
   Middleware,
+  ElementKind,
+  WithElementKind,
 } from "../schema/model";
+import { elementKindSymbol } from "../schema/model";
 import { definitions } from "@bluelibs/runner";
 import type { Introspector } from "./introspector.resource";
 import type { DiagnosticItem } from "../schema/model";
@@ -43,6 +46,24 @@ export function stringifyIfObject(input: any): string | null {
   } catch {
     return String(input);
   }
+}
+
+// Internal helper to stamp a non-enumerable discriminator used by GraphQL type resolution
+export function stampElementKind<T extends object>(
+  obj: T,
+  kind: ElementKind
+): WithElementKind<T> {
+  try {
+    Object.defineProperty(obj, elementKindSymbol, {
+      value: kind,
+      enumerable: false,
+      configurable: false,
+      writable: false,
+    });
+  } catch {
+    // best-effort; if it fails, we ignore
+  }
+  return obj as WithElementKind<T>;
 }
 
 function normalizeTags(
@@ -92,22 +113,26 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
       : null,
   }));
 
-  return {
-    id: task.id.toString(),
-    meta: (() => {
-      const base = task.meta ?? null;
-      if (!base) return base;
-      const { ids, detailed } = normalizeTags((base as any).tags);
-      return { ...base, tags: ids, tagsDetailed: detailed } as any;
-    })(),
-    filePath: task[definitions.symbolFilePath],
-    dependsOn: resourceIdsFromDeps,
-    middleware: task.middleware.map((m) => m.id.toString()),
-    middlewareDetailed,
-    kind: "TASK",
-    // Emits any events present in its dependencies
-    emits: eventIdsFromDeps,
-  };
+  return stampElementKind(
+    {
+      id: task.id.toString(),
+      meta: (() => {
+        const base = task.meta ?? null;
+        if (!base) return base;
+        const { ids, detailed } = normalizeTags((base as any).tags);
+        return { ...base, tags: ids, tagsDetailed: detailed } as any;
+      })(),
+      filePath: task[definitions.symbolFilePath],
+      dependsOn: resourceIdsFromDeps,
+      middleware: task.middleware.map((m) => m.id.toString()),
+      middlewareDetailed,
+      registeredBy: null,
+      kind: "TASK",
+      // Emits any events present in its dependencies
+      emits: eventIdsFromDeps,
+    },
+    "TASK"
+  );
 }
 
 export function mapStoreTaskToListenerModel(
@@ -123,28 +148,32 @@ export function mapStoreTaskToListenerModel(
       : null,
   }));
 
-  return {
-    id: task.id.toString(),
-    meta: (() => {
-      const base = task.meta ?? null;
-      if (!base) return base;
-      const { ids, detailed } = normalizeTags((base as any).tags);
-      return { ...base, tags: ids, tagsDetailed: detailed } as any;
-    })(),
-    filePath: task[definitions.symbolFilePath] ?? null,
-    emits: eventIdsFromDeps,
-    dependsOn: resourceIdsFromDeps,
-    middleware: task.middleware.map((m) => m.id.toString()),
-    middlewareDetailed,
-    // They are stored later.
-    overriddenBy: null,
-    kind: "LISTENER",
-    event:
-      typeof task.on === "string"
-        ? task.on
-        : (task.on?.id.toString() as string), // Assertion to ensure it's not undefined
-    listenerOrder: task.listenerOrder ?? null,
-  };
+  return stampElementKind(
+    {
+      id: task.id.toString(),
+      meta: (() => {
+        const base = task.meta ?? null;
+        if (!base) return base;
+        const { ids, detailed } = normalizeTags((base as any).tags);
+        return { ...base, tags: ids, tagsDetailed: detailed } as any;
+      })(),
+      filePath: task[definitions.symbolFilePath] ?? null,
+      emits: eventIdsFromDeps,
+      dependsOn: resourceIdsFromDeps,
+      middleware: task.middleware.map((m) => m.id.toString()),
+      middlewareDetailed,
+      // They are stored later.
+      overriddenBy: null,
+      registeredBy: null,
+      kind: "LISTENER",
+      event:
+        typeof task.on === "string"
+          ? task.on
+          : (task.on?.id.toString() as string), // Assertion to ensure it's not undefined
+      listenerOrder: task.listenerOrder ?? null,
+    },
+    "LISTENER"
+  );
 }
 
 export function mapStoreResourceToResourceModel(
@@ -165,22 +194,26 @@ export function mapStoreResourceToResourceModel(
       : null,
   }));
 
-  return {
-    id: resource.id.toString(),
-    meta: (() => {
-      const base = resource.meta ?? null;
-      if (!base) return base;
-      const { ids, detailed } = normalizeTags((base as any).tags);
-      return { ...base, tags: ids, tagsDetailed: detailed } as any;
-    })(),
-    emits: eventIdsFromDeps,
-    filePath: resource[definitions.symbolFilePath] ?? null,
-    middleware: resource.middleware.map((m) => m.id.toString()),
-    middlewareDetailed,
-    overrides: resource.overrides.map((o) => o.id.toString()),
-    registers: register.map((r) => r.id.toString()) as string[],
-    context: stringifyIfObject(resource.context),
-  };
+  return stampElementKind(
+    {
+      id: resource.id.toString(),
+      meta: (() => {
+        const base = resource.meta ?? null;
+        if (!base) return base;
+        const { ids, detailed } = normalizeTags((base as any).tags);
+        return { ...base, tags: ids, tagsDetailed: detailed } as any;
+      })(),
+      emits: eventIdsFromDeps,
+      filePath: resource[definitions.symbolFilePath] ?? null,
+      middleware: resource.middleware.map((m) => m.id.toString()),
+      middlewareDetailed,
+      overrides: resource.overrides.map((o) => o.id.toString()),
+      registers: register.map((r) => r.id.toString()) as string[],
+      context: stringifyIfObject(resource.context),
+      registeredBy: null,
+    },
+    "RESOURCE"
+  );
 }
 
 export function buildEvents(
@@ -205,14 +238,18 @@ export function buildEvents(
   );
   return allEventIds.map((eventId) => {
     const e = findById(eventsCollection, eventId);
-    return {
-      id: eventId,
-      meta: e?.meta ?? null,
-      filePath: e?.filePath ?? e?.path ?? null,
-      listenedToBy: listeners
-        .filter((l) => l.event === eventId)
-        .map((l) => l.id),
-    };
+    return stampElementKind(
+      {
+        id: eventId,
+        meta: e?.meta ?? null,
+        filePath: e?.filePath ?? e?.path ?? null,
+        listenedToBy: listeners
+          .filter((l) => l.event === eventId)
+          .map((l) => l.id),
+        registeredBy: null,
+      },
+      "EVENT"
+    );
   });
 }
 
@@ -250,17 +287,46 @@ export function buildMiddlewares(
       .filter((r) => (r.middleware || []).includes(id))
       .map((r) => r.id);
 
-    return {
-      id,
-      meta: mw?.meta ?? null,
-      filePath:
-        mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null,
-      global: globalValue,
-      usedByTasks,
-      usedByResources,
-      overriddenBy: mw?.overriddenBy ?? null,
-    };
+    return stampElementKind(
+      {
+        id,
+        meta: mw?.meta ?? null,
+        filePath:
+          mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null,
+        global: globalValue,
+        usedByTasks,
+        usedByResources,
+        overriddenBy: mw?.overriddenBy ?? null,
+        registeredBy: null,
+      },
+      "MIDDLEWARE"
+    );
   });
+}
+
+export function attachRegisteredBy(
+  resources: Resource[],
+  tasks: Task[],
+  listeners: Listener[],
+  middlewares: Middleware[],
+  events: Event[]
+): void {
+  const taskMap = buildIdMap(tasks);
+  const listenerMap = buildIdMap(listeners);
+  const resourceMap = buildIdMap(resources);
+  const middlewareMap = buildIdMap(middlewares);
+  const eventMap = buildIdMap(events);
+
+  for (const r of resources) {
+    for (const id of r.registers ?? []) {
+      if (taskMap.has(id)) taskMap.get(id)!.registeredBy = r.id;
+      else if (listenerMap.has(id)) listenerMap.get(id)!.registeredBy = r.id;
+      else if (resourceMap.has(id)) resourceMap.get(id)!.registeredBy = r.id;
+      else if (middlewareMap.has(id))
+        middlewareMap.get(id)!.registeredBy = r.id;
+      else if (eventMap.has(id)) eventMap.get(id)!.registeredBy = r.id;
+    }
+  }
 }
 
 export function buildIdMap<T extends { id: string }>(
@@ -450,6 +516,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
   const diags: DiagnosticItem[] = [];
 
   for (const e of computeOrphanEvents(introspector)) {
+    if (isSystemEventId(e.id)) continue;
     diags.push({
       severity: "warning",
       code: "ORPHAN_EVENT",
@@ -459,6 +526,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
     });
   }
   for (const e of computeUnemittedEvents(introspector)) {
+    if (isSystemEventId(e.id)) continue;
     diags.push({
       severity: "warning",
       code: "UNEMITTED_EVENT",
@@ -502,4 +570,16 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
   });
 
   return diags;
+}
+
+// System events helpers
+export function isSystemEventId(eventId: string): boolean {
+  const id = String(eventId).toLowerCase();
+  return (
+    id.endsWith(".beforerun") ||
+    id.endsWith(".afterrun") ||
+    id.endsWith(".onerror") ||
+    id.endsWith(".afterinit") ||
+    id.endsWith(".beforeinit")
+  );
 }

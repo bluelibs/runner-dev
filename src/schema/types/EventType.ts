@@ -6,11 +6,14 @@ import {
   GraphQLString,
   type GraphQLFieldConfigMap,
 } from "graphql";
+import { GraphQLBoolean, GraphQLInputObjectType } from "graphql";
 
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
 import { TaskInterface } from "./TaskType";
 import { CustomGraphQLContext } from "../../graphql/context";
+import { ResourceType } from "./ResourceType";
+import { baseElementCommonFields } from "./BaseElementCommon";
 
 export const EventType: GraphQLObjectType = new GraphQLObjectType({
   name: "Event",
@@ -50,5 +53,41 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
       resolve: (node, _args, ctx) =>
         ctx.introspector.getListenersOfEvent(node.id),
     },
+    registeredBy: {
+      description: "Id of the resource that registered this event (if any)",
+      type: GraphQLString,
+      resolve: (node: any, _args, ctx: CustomGraphQLContext) => {
+        if (node.registeredBy) return node.registeredBy;
+        const allResources = ctx.introspector.getResources();
+        const found = allResources.find((r) =>
+          (r.registers || []).includes(node.id)
+        );
+        return found?.id ?? null;
+      },
+    },
+    registeredByResolved: {
+      description: "Resource that registered this event (resolved, if any)",
+      type: ResourceType,
+      resolve: (node: any, _args, ctx: CustomGraphQLContext) => {
+        if (node.registeredBy) {
+          return ctx.introspector.getResource(node.registeredBy);
+        }
+        const allResources = ctx.introspector.getResources();
+        return (
+          allResources.find((r) => (r.registers || []).includes(node.id)) ||
+          null
+        );
+      },
+    },
+    ...baseElementCommonFields(),
   }),
+});
+
+export const EventFilterInput = new GraphQLInputObjectType({
+  name: "EventFilterInput",
+  fields: {
+    hasNoListeners: { type: GraphQLBoolean },
+    hideSystem: { type: GraphQLBoolean },
+    idStartsWith: { type: GraphQLString },
+  },
 });

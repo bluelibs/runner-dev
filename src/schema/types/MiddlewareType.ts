@@ -12,9 +12,10 @@ import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
 import { TaskInterface } from "./TaskType";
 import { EventType } from "./EventType";
-import { ResourceType } from "./ResourceType";
 import { definitions } from "@bluelibs/runner";
 import type { CustomGraphQLContext } from "../../graphql/context";
+import { ResourceType } from "./ResourceType";
+import { baseElementCommonFields } from "./BaseElementCommon";
 
 function safeStringify(value: unknown): string | null {
   if (value == null) return null;
@@ -132,5 +133,34 @@ export const MiddlewareType: GraphQLObjectType = new GraphQLObjectType({
       description: "Id of the resource that overrides this middleware (if any)",
       type: GraphQLString,
     },
+    registeredBy: {
+      description:
+        "Id of the resource that registered this middleware (if any)",
+      type: GraphQLString,
+      resolve: (node: any, _args, ctx: CustomGraphQLContext) => {
+        if (node.registeredBy) return node.registeredBy;
+        const allResources = ctx.introspector.getResources();
+        const found = allResources.find((r) =>
+          (r.registers || []).includes(node.id)
+        );
+        return found?.id ?? null;
+      },
+    },
+    registeredByResolved: {
+      description:
+        "Resource that registered this middleware (resolved, if any)",
+      type: ResourceType,
+      resolve: (node: any, _args, ctx: CustomGraphQLContext) => {
+        if (node.registeredBy) {
+          return ctx.introspector.getResource(node.registeredBy);
+        }
+        const allResources = ctx.introspector.getResources();
+        return (
+          allResources.find((r) => (r.registers || []).includes(node.id)) ||
+          null
+        );
+      },
+    },
+    ...baseElementCommonFields(),
   }),
 });

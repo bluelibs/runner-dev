@@ -13,10 +13,13 @@ import type { Listener, Task } from "../model";
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
 import { ResourceType } from "./ResourceType";
+import { AllType } from "./AllType";
 import { EventType } from "./EventType";
 import { MiddlewareType } from "./MiddlewareType";
 import type { GraphQLFieldConfigMap } from "graphql";
 import type { CustomGraphQLContext } from "../../graphql/context";
+import { baseElementCommonFields } from "./BaseElementCommon";
+import { taskLikeCommonFields } from "./TaskLikeCommon";
 import { definitions } from "@bluelibs/runner";
 
 export const TaskMiddlewareUsageType = new GraphQLObjectType({
@@ -36,6 +39,26 @@ export const TaskInterface = new GraphQLInterfaceType({
     id: { description: "Task id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Task metadata", type: MetaType },
     filePath: { description: "Path to task file", type: GraphQLString },
+    fileContents: {
+      description:
+        "Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine.",
+      type: GraphQLString,
+      args: {
+        startLine: {
+          description: "1-based inclusive start line",
+          type: GraphQLInt,
+        },
+        endLine: {
+          description: "1-based inclusive end line",
+          type: GraphQLInt,
+        },
+      },
+    },
+    markdownDescription: {
+      description:
+        "Markdown composed from meta.title and meta.description (if present)",
+      type: new GraphQLNonNull(GraphQLString),
+    },
     emits: {
       description: "Event ids this task may emit (from dependencies)",
       type: new GraphQLNonNull(
@@ -83,6 +106,45 @@ export const TaskInterface = new GraphQLInterfaceType({
       description: "Id of the resource that overrides this task (if any)",
       type: GraphQLString,
     },
+    depenendsOnResolved: {
+      description:
+        "Flattened dependencies resolved to All (tasks, listeners, resources)",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(BaseElementInterface))
+      ),
+      resolve: async (node, _args, ctx: CustomGraphQLContext) => {
+        const { tasks, listeners, resources } =
+          await ctx.introspector.getDependencies(node);
+        return [...tasks, ...listeners, ...resources];
+      },
+    },
+    registeredBy: {
+      description: "Id of the resource that registered this task (if any)",
+      type: GraphQLString,
+      resolve: (node, _args, ctx: CustomGraphQLContext) => {
+        if ((node as any).registeredBy) return (node as any).registeredBy;
+        const allResources = ctx.introspector.getResources();
+        const found = allResources.find((r) =>
+          (r.registers || []).includes(node.id)
+        );
+        return found?.id ?? null;
+      },
+    },
+    registeredByResolved: {
+      description: "Resource that registered this task (resolved, if any)",
+      type: ResourceType,
+      resolve: (node, _args, ctx: CustomGraphQLContext) => {
+        if ((node as any).registeredBy) {
+          return ctx.introspector.getResource((node as any).registeredBy);
+        }
+        // Fallback for backward-compatibility
+        const allResources = ctx.introspector.getResources();
+        return (
+          allResources.find((r) => (r.registers || []).includes(node.id)) ||
+          null
+        );
+      },
+    },
   }),
   resolveType: (value) => {
     const node = value as Task | Listener;
@@ -101,39 +163,10 @@ export const TaskType = new GraphQLObjectType({
     id: { description: "Task id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Task metadata", type: MetaType },
     filePath: { description: "Path to task file", type: GraphQLString },
-    emits: {
-      description: "Event ids this task may emit (from dependencies)",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(GraphQLString))
-      ),
-    },
-    dependsOn: {
-      description: "Ids of resources/tasks this task depends on",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(GraphQLString))
-      ),
-    },
-    middleware: {
-      description: "Ids of middlewares applied to this task",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(GraphQLString))
-      ),
-    },
-    middlewareResolved: {
-      description: "Middlewares applied to this task (resolved)",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(MiddlewareType))
-      ),
-      resolve: async (node, _args, ctx) => {
-        return ctx.introspector.getMiddlewaresByIds(node.middleware);
-      },
-    },
-    middlewareResolvedDetailed: {
-      description: "Middlewares applied to this task with per-usage config",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
-      ),
-      resolve: (node, _args, ctx: CustomGraphQLContext) => {
+    ...taskLikeCommonFields({
+      ResourceType,
+      TaskMiddlewareUsageType,
+      middlewareDetailedResolver: (node, _args, ctx: CustomGraphQLContext) => {
         const storeTask = ctx.store?.tasks?.get(node.id)?.task as any;
         if (!storeTask) return [];
         return (storeTask.middleware || []).map((m: any) => ({
@@ -144,18 +177,7 @@ export const TaskType = new GraphQLObjectType({
           node: m,
         }));
       },
-    },
-    emitsResolved: {
-      description: "Events emitted by this task (resolved)",
-      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
-      resolve: async (node, _args, ctx) => {
-        return ctx.introspector.getEventsByIds(node.emits);
-      },
-    },
-    overriddenBy: {
-      description: "Id of the resource that overrides this task (if any)",
-      type: GraphQLString,
-    },
+    }),
     dependsOnResolved: {
       description: "Resolved dependencies and emitted events for this task",
       type: new GraphQLNonNull(
@@ -195,6 +217,19 @@ export const TaskType = new GraphQLObjectType({
         return { tasks, listeners, resources, emitters };
       },
     },
+    depenendsOnResolved: {
+      description:
+        "Flattened dependencies resolved to All (tasks, listeners, resources)",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(BaseElementInterface))
+      ),
+      resolve: async (node, _args, ctx: CustomGraphQLContext) => {
+        const { tasks, listeners, resources } =
+          await ctx.introspector.getDependencies(node);
+        return [...tasks, ...listeners, ...resources];
+      },
+    },
+    ...baseElementCommonFields(),
   }),
 });
 
@@ -212,46 +247,10 @@ export const ListenerType = new GraphQLObjectType({
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
     },
-    emitsResolved: {
-      description: "Events emitted by this listener (resolved)",
-      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
-      resolve: async (node, _args, ctx) => {
-        return ctx.introspector.getEventsByIds(node.emits);
-      },
-    },
-    dependsOn: {
-      description: "Ids of resources/tasks this listener depends on",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(GraphQLString))
-      ),
-    },
-    middleware: {
-      description: "Ids of middlewares applied to this listener",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(GraphQLString))
-      ),
-    },
-    middlewareResolved: {
-      description: "Middlewares applied to this listener (resolved)",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(MiddlewareType))
-      ),
-      resolve: async (node, _args, ctx) => {
-        return ctx.introspector.getMiddlewaresByIds(node.middleware);
-      },
-    },
-    middlewareResolvedDetailed: {
-      description: "Middlewares applied to this listener with per-usage config",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
-      ),
-      resolve: (node, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getMiddlewareUsagesForTaskLike(node.id),
-    },
-    overriddenBy: {
-      description: "Id of the resource that overrides this listener (if any)",
-      type: GraphQLString,
-    },
+    ...taskLikeCommonFields({
+      ResourceType,
+      TaskMiddlewareUsageType,
+    }),
     event: {
       description: "The event id this listener listens to",
       type: new GraphQLNonNull(GraphQLString),
@@ -260,44 +259,18 @@ export const ListenerType = new GraphQLObjectType({
       description: "Execution order among listeners for the same event",
       type: GraphQLInt,
     },
-    dependsOnResolved: {
-      description: "Resolved dependencies and emitted events for this listener",
+    depenendsOnResolved: {
+      description:
+        "Flattened dependencies resolved to All (tasks, listeners, resources)",
       type: new GraphQLNonNull(
-        new GraphQLObjectType({
-          name: "ListenerDependsOn",
-          fields: () => ({
-            tasks: {
-              description: "Tasks this listener depends on",
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(TaskInterface))
-              ),
-            },
-            listeners: {
-              description: "Listeners this listener depends on",
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(TaskInterface))
-              ),
-            },
-            resources: {
-              description: "Resources this listener depends on",
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(ResourceType))
-              ),
-            },
-            emitters: {
-              description: "Events this listener emits",
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(EventType))
-              ),
-            },
-          }),
-        })
+        new GraphQLList(new GraphQLNonNull(BaseElementInterface))
       ),
-      resolve: async (node, _args, ctx) => {
-        const { tasks, listeners, resources, emitters } =
+      resolve: async (node: Listener, _args, ctx: CustomGraphQLContext) => {
+        const { tasks, listeners, resources } =
           await ctx.introspector.getDependencies(node);
-        return { tasks, listeners, resources, emitters };
+        return [...tasks, ...listeners, ...resources];
       },
     },
+    ...baseElementCommonFields(),
   }),
 });

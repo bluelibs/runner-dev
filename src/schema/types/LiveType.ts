@@ -24,7 +24,7 @@ import type {
   ErrorEntry as LiveErrorEntry,
   RunRecord as LiveRunRecord,
 } from "../../resources/live.resource";
-import { BaseElementInterface } from "./AllType";
+import { AllType, BaseElementInterface } from "./AllType";
 import { TaskInterface } from "./TaskType";
 import { EventType } from "./EventType";
 
@@ -95,7 +95,7 @@ export const EmissionEntryType = new GraphQLObjectType<
     },
     emitterResolved: {
       description:
-        "Resolved emitter node (task/listener/resource/middleware) if known",
+        "Resolved emitter node (task/listener/resource/middleware) if known; otherwise returns a minimal All node",
       type: BaseElementInterface,
       resolve: (node, _args, ctx: CustomGraphQLContext) => {
         const id = node?.emitterId ? String(node.emitterId) : null;
@@ -105,8 +105,7 @@ export const EmissionEntryType = new GraphQLObjectType<
           ctx.introspector.getListenersByIds([id])[0] ||
           ctx.introspector.getResource(id) ||
           ctx.introspector.getMiddleware(id) ||
-          ctx.introspector.getEvent(id) ||
-          null
+          ctx.introspector.getEvent(id) || { id, meta: null, filePath: null }
         );
       },
     },
@@ -148,21 +147,46 @@ export const ErrorEntryType = new GraphQLObjectType<
           : safeStringify(node.data),
     },
     sourceResolved: {
-      description: "Resolved source node (task/listener/resource/middleware)",
+      description:
+        "Resolved source node (task/listener/resource/middleware), else minimal All",
       type: BaseElementInterface,
       resolve: (node, _args, ctx: CustomGraphQLContext) => {
         const id = String(node.sourceId);
         switch (node.sourceKind) {
           case "TASK":
-            return ctx.introspector.getTask(id);
+            return (
+              ctx.introspector.getTask(id) || {
+                id,
+                meta: null,
+                filePath: null,
+              }
+            );
           case "LISTENER":
-            return ctx.introspector.getListenersByIds([id])[0];
+            return (
+              ctx.introspector.getListenersByIds([id])[0] || {
+                id,
+                meta: null,
+                filePath: null,
+              }
+            );
           case "RESOURCE":
-            return ctx.introspector.getResource(id);
+            return (
+              ctx.introspector.getResource(id) || {
+                id,
+                meta: null,
+                filePath: null,
+              }
+            );
           case "MIDDLEWARE":
-            return ctx.introspector.getMiddleware(id);
+            return (
+              ctx.introspector.getMiddleware(id) || {
+                id,
+                meta: null,
+                filePath: null,
+              }
+            );
           default:
-            return null;
+            return { id, meta: null, filePath: null };
         }
       },
     },

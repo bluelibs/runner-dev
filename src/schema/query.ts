@@ -9,6 +9,7 @@ import type { CustomGraphQLContext } from "../graphql/context";
 import {
   AllType,
   EventType,
+  EventFilterInput,
   ListenerType,
   MiddlewareType,
   ResourceType,
@@ -18,18 +19,34 @@ import {
 } from "./types/index";
 import type {
   QueryEventArgs,
+  QueryEventsArgs,
   QueryMiddlewareArgs,
+  QueryMiddlewaresArgs,
   QueryResourceArgs,
+  QueryResourcesArgs,
   QueryTaskArgs,
+  QueryTasksArgs,
+  QueryListenersArgs,
 } from "../generated/resolvers-types";
+import { isSystemEventId } from "../resources/introspector.tools";
 
 export const QueryType = new GraphQLObjectType({
   name: "Query",
   fields: () => ({
-    all: {
-      type: AllType,
+    root: {
+      type: ResourceType,
       resolve: (_root, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getRoot(),
+    },
+    all: {
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(AllType))),
+      resolve: (_root, _args, ctx: CustomGraphQLContext) => [
+        ...ctx.introspector.getTasks(),
+        ...ctx.introspector.getListeners(),
+        ...ctx.introspector.getResources(),
+        ...ctx.introspector.getMiddlewares(),
+        ...ctx.introspector.getEvents(),
+      ],
     },
     event: {
       type: EventType,
@@ -39,8 +56,36 @@ export const QueryType = new GraphQLObjectType({
     },
     events: {
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
-      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getEvents(),
+      args: { filter: { type: EventFilterInput } },
+      resolve: (_root, args: QueryEventsArgs, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getEvents();
+        const filter = args.filter || {
+          hideSystem: false,
+          hasNoListeners: false,
+          idStartsWith: undefined,
+        };
+
+        if (filter.hideSystem) {
+          result = result.filter(
+            (e) =>
+              !e.id.startsWith("runner-dev.") &&
+              !e.id.startsWith("globals.events") &&
+              !isSystemEventId(e.id)
+          );
+        }
+        if (filter.idStartsWith) {
+          const pfx = String(filter.idStartsWith);
+          result = result.filter((e) => e.id.startsWith(pfx));
+        }
+        if (typeof filter.hasNoListeners === "boolean") {
+          result = result.filter((e) =>
+            filter.hasNoListeners
+              ? (e.listenedToBy ?? []).length === 0
+              : (e.listenedToBy ?? []).length > 0
+          );
+        }
+        return result;
+      },
     },
     task: {
       type: TaskType,
@@ -50,15 +95,31 @@ export const QueryType = new GraphQLObjectType({
     },
     tasks: {
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
-      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getTasks(),
+      args: {
+        idStartsWith: { type: GraphQLID },
+      },
+      resolve: (_root, args: QueryTasksArgs, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getTasks();
+        if (args?.idStartsWith) {
+          const pfx = String(args.idStartsWith);
+          result = result.filter((t) => t.id.startsWith(pfx));
+        }
+        return result;
+      },
     },
     listeners: {
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(ListenerType))
       ),
-      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getListeners(),
+      args: { idStartsWith: { type: GraphQLID } },
+      resolve: (_root, args: QueryListenersArgs, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getListeners();
+        if (args?.idStartsWith) {
+          const pfx = String(args.idStartsWith);
+          result = result.filter((l) => l.id.startsWith(pfx));
+        }
+        return result;
+      },
     },
     middleware: {
       type: MiddlewareType,
@@ -70,8 +131,19 @@ export const QueryType = new GraphQLObjectType({
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(MiddlewareType))
       ),
-      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getMiddlewares(),
+      args: { idStartsWith: { type: GraphQLID } },
+      resolve: (
+        _root,
+        args: QueryMiddlewaresArgs,
+        ctx: CustomGraphQLContext
+      ) => {
+        let result = ctx.introspector.getMiddlewares();
+        if (args?.idStartsWith) {
+          const pfx = String(args.idStartsWith);
+          result = result.filter((m) => m.id.startsWith(pfx));
+        }
+        return result;
+      },
     },
     resource: {
       type: ResourceType,
@@ -83,8 +155,15 @@ export const QueryType = new GraphQLObjectType({
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(ResourceType))
       ),
-      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getResources(),
+      args: { idStartsWith: { type: GraphQLID } },
+      resolve: (_root, args: QueryResourcesArgs, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getResources();
+        if (args?.idStartsWith) {
+          const pfx = String(args.idStartsWith);
+          result = result.filter((r) => r.id.startsWith(pfx));
+        }
+        return result;
+      },
     },
     live: {
       type: new GraphQLNonNull(LiveType),

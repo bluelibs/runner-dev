@@ -11,3 +11,4 @@ export {
   ErrorEntryType,
 } from "./LiveType";
 export { DiagnosticType } from "./DiagnosticsType";
+export { EventFilterInput } from "./EventType";

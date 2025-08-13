@@ -1,6 +1,7 @@
 import { resource, run, globals } from "@bluelibs/runner";
 import { schema } from "../../schema";
 import { createDummyApp } from "../dummy/dummyApp";
+import { event } from "@bluelibs/runner";
 import { introspector } from "../../resources/introspector.resource";
 import { graphql } from "graphql";
 
@@ -26,12 +27,14 @@ describe("GraphQL schema (integration)", () => {
       },
     });
 
-    const app = createDummyApp([introspector, probe]);
+    // Add an explicit orphan event for filter testing
+    const orphanEvt = event({ id: "evt.readme.orphan" });
+    const app = createDummyApp([introspector, orphanEvt, probe]);
     await run(app);
 
     const query = `
       query DeepGraph {
-        all {
+        root {
           id
           filePath
           markdownDescription
@@ -71,13 +74,15 @@ describe("GraphQL schema (integration)", () => {
           usedBy { id }
           emits { id }
         }
-        events {
+        events { 
           id
           emittedBy
           emittedByResolved { id }
           listenedToBy
           listenedToByResolved { id }
         }
+        eventsWithListeners: events(filter: { hasNoListeners: false }) { id }
+        eventsWithoutListeners: events(filter: { hasNoListeners: true }) { id }
         middlewares {
           id
           usedByTasks
@@ -119,6 +124,18 @@ describe("GraphQL schema (integration)", () => {
 
     const mwLog = data.middlewares.find((m: any) => m.id === "mw.log");
     expect(mwLog.usedByResources).toEqual(expect.arrayContaining(["res.db"]));
+
+    // Filtered events
+    const withListeners: string[] = data.eventsWithListeners.map(
+      (e: any) => e.id
+    );
+    const withoutListeners: string[] = data.eventsWithoutListeners.map(
+      (e: any) => e.id
+    );
+    expect(withListeners).toEqual(expect.arrayContaining(["evt.hello"]));
+    expect(withoutListeners).toEqual(
+      expect.arrayContaining(["evt.readme.orphan"])
+    );
   });
 
   test("deep traversal from task -> middlewareResolved -> dependents", async () => {

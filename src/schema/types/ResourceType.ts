@@ -16,6 +16,8 @@ import { EventType } from "./EventType";
 import { CustomGraphQLContext } from "../../graphql/context";
 import { TaskMiddlewareUsageType } from "./TaskType";
 import { definitions } from "@bluelibs/runner";
+import { Resource } from "../model";
+import { baseElementCommonFields } from "./BaseElementCommon";
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
@@ -122,5 +124,32 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       description: "Serialized context (if any)",
       type: GraphQLString,
     },
+    registeredBy: {
+      description: "Id of the resource that registered this resource (if any)",
+      type: GraphQLString,
+      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) => {
+        if (node.registeredBy) return node.registeredBy;
+        const allResources = ctx.introspector.getResources();
+        const found = allResources.find((r) =>
+          (r.registers || []).includes(node.id)
+        );
+        return found?.id ?? null;
+      },
+    },
+    registeredByResolved: {
+      description: "Resource that registered this resource (resolved, if any)",
+      type: ResourceType,
+      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) => {
+        if (node.registeredBy) {
+          return ctx.introspector.getResource(node.registeredBy);
+        }
+        const allResources = ctx.introspector.getResources();
+        return (
+          allResources.find((r) => (r.registers || []).includes(node.id)) ||
+          null
+        );
+      },
+    },
+    ...baseElementCommonFields(),
   }),
 });

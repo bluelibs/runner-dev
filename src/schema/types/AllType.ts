@@ -7,10 +7,9 @@ import {
   GraphQLString,
   type GraphQLFieldConfigMap,
 } from "graphql";
-import { readFile } from "../../graphql/utils";
-import { All } from "../model";
+import { All, elementKindSymbol } from "../model";
 import { MetaType } from "./MetaType";
-import type { AllFileContentsArgs } from "../../generated/resolvers-types";
+import { baseElementCommonFields } from "./BaseElementCommon";
 
 export const BaseElementInterface: GraphQLInterfaceType =
   new GraphQLInterfaceType({
@@ -29,8 +28,50 @@ export const BaseElementInterface: GraphQLInterfaceType =
         description: "Source file path when available",
         type: GraphQLString,
       },
+      fileContents: {
+        description:
+          "Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine.",
+        type: GraphQLString,
+        args: {
+          startLine: {
+            description: "1-based inclusive start line",
+            type: GraphQLInt,
+          },
+          endLine: {
+            description: "1-based inclusive end line",
+            type: GraphQLInt,
+          },
+        },
+      },
+      markdownDescription: {
+        description:
+          "Markdown composed from meta.title and meta.description (if present)",
+        type: new GraphQLNonNull(GraphQLString),
+      },
     }),
     resolveType: (value: any) => {
+      const kind = (value && (value as any)[elementKindSymbol]) as
+        | undefined
+        | "TASK"
+        | "LISTENER"
+        | "RESOURCE"
+        | "MIDDLEWARE"
+        | "EVENT";
+      switch (kind) {
+        case "TASK":
+          return "Task";
+        case "LISTENER":
+          return "Listener";
+        case "RESOURCE":
+          return "Resource";
+        case "MIDDLEWARE":
+          return "Middleware";
+        case "EVENT":
+          return "Event";
+        default:
+          break;
+      }
+      // Fallback to structural checks if no stamp present
       if (Array.isArray(value?.registers) && Array.isArray(value?.overrides)) {
         return "Resource";
       }
@@ -68,40 +109,6 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       description: "Path to root resource file",
       type: GraphQLString,
     },
-    fileContents: {
-      description:
-        "Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine.",
-      type: GraphQLString,
-      args: {
-        startLine: {
-          description: "1-based inclusive start line",
-          type: GraphQLInt,
-        },
-        endLine: {
-          description: "1-based inclusive end line",
-          type: GraphQLInt,
-        },
-      },
-      resolve: async (
-        node: { filePath?: string | null },
-        args: AllFileContentsArgs
-      ) => {
-        if (!node?.filePath) return null;
-        return await readFile(node.filePath, args);
-      },
-    },
-    markdownDescription: {
-      description:
-        "Markdown composed from meta.title and meta.description (if present)",
-      type: new GraphQLNonNull(GraphQLString),
-      resolve: (node: All) => {
-        const title = node.meta?.title ?? node.id;
-        const description = node.meta?.description ?? "N/A";
-        const titlePart = `# ${title}\n`;
-        const descPart = `\n${description}`;
-        const result = `${titlePart}${descPart}`.trim();
-        return result;
-      },
-    },
+    ...baseElementCommonFields(),
   }),
 });

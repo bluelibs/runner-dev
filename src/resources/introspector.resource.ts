@@ -9,6 +9,7 @@ import {
   buildMiddlewares,
   buildIdMap,
   attachOverrides,
+  attachRegisteredBy,
 } from "./introspector.tools";
 import {
   buildDiagnostics,
@@ -25,7 +26,10 @@ import type {
   Middleware,
   Resource,
   Task,
+  ElementKind,
 } from "../schema/model";
+import { elementKindSymbol } from "../schema/model";
+import { stampElementKind } from "./introspector.tools";
 
 export interface Introspector {
   getRoot(): Resource;
@@ -127,6 +131,9 @@ export const introspector = resource({
 
     attachOverrides(store.overrideRequests, tasks, listeners, middlewares);
 
+    // Attach registeredBy to all nodes based on each resource.registers
+    attachRegisteredBy(resources, tasks, listeners, middlewares, events);
+
     // Maps
     const taskMap = buildIdMap(tasks);
     const listenerMap = buildIdMap(listeners);
@@ -136,9 +143,11 @@ export const introspector = resource({
 
     // API
     const api: Introspector = {
-      getRoot: () => {
-        return resourceMap.get(store.root.resource.id.toString())!;
-      },
+      getRoot: () =>
+        stampElementKind(
+          resourceMap.get(store.root.resource.id.toString())!,
+          "RESOURCE"
+        ),
       getEvents: () => events,
       getTasks: () => tasks,
       getListeners: () => listeners,

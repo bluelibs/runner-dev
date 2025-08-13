@@ -18,6 +18,8 @@ export interface BaseElement {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
+  // Id of the resource that registered this element (if any)
+  registeredBy?: string | null;
 }
 
 export interface All extends BaseElement {
@@ -32,6 +34,22 @@ export interface Event extends BaseElement {
   filePath?: string | null;
   listenedToBy: string[];
 }
+
+// Internal discriminator for GraphQL type resolution (non-enumerable)
+export type ElementKind =
+  | "ALL"
+  | "TASK"
+  | "LISTENER"
+  | "RESOURCE"
+  | "MIDDLEWARE"
+  | "EVENT";
+
+export const elementKindSymbol: unique symbol = Symbol(
+  "runner-dev.elementKind"
+);
+
+// Optional typing marker for objects stamped at runtime
+export type WithElementKind<T> = T & { [elementKindSymbol]?: ElementKind };
 
 export interface MiddlewareGlobal {
   enabled: boolean;

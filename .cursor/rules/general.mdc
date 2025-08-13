@@ -16,4 +16,4 @@ alwaysApply: true
 - When creating types always strive to provide verbose description and helpful dev guides.
 - Everything we do should have a test and we can run tests for it "npm run test -- {context}"
 - If the changes is a new feature or a change we should at the end, after tests are passing, see how we can update README.md intelligently.
-- If you make schema changes to GraphQL, ensure you work in a type-safe manner (npm run codegen) to update the types.
+- If you make schema changes to GraphQL, ensure you work in a type-safe manner (npm run codegen) to update the types. We're going to do some inception. First you write the types. Then after generation, you can use those types properly inside the resolve() functions.

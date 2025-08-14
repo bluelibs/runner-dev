@@ -1,13 +1,17 @@
 {
   "mcpServers": {
     "runner_dev": {
-      "description": "BlueLibs Runner Dev GraphQL MCP server",
+      "description": "BlueLibs Runner Dev GraphQL MCP server. For debugging a live running app.",
       "command": "ts-node",
       "args": ["src/mcp.ts"],
       "env": {
         "ENDPOINT": "http://localhost:1337/graphql",
         "ALLOW_MUTATIONS": "true"
       }
+    },
+    "context7": {
+      "description": "Context7 MCP server. If any questions about libraryId: /bluelibs/runner arise, ask it directly.",
+      "url": "https://mcp.context7.com/mcp"
     }
   }
 }

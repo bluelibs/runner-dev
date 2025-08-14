@@ -33,6 +33,8 @@ export interface Event extends BaseElement {
   meta?: Meta | null;
   filePath?: string | null;
   listenedToBy: string[];
+  // Prettified Zod schema for the event payload if provided
+  payloadSchema?: string | null;
 }
 
 // Internal discriminator for GraphQL type resolution (non-enumerable)
@@ -70,6 +72,8 @@ export interface Middleware extends BaseElement {
   usedByTasks: string[];
   usedByResources: string[];
   overriddenBy?: string | null;
+  // Prettified Zod schema for the middleware config if provided
+  configSchema?: string | null;
 }
 
 export interface TaskBase extends BaseElement {
@@ -81,6 +85,8 @@ export interface TaskBase extends BaseElement {
   middleware: string[];
   middlewareDetailed?: MiddlewareUsage[];
   overriddenBy?: string | null;
+  // Prettified Zod schema for the task input if provided
+  inputSchema?: string | null;
 }
 
 export interface Task extends TaskBase {
@@ -103,6 +109,8 @@ export interface Resource extends BaseElement {
   // Resource dependencies (other resources this resource depends on)
   dependsOn: string[];
   config?: string | null;
+  // Prettified Zod schema for the resource config if provided
+  configSchema?: string | null;
   middleware: string[];
   middlewareDetailed?: MiddlewareUsage[];
   overrides: string[];

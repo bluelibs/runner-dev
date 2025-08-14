@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { readFile } from "../../graphql/utils";
+import { readFile } from "../../schema/utils";
 import * as path from "path";
 
 describe("readFile utility", () => {

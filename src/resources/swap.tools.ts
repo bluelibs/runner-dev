@@ -119,6 +119,23 @@ export function getTaskFromStore(store: Store, taskId: string) {
 }
 
 /**
+ * Get task from store by ID
+ */
+export function getEventFromStore(store: Store, eventId: string) {
+  if (eventId.includes("Symbol")) {
+    for (const eventElement of store.events.values()) {
+      if (eventElement.event.id.toString() === eventId) {
+        return eventElement.event;
+      }
+    }
+  }
+
+  const eventStoreElement = store.events.get(eventId);
+
+  return eventStoreElement?.event;
+}
+
+/**
  * Get computed dependencies for a task from store
  */
 export function getTaskDependencies(store: any, taskId: string): any {

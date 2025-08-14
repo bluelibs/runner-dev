@@ -2,7 +2,7 @@ import { run, task, resource, globals } from "@bluelibs/runner";
 import { ApolloServer } from "@apollo/server";
 import { resources } from "../../index";
 import { telemetry } from "../../resources/dev.telemetry.resource";
-import type { CustomGraphQLContext } from "../../graphql/context";
+import type { CustomGraphQLContext } from "../../schema/context";
 import type { SwapResult, SwappedTask } from "../../generated/resolvers-types";
 import { createDummyApp } from "../dummy/dummyApp";
 
@@ -478,39 +478,6 @@ describe("Swap GraphQL Integration", () => {
         expect(JSON.parse(res.result).hello).toBe("world");
         expect(typeof res.executionTimeMs).toBe("number");
         expect(res.invocationId).toBeTruthy();
-      }
-    });
-
-    test("should support evalInput for JavaScript input", async () => {
-      const mutation = `
-        mutation Eval($code: String!, $inputJson: String, $evalInput: Boolean) {
-          eval(code: $code, inputJson: $inputJson, evalInput: $evalInput) {
-            success
-            error
-            result
-          }
-        }
-      `;
-
-      process.env.RUNNER_DEV_EVAL = "1";
-
-      const code = `async function run(input){ return { v: input.fn() } }`;
-      const inputJson = `{ fn: () => 123 }`;
-
-      const response = await apolloServer.executeOperation(
-        {
-          query: mutation,
-          variables: { code, inputJson, evalInput: true },
-        },
-        { contextValue: context }
-      );
-
-      expect(response.body.kind).toBe("single");
-      if (response.body.kind === "single") {
-        const resData = response.body.singleResult.data as any;
-        const res = resData?.eval as any;
-        expect(res.success).toBe(true);
-        expect(JSON.parse(res.result).v).toBe(123);
       }
     });
 

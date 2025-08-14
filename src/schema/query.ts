@@ -4,7 +4,7 @@ import {
   GraphQLNonNull,
   GraphQLObjectType,
 } from "graphql";
-import type { CustomGraphQLContext } from "../graphql/context";
+import type { CustomGraphQLContext } from "./context";
 
 import {
   AllType,
@@ -50,13 +50,26 @@ export const QueryType = new GraphQLObjectType({
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(BaseElementInterface))
       ),
-      resolve: (_root, _args, ctx: CustomGraphQLContext) => [
-        ...ctx.introspector.getTasks(),
-        ...ctx.introspector.getListeners(),
-        ...ctx.introspector.getResources(),
-        ...ctx.introspector.getMiddlewares(),
-        ...ctx.introspector.getEvents(),
-      ],
+      args: {
+        idIncludes: {
+          description: "Return only elements whose id contains this substring.",
+          type: GraphQLID,
+        },
+      },
+      resolve: (_root, args: any, ctx: CustomGraphQLContext) => {
+        let result = [
+          ...ctx.introspector.getTasks(),
+          ...ctx.introspector.getListeners(),
+          ...ctx.introspector.getResources(),
+          ...ctx.introspector.getMiddlewares(),
+          ...ctx.introspector.getEvents(),
+        ];
+        if (args?.idIncludes) {
+          const sub = String(args.idIncludes);
+          result = result.filter((e: any) => String(e.id).includes(sub));
+        }
+        return result;
+      },
     },
     event: {
       description: "Get a single event by its id.",
@@ -85,7 +98,7 @@ export const QueryType = new GraphQLObjectType({
         const filter = args.filter || {
           hideSystem: false,
           hasNoListeners: false,
-          idStartsWith: undefined,
+          idIncludes: undefined,
         };
 
         if (filter.hideSystem) {
@@ -96,9 +109,9 @@ export const QueryType = new GraphQLObjectType({
               !isSystemEventId(e.id)
           );
         }
-        if (filter.idStartsWith) {
-          const pfx = String(filter.idStartsWith);
-          result = result.filter((e) => e.id.startsWith(pfx));
+        if (filter.idIncludes) {
+          const sub = String(filter.idIncludes);
+          result = result.filter((e) => String(e.id).includes(sub));
         }
         if (typeof filter.hasNoListeners === "boolean") {
           result = result.filter((e) =>
@@ -126,16 +139,16 @@ export const QueryType = new GraphQLObjectType({
       description: "Get all tasks (optionally filter by id prefix).",
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
       args: {
-        idStartsWith: {
-          description: "Return only tasks whose id starts with this prefix.",
+        idIncludes: {
+          description: "Return only tasks whose id contains this substring.",
           type: GraphQLID,
         },
       },
       resolve: (_root, args: QueryTasksArgs, ctx: CustomGraphQLContext) => {
         let result = ctx.introspector.getTasks();
-        if (args?.idStartsWith) {
-          const pfx = String(args.idStartsWith);
-          result = result.filter((t) => t.id.startsWith(pfx));
+        if ((args as any)?.idIncludes) {
+          const sub = String((args as any).idIncludes);
+          result = result.filter((t) => String(t.id).includes(sub));
         }
         return result;
       },
@@ -146,17 +159,17 @@ export const QueryType = new GraphQLObjectType({
         new GraphQLList(new GraphQLNonNull(ListenerType))
       ),
       args: {
-        idStartsWith: {
+        idIncludes: {
           description:
-            "Return only listeners whose id starts with this prefix.",
+            "Return only listeners whose id contains this substring.",
           type: GraphQLID,
         },
       },
       resolve: (_root, args: QueryListenersArgs, ctx: CustomGraphQLContext) => {
         let result = ctx.introspector.getListeners();
-        if (args?.idStartsWith) {
-          const pfx = String(args.idStartsWith);
-          result = result.filter((l) => l.id.startsWith(pfx));
+        if ((args as any)?.idIncludes) {
+          const sub = String((args as any).idIncludes);
+          result = result.filter((l) => String(l.id).includes(sub));
         }
         return result;
       },
@@ -179,9 +192,9 @@ export const QueryType = new GraphQLObjectType({
         new GraphQLList(new GraphQLNonNull(MiddlewareType))
       ),
       args: {
-        idStartsWith: {
+        idIncludes: {
           description:
-            "Return only middleware whose id starts with this prefix.",
+            "Return only middleware whose id contains this substring.",
           type: GraphQLID,
         },
       },
@@ -191,9 +204,9 @@ export const QueryType = new GraphQLObjectType({
         ctx: CustomGraphQLContext
       ) => {
         let result = ctx.introspector.getMiddlewares();
-        if (args?.idStartsWith) {
-          const pfx = String(args.idStartsWith);
-          result = result.filter((m) => m.id.startsWith(pfx));
+        if ((args as any)?.idIncludes) {
+          const sub = String((args as any).idIncludes);
+          result = result.filter((m) => String(m.id).includes(sub));
         }
         return result;
       },
@@ -216,17 +229,17 @@ export const QueryType = new GraphQLObjectType({
         new GraphQLList(new GraphQLNonNull(ResourceType))
       ),
       args: {
-        idStartsWith: {
+        idIncludes: {
           description:
-            "Return only resources whose id starts with this prefix.",
+            "Return only resources whose id contains this substring.",
           type: GraphQLID,
         },
       },
       resolve: (_root, args: QueryResourcesArgs, ctx: CustomGraphQLContext) => {
         let result = ctx.introspector.getResources();
-        if (args?.idStartsWith) {
-          const pfx = String(args.idStartsWith);
-          result = result.filter((r) => r.id.startsWith(pfx));
+        if ((args as any)?.idIncludes) {
+          const sub = String((args as any).idIncludes);
+          result = result.filter((r) => String(r.id).includes(sub));
         }
         return result;
       },

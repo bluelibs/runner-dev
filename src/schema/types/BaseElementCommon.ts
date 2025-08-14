@@ -4,7 +4,7 @@ import {
   GraphQLString,
   type GraphQLFieldConfigMap,
 } from "graphql";
-import { readFile, type ReadFileOptions } from "../../graphql/utils";
+import { readFile, type ReadFileOptions } from "../utils";
 import { sanitizePath } from "../../utils/path";
 import type { BaseElement } from "../model";
 

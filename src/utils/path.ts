@@ -12,51 +12,6 @@ function normalizeAbsolute(p: string): string {
   }
 }
 
-function parseEnvRoots(): PathRoot[] {
-  const env = process.env.RUNNER_DEV_PATH_ROOTS;
-  if (!env) return [];
-  try {
-    const parsed = JSON.parse(env) as unknown;
-    if (Array.isArray(parsed)) {
-      return parsed
-        .map((entry) => {
-          if (
-            entry &&
-            typeof entry === "object" &&
-            "name" in entry &&
-            "path" in entry
-          ) {
-            return {
-              name: String((entry as any).name),
-              path: normalizeAbsolute(String((entry as any).path)),
-            } as PathRoot;
-          }
-          return null;
-        })
-        .filter(Boolean) as PathRoot[];
-    }
-    if (parsed && typeof parsed === "object") {
-      return Object.entries(parsed as Record<string, unknown>)
-        .map(([name, p]) => ({ name, path: normalizeAbsolute(String(p)) }))
-        .filter((x) => x.name && x.path);
-    }
-  } catch {
-    // Fallback to a simple comma/semicolon separated list: name=path,name2=path2
-    const pairs = env.split(/[;,]/g).map((s) => s.trim());
-    const roots: PathRoot[] = [];
-    for (const pair of pairs) {
-      const idx = pair.indexOf("=");
-      if (idx > 0) {
-        const name = pair.slice(0, idx).trim();
-        const p = pair.slice(idx + 1).trim();
-        if (name && p) roots.push({ name, path: normalizeAbsolute(p) });
-      }
-    }
-    return roots;
-  }
-  return [];
-}
-
 function defaultRoots(): PathRoot[] {
   const cwd = normalizeAbsolute(process.cwd());
   const nm = normalizeAbsolute(path.join(cwd, "node_modules"));
@@ -73,7 +28,7 @@ let cachedRoots: PathRoot[] | null = null;
 
 export function getPathRoots(): PathRoot[] {
   if (cachedRoots) return cachedRoots;
-  const roots = [...defaultRoots(), ...parseEnvRoots()]
+  const roots = [...defaultRoots()]
     // Deduplicate by name, last-one-wins (env overrides default)
     .reduce<Map<string, PathRoot>>((map, r) => {
       if (!r?.name || !r?.path) return map;

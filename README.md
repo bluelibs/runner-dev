@@ -61,7 +61,7 @@ Add it as an MCP Server:
 }
 ```
 
-Then start your app as usual. The Dev GraphQL server will be available at http://localhost:2000/graphql.
+Then start your app as usual. The Dev GraphQL server will be available at http://localhost:1337/graphql.
 
 ### CLI usage (MCP server)
 
@@ -70,13 +70,7 @@ After installing, you can start the MCP server from this package via stdio.
 Using npx:
 
 ```bash
-ENDPOINT=http://localhost:2000/graphql npx -y @bluelibs/runner-dev mcp
-```
-
-Or using the dedicated binary name:
-
-```bash
-ENDPOINT=http://localhost:2000/graphql npx -y mcp-graphql
+ENDPOINT=http://localhost:1337/graphql npx -y @bluelibs/runner-dev mcp
 ```
 
 Optional environment variables:
@@ -569,7 +563,7 @@ export const app = resource({
     dev.swapManager,
 
     // GraphQL server with swap mutations
-    dev.server.with({ port: 2000 }),
+    dev.server.with({ port: 1337 }),
   ],
 });
 ```

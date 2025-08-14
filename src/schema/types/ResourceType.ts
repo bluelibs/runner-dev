@@ -13,12 +13,13 @@ import { MetaType } from "./MetaType";
 import { MiddlewareType } from "./MiddlewareType";
 import { TaskInterface, TaskType } from "./TaskType";
 import { EventType } from "./EventType";
-import { CustomGraphQLContext } from "../../graphql/context";
+import { CustomGraphQLContext } from "../context";
 import { TaskMiddlewareUsageType } from "./TaskType";
 import { definitions } from "@bluelibs/runner";
 import { Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
+import { convertJsonSchemaToReadable } from "../../utils/zod";
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
@@ -52,6 +53,18 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     config: {
       description: "Serialized resource config (if any)",
       type: GraphQLString,
+    },
+    configSchema: {
+      description:
+        "Prettified Zod JSON structure for the resource config schema, if provided",
+      type: GraphQLString,
+    },
+    configSchemaReadable: {
+      description:
+        "Readable text representation of the resource config schema, if provided",
+      type: GraphQLString,
+      resolve: (node: Resource) =>
+        convertJsonSchemaToReadable(node.configSchema),
     },
     middleware: {
       description: "Ids of middlewares applied to this resource",

@@ -89,7 +89,7 @@ export interface Introspector {
 }
 
 export const introspector = resource({
-  id: "runner-dev.introspector",
+  id: "runner-dev.resources.introspector",
   dependencies: {
     store: globals.resources.store,
   },

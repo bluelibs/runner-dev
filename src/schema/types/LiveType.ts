@@ -11,7 +11,7 @@ import {
   GraphQLInputObjectType,
 } from "graphql";
 
-import type { CustomGraphQLContext } from "../../graphql/context";
+import type { CustomGraphQLContext } from "../context";
 import type {
   LiveLogsArgs,
   LiveEmissionsArgs,

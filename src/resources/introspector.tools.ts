@@ -13,6 +13,7 @@ import type { Introspector } from "./introspector.resource";
 import type { DiagnosticItem } from "../schema/model";
 import { accessSync, constants as fsConstants } from "fs";
 import { sanitizePath } from "../utils/path";
+import { formatSchemaIfZod } from "../utils/zod";
 
 export function toArray(collection: any): any[] {
   if (!collection) return [];
@@ -131,6 +132,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
       kind: "TASK",
       // Emits any events present in its dependencies
       emits: eventIdsFromDeps,
+      inputSchema: formatSchemaIfZod(task.inputSchema),
     },
     "TASK"
   );
@@ -172,6 +174,7 @@ export function mapStoreTaskToListenerModel(
           ? task.on
           : (task.on?.id.toString() as string), // Assertion to ensure it's not undefined
       listenerOrder: task.listenerOrder ?? null,
+      inputSchema: formatSchemaIfZod(task.inputSchema),
     },
     "LISTENER"
   );
@@ -214,6 +217,7 @@ export function mapStoreResourceToResourceModel(
       registers: register.map((r) => r.id.toString()) as string[],
       context: stringifyIfObject(resource.context),
       registeredBy: null,
+      configSchema: formatSchemaIfZod(resource.configSchema),
     },
     "RESOURCE"
   );
@@ -250,6 +254,7 @@ export function buildEvents(
           .filter((l) => l.event === eventId)
           .map((l) => l.id),
         registeredBy: null,
+        payloadSchema: formatSchemaIfZod((e as any)?.payloadSchema),
       },
       "EVENT"
     );
@@ -301,6 +306,7 @@ export function buildMiddlewares(
         usedByResources,
         overriddenBy: mw?.overriddenBy ?? null,
         registeredBy: null,
+        configSchema: formatSchemaIfZod(mw.configSchema),
       },
       "MIDDLEWARE"
     );
@@ -517,6 +523,32 @@ export function computeOverrideConflicts(
 
 export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
   const diags: DiagnosticItem[] = [];
+
+  // Anonymous (Symbol) IDs
+  const collections: Array<{
+    kind: "RESOURCE" | "TASK" | "LISTENER" | "EVENT" | "MIDDLEWARE";
+    nodes: Array<{ id: string }>;
+  }> = [
+    { kind: "RESOURCE", nodes: introspector.getResources() },
+    { kind: "TASK", nodes: introspector.getTasks() },
+    { kind: "LISTENER", nodes: introspector.getListeners() },
+    { kind: "EVENT", nodes: introspector.getEvents() },
+    { kind: "MIDDLEWARE", nodes: introspector.getMiddlewares() },
+  ];
+  for (const { kind, nodes } of collections) {
+    const readableKind = kind.charAt(0) + kind.slice(1).toLowerCase();
+    for (const node of nodes) {
+      if (typeof node.id === "string" && node.id.startsWith("Symbol(")) {
+        diags.push({
+          severity: "warning",
+          code: "ANONYMOUS_ID",
+          message: `${readableKind} has anonymous id (Symbol)`,
+          nodeId: node.id,
+          nodeKind: kind,
+        });
+      }
+    }
+  }
 
   for (const e of computeOrphanEvents(introspector)) {
     if (isSystemEventId(e.id)) continue;

@@ -13,10 +13,11 @@ import { MetaType } from "./MetaType";
 import { TaskInterface } from "./TaskType";
 import { EventType } from "./EventType";
 import { definitions } from "@bluelibs/runner";
-import type { CustomGraphQLContext } from "../../graphql/context";
+import type { CustomGraphQLContext } from "../context";
 import { ResourceType } from "./ResourceType";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
+import { convertJsonSchemaToReadable } from "../../utils/zod";
 
 function safeStringify(value: unknown): string | null {
   if (value == null) return null;
@@ -165,6 +166,17 @@ export const MiddlewareType: GraphQLObjectType = new GraphQLObjectType({
           null
         );
       },
+    },
+    configSchema: {
+      description:
+        "Prettified Zod JSON structure for the middleware config schema, if provided",
+      type: GraphQLString,
+    },
+    configSchemaReadable: {
+      description:
+        "Readable text representation of the middleware config schema, if provided",
+      type: GraphQLString,
+      resolve: (node: any) => convertJsonSchemaToReadable(node.configSchema),
     },
     ...baseElementCommonFields(),
   }),

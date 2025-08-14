@@ -16,7 +16,7 @@ export const resources = {
 };
 
 export const dev = resource({
-  id: "probe.full",
+  id: "runner-dev.resources.dev",
   register: [
     resources.server,
     resources.introspector,

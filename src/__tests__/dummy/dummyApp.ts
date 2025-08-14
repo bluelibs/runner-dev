@@ -1,4 +1,5 @@
 import { middleware, resource, task, event, tag } from "@bluelibs/runner";
+import { z } from "zod";
 
 // Middleware
 export const logMw = middleware({
@@ -32,13 +33,17 @@ export const cacheRes = resource({
     title: "Cache resource",
     description: "Cache with TTL configuration used for tests",
   },
+  configSchema: z.object({ ttlMs: z.number().int().positive() }),
   async init(config: { ttlMs: number }) {
     return { ttlMs: config.ttlMs };
   },
 });
 
 // Event
-export const evtHello = event<{ name: string }>({ id: "evt.hello" });
+export const evtHello = event<{ name: string }>({
+  id: "evt.hello",
+  payloadSchema: z.object({ name: z.string() }),
+});
 
 // Tag
 export const areaTag = tag<{ scope?: string }>({ id: "tag.area" });
@@ -82,6 +87,7 @@ export const allEventsListener = task({
     title: "Global listener",
     description: "Wildcard listener that observes all events",
   },
+  inputSchema: z.object({}).optional(),
   async run() {
     /* noop */
   },
@@ -94,6 +100,7 @@ export const tagMw = middleware<{ label: string }, {}>({
     title: "Tagging middleware",
     description: "Configurable middleware used to tag tasks in tests",
   },
+  configSchema: z.object({ label: z.string() }),
   async run({ next }) {
     return next();
   },

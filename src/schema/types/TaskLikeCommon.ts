@@ -8,10 +8,11 @@ import {
   type GraphQLFieldResolver,
 } from "graphql";
 
-import type { CustomGraphQLContext } from "../../graphql/context";
+import type { CustomGraphQLContext } from "../context";
 import { MiddlewareType } from "./MiddlewareType";
 import { EventType } from "./EventType";
 import { BaseElementInterface } from "./AllType";
+import { convertJsonSchemaToReadable } from "../../utils/zod";
 
 export function taskLikeCommonFields(params: {
   ResourceType: GraphQLObjectType;
@@ -22,6 +23,17 @@ export function taskLikeCommonFields(params: {
     params;
 
   return {
+    inputSchema: {
+      description:
+        "Prettified Zod JSON structure for the input schema, if provided",
+      type: GraphQLString,
+    },
+    inputSchemaReadable: {
+      description:
+        "Readable text representation of the input schema, if provided",
+      type: GraphQLString,
+      resolve: (node: any) => convertJsonSchemaToReadable(node.inputSchema),
+    },
     emits: {
       description: "Event ids this task-like may emit (from dependencies)",
       type: new GraphQLNonNull(

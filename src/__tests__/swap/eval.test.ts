@@ -24,7 +24,7 @@ describe("SwapManager.eval", () => {
   });
 
   test("evaluates simple arrow function", async () => {
-    const res = await swapManager.eval("() => ({ message: 'hi' })");
+    const res = await swapManager.runnerEval("() => ({ message: 'hi' })");
     expect(res.success).toBe(true);
     expect(res.result).toBeTruthy();
     const parsed = JSON.parse(res.result!);
@@ -36,7 +36,7 @@ describe("SwapManager.eval", () => {
       const now = 123;
       return { ok: true, now };
     `;
-    const res = await swapManager.eval(code);
+    const res = await swapManager.runnerEval(code);
     expect(res.success).toBe(true);
     const parsed = JSON.parse(res.result!);
     expect(parsed.ok).toBe(true);
@@ -44,63 +44,41 @@ describe("SwapManager.eval", () => {
   });
 
   test("passes input via JSON parse", async () => {
-    const code = `async function run(input){ return { name: input.name, age: input.age } }`;
-    const inputJson = JSON.stringify({ name: "John", age: 30 });
-    const res = await swapManager.eval(code, inputJson, false);
+    const code = `async function run(deps){ return { store: Boolean(deps.store), introspector: Boolean(deps.introspector), globals: Boolean(deps.globals) } }`;
+    const res = await swapManager.runnerEval(code);
     expect(res.success).toBe(true);
     const parsed = JSON.parse(res.result!);
-    expect(parsed).toEqual({ name: "John", age: 30 });
-  });
-
-  test("supports JavaScript evaluation for rich inputs", async () => {
-    const code = `
-      async function run(input){
-        return {
-          isDate: input.date instanceof Date,
-          value: input.fn ? input.fn() : null,
-          calc: input.pi2,
-        }
-      }
-    `;
-    const jsInput = `{
-      date: new Date("2023-01-01T00:00:00Z"),
-      fn: () => 7,
-      pi2: Math.PI * 2
-    }`;
-    const res = await swapManager.eval(code, jsInput, true);
-    expect(res.success).toBe(true);
-    const parsed = JSON.parse(res.result!);
-    expect(parsed.isDate).toBe(true);
-    expect(parsed.value).toBe(7);
-    expect(parsed.calc).toBeCloseTo(6.283185307179586);
+    expect(parsed).toEqual({
+      store: true,
+      introspector: true,
+      globals: true,
+    });
   });
 
   test("exposes dependencies bag (store, introspector, globals)", async () => {
     const code = `
-      async function run(_i, deps){
+      async function run(deps){
         return {
           hasStore: !!deps.store,
           hasIntrospector: !!deps.introspector,
-          hasGlobals: !!deps.globals
         }
       }
     `;
-    const res = await swapManager.eval(code);
+    const res = await swapManager.runnerEval(code);
     expect(res.success).toBe(true);
     const parsed = JSON.parse(res.result!);
     expect(parsed.hasStore).toBe(true);
     expect(parsed.hasIntrospector).toBe(true);
-    expect(parsed.hasGlobals).toBe(true);
   });
 
   test("handles compilation errors gracefully", async () => {
-    const res = await swapManager.eval("this is not valid {{{");
+    const res = await swapManager.runnerEval("this is not valid {{{");
     expect(res.success).toBe(false);
     expect(res.error).toContain("Compilation failed");
   });
 
   test("handles execution errors gracefully", async () => {
-    const res = await swapManager.eval(
+    const res = await swapManager.runnerEval(
       `async function run(){ throw new Error('boom'); }`
     );
     expect(res.success).toBe(false);

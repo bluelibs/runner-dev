@@ -5,7 +5,7 @@ import {
   StartStandaloneServerOptions,
 } from "@apollo/server/standalone";
 import { graphql as graphqlResource } from "./graphql-accumulator.resource";
-import type { CustomGraphQLContext } from "../graphql/context";
+import type { CustomGraphQLContext } from "../schema/context";
 import { introspector } from "./introspector.resource";
 import { live } from "./live.resource";
 import { swapManager } from "./swap.resource";
@@ -16,7 +16,7 @@ export interface ServerConfig {
 }
 
 export const server = resource({
-  id: "server",
+  id: "runner-dev.resources.server",
   dependencies: {
     store: globals.resources.store,
     logger: globals.resources.logger,

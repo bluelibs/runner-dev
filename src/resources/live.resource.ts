@@ -128,7 +128,7 @@ export interface Live {
 }
 
 const liveService = resource({
-  id: "runner-dev.live.inner",
+  id: "runner-dev.resources.live-service",
   async init(c: { maxEntries?: number }): Promise<Live> {
     const maxEntries = c?.maxEntries ?? 10000;
     const logs: LogEntry[] = [];
@@ -424,7 +424,7 @@ const onResourceError = task({
 });
 
 export const live = resource({
-  id: "runner-dev.live",
+  id: "runner-dev.resources.live",
   dependencies: { liveService },
   register: (config: { maxEntries?: number }) => [
     liveService.with({ maxEntries: config.maxEntries }),

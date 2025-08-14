@@ -171,7 +171,7 @@ server.registerTool(
     },
   },
   async ({ headingIncludes, toc }) => {
-    const pkg = await readPackageDoc("@bluelibs/runner", "README.md");
+    const pkg = await readPackageDoc("@bluelibs/runner", "AI.md");
     let content = pkg.content;
 
     if (!content) {

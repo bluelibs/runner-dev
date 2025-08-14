@@ -17,7 +17,7 @@ import { AllType } from "./AllType";
 import { EventType } from "./EventType";
 import { MiddlewareType } from "./MiddlewareType";
 import type { GraphQLFieldConfigMap } from "graphql";
-import type { CustomGraphQLContext } from "../../graphql/context";
+import type { CustomGraphQLContext } from "../context";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { taskLikeCommonFields } from "./TaskLikeCommon";
 import { definitions } from "@bluelibs/runner";
@@ -170,7 +170,11 @@ export const TaskType = new GraphQLObjectType({
   fields: () => ({
     id: { description: "Task id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Task metadata", type: MetaType },
-    filePath: { description: "Path to task file", type: GraphQLString },
+    filePath: {
+      description: "Path to task file",
+      type: GraphQLString,
+      resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
     ...taskLikeCommonFields({
       ResourceType,
       TaskMiddlewareUsageType,

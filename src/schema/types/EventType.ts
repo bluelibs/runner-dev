@@ -11,10 +11,11 @@ import { GraphQLBoolean, GraphQLInputObjectType } from "graphql";
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
 import { TaskInterface } from "./TaskType";
-import { CustomGraphQLContext } from "../../graphql/context";
+import { CustomGraphQLContext } from "../context";
 import { ResourceType } from "./ResourceType";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
+import { convertJsonSchemaToReadable } from "../../utils/zod";
 
 export const EventType: GraphQLObjectType = new GraphQLObjectType({
   name: "Event",
@@ -27,6 +28,17 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
       description: "Path to event file",
       type: GraphQLString,
       resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
+    payloadSchema: {
+      description:
+        "Prettified Zod JSON structure for the event payload schema, if provided",
+      type: GraphQLString,
+    },
+    payloadSchemaReadable: {
+      description:
+        "Readable text representation of the event payload schema, if provided",
+      type: GraphQLString,
+      resolve: (node: any) => convertJsonSchemaToReadable(node.payloadSchema),
     },
     emittedBy: {
       description: "Ids of task/listener nodes that emit this event",
@@ -101,8 +113,8 @@ export const EventFilterInput = new GraphQLInputObjectType({
         "When true, hides internal/system events (runner-dev/globals).",
       type: GraphQLBoolean,
     },
-    idStartsWith: {
-      description: "Return only events whose id starts with this prefix.",
+    idIncludes: {
+      description: "Return only events whose id contains this substring.",
       type: GraphQLString,
     },
   },

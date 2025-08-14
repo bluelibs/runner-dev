@@ -51,21 +51,21 @@ export interface SwapManager {
     pure?: boolean,
     evalInput?: boolean
   ): Promise<InvokeResult>;
-  eval(
-    code: string,
-    inputJson?: string,
-    evalInput?: boolean
-  ): Promise<EvalResult>;
+  runnerEval(code: string): Promise<EvalResult>;
 }
 
 export const swapManager = resource({
-  id: "runner-dev.swap-manager",
+  id: "runner-dev.resources.swap-manager",
   dependencies: {
     store: globals.resources.store,
     taskRunner: globals.resources.taskRunner,
     introspector,
+    eventManager: globals.resources.eventManager,
   },
-  async init(_, { store, introspector, taskRunner }): Promise<SwapManager> {
+  async init(
+    _,
+    { store, introspector, taskRunner, eventManager }
+  ): Promise<SwapManager> {
     // Track original run functions and swap metadata
     const originalRunFunctions = new Map<string, Function>();
     const swappedTasks = new Map<string, SwappedTask>();
@@ -274,11 +274,7 @@ export const swapManager = resource({
         }
       },
 
-      async eval(
-        code: string,
-        inputJson?: string,
-        evalInput: boolean = false
-      ): Promise<EvalResult> {
+      async runnerEval(code: string): Promise<EvalResult> {
         const invocationId = randomUUID();
         const startTime = Date.now();
         try {
@@ -288,36 +284,19 @@ export const swapManager = resource({
             return { success: false, error: compileResult.error, invocationId };
           }
 
-          // Process input - either JSON parse or JavaScript eval
-          let input: unknown = undefined;
-          if (inputJson) {
-            try {
-              if (evalInput) {
-                input = eval(`(${inputJson})`);
-              } else {
-                input = deserializeInput(inputJson);
-              }
-            } catch (error) {
-              const method = evalInput
-                ? "JavaScript evaluation"
-                : "JSON deserialization";
-              return {
-                success: false,
-                error: `Input ${method} failed: ${
-                  error instanceof Error ? error.message : String(error)
-                }`,
-                invocationId,
-              };
-            }
-          }
-
           // Provide a useful dependency bag for evaluation
-          const dependencies = { store, introspector, globals };
+          const dependencies = {
+            store,
+            introspector,
+            globals,
+            taskRunner,
+            eventManager,
+          };
 
           // Execute compiled function
           let result: unknown;
           try {
-            result = await compileResult.func(input, dependencies);
+            result = await compileResult.func(dependencies);
           } catch (execError) {
             const executionTimeMs = Date.now() - startTime;
             return {

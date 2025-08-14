@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { CustomGraphQLContext } from '../graphql/context';
+import { CustomGraphQLContext } from '../schema/context';
 export type Maybe<T> = T | null | undefined;
 export type InputMaybe<T> = T | null | undefined;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -158,6 +158,10 @@ export type Event = BaseElement & {
   markdownDescription: Scalars['String']['output'];
   /** Event metadata */
   meta: Maybe<Meta>;
+  /** Prettified Zod JSON structure for the event payload schema, if provided */
+  payloadSchema: Maybe<Scalars['String']['output']>;
+  /** Readable text representation of the event payload schema, if provided */
+  payloadSchemaReadable: Maybe<Scalars['String']['output']>;
   /** Id of the resource that registered this event (if any) */
   registeredBy: Maybe<Scalars['String']['output']>;
   /** Resource that registered this event (resolved, if any) */
@@ -176,8 +180,8 @@ export type EventFilterInput = {
   hasNoListeners: InputMaybe<Scalars['Boolean']['input']>;
   /** When true, hides internal/system events (runner-dev/globals). */
   hideSystem: InputMaybe<Scalars['Boolean']['input']>;
-  /** Return only events whose id starts with this prefix. */
-  idStartsWith: InputMaybe<Scalars['String']['input']>;
+  /** Return only events whose id contains this substring. */
+  idIncludes: InputMaybe<Scalars['String']['input']>;
 };
 
 export type EventLoopStats = {
@@ -224,6 +228,10 @@ export type Listener = BaseElement & TaskInterface & {
   filePath: Maybe<Scalars['String']['output']>;
   /** Listener id */
   id: Scalars['ID']['output'];
+  /** Prettified Zod JSON structure for the input schema, if provided */
+  inputSchema: Maybe<Scalars['String']['output']>;
+  /** Readable text representation of the input schema, if provided */
+  inputSchemaReadable: Maybe<Scalars['String']['output']>;
   /** Execution order among listeners for the same event */
   listenerOrder: Maybe<Scalars['Int']['output']>;
   /** Markdown composed from meta.title and meta.description (if present) */
@@ -377,6 +385,10 @@ export type MetaTagUsage = {
 
 export type Middleware = BaseElement & {
   __typename?: 'Middleware';
+  /** Prettified Zod JSON structure for the middleware config schema, if provided */
+  configSchema: Maybe<Scalars['String']['output']>;
+  /** Readable text representation of the middleware config schema, if provided */
+  configSchemaReadable: Maybe<Scalars['String']['output']>;
   /** Events emitted by task/listener nodes that use this middleware */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
@@ -471,6 +483,12 @@ export type Query = {
 
 
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
+export type QueryAllArgs = {
+  idIncludes: InputMaybe<Scalars['ID']['input']>;
+};
+
+
+/** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryEventArgs = {
   id: Scalars['ID']['input'];
 };
@@ -484,7 +502,7 @@ export type QueryEventsArgs = {
 
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryListenersArgs = {
-  idStartsWith: InputMaybe<Scalars['ID']['input']>;
+  idIncludes: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -496,7 +514,7 @@ export type QueryMiddlewareArgs = {
 
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryMiddlewaresArgs = {
-  idStartsWith: InputMaybe<Scalars['ID']['input']>;
+  idIncludes: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -508,7 +526,7 @@ export type QueryResourceArgs = {
 
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryResourcesArgs = {
-  idStartsWith: InputMaybe<Scalars['ID']['input']>;
+  idIncludes: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -520,13 +538,17 @@ export type QueryTaskArgs = {
 
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryTasksArgs = {
-  idStartsWith: InputMaybe<Scalars['ID']['input']>;
+  idIncludes: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type Resource = BaseElement & {
   __typename?: 'Resource';
   /** Serialized resource config (if any) */
   config: Maybe<Scalars['String']['output']>;
+  /** Prettified Zod JSON structure for the resource config schema, if provided */
+  configSchema: Maybe<Scalars['String']['output']>;
+  /** Readable text representation of the resource config schema, if provided */
+  configSchemaReadable: Maybe<Scalars['String']['output']>;
   /** Serialized context (if any) */
   context: Maybe<Scalars['String']['output']>;
   /** Ids of resources this resource depends on */
@@ -653,6 +675,10 @@ export type Task = BaseElement & TaskInterface & {
   filePath: Maybe<Scalars['String']['output']>;
   /** Task id */
   id: Scalars['ID']['output'];
+  /** Prettified Zod JSON structure for the input schema, if provided */
+  inputSchema: Maybe<Scalars['String']['output']>;
+  /** Readable text representation of the input schema, if provided */
+  inputSchemaReadable: Maybe<Scalars['String']['output']>;
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Task metadata */
@@ -965,6 +991,8 @@ export type EventResolvers<ContextType = CustomGraphQLContext, ParentType extend
   listenedToByResolved: Resolver<Array<ResolversTypes['TaskInterface']>, ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
+  payloadSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  payloadSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -998,6 +1026,8 @@ export type ListenerResolvers<ContextType = CustomGraphQLContext, ParentType ext
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, ListenerFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  inputSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  inputSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   listenerOrder: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
@@ -1052,6 +1082,8 @@ export type MetaTagUsageResolvers<ContextType = CustomGraphQLContext, ParentType
 }>;
 
 export type MiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Middleware'] = ResolversParentTypes['Middleware']> = ResolversObject<{
+  configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, MiddlewareFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1086,7 +1118,7 @@ export type MiddlewareTaskUsageResolvers<ContextType = CustomGraphQLContext, Par
 }>;
 
 export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
-  all: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
+  all: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType, QueryAllArgs>;
   diagnostics: Resolver<Array<ResolversTypes['Diagnostic']>, ParentType, ContextType>;
   event: Resolver<Maybe<ResolversTypes['Event']>, ParentType, ContextType, RequireFields<QueryEventArgs, 'id'>>;
   events: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType, QueryEventsArgs>;
@@ -1104,6 +1136,8 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
 
 export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Resource'] = ResolversParentTypes['Resource']> = ResolversObject<{
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   context: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOn: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOnResolved: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
@@ -1163,6 +1197,8 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, TaskFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  inputSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  inputSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;

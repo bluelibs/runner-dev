@@ -1,14 +1,7 @@
 import { resource } from "@bluelibs/runner";
-import type { CustomGraphQLContext } from "../graphql/context";
-import {
-  GraphQLFieldConfigMap,
-  GraphQLNamedType,
-  GraphQLObjectType,
-  GraphQLSchema,
-} from "graphql";
+import { GraphQLObjectType, GraphQLSchema } from "graphql";
 import { QueryType } from "../schema/query";
-import { createMutationType } from "../schema/mutation";
-import { swapManager } from "./swap.resource";
+import { MutationType } from "../schema/mutation";
 import {
   AllType,
   BaseElementInterface,
@@ -26,47 +19,14 @@ import {
   TaskType,
 } from "../schema/types";
 
-// Accumulators that external modules/tests can append to
-export const extraTypes: GraphQLNamedType[] = [];
-export const extraQueryFields: GraphQLFieldConfigMap<
-  any,
-  CustomGraphQLContext
-> = {};
-export const extraMutationFields: GraphQLFieldConfigMap<
-  any,
-  CustomGraphQLContext
-> = {};
-
-function buildQuery(
-  additionalQueryFields?: GraphQLFieldConfigMap<any, CustomGraphQLContext>
-): GraphQLObjectType {
-  const base = QueryType.toConfig();
-  return new GraphQLObjectType({
-    ...base,
-    fields: {
-      ...(base.fields as GraphQLFieldConfigMap<any, CustomGraphQLContext>),
-      ...(additionalQueryFields ?? {}),
-    },
-  });
-}
-
 export const graphqlAccumulator = resource({
-  id: "graphql",
-  dependencies: { swapManager },
-  async init(_config, { swapManager }) {
+  id: "runner-dev.resources.graphql",
+  async init(_config) {
     const getSchema = (): GraphQLSchema => {
-      const query = buildQuery(extraQueryFields);
+      const query = new GraphQLObjectType(QueryType.toConfig());
+      const mutation = new GraphQLObjectType(MutationType.toConfig());
 
-      const baseMutation = createMutationType(swapManager);
-      const mutation = new GraphQLObjectType({
-        ...baseMutation.toConfig(),
-        fields: {
-          ...baseMutation.toConfig().fields,
-          ...extraMutationFields,
-        },
-      });
-
-      const baseTypes: GraphQLNamedType[] = [
+      const baseTypes = [
         AllType,
         BaseElementInterface,
         EventType,
@@ -86,7 +46,7 @@ export const graphqlAccumulator = resource({
       return new GraphQLSchema({
         query,
         mutation,
-        types: [...baseTypes, ...extraTypes],
+        types: [...baseTypes],
       });
     };
 

@@ -9,7 +9,7 @@ const config: CodegenConfig = {
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         useIndexSignature: true,
-        contextType: "../graphql/context#CustomGraphQLContext",
+        contextType: "../schema/context#CustomGraphQLContext",
         avoidOptionals: true,
         maybeValue: "T | null | undefined",
         enumsAsTypes: true,

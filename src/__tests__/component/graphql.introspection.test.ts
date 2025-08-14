@@ -42,26 +42,45 @@ describe("GraphQL schema (integration)", () => {
         tasks {
           id
           filePath
+          fileContents
+          fileContentsSliced: fileContents(startLine: 1, endLine: 5)
+          markdownDescription
+          inputSchema
+          inputSchemaReadable
           emits
           emitsResolved { id }
           dependsOn
           middleware
           middlewareResolved { id }
+          overriddenBy
+          registeredBy
+          registeredByResolved { id }
           dependsOnResolved {
             tasks { id }
             listeners { id }
             resources { id }
             emitters { id }
           }
+          depenendsOnResolved { id }
         }
         listeners {
           id
           event
+          filePath
+          fileContents
+          markdownDescription
+          inputSchema
+          inputSchemaReadable
+          listenerOrder
           emits
           emitsResolved { id }
           dependsOn
           middleware
           middlewareResolved { id }
+          overriddenBy
+          registeredBy
+          registeredByResolved { id }
+          depenendsOnResolved { id }
         }
         resources {
           id
@@ -73,9 +92,13 @@ describe("GraphQL schema (integration)", () => {
           registersResolved { id }
           usedBy { id }
           emits { id }
+          configSchema
+          configSchemaReadable
         }
         events { 
           id
+          payloadSchema
+          payloadSchemaReadable
           emittedBy
           emittedByResolved { id }
           listenedToBy
@@ -92,6 +115,7 @@ describe("GraphQL schema (integration)", () => {
           usedByResourcesResolved { id }
           usedByResourcesDetailed { id config node { id } }
           emits { id }
+          configSchema
         }
       }
     `;
@@ -122,8 +146,23 @@ describe("GraphQL schema (integration)", () => {
       expect.arrayContaining(["listener.hello"])
     );
 
+    expect(typeof evt.payloadSchema).toBe("string");
+    expect(evt.payloadSchema).toBeTruthy();
+    expect(String(evt.payloadSchema)).toContain("name");
+    expect(typeof evt.payloadSchemaReadable === "string").toBe(true);
+    expect(evt.payloadSchemaReadable).toContain("name");
+    // Schemas present and look like JSON
+    expect(typeof evt.payloadSchema === "string").toBe(true);
+
     const mwLog = data.middlewares.find((m: any) => m.id === "mw.log");
     expect(mwLog.usedByResources).toEqual(expect.arrayContaining(["res.db"]));
+    // Resource config markdown exists for cacheRes
+    const cache = data.resources.find((r: any) => r.id === "res.cache");
+    expect(typeof cache.configSchema).toBe("string");
+    expect(cache.configSchema).toBeTruthy();
+    expect(String(cache.configSchema)).toContain("ttlMs");
+    expect(typeof cache.configSchemaReadable === "string").toBe(true);
+    expect(cache.configSchemaReadable).toContain("ttlMs");
 
     // Filtered events
     const withListeners: string[] = data.eventsWithListeners.map(
@@ -238,6 +277,187 @@ describe("GraphQL schema (integration)", () => {
     );
     expect(nested.middlewareResolved.map((m: any) => m.id)).toEqual(
       expect.arrayContaining(["mw.log"])
+    );
+  });
+
+  test("TaskInterface and ListenerType resolveType and isTypeOf coverage", async () => {
+    let ctx: any;
+
+    const probe = resource({
+      id: "probe.graphql-4",
+      dependencies: { introspector, store: globals.resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    const app = createDummyApp([introspector, probe]);
+    await run(app);
+
+    // Query that specifically tests the TaskInterface.resolveType function
+    // and ensures both Task and Listener types are properly identified
+    const query = `
+      query TypeResolutionTest {
+        tasks {
+          __typename
+          id
+          emits
+          dependsOn
+          ... on Task {
+            dependsOnResolved {
+              tasks { id }
+              listeners { id } 
+              resources { id }
+              emitters { id }
+            }
+          }
+        }
+        listeners {
+          __typename
+          id
+          event
+          ... on Listener {
+            listenerOrder
+          }
+        }
+      }
+    `;
+
+    const result = await graphql({ schema, source: query, contextValue: ctx });
+    expect(result.errors).toBeUndefined();
+
+    const data: any = result.data;
+
+    // Verify TaskType.isTypeOf and TaskInterface.resolveType work correctly
+    const tasks = data.tasks;
+    tasks.forEach((task: any) => {
+      expect(task.__typename).toBe("Task");
+      expect(Array.isArray(task.emits)).toBe(true);
+      expect(Array.isArray(task.dependsOn)).toBe(true);
+      expect(task.event).toBeUndefined(); // Tasks should not have 'event' field
+    });
+
+    // Verify ListenerType.isTypeOf and TaskInterface.resolveType work correctly
+    const listeners = data.listeners;
+    listeners.forEach((listener: any) => {
+      expect(listener.__typename).toBe("Listener");
+      expect(typeof listener.event).toBe("string");
+    });
+  });
+
+  test("TaskInterface field resolvers coverage", async () => {
+    let ctx: any;
+
+    const probe = resource({
+      id: "probe.graphql-5",
+      dependencies: { introspector, store: globals.resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    const app = createDummyApp([introspector, probe]);
+    await run(app);
+
+    // Simple query to ensure field resolvers are called
+    const query = `
+      query SimpleFieldResolvers {
+        tasks {
+          id
+          filePath
+          markdownDescription
+          meta {
+            title
+            description
+          }
+        }
+        listeners {
+          id
+          filePath
+          markdownDescription
+          meta {
+            title
+            description
+          }
+        }
+      }
+    `;
+
+    const result = await graphql({ schema, source: query, contextValue: ctx });
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.tasks).toBeDefined();
+    expect(result.data?.listeners).toBeDefined();
+  });
+
+  test("idIncludes filtering works across queries", async () => {
+    let ctx: any;
+
+    const probe = resource({
+      id: "probe.graphql-6",
+      dependencies: { introspector, store: globals.resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    // Add an explicit orphan event to check event idIncludes filter
+    const orphanEvt = event({ id: "evt.readme.orphan" });
+    const app = createDummyApp([introspector, orphanEvt, probe]);
+    await run(app);
+
+    const query = `
+      query Filtering {
+        all(idIncludes: "hello") { id __typename }
+        tasksHello: tasks(idIncludes: "hello") { id }
+        listenersHello: listeners(idIncludes: "hello") { id }
+        resourcesRes: resources(idIncludes: "res.") { id }
+        middlewaresMw: middlewares(idIncludes: "mw.") { id }
+        eventsReadme: events(filter: { idIncludes: "readme." }) { id }
+        eventsHello: events(filter: { idIncludes: "hello" }) { id }
+      }
+    `;
+
+    const result = await graphql({ schema, source: query, contextValue: ctx });
+    expect(result.errors).toBeUndefined();
+
+    const data: any = result.data;
+    const allIds = data.all.map((n: any) => n.id);
+    expect(allIds).toEqual(
+      expect.arrayContaining(["task.hello", "listener.hello", "evt.hello"])
+    );
+
+    expect(data.tasksHello.map((t: any) => t.id)).toEqual(
+      expect.arrayContaining(["task.hello"])
+    );
+    expect(data.listenersHello.map((l: any) => l.id)).toEqual(
+      expect.arrayContaining(["listener.hello"])
+    );
+    expect(data.resourcesRes.map((r: any) => r.id)).toEqual(
+      expect.arrayContaining(["res.db", "res.cache"])
+    );
+    expect(data.middlewaresMw.map((m: any) => m.id)).toEqual(
+      expect.arrayContaining(["mw.log", "mw.tag"])
+    );
+    expect(data.eventsReadme.map((e: any) => e.id)).toEqual(
+      expect.arrayContaining(["evt.readme.orphan"])
+    );
+    expect(data.eventsHello.map((e: any) => e.id)).toEqual(
+      expect.arrayContaining(["evt.hello"])
     );
   });
 });

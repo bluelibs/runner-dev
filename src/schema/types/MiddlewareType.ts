@@ -85,13 +85,13 @@ export const MiddlewareType: GraphQLObjectType = new GraphQLObjectType({
       type: MiddlewareGlobalType,
     },
     usedByTasks: {
-      description: "Ids of task/listener nodes that use this middleware",
+      description: "Ids of task/hook nodes that use this middleware",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
     },
     usedByTasksResolved: {
-      description: "Task/listener nodes that use this middleware (resolved)",
+      description: "Task/hook nodes that use this middleware (resolved)",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(TaskInterface))
       ),
@@ -113,7 +113,7 @@ export const MiddlewareType: GraphQLObjectType = new GraphQLObjectType({
         ctx.introspector.getResourcesByIds(node.usedByResources),
     },
     usedByTasksDetailed: {
-      description: "Detailed task/listener usages with per-usage config",
+      description: "Detailed task/hook usages with per-usage config",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(MiddlewareTaskUsageType))
       ),
@@ -129,8 +129,7 @@ export const MiddlewareType: GraphQLObjectType = new GraphQLObjectType({
         ctx.introspector.getResourcesUsingMiddlewareDetailed(String(node.id)),
     },
     emits: {
-      description:
-        "Events emitted by task/listener nodes that use this middleware",
+      description: "Events emitted by task/hook nodes that use this middleware",
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
       resolve: (node, _args, ctx) =>
         ctx.introspector.getMiddlewareEmittedEvents(node.id),

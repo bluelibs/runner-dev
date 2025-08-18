@@ -138,13 +138,13 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
   );
 }
 
-export function mapStoreTaskToListenerModel(
+export function mapStoreTaskToHookModel(
   task: definitions.ITask<any, any, any>
 ): Hook {
   throw new Error("deprecated");
 }
 
-export function mapStoreHookToListenerModel(hk: any): Hook {
+export function mapStoreHookToHookModel(hk: any): Hook {
   const depsObj = normalizeDependencies(hk?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
@@ -180,7 +180,7 @@ export function mapStoreHookToListenerModel(hk: any): Hook {
       registeredBy: null,
       kind: "HOOK",
       event: eventId,
-      listenerOrder: typeof hk?.order === "number" ? hk.order : null,
+      hookOrder: typeof hk?.order === "number" ? hk.order : null,
       inputSchema: formatSchemaIfZod(hk?.inputSchema),
     },
     "HOOK"
@@ -233,20 +233,20 @@ export function mapStoreResourceToResourceModel(
 export function buildEvents(
   eventsCollection: definitions.IEvent[],
   tasks: Task[],
-  listeners: Hook[],
+  hooks: Hook[],
   resources: Resource[]
 ): Event[] {
   const eventIdsFromStore: string[] = eventsCollection.map((e) =>
     e.id.toString()
   );
   const inferredFromTasks = tasks.flatMap((t) => t.emits || []);
-  const inferredFromListeners = listeners.map((l) => l.event);
+  const inferredFromHooks = hooks.map((l) => l.event);
   const inferredFromResources = resources.flatMap((r) => r.emits || []);
   const allEventIds = Array.from(
     new Set([
       ...eventIdsFromStore,
       ...inferredFromTasks,
-      ...inferredFromListeners,
+      ...inferredFromHooks,
       ...inferredFromResources,
     ])
   );
@@ -257,9 +257,7 @@ export function buildEvents(
         id: eventId,
         meta: e?.meta ?? null,
         filePath: e?.filePath ?? e?.path ?? null,
-        listenedToBy: listeners
-          .filter((l) => l.event === eventId)
-          .map((l) => l.id),
+        listenedToBy: hooks.filter((l) => l.event === eventId).map((l) => l.id),
         registeredBy: null,
         payloadSchema: formatSchemaIfZod((e as any)?.payloadSchema),
       },
@@ -271,7 +269,7 @@ export function buildEvents(
 export function buildMiddlewares(
   middlewaresCollection: definitions.IMiddleware[],
   tasks: Task[],
-  listeners: Hook[],
+  hooks: Hook[],
   resources: Resource[]
 ): Middleware[] {
   return toArray(middlewaresCollection).map((entry: any) => {
@@ -295,7 +293,7 @@ export function buildMiddlewares(
         }
       : { enabled: false, tasks: false, resources: false };
 
-    const usedByTasks = [...tasks, ...listeners]
+    const usedByTasks = [...tasks, ...hooks]
       .filter((t) => (t.middleware || []).includes(id))
       .map((t) => t.id);
     const usedByResources = resources
@@ -323,12 +321,12 @@ export function buildMiddlewares(
 export function attachRegisteredBy(
   resources: Resource[],
   tasks: Task[],
-  listeners: Hook[],
+  hooks: Hook[],
   middlewares: Middleware[],
   events: Event[]
 ): void {
   const taskMap = buildIdMap(tasks);
-  const listenerMap = buildIdMap(listeners);
+  const hookMap = buildIdMap(hooks);
   const resourceMap = buildIdMap(resources);
   const middlewareMap = buildIdMap(middlewares);
   const eventMap = buildIdMap(events);
@@ -336,7 +334,7 @@ export function attachRegisteredBy(
   for (const r of resources) {
     for (const id of r.registers ?? []) {
       if (taskMap.has(id)) taskMap.get(id)!.registeredBy = r.id;
-      else if (listenerMap.has(id)) listenerMap.get(id)!.registeredBy = r.id;
+      else if (hookMap.has(id)) hookMap.get(id)!.registeredBy = r.id;
       else if (resourceMap.has(id)) resourceMap.get(id)!.registeredBy = r.id;
       else if (middlewareMap.has(id))
         middlewareMap.get(id)!.registeredBy = r.id;
@@ -381,12 +379,12 @@ export function computeOverriddenByMap(
 export function attachOverrides(
   overrideRequests: ReadonlySet<OverrideRequest>,
   tasks: Task[],
-  listeners: Hook[],
+  hooks: Hook[],
   middlewares: Middleware[]
 ): void {
   const overriddenByMap = computeOverriddenByMap(overrideRequests);
   for (const t of tasks) t.overriddenBy = overriddenByMap.get(t.id) ?? null;
-  for (const l of listeners) l.overriddenBy = overriddenByMap.get(l.id) ?? null;
+  for (const l of hooks) l.overriddenBy = overriddenByMap.get(l.id) ?? null;
   for (const m of middlewares)
     m.overriddenBy = overriddenByMap.get(m.id) ?? null;
 }
@@ -436,7 +434,7 @@ function extractResourceIdsFromDependencies(
 export function computeOrphanEvents(
   introspector: Introspector
 ): { id: string }[] {
-  // Events with no specific listeners (wildcard listeners are ignored by buildEvents)
+  // Events with no specific hooks (wildcard hooks are ignored by buildEvents)
   const events = introspector.getEvents();
   return events
     .filter((e) => (e.listenedToBy ?? []).length === 0)
@@ -473,9 +471,7 @@ export function computeMissingFiles(
   const nodes: Array<{ id: string; filePath: string | null | undefined }> = [];
   nodes.push(
     ...introspector.getTasks().map((t) => ({ id: t.id, filePath: t.filePath })),
-    ...introspector
-      .getListeners()
-      .map((l) => ({ id: l.id, filePath: l.filePath })),
+    ...introspector.getHooks().map((l) => ({ id: l.id, filePath: l.filePath })),
     ...introspector
       .getResources()
       .map((r) => ({ id: r.id, filePath: r.filePath })),
@@ -538,31 +534,17 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
   }> = [
     { kind: "RESOURCE", nodes: introspector.getResources() },
     { kind: "TASK", nodes: introspector.getTasks() },
-    { kind: "HOOK", nodes: introspector.getListeners() },
+    { kind: "HOOK", nodes: introspector.getHooks() },
     { kind: "EVENT", nodes: introspector.getEvents() },
     { kind: "MIDDLEWARE", nodes: introspector.getMiddlewares() },
   ];
-  for (const { kind, nodes } of collections) {
-    const readableKind = kind.charAt(0) + kind.slice(1).toLowerCase();
-    for (const node of nodes) {
-      if (typeof node.id === "string" && node.id.startsWith("Symbol(")) {
-        diags.push({
-          severity: "warning",
-          code: "ANONYMOUS_ID",
-          message: `${readableKind} has anonymous id (Symbol)`,
-          nodeId: node.id,
-          nodeKind: kind,
-        });
-      }
-    }
-  }
 
   for (const e of computeOrphanEvents(introspector)) {
     if (isSystemEventId(e.id)) continue;
     diags.push({
       severity: "warning",
       code: "ORPHAN_EVENT",
-      message: `Event has no listeners: ${e.id}`,
+      message: `Event has no hooks: ${e.id}`,
       nodeId: e.id,
       nodeKind: "EVENT",
     });
@@ -578,6 +560,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
     });
   }
   for (const m of computeUnusedMiddleware(introspector)) {
+    if (isSystemEventId(m.id)) continue;
     diags.push({
       severity: "info",
       code: "UNUSED_MIDDLEWARE",
@@ -617,11 +600,5 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
 // System events helpers
 export function isSystemEventId(eventId: string): boolean {
   const id = String(eventId).toLowerCase();
-  return (
-    id.endsWith(".beforerun") ||
-    id.endsWith(".afterrun") ||
-    id.endsWith(".onerror") ||
-    id.endsWith(".afterinit") ||
-    id.endsWith(".beforeinit")
-  );
+  return id.startsWith("globals.") || id === "*";
 }

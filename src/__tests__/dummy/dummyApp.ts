@@ -64,28 +64,28 @@ export const helloTask = task({
   },
 });
 
-// Listener
-export const helloListener = hook({
-  id: "listener.hello",
+// Hook
+export const helloHook = hook({
+  id: "hook.hello",
   on: evtHello,
   dependencies: { db: dbRes },
   meta: {
-    title: "Hello listener",
+    title: "Hello hook",
     description: "Listens to 'evt.hello' and performs no operation",
-    tags: [areaTag.with({ scope: "listeners" })],
+    tags: [areaTag.with({ scope: "hooks" })],
   },
   async run() {
     /* noop */
   },
 });
 
-// Global listener
-export const allEventsListener = hook({
-  id: "listener.all",
+// Global hook
+export const allEventsHook = hook({
+  id: "hook.all",
   on: "*",
   meta: {
-    title: "Global listener",
-    description: "Wildcard listener that observes all events",
+    title: "Global hook",
+    description: "Wildcard hook that observes all events",
   },
   async run() {
     /* noop */
@@ -149,8 +149,8 @@ export function createDummyApp(extra: any[] = []) {
       dbRes,
       cacheRes.with({ ttlMs: 1000 }),
       helloTask,
-      helloListener,
-      allEventsListener,
+      helloHook,
+      allEventsHook,
       aggregateTask,
       taggedTask,
       evtHello,

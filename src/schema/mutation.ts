@@ -113,7 +113,7 @@ export const MutationType = new GraphQLObjectType({
         "  - store: Runner store (read-only access patterns recommended)",
         "  - eventManager: Runner event manager (read-only access patterns recommended)",
         "  - taskRunner: Runner task runner (read-only access patterns recommended)",
-        "  - introspector: Introspector API for tasks/listeners/resources/middleware/events",
+        "  - introspector: Introspector API for tasks/hooks/resources/middleware/events",
         "",
         "Security: eval is disabled by default in production; enable with RUNNER_DEV_EVAL=1.",
       ].join("\n"),

@@ -101,13 +101,13 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
         new GraphQLList(new GraphQLNonNull(BaseElementInterface))
       ),
       resolve: async (node, _args, ctx: CustomGraphQLContext) => {
-        // We only have ids; return what we can resolve (tasks/listeners/resources/middleware)
+        // We only have ids; return what we can resolve (tasks/hooks/resources/middleware)
         const ids: string[] = node.overrides;
         const tasks = ctx.introspector.getTasksByIds(ids);
-        const listeners = ctx.introspector.getListenersByIds(ids);
+        const hooks = ctx.introspector.getHooksByIds(ids);
         const resources = ctx.introspector.getResourcesByIds(ids);
         const middlewares = ctx.introspector.getMiddlewaresByIds(ids);
-        return [...tasks, ...listeners, ...resources, ...middlewares];
+        return [...tasks, ...hooks, ...resources, ...middlewares];
       },
     },
     registers: {
@@ -124,21 +124,15 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       resolve: async (node, _args, ctx: CustomGraphQLContext) => {
         const ids: string[] = node.registers;
         const tasks = ctx.introspector.getTasksByIds(ids);
-        const listeners = ctx.introspector.getListenersByIds(ids);
+        const hooks = ctx.introspector.getHooksByIds(ids);
         const resources = ctx.introspector.getResourcesByIds(ids);
         const middlewares = ctx.introspector.getMiddlewaresByIds(ids);
         const events = ctx.introspector.getEventsByIds(ids);
-        return [
-          ...tasks,
-          ...listeners,
-          ...resources,
-          ...middlewares,
-          ...events,
-        ];
+        return [...tasks, ...hooks, ...resources, ...middlewares, ...events];
       },
     },
     usedBy: {
-      description: "Task/listener nodes using this resource (resolved)",
+      description: "Task/hook nodes using this resource (resolved)",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(TaskInterface))
       ),
@@ -147,8 +141,7 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       },
     },
     emits: {
-      description:
-        "Events emitted by tasks/listeners that depend on this resource",
+      description: "Events emitted by tasks/hooks that depend on this resource",
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
       resolve: (node, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getEmittedEventsForResource(node.id),

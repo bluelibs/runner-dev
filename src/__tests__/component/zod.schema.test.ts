@@ -75,13 +75,13 @@ describe("Introspector mapping picks up Zod schemas", () => {
       { id: "evt.zod", payloadSchema: z.object({ id: z.string() }) },
     ] as unknown as import("@bluelibs/runner").definitions.IEvent[];
     const tasks: any[] = [];
-    const listeners: any[] = [];
+    const hooks: any[] = [];
     const resources: any[] = [];
 
     const events = buildEvents(
       eventsCollection,
       tasks as any,
-      listeners as any,
+      hooks as any,
       resources as any
     );
     const evt = events.find((e) => e.id === "evt.zod")!;

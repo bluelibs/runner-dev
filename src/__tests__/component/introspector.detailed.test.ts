@@ -12,8 +12,8 @@ describe("introspector (detailed helpers)", () => {
       async init(_, { introspector }) {
         const taskLikeUsages =
           introspector.getMiddlewareUsagesForTaskLike("task.hello");
-        const listenerUsages =
-          introspector.getMiddlewareUsagesForTaskLike("listener.hello");
+        const hookUsages =
+          introspector.getMiddlewareUsagesForTaskLike("hook.hello");
         const resourceUsages =
           introspector.getMiddlewareUsagesForResource("res.db");
 
@@ -31,7 +31,7 @@ describe("introspector (detailed helpers)", () => {
             nodeId: u.node.id,
             config: u.config,
           })),
-          listenerUsages: listenerUsages.map((u) => ({
+          hookUsages: hookUsages.map((u) => ({
             id: u.id,
             nodeId: u.node.id,
             config: u.config,
@@ -64,8 +64,8 @@ describe("introspector (detailed helpers)", () => {
       expect.arrayContaining([{ id: "mw.log", nodeId: "mw.log", config: null }])
     );
 
-    // listener.hello also captures detailed usages (none by default)
-    expect(Array.isArray(snapshot.listenerUsages)).toBe(true);
+    // hook.hello also captures detailed usages (none by default)
+    expect(Array.isArray(snapshot.hookUsages)).toBe(true);
 
     // res.db uses mw.log
     expect(snapshot.resourceUsages).toEqual(

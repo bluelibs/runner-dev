@@ -3,11 +3,11 @@ import { createDummyApp } from "../dummy/dummyApp";
 import { schema } from "../../schema";
 import { live } from "../../resources/live.resource";
 import { introspector } from "../../resources/introspector.resource";
-import { telemetry } from "../../resources/dev.telemetry.resource";
+import { telemetry } from "../../resources/telemetry.resource";
 import { graphql } from "graphql";
 
 describe("Live correlation and chain tracking", () => {
-  test.only("correlationId propagates across nested tasks and runs expose parent/root", async () => {
+  test("correlationId propagates across nested tasks and runs expose parent/root", async () => {
     let ctx: any;
 
     const inner = task({
@@ -87,7 +87,7 @@ describe("Live correlation and chain tracking", () => {
     const runsById: Record<string, any> = Object.fromEntries(
       data.live.runs.map((r: any) => [r.nodeId, r])
     );
-    expect(runsById[rootHook.id].parentId).toBe("global.events.hookCompleted");
+    expect(runsById[rootHook.id].parentId).toBe("globals.events.hookCompleted");
     expect(runsById[rootHook.id].rootId).toBe(globals.events.ready.id);
     expect(runsById[rootHook.id].correlationId).toBe(corr);
 

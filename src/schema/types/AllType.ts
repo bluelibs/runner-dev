@@ -62,7 +62,7 @@ export const BaseElementInterface: GraphQLInterfaceType =
         case "TASK":
           return "Task";
         case "HOOK":
-          return "Listener";
+          return "Hook";
         case "RESOURCE":
           return "Resource";
         case "MIDDLEWARE":
@@ -86,7 +86,7 @@ export const BaseElementInterface: GraphQLInterfaceType =
         return "Event";
       }
       if (typeof value?.event === "string") {
-        return "Listener";
+        return "Hook";
       }
       if (Array.isArray(value?.emits) && Array.isArray(value?.dependsOn)) {
         return "Task";
@@ -131,7 +131,7 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       return false; // Event
     }
     if (typeof value?.event === "string") {
-      return false; // Listener
+      return false; // Hook
     }
     if (Array.isArray(value?.emits) && Array.isArray(value?.dependsOn)) {
       return false; // Task

@@ -1,5 +1,5 @@
 import { globals, resource, task, hook } from "@bluelibs/runner";
-import { getCorrelationId } from "./dev.telemetry.chain";
+import { getCorrelationId } from "./telemetry.chain";
 
 export type LogLevel =
   | "trace"
@@ -399,18 +399,14 @@ export const live = resource({
     onGlobalEvent,
   ],
   async init(_config, { liveService, logger }) {
-    // Subscribe to logger events directly (Runner v4 logger API)
-    try {
-      logger.onLog((log) => {
-        liveService.recordLog(
-          log.level as LogLevel,
-          String(log.message),
-          (log as any).data
-        );
-      });
-    } catch {
-      // If logger isn't available or lacks onLog, ignore gracefully
-    }
+    logger.onLog((log) => {
+      liveService.recordLog(
+        log.level as LogLevel,
+        String(log.message),
+        (log as any).data
+      );
+    });
+
     return liveService;
   },
 });

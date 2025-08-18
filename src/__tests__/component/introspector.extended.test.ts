@@ -3,7 +3,7 @@ import { introspector } from "../../resources/introspector.resource";
 import { createDummyApp, helloTask, evtHello, logMw } from "../dummy/dummyApp";
 
 describe("introspector (extended)", () => {
-  test("discovers dependencies, emits, listeners and relations", async () => {
+  test("discovers dependencies, emits, hooks and relations", async () => {
     let snapshot: any = {};
 
     const probe = resource({
@@ -11,7 +11,7 @@ describe("introspector (extended)", () => {
       dependencies: { introspector },
       async init(_, { introspector }) {
         const tasks = introspector.getTasks();
-        const listeners = introspector.getListeners();
+        const hooks = introspector.getHooks();
         const resources = introspector.getResources();
         const events = introspector.getEvents();
         const middlewares = introspector.getMiddlewares();
@@ -23,23 +23,23 @@ describe("introspector (extended)", () => {
         const usingRes = introspector.getTaskLikesUsingResource("res.db");
         const usingMw = introspector.getTaskLikesUsingMiddleware("mw.log");
         const emittersOfEvt = introspector.getEmittersOfEvent("evt.hello");
-        const listenersOfEvt = introspector.getListenersOfEvent("evt.hello");
+        const hooksOfEvt = introspector.getHooksOfEvent("evt.hello");
         const mwEmits = introspector.getMiddlewareEmittedEvents("mw.log");
 
         const mwLog = middlewares.find((m) => m.id === "mw.log")!;
         const mwTag = middlewares.find((m) => m.id === "mw.tag")!;
 
-        const listenerAll = introspector.getListener("listener.all")!;
+        const hookAll = introspector.getHook("hook.all")!;
 
         snapshot = {
           tasks: tasks.map((t) => t.id),
-          listeners: listeners.map((l) => l.id),
+          hooks: hooks.map((l) => l.id),
           resources: resources.map((r) => r.id),
           events: events.map((e) => e.id),
           middlewares: middlewares.map((m) => m.id),
           depsHello: {
             tasks: depsHello.tasks.map((t) => t.id),
-            listeners: depsHello.listeners.map((l) => l.id),
+            hooks: depsHello.hooks.map((l) => l.id),
             resources: depsHello.resources.map((r) => r.id),
             emitters: depsHello.emitters.map((e) => e.id),
           },
@@ -48,7 +48,7 @@ describe("introspector (extended)", () => {
           usingRes: usingRes.map((t) => t.id),
           usingMw: usingMw.map((t) => t.id),
           emittersOfEvt: emittersOfEvt.map((t) => t.id),
-          listenersOfEvt: listenersOfEvt.map((l) => l.id),
+          hooksOfEvt: hooksOfEvt.map((l) => l.id),
           mwEmits: mwEmits.map((e) => e.id),
           mwLog: {
             usedByTasks: mwLog.usedByTasks,
@@ -58,10 +58,10 @@ describe("introspector (extended)", () => {
             usedByTasks: mwTag.usedByTasks,
             usedByResources: mwTag.usedByResources,
           },
-          listenerAll: {
-            dependsOn: listenerAll.dependsOn,
-            middleware: listenerAll.middleware,
-            emits: listenerAll.emits,
+          hookAll: {
+            dependsOn: hookAll.dependsOn,
+            middleware: hookAll.middleware,
+            emits: hookAll.emits,
           },
         };
       },
@@ -74,8 +74,8 @@ describe("introspector (extended)", () => {
     expect(snapshot.tasks).toEqual(
       expect.arrayContaining(["task.hello", "task.aggregate"])
     );
-    expect(snapshot.listeners).toEqual(
-      expect.arrayContaining(["listener.hello", "listener.all"])
+    expect(snapshot.hooks).toEqual(
+      expect.arrayContaining(["hook.hello", "hook.all"])
     );
     expect(snapshot.resources).toEqual(expect.arrayContaining(["res.db"]));
     expect(snapshot.events).toEqual(expect.arrayContaining(["evt.hello"]));
@@ -98,23 +98,21 @@ describe("introspector (extended)", () => {
 
     // Graph helpers
     expect(snapshot.usingRes).toEqual(
-      expect.arrayContaining(["task.hello", "listener.hello", "task.aggregate"])
+      expect.arrayContaining(["task.hello", "hook.hello", "task.aggregate"])
     );
     expect(snapshot.usingMw).toEqual(expect.arrayContaining(["task.hello"]));
     expect(snapshot.emittersOfEvt).toEqual(
       expect.arrayContaining(["task.hello"])
     );
-    expect(snapshot.listenersOfEvt).toEqual(
-      expect.arrayContaining(["listener.hello"])
-    );
+    expect(snapshot.hooksOfEvt).toEqual(expect.arrayContaining(["hook.hello"]));
     expect(snapshot.mwEmits).toEqual(expect.arrayContaining(["evt.hello"]));
 
-    // listenedToBy on event: should include specific listener, not global
+    // listenedToBy on event: should include specific hook, not global
     expect(snapshot.evtHello_listenedToBy).toEqual(
-      expect.arrayContaining(["listener.hello"])
+      expect.arrayContaining(["hook.hello"])
     );
     expect(snapshot.evtHello_listenedToBy).not.toEqual(
-      expect.arrayContaining(["listener.all"])
+      expect.arrayContaining(["hook.all"])
     );
 
     // Middleware usage mapping
@@ -129,13 +127,13 @@ describe("introspector (extended)", () => {
     );
     expect(snapshot.mwTag.usedByResources).toEqual([]);
 
-    // Non-null arrays for a listener with no deps/mw/emits
-    expect(Array.isArray(snapshot.listenerAll.dependsOn)).toBe(true);
-    expect(snapshot.listenerAll.dependsOn.length).toBe(0);
-    expect(Array.isArray(snapshot.listenerAll.middleware)).toBe(true);
-    expect(snapshot.listenerAll.middleware.length).toBe(0);
-    expect(Array.isArray(snapshot.listenerAll.emits)).toBe(true);
-    expect(snapshot.listenerAll.emits.length).toBe(0);
+    // Non-null arrays for a hook with no deps/mw/emits
+    expect(Array.isArray(snapshot.hookAll.dependsOn)).toBe(true);
+    expect(snapshot.hookAll.dependsOn.length).toBe(0);
+    expect(Array.isArray(snapshot.hookAll.middleware)).toBe(true);
+    expect(snapshot.hookAll.middleware.length).toBe(0);
+    expect(Array.isArray(snapshot.hookAll.emits)).toBe(true);
+    expect(snapshot.hookAll.emits.length).toBe(0);
   });
 
   test("overrides mapping sets overriddenBy for middleware", async () => {

@@ -57,13 +57,13 @@ describe("GraphQL schema (integration)", () => {
           registeredByResolved { id }
           dependsOnResolved {
             tasks { id }
-            listeners { id }
+            hooks { id }
             resources { id }
             emitters { id }
           }
           depenendsOnResolved { id }
         }
-        listeners {
+        hooks {
           id
           event
           filePath
@@ -71,7 +71,7 @@ describe("GraphQL schema (integration)", () => {
           markdownDescription
           inputSchema
           inputSchemaReadable
-          listenerOrder
+          hookOrder
           emits
           emitsResolved { id }
           dependsOn
@@ -104,8 +104,8 @@ describe("GraphQL schema (integration)", () => {
           listenedToBy
           listenedToByResolved { id }
         }
-        eventsWithListeners: events(filter: { hasNoListeners: false }) { id }
-        eventsWithoutListeners: events(filter: { hasNoListeners: true }) { id }
+        eventsWithHooks: events(filter: { hasNoHooks: false }) { id }
+        eventsWithoutHooks: events(filter: { hasNoHooks: true }) { id }
         middlewares {
           id
           usedByTasks
@@ -126,7 +126,7 @@ describe("GraphQL schema (integration)", () => {
 
     const data: any = result.data;
     expect(Array.isArray(data?.tasks)).toBe(true);
-    expect(Array.isArray(data.listeners)).toBe(true);
+    expect(Array.isArray(data.hooks)).toBe(true);
     expect(Array.isArray(data.resources)).toBe(true);
     expect(Array.isArray(data.events)).toBe(true);
     expect(Array.isArray(data.middlewares)).toBe(true);
@@ -139,11 +139,9 @@ describe("GraphQL schema (integration)", () => {
     );
 
     const evt = data.events.find((e: any) => e.id === "evt.hello");
-    expect(evt.listenedToBy).toEqual(
-      expect.arrayContaining(["listener.hello"])
-    );
+    expect(evt.listenedToBy).toEqual(expect.arrayContaining(["hook.hello"]));
     expect(evt.listenedToByResolved.map((l: any) => l.id)).toEqual(
-      expect.arrayContaining(["listener.hello"])
+      expect.arrayContaining(["hook.hello"])
     );
 
     expect(typeof evt.payloadSchema).toBe("string");
@@ -165,16 +163,12 @@ describe("GraphQL schema (integration)", () => {
     expect(cache.configSchemaReadable).toContain("ttlMs");
 
     // Filtered events
-    const withListeners: string[] = data.eventsWithListeners.map(
+    const withHooks: string[] = data.eventsWithHooks.map((e: any) => e.id);
+    const withoutHooks: string[] = data.eventsWithoutHooks.map(
       (e: any) => e.id
     );
-    const withoutListeners: string[] = data.eventsWithoutListeners.map(
-      (e: any) => e.id
-    );
-    expect(withListeners).toEqual(expect.arrayContaining(["evt.hello"]));
-    expect(withoutListeners).toEqual(
-      expect.arrayContaining(["evt.readme.orphan"])
-    );
+    expect(withHooks).toEqual(expect.arrayContaining(["evt.hello"]));
+    expect(withoutHooks).toEqual(expect.arrayContaining(["evt.readme.orphan"]));
   });
 
   test("deep traversal from task -> middlewareResolved -> dependents", async () => {
@@ -280,7 +274,7 @@ describe("GraphQL schema (integration)", () => {
     );
   });
 
-  test("TaskInterface and ListenerType resolveType and isTypeOf coverage", async () => {
+  test("TaskInterface and HookType resolveType and isTypeOf coverage", async () => {
     let ctx: any;
 
     const probe = resource({
@@ -300,7 +294,7 @@ describe("GraphQL schema (integration)", () => {
     await run(app);
 
     // Query that specifically tests the TaskInterface.resolveType function
-    // and ensures both Task and Listener types are properly identified
+    // and ensures both Task and Hook types are properly identified
     const query = `
       query TypeResolutionTest {
         tasks {
@@ -311,18 +305,18 @@ describe("GraphQL schema (integration)", () => {
           ... on Task {
             dependsOnResolved {
               tasks { id }
-              listeners { id } 
+              hooks { id } 
               resources { id }
               emitters { id }
             }
           }
         }
-        listeners {
+        hooks {
           __typename
           id
           event
-          ... on Listener {
-            listenerOrder
+          ... on Hook {
+            hookOrder
           }
         }
       }
@@ -342,11 +336,11 @@ describe("GraphQL schema (integration)", () => {
       expect(task.event).toBeUndefined(); // Tasks should not have 'event' field
     });
 
-    // Verify ListenerType.isTypeOf and TaskInterface.resolveType work correctly
-    const listeners = data.listeners;
-    listeners.forEach((listener: any) => {
-      expect(listener.__typename).toBe("Listener");
-      expect(typeof listener.event).toBe("string");
+    // Verify HookType.isTypeOf and TaskInterface.resolveType work correctly
+    const hooks = data.hooks;
+    hooks.forEach((hook: any) => {
+      expect(hook.__typename).toBe("Hook");
+      expect(typeof hook.event).toBe("string");
     });
   });
 
@@ -381,7 +375,7 @@ describe("GraphQL schema (integration)", () => {
             description
           }
         }
-        listeners {
+        hooks {
           id
           filePath
           markdownDescription
@@ -396,7 +390,7 @@ describe("GraphQL schema (integration)", () => {
     const result = await graphql({ schema, source: query, contextValue: ctx });
     expect(result.errors).toBeUndefined();
     expect(result.data?.tasks).toBeDefined();
-    expect(result.data?.listeners).toBeDefined();
+    expect(result.data?.hooks).toBeDefined();
   });
 
   test("idIncludes filtering works across queries", async () => {
@@ -424,7 +418,7 @@ describe("GraphQL schema (integration)", () => {
       query Filtering {
         all(idIncludes: "hello") { id __typename }
         tasksHello: tasks(idIncludes: "hello") { id }
-        listenersHello: listeners(idIncludes: "hello") { id }
+        hooksHello: hooks(idIncludes: "hello") { id }
         resourcesRes: resources(idIncludes: "res.") { id }
         middlewaresMw: middlewares(idIncludes: "mw.") { id }
         eventsReadme: events(filter: { idIncludes: "readme." }) { id }
@@ -438,14 +432,14 @@ describe("GraphQL schema (integration)", () => {
     const data: any = result.data;
     const allIds = data.all.map((n: any) => n.id);
     expect(allIds).toEqual(
-      expect.arrayContaining(["task.hello", "listener.hello", "evt.hello"])
+      expect.arrayContaining(["task.hello", "hook.hello", "evt.hello"])
     );
 
     expect(data.tasksHello.map((t: any) => t.id)).toEqual(
       expect.arrayContaining(["task.hello"])
     );
-    expect(data.listenersHello.map((l: any) => l.id)).toEqual(
-      expect.arrayContaining(["listener.hello"])
+    expect(data.hooksHello.map((l: any) => l.id)).toEqual(
+      expect.arrayContaining(["hook.hello"])
     );
     expect(data.resourcesRes.map((r: any) => r.id)).toEqual(
       expect.arrayContaining(["res.db", "res.cache"])

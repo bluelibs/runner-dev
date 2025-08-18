@@ -78,7 +78,7 @@ export function registerProjectOverview(server: McpServer) {
 
       const query = `query Overview($liveLast: Int) {
   tasks { id meta { title description } filePath inputSchemaReadable }
-  listeners { id meta { title description } event filePath inputSchemaReadable }
+  hooks { id meta { title description } event filePath inputSchemaReadable }
   resources { id meta { title description } filePath configSchemaReadable }
   middlewares { id meta { title description } filePath configSchemaReadable }
   events { id meta { title description } filePath payloadSchemaReadable emittedBy listenedToBy }
@@ -98,7 +98,7 @@ export function registerProjectOverview(server: McpServer) {
 
       const data = result?.data ?? {};
       const tasks = Array.isArray(data.tasks) ? data.tasks : [];
-      const listeners = Array.isArray(data.listeners) ? data.listeners : [];
+      const hooks = Array.isArray(data.hooks) ? data.hooks : [];
       const resources = Array.isArray(data.resources) ? data.resources : [];
       const middlewares = Array.isArray(data.middlewares)
         ? data.middlewares
@@ -122,7 +122,7 @@ export function registerProjectOverview(server: McpServer) {
       lines.push("");
       lines.push(`## Topology Summary`);
       lines.push(`- Tasks: ${tasks.length}`);
-      lines.push(`- Listeners: ${listeners.length}`);
+      lines.push(`- Hooks: ${hooks.length}`);
       lines.push(`- Resources: ${resources.length}`);
       lines.push(`- Middleware: ${middlewares.length}`);
       lines.push(`- Events: ${events.length}`);
@@ -152,9 +152,9 @@ export function registerProjectOverview(server: McpServer) {
         lines.push("");
       }
 
-      if (listeners.length) {
-        lines.push(`### Listeners`);
-        for (const l of listeners.slice(0, sampleSize)) {
+      if (hooks.length) {
+        lines.push(`### Hooks`);
+        for (const l of hooks.slice(0, sampleSize)) {
           const extra: string[] = [];
           if (l.event) extra.push(`  - event: ${String(l.event)}`);
           lines.push(

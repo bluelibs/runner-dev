@@ -8,7 +8,7 @@ describe("Graph diagnostics (component)", () => {
   test("reports orphan event, unused middleware", async () => {
     let ctx: any;
 
-    // Define an event without listeners/emitters
+    // Define an event without hooks/emitters
     const orphanEvt = event({ id: "evt.orphan" });
 
     // Define a middleware that is not used anywhere

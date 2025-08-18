@@ -41,7 +41,7 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
       resolve: (node: any) => convertJsonSchemaToReadable(node.payloadSchema),
     },
     emittedBy: {
-      description: "Ids of task/listener nodes that emit this event",
+      description: "Ids of task/hook nodes that emit this event",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
@@ -49,7 +49,7 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
         ctx.introspector.getEmittersOfEvent(node.id).map((t: any) => t.id),
     },
     emittedByResolved: {
-      description: "Task/listener nodes that emit this event (resolved)",
+      description: "Task/hook nodes that emit this event (resolved)",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(TaskInterface))
       ),
@@ -57,18 +57,17 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
         ctx.introspector.getEmittersOfEvent(node.id),
     },
     listenedToBy: {
-      description: "Ids of task/listener nodes listening to this event",
+      description: "Ids of task/hook nodes listening to this event",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
     },
     listenedToByResolved: {
-      description: "Task/listener nodes listening to this event (resolved)",
+      description: "Task/hook nodes listening to this event (resolved)",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(TaskInterface))
       ),
-      resolve: (node, _args, ctx) =>
-        ctx.introspector.getListenersOfEvent(node.id),
+      resolve: (node, _args, ctx) => ctx.introspector.getHooksOfEvent(node.id),
     },
     registeredBy: {
       description: "Id of the resource that registered this event (if any)",
@@ -104,8 +103,8 @@ export const EventFilterInput = new GraphQLInputObjectType({
   name: "EventFilterInput",
   description: "Filters for events in the system",
   fields: {
-    hasNoListeners: {
-      description: "When true, only events without listeners are returned.",
+    hasNoHooks: {
+      description: "When true, only events without hooks are returned.",
       type: GraphQLBoolean,
     },
     hideSystem: {

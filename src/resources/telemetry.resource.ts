@@ -1,6 +1,6 @@
 import { globals, hook, middleware, resource } from "@bluelibs/runner";
 import { live } from "./live.resource";
-import { deriveParentAndRoot, withTaskRunContext } from "./dev.telemetry.chain";
+import { deriveParentAndRoot, withTaskRunContext } from "./telemetry.chain";
 import { randomUUID } from "node:crypto";
 
 const overrideEventManagerEmittor = resource({

@@ -96,7 +96,7 @@ export interface Task extends TaskBase {
 export interface Hook extends TaskBase {
   kind: "HOOK";
   event: string;
-  listenerOrder?: number | null;
+  hookOrder?: number | null;
 }
 
 export interface Resource extends BaseElement {

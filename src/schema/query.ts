@@ -11,7 +11,7 @@ import {
   BaseElementInterface,
   EventType,
   EventFilterInput,
-  ListenerType,
+  HookType,
   MiddlewareType,
   ResourceType,
   TaskType,
@@ -28,7 +28,7 @@ import type {
   QueryResourcesArgs,
   QueryTaskArgs,
   QueryTasksArgs,
-  QueryListenersArgs,
+  QueryHooksArgs,
 } from "../generated/resolvers-types";
 import { isSystemEventId } from "../resources/introspector.tools";
 
@@ -46,7 +46,7 @@ export const QueryType = new GraphQLObjectType({
     },
     all: {
       description:
-        "Unified view of all elements (tasks, listeners, resources, middleware, events). Prefer specific queries for efficiency.",
+        "Unified view of all elements (tasks, hooks, resources, middleware, events). Prefer specific queries for efficiency.",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(BaseElementInterface))
       ),
@@ -59,7 +59,7 @@ export const QueryType = new GraphQLObjectType({
       resolve: (_root, args: any, ctx: CustomGraphQLContext) => {
         let result = [
           ...ctx.introspector.getTasks(),
-          ...ctx.introspector.getListeners(),
+          ...ctx.introspector.getHooks(),
           ...ctx.introspector.getResources(),
           ...ctx.introspector.getMiddlewares(),
           ...ctx.introspector.getEvents(),
@@ -97,7 +97,7 @@ export const QueryType = new GraphQLObjectType({
         let result = ctx.introspector.getEvents();
         const filter = args.filter || {
           hideSystem: false,
-          hasNoListeners: false,
+          hasNoHooks: false,
           idIncludes: undefined,
         };
 
@@ -113,9 +113,9 @@ export const QueryType = new GraphQLObjectType({
           const sub = String(filter.idIncludes);
           result = result.filter((e) => String(e.id).includes(sub));
         }
-        if (typeof filter.hasNoListeners === "boolean") {
+        if (typeof filter.hasNoHooks === "boolean") {
           result = result.filter((e) =>
-            filter.hasNoListeners
+            filter.hasNoHooks
               ? (e.listenedToBy ?? []).length === 0
               : (e.listenedToBy ?? []).length > 0
           );
@@ -153,20 +153,17 @@ export const QueryType = new GraphQLObjectType({
         return result;
       },
     },
-    listeners: {
-      description: "Get all listeners (optionally filter by id prefix).",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(ListenerType))
-      ),
+    hooks: {
+      description: "Get all hooks (optionally filter by id prefix).",
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(HookType))),
       args: {
         idIncludes: {
-          description:
-            "Return only listeners whose id contains this substring.",
+          description: "Return only hooks whose id contains this substring.",
           type: GraphQLID,
         },
       },
-      resolve: (_root, args: QueryListenersArgs, ctx: CustomGraphQLContext) => {
-        let result = ctx.introspector.getListeners();
+      resolve: (_root, args: QueryHooksArgs, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getHooks();
         if ((args as any)?.idIncludes) {
           const sub = String((args as any).idIncludes);
           result = result.filter((l) => String(l.id).includes(sub));

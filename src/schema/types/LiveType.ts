@@ -110,14 +110,14 @@ export const EmissionEntryType = new GraphQLObjectType<
     },
     emitterResolved: {
       description:
-        "Resolved emitter node (task/listener/resource/middleware) if known; otherwise returns a minimal All node",
+        "Resolved emitter node (task/hook/resource/middleware) if known; otherwise returns a minimal All node",
       type: BaseElementInterface,
       resolve: (node, _args, ctx: CustomGraphQLContext) => {
         const id = node?.emitterId ? String(node.emitterId) : null;
         if (!id) return null;
         return (
           ctx.introspector.getTask(id) ||
-          ctx.introspector.getListenersByIds([id])[0] ||
+          ctx.introspector.getHooksByIds([id])[0] ||
           ctx.introspector.getResource(id) ||
           ctx.introspector.getMiddleware(id) ||
           ctx.introspector.getEvent(id) || { id, meta: null, filePath: null }
@@ -142,8 +142,7 @@ export const ErrorEntryType = new GraphQLObjectType<
       type: new GraphQLNonNull(GraphQLID),
     },
     sourceKind: {
-      description:
-        "Kind of source (task/listener/resource/middleware/internal)",
+      description: "Kind of source (task/hook/resource/middleware/internal)",
       type: new GraphQLNonNull(SourceKindEnum),
     },
     message: {
@@ -167,7 +166,7 @@ export const ErrorEntryType = new GraphQLObjectType<
     },
     sourceResolved: {
       description:
-        "Resolved source node (task/listener/resource/middleware), else minimal All",
+        "Resolved source node (task/hook/resource/middleware), else minimal All",
       type: BaseElementInterface,
       resolve: (node, _args, ctx: CustomGraphQLContext) => {
         const id = String(node.sourceId);
@@ -182,7 +181,7 @@ export const ErrorEntryType = new GraphQLObjectType<
             );
           case "HOOK":
             return (
-              ctx.introspector.getListenersByIds([id])[0] || {
+              ctx.introspector.getHooksByIds([id])[0] || {
                 id,
                 meta: null,
                 filePath: null,
@@ -252,13 +251,13 @@ export const RunRecordType = new GraphQLObjectType<
       type: GraphQLString,
     },
     nodeResolved: {
-      description: "Resolved task/listener node",
+      description: "Resolved task/hook node",
       type: TaskInterface,
       resolve: (node, _args, ctx: CustomGraphQLContext) => {
         const id = String(node.nodeId);
         return (
           ctx.introspector.getTask(id) ||
-          ctx.introspector.getListenersByIds([id])[0] ||
+          ctx.introspector.getHooksByIds([id])[0] ||
           null
         );
       },

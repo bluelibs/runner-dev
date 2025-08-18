@@ -3,11 +3,11 @@ import { schema } from "../../schema";
 import { createDummyApp, evtHello } from "../dummy/dummyApp";
 import { live } from "../../resources/live.resource";
 import { introspector } from "../../resources/introspector.resource";
-import { telemetry } from "../../resources/dev.telemetry.resource";
+import { telemetry } from "../../resources/telemetry.resource";
 import { graphql } from "graphql";
 
 describe("GraphQL Live (integration)", () => {
-  test.only("query live logs and emissions deeply", async () => {
+  test("query live logs and emissions deeply", async () => {
     let ctx: any;
     let checkpoint = 0;
 
@@ -162,7 +162,6 @@ describe("GraphQL Live (integration)", () => {
         await logger.debug("dbg1");
         await logger.info("info1");
         await logger.debug("dbg2");
-        console.log("emitHello");
         await emitHello({ name: "filters" });
         try {
           await failing();
@@ -182,11 +181,7 @@ describe("GraphQL Live (integration)", () => {
     });
 
     const app = createDummyApp([live, introspector, telemetry, probe]);
-    await run(app, {
-      logs: {
-        printThreshold: "debug",
-      },
-    });
+    await run(app);
 
     const query = `
       query WithFilters {

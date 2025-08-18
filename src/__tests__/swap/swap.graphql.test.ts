@@ -1,7 +1,7 @@
 import { run, task, resource, globals } from "@bluelibs/runner";
 import { ApolloServer } from "@apollo/server";
 import { resources } from "../../index";
-import { telemetry } from "../../resources/dev.telemetry.resource";
+import { telemetry } from "../../resources/telemetry.resource";
 import type { CustomGraphQLContext } from "../../schema/context";
 import type { SwapResult, SwappedTask } from "../../generated/resolvers-types";
 import { createDummyApp } from "../dummy/dummyApp";

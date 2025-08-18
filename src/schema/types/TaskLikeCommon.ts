@@ -109,14 +109,14 @@ export function taskLikeCommonFields(params: {
     },
     dependsOnResolved: {
       description:
-        "Flattened dependencies resolved to BaseElement (tasks, listeners, resources)",
+        "Flattened dependencies resolved to BaseElement (tasks, hooks, resources)",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(BaseElementInterface))
       ),
       resolve: async (node, _args, ctx: CustomGraphQLContext) => {
-        const { tasks, listeners, resources } =
+        const { tasks, hooks, resources } =
           await ctx.introspector.getDependencies(node);
-        return [...tasks, ...listeners, ...resources];
+        return [...tasks, ...hooks, ...resources];
       },
     },
   };

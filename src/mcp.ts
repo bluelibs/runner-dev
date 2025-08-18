@@ -15,6 +15,7 @@ import { registerGraphQLPing } from "./mcp/tools/graphql.ping";
 import { registerHelpRead } from "./mcp/tools/help.read";
 import { registerHelpRunner } from "./mcp/tools/help.runner";
 import { registerHelpRunnerDev } from "./mcp/tools/help.runnerDev";
+import { ENDPOINT } from "./mcp/env";
 
 // Create an MCP server
 const server = new McpServer({
@@ -87,4 +88,10 @@ server.registerResource(
 
 // Start receiving messages on stdin and sending messages on stdout
 const transport = new StdioServerTransport();
-server.connect(transport);
+if (ENDPOINT) {
+  server.connect(transport).then(() => {
+    console.log(`Runner Dev MCP server started: ${ENDPOINT}`);
+  });
+} else {
+  console.error("Runner Dev MCP server: ENDPOINT is not set");
+}

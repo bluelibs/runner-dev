@@ -54,14 +54,14 @@ export const BaseElementInterface: GraphQLInterfaceType =
       const kind = (value && (value as any)[elementKindSymbol]) as
         | undefined
         | "TASK"
-        | "LISTENER"
+        | "HOOK"
         | "RESOURCE"
         | "MIDDLEWARE"
         | "EVENT";
       switch (kind) {
         case "TASK":
           return "Task";
-        case "LISTENER":
+        case "HOOK":
           return "Listener";
         case "RESOURCE":
           return "Resource";
@@ -109,7 +109,7 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
     // If it has a kind symbol, it should resolve to a specific type, not All
     if (
       kind === "TASK" ||
-      kind === "LISTENER" ||
+      kind === "HOOK" ||
       kind === "RESOURCE" ||
       kind === "MIDDLEWARE" ||
       kind === "EVENT"

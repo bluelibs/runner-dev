@@ -69,6 +69,6 @@
     "zod-to-json-schema": "^3.23.5"
   },
   "peerDependencies": {
-    "@bluelibs/runner": "^3.4.2"
+    "@bluelibs/runner": "../runner"
   }
 }

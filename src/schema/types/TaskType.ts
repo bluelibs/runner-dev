@@ -9,7 +9,7 @@ import {
   GraphQLString,
 } from "graphql";
 
-import type { Listener, Task } from "../model";
+import type { Hook, Task } from "../model";
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
 import { ResourceType } from "./ResourceType";
@@ -155,8 +155,8 @@ export const TaskInterface = new GraphQLInterfaceType({
     },
   }),
   resolveType: (value) => {
-    const node = value as Task | Listener;
-    return typeof (node as Listener).event === "string" ? "Listener" : "Task";
+    const node = value as Task | Hook;
+    return typeof (node as Hook).event === "string" ? "Listener" : "Task";
   },
 });
 
@@ -281,7 +281,7 @@ export const ListenerType = new GraphQLObjectType({
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(BaseElementInterface))
       ),
-      resolve: async (node: Listener, _args, ctx: CustomGraphQLContext) => {
+      resolve: async (node: Hook, _args, ctx: CustomGraphQLContext) => {
         const { tasks, listeners, resources } =
           await ctx.introspector.getDependencies(node);
         return [...tasks, ...listeners, ...resources];

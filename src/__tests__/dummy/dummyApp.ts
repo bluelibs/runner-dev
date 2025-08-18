@@ -1,4 +1,4 @@
-import { middleware, resource, task, event, tag } from "@bluelibs/runner";
+import { middleware, resource, task, hook, event, tag } from "@bluelibs/runner";
 import { z } from "zod";
 
 // Middleware
@@ -65,7 +65,7 @@ export const helloTask = task({
 });
 
 // Listener
-export const helloListener = task({
+export const helloListener = hook({
   id: "listener.hello",
   on: evtHello,
   dependencies: { db: dbRes },
@@ -80,14 +80,13 @@ export const helloListener = task({
 });
 
 // Global listener
-export const allEventsListener = task({
+export const allEventsListener = hook({
   id: "listener.all",
   on: "*",
   meta: {
     title: "Global listener",
     description: "Wildcard listener that observes all events",
   },
-  inputSchema: z.object({}).optional(),
   async run() {
     /* noop */
   },
@@ -144,6 +143,7 @@ export function createDummyApp(extra: any[] = []) {
       description: "Test application composed of resources, tasks, and events",
     },
     register: [
+      ...extra,
       logMw,
       tagMw,
       dbRes,
@@ -154,7 +154,6 @@ export function createDummyApp(extra: any[] = []) {
       aggregateTask,
       taggedTask,
       evtHello,
-      ...extra,
     ],
   });
 }

@@ -1,6 +1,6 @@
 import type {
   Task,
-  Listener,
+  Hook,
   Resource,
   Event,
   Middleware,
@@ -139,44 +139,51 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
 }
 
 export function mapStoreTaskToListenerModel(
-  task: definitions.ITask<any, any, any, "*" | definitions.IEvent<any>>
-): Listener {
-  const depsObj = normalizeDependencies(task?.dependencies);
+  task: definitions.ITask<any, any, any>
+): Hook {
+  throw new Error("deprecated");
+}
+
+export function mapStoreHookToListenerModel(hk: any): Hook {
+  const depsObj = normalizeDependencies(hk?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
-  const middlewareDetailed = (task.middleware || []).map((m: any) => ({
+  const middlewareDetailed = (hk?.middleware || []).map((m: any) => ({
     id: String(m.id),
     config: m[definitions.symbolMiddlewareConfigured]
       ? stringifyIfObject(m.config)
       : null,
   }));
 
+  const eventId =
+    typeof hk?.on === "string"
+      ? (hk.on as string)
+      : hk?.on?.id != null
+      ? String(hk.on.id)
+      : "";
+
   return stampElementKind(
     {
-      id: task.id.toString(),
+      id: String(hk?.id),
       meta: (() => {
-        const base = task.meta ?? null;
+        const base = hk?.meta ?? null;
         if (!base) return base;
         const { ids, detailed } = normalizeTags((base as any).tags);
         return { ...base, tags: ids, tagsDetailed: detailed } as any;
       })(),
-      filePath: task[definitions.symbolFilePath] ?? null,
+      filePath: hk?.[definitions.symbolFilePath] ?? hk?.filePath ?? null,
       emits: eventIdsFromDeps,
       dependsOn: resourceIdsFromDeps,
-      middleware: task.middleware.map((m) => m.id.toString()),
+      middleware: (hk?.middleware || []).map((m: any) => m.id.toString()),
       middlewareDetailed,
-      // They are stored later.
       overriddenBy: null,
       registeredBy: null,
-      kind: "LISTENER",
-      event:
-        typeof task.on === "string"
-          ? task.on
-          : (task.on?.id.toString() as string), // Assertion to ensure it's not undefined
-      listenerOrder: task.listenerOrder ?? null,
-      inputSchema: formatSchemaIfZod(task.inputSchema),
+      kind: "HOOK",
+      event: eventId,
+      listenerOrder: typeof hk?.order === "number" ? hk.order : null,
+      inputSchema: formatSchemaIfZod(hk?.inputSchema),
     },
-    "LISTENER"
+    "HOOK"
   );
 }
 
@@ -226,7 +233,7 @@ export function mapStoreResourceToResourceModel(
 export function buildEvents(
   eventsCollection: definitions.IEvent[],
   tasks: Task[],
-  listeners: Listener[],
+  listeners: Hook[],
   resources: Resource[]
 ): Event[] {
   const eventIdsFromStore: string[] = eventsCollection.map((e) =>
@@ -264,7 +271,7 @@ export function buildEvents(
 export function buildMiddlewares(
   middlewaresCollection: definitions.IMiddleware[],
   tasks: Task[],
-  listeners: Listener[],
+  listeners: Hook[],
   resources: Resource[]
 ): Middleware[] {
   return toArray(middlewaresCollection).map((entry: any) => {
@@ -316,7 +323,7 @@ export function buildMiddlewares(
 export function attachRegisteredBy(
   resources: Resource[],
   tasks: Task[],
-  listeners: Listener[],
+  listeners: Hook[],
   middlewares: Middleware[],
   events: Event[]
 ): void {
@@ -374,7 +381,7 @@ export function computeOverriddenByMap(
 export function attachOverrides(
   overrideRequests: ReadonlySet<OverrideRequest>,
   tasks: Task[],
-  listeners: Listener[],
+  listeners: Hook[],
   middlewares: Middleware[]
 ): void {
   const overriddenByMap = computeOverriddenByMap(overrideRequests);
@@ -526,12 +533,12 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
 
   // Anonymous (Symbol) IDs
   const collections: Array<{
-    kind: "RESOURCE" | "TASK" | "LISTENER" | "EVENT" | "MIDDLEWARE";
+    kind: "RESOURCE" | "TASK" | "HOOK" | "EVENT" | "MIDDLEWARE";
     nodes: Array<{ id: string }>;
   }> = [
     { kind: "RESOURCE", nodes: introspector.getResources() },
     { kind: "TASK", nodes: introspector.getTasks() },
-    { kind: "LISTENER", nodes: introspector.getListeners() },
+    { kind: "HOOK", nodes: introspector.getListeners() },
     { kind: "EVENT", nodes: introspector.getEvents() },
     { kind: "MIDDLEWARE", nodes: introspector.getMiddlewares() },
   ];

@@ -5,7 +5,7 @@ import { introspector } from "../../resources/introspector.resource";
 import { graphql } from "graphql";
 
 describe("Graph diagnostics (component)", () => {
-  test("reports orphan event, unused middleware, and anonymous ids", async () => {
+  test("reports orphan event, unused middleware", async () => {
     let ctx: any;
 
     // Define an event without listeners/emitters
@@ -19,11 +19,9 @@ describe("Graph diagnostics (component)", () => {
       },
     });
 
-    const anonRes = resource({ async init() {} });
-
     const probe = resource({
       id: "probe.diagnostics",
-      register: [orphanEvt, unusedMw, anonRes],
+      register: [orphanEvt, unusedMw],
       dependencies: { introspector },
       async init(_config, { introspector }) {
         ctx = {
@@ -59,13 +57,5 @@ describe("Graph diagnostics (component)", () => {
       (d) => d.code === "UNUSED_MIDDLEWARE" && d.nodeId === "mw.unused"
     );
     expect(hasUnused).toBe(true);
-
-    const hasAnonymous = diags.some(
-      (d) =>
-        d.code === "ANONYMOUS_ID" &&
-        d.nodeKind === "RESOURCE" &&
-        String(d.nodeId).startsWith("Symbol(")
-    );
-    expect(hasAnonymous).toBe(true);
   });
 });

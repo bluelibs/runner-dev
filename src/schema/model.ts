@@ -41,7 +41,7 @@ export interface Event extends BaseElement {
 export type ElementKind =
   | "ALL"
   | "TASK"
-  | "LISTENER"
+  | "HOOK"
   | "RESOURCE"
   | "MIDDLEWARE"
   | "EVENT";
@@ -93,8 +93,8 @@ export interface Task extends TaskBase {
   kind: "TASK";
 }
 
-export interface Listener extends TaskBase {
-  kind: "LISTENER";
+export interface Hook extends TaskBase {
+  kind: "HOOK";
   event: string;
   listenerOrder?: number | null;
 }

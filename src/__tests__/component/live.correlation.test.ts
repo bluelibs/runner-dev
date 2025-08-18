@@ -1,4 +1,4 @@
-import { resource, run, task, globals } from "@bluelibs/runner";
+import { resource, run, task, globals, hook } from "@bluelibs/runner";
 import { createDummyApp } from "../dummy/dummyApp";
 import { schema } from "../../schema";
 import { live } from "../../resources/live.resource";
@@ -7,52 +7,41 @@ import { telemetry } from "../../resources/dev.telemetry.resource";
 import { graphql } from "graphql";
 
 describe("Live correlation and chain tracking", () => {
-  test("correlationId propagates across nested tasks and runs expose parent/root", async () => {
+  test.only("correlationId propagates across nested tasks and runs expose parent/root", async () => {
     let ctx: any;
 
     const inner = task({
       id: "probe.chain.inner",
-      dependencies: { emitLog: globals.events.log },
-      async run(_i, { emitLog }) {
-        await emitLog({
-          timestamp: new Date(),
-          level: "info",
-          message: "chain-inner",
-        });
+      dependencies: { logger: globals.resources.logger },
+      async run(_i, { logger }) {
+        await logger.info("chain-inner");
       },
     });
 
     const outer = task({
       id: "probe.chain.outer",
-      dependencies: { inner, emitLog: globals.events.log },
-      async run(_i, { inner, emitLog }) {
-        await emitLog({
-          timestamp: new Date(),
-          level: "info",
-          message: "chain-outer",
-        });
+      dependencies: { inner, logger: globals.resources.logger },
+      async run(_i, { inner, logger }) {
+        await logger.info("chain-outer");
         await inner();
       },
     });
 
-    const root = task({
-      id: "probe.chain.root",
-      on: globals.events.afterInit,
-      listenerOrder: 1,
-      dependencies: { outer, emitLog: globals.events.log },
-      async run(_e, { outer, emitLog }) {
-        await emitLog({
-          timestamp: new Date(),
-          level: "info",
-          message: "chain-root",
-        });
+    const rootHook = hook({
+      id: "probe.chain.root.hook",
+      on: globals.events.ready,
+      order: 1,
+      dependencies: { outer, logger: globals.resources.logger },
+      async run(_e, { outer, logger }) {
+        await logger.info("chain-root");
+        // how to properly do correlation id with hooks?
         await outer();
       },
     });
 
     const probe = resource({
       id: "probe.chain",
-      register: [inner, outer, root],
+      register: [inner, outer, rootHook],
       dependencies: { live, introspector },
       async init(_config, { live, introspector }) {
         ctx = { store: undefined, logger: console, introspector, live };
@@ -64,7 +53,7 @@ describe("Live correlation and chain tracking", () => {
 
     // Discover correlationId from runs
     const runs = ctx.live.getRuns(0);
-    const rootRun = runs.find((r: any) => r.nodeId === "probe.chain.root");
+    const rootRun = runs.find((r: any) => r.nodeId === rootHook.id);
     expect(rootRun?.correlationId).toBeTruthy();
     const corr = rootRun!.correlationId;
 
@@ -98,17 +87,17 @@ describe("Live correlation and chain tracking", () => {
     const runsById: Record<string, any> = Object.fromEntries(
       data.live.runs.map((r: any) => [r.nodeId, r])
     );
-    expect(runsById["probe.chain.root"].parentId ?? null).toBeNull();
-    expect(runsById["probe.chain.root"].rootId).toBe("probe.chain.root");
-    expect(runsById["probe.chain.root"].correlationId).toBe(corr);
+    expect(runsById[rootHook.id].parentId).toBe("global.events.hookCompleted");
+    expect(runsById[rootHook.id].rootId).toBe(globals.events.ready.id);
+    expect(runsById[rootHook.id].correlationId).toBe(corr);
 
-    expect(runsById["probe.chain.outer"].parentId).toBe("probe.chain.root");
-    expect(runsById["probe.chain.outer"].rootId).toBe("probe.chain.root");
-    expect(runsById["probe.chain.outer"].correlationId).toBe(corr);
+    expect(runsById[outer.id].parentId).toBe(globals.events.ready.id);
+    expect(runsById[outer.id].rootId).toBe(globals.events.ready.id);
+    expect(runsById[outer.id].correlationId).toBe(corr);
 
-    expect(runsById["probe.chain.inner"].parentId).toBe("probe.chain.outer");
-    expect(runsById["probe.chain.inner"].rootId).toBe("probe.chain.root");
-    expect(runsById["probe.chain.inner"].correlationId).toBe(corr);
+    expect(runsById[inner.id].parentId).toBe(outer.id);
+    expect(runsById[inner.id].rootId).toBe(globals.events.ready.id);
+    expect(runsById[inner.id].correlationId).toBe(corr);
 
     // Validate logs filtering by correlation id and log correlation ids
     const messages = data.live.logs.map((l: any) => l.message);

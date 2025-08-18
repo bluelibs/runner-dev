@@ -1,6 +1,46 @@
-import { middleware, resource } from "@bluelibs/runner";
+import { globals, hook, middleware, resource } from "@bluelibs/runner";
 import { live } from "./live.resource";
 import { deriveParentAndRoot, withTaskRunContext } from "./dev.telemetry.chain";
+import { randomUUID } from "node:crypto";
+
+const overrideEventManagerEmittor = resource({
+  id: "runner-dev.telemetry.overrideEventManagerEmittor",
+  dependencies: { eventManager: globals.resources.eventManager, live },
+  async init(_, { eventManager, live }) {
+    const originalEmit = eventManager.emit.bind(eventManager);
+    eventManager.emit = async (event, ...args) => {
+      return withTaskRunContext(event.id, async () => {
+        await originalEmit(event, ...args);
+      });
+    };
+  },
+});
+const onHookCompleted = hook({
+  id: "runner-dev.telemetry.hooks.completed",
+  on: globals.events.hookCompleted,
+  dependencies: { live },
+  async run(event, { live }) {
+    const { hook, eventId } = event.data;
+    const { parentId, rootId } = deriveParentAndRoot(hook.id);
+
+    // If they don't exist, it means they are the root of the chain
+    // Since we cannot use middleware() strategy here, we will use uuid() to
+
+    live.recordRun(hook.id, "HOOK", 0, true, undefined, parentId, rootId);
+  },
+});
+
+const onHookTriggered = hook({
+  id: "runner-dev.telemetry.hooks.triggered",
+  on: globals.events.hookTriggered,
+  dependencies: { live },
+  async run(event, { live }) {
+    const { hook, eventId } = event.data;
+    const { parentId, rootId } = deriveParentAndRoot(hook.id);
+
+    live.recordRun(hook.id, "HOOK", 0, true, undefined, parentId, rootId);
+  },
+});
 
 const telemetryMiddleware = middleware({
   id: "runner-dev.telemetry.middleware",
@@ -17,10 +57,6 @@ const telemetryMiddleware = middleware({
       return next(task.input as any);
     }
 
-    const nodeKind: "TASK" | "LISTENER" = task.definition.on
-      ? "LISTENER"
-      : "TASK";
-
     const { parentId, rootId } = deriveParentAndRoot(id);
 
     const startedAt = Date.now();
@@ -31,7 +67,7 @@ const telemetryMiddleware = middleware({
         try {
           live.recordRun(
             id,
-            nodeKind,
+            "TASK",
             durationMs,
             true,
             undefined,
@@ -46,14 +82,14 @@ const telemetryMiddleware = middleware({
         const durationMs = Date.now() - startedAt;
         // Best-effort error capture via Live (errors buffer)
         try {
-          (live as any).recordError?.(id, nodeKind, error);
+          (live as any).recordError?.(id, "TASK", error);
         } catch {
           // ignore
         }
         try {
           live.recordRun(
             id,
-            nodeKind,
+            "TASK",
             durationMs,
             false,
             error,
@@ -71,7 +107,12 @@ const telemetryMiddleware = middleware({
 
 export const telemetry = resource({
   id: "runner-dev.telemetry",
-  register: [telemetryMiddleware.everywhere({ tasks: true, resources: false })],
+  register: [
+    telemetryMiddleware.everywhere({ tasks: true, resources: false }),
+    overrideEventManagerEmittor,
+    onHookCompleted,
+    onHookTriggered,
+  ],
   async init() {
     // no-op
   },

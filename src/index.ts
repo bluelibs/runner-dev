@@ -1,10 +1,13 @@
+import { resource } from "@bluelibs/runner";
+
 import { server } from "./resources/server.resource";
 import { introspector } from "./resources/introspector.resource";
 import { live } from "./resources/live.resource";
 import { telemetry } from "./resources/dev.telemetry.resource";
 import { swapManager } from "./resources/swap.resource";
 import { graphql } from "./resources/graphql-accumulator.resource";
-import { resource } from "@bluelibs/runner";
+
+Error.stackTraceLimit = Infinity;
 
 export const resources = {
   server,

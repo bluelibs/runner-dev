@@ -180,7 +180,7 @@ export const ErrorEntryType = new GraphQLObjectType<
                 filePath: null,
               }
             );
-          case "LISTENER":
+          case "HOOK":
             return (
               ctx.introspector.getListenersByIds([id])[0] || {
                 id,
@@ -618,7 +618,7 @@ export const SourceKindEnum = new GraphQLEnumType({
   description: "Kinds of sources that can emit errors",
   values: {
     TASK: { value: "TASK" },
-    LISTENER: { value: "LISTENER" },
+    HOOK: { value: "HOOK" },
     RESOURCE: { value: "RESOURCE" },
     MIDDLEWARE: { value: "MIDDLEWARE" },
     INTERNAL: { value: "INTERNAL" },
@@ -630,7 +630,7 @@ export const NodeKindEnum = new GraphQLEnumType({
   description: "Kinds of executable nodes",
   values: {
     TASK: { value: "TASK" },
-    LISTENER: { value: "LISTENER" },
+    HOOK: { value: "HOOK" },
   },
 });
 

@@ -4,6 +4,7 @@ import {
   ensureStringArray,
   mapStoreTaskToTaskModel,
   mapStoreTaskToListenerModel,
+  mapStoreHookToListenerModel,
   mapStoreResourceToResourceModel,
   buildEvents,
   buildMiddlewares,
@@ -22,7 +23,7 @@ import {
 import type {
   All,
   Event,
-  Listener,
+  Hook,
   Middleware,
   Resource,
   Task,
@@ -35,30 +36,30 @@ export interface Introspector {
   getRoot(): Resource;
   getEvents(): Event[];
   getTasks(): Task[];
-  getListeners(): Listener[];
+  getListeners(): Hook[];
   getMiddlewares(): Middleware[];
   getResources(): Resource[];
   getEvent(id: string): Event | null;
   getTask(id: string): Task | null;
-  getListener(id: string): Listener | null;
+  getListener(id: string): Hook | null;
   getMiddleware(id: string): Middleware | null;
   getResource(id: string): Resource | null;
-  getDependencies(node: Task | Listener): {
+  getDependencies(node: Task | Hook): {
     tasks: Task[];
-    listeners: Listener[];
+    listeners: Hook[];
     resources: Resource[];
     emitters: Event[];
   };
-  getEmittedEvents(node: Task | Listener): Event[];
+  getEmittedEvents(node: Task | Hook): Event[];
   getMiddlewaresByIds(ids: string[]): Middleware[];
   getResourcesByIds(ids: string[]): Resource[];
   getTasksByIds(ids: string[]): Task[];
-  getListenersByIds(ids: string[]): Listener[];
+  getListenersByIds(ids: string[]): Hook[];
   getEventsByIds(ids: string[]): Event[];
-  getTaskLikesUsingResource(resourceId: string): (Task | Listener)[];
-  getTaskLikesUsingMiddleware(middlewareId: string): (Task | Listener)[];
-  getEmittersOfEvent(eventId: string): (Task | Listener)[];
-  getListenersOfEvent(eventId: string): Listener[];
+  getTaskLikesUsingResource(resourceId: string): (Task | Hook)[];
+  getTaskLikesUsingMiddleware(middlewareId: string): (Task | Hook)[];
+  getEmittersOfEvent(eventId: string): (Task | Hook)[];
+  getListenersOfEvent(eventId: string): Hook[];
   getMiddlewareEmittedEvents(middlewareId: string): Event[];
   getMiddlewareUsagesForTaskLike(
     taskLikeId: string
@@ -68,7 +69,7 @@ export interface Introspector {
   ): Array<{ id: string; config: string | null; node: Middleware }>;
   getTaskLikesUsingMiddlewareDetailed(
     middlewareId: string
-  ): Array<{ id: string; config: string | null; node: Task | Listener }>;
+  ): Array<{ id: string; config: string | null; node: Task | Hook }>;
   getResourcesUsingMiddlewareDetailed(
     middlewareId: string
   ): Array<{ id: string; config: string | null; node: Resource }>;
@@ -94,18 +95,20 @@ export const introspector = resource({
     store: globals.resources.store,
   },
   async init(_, { store }): Promise<Introspector> {
-    // Build tasks & listeners
-    const tasksCollection = store.tasks;
-    const allTasksLike = tasksCollection.values();
+    // Build tasks
     const tasks: Task[] = [];
-    const listeners: Listener[] = [];
-    for (const t of allTasksLike) {
-      const isListener = Boolean(t.task.on);
-      if (isListener) {
-        listeners.push(mapStoreTaskToListenerModel(t.task));
-      } else {
-        tasks.push(mapStoreTaskToTaskModel(t.task));
-      }
+    const hooks: Hook[] = [];
+
+    for (const t of store.tasks.values()) {
+      // In Runner v4, tasks don't carry 'on'; only legacy may
+      const isLegacyListener = Boolean((t as any).task?.on);
+      if (isLegacyListener)
+        hooks.push(mapStoreTaskToListenerModel((t as any).task));
+      else tasks.push(mapStoreTaskToTaskModel((t as any).task));
+    }
+
+    for (const h of store.hooks.values()) {
+      hooks.push(mapStoreHookToListenerModel(h));
     }
 
     // Build resources
@@ -117,7 +120,7 @@ export const introspector = resource({
     const events: Event[] = buildEvents(
       Array.from(store.events.values()).map((v) => v.event),
       tasks,
-      listeners,
+      hooks,
       resources
     );
 
@@ -125,18 +128,18 @@ export const introspector = resource({
     const middlewares: Middleware[] = buildMiddlewares(
       Array.from(store.middlewares.values()).map((v) => v.middleware),
       tasks,
-      listeners,
+      hooks,
       resources
     );
 
-    attachOverrides(store.overrideRequests, tasks, listeners, middlewares);
+    attachOverrides(store.overrideRequests, tasks, hooks, middlewares);
 
     // Attach registeredBy to all nodes based on each resource.registers
-    attachRegisteredBy(resources, tasks, listeners, middlewares, events);
+    attachRegisteredBy(resources, tasks, hooks, middlewares, events);
 
     // Maps
     const taskMap = buildIdMap(tasks);
-    const listenerMap = buildIdMap(listeners);
+    const listenerMap = buildIdMap(hooks);
     const resourceMap = buildIdMap(resources);
     const eventMap = buildIdMap(events);
     const middlewareMap = buildIdMap(middlewares);
@@ -150,7 +153,7 @@ export const introspector = resource({
         ),
       getEvents: () => events,
       getTasks: () => tasks,
-      getListeners: () => listeners,
+      getListeners: () => hooks,
       getMiddlewares: () => middlewares,
       getResources: () => resources,
       getEvent: (id) => eventMap.get(id) ?? null,
@@ -161,7 +164,7 @@ export const introspector = resource({
       getDependencies: (node) => {
         const depends = ensureStringArray(node.dependsOn);
         const tasksDeps = tasks.filter((t) => depends.includes(t.id));
-        const listenersDeps = listeners.filter((l) => depends.includes(l.id));
+        const listenersDeps = hooks.filter((l) => depends.includes(l.id));
         const resourcesDeps = resources.filter((r) => depends.includes(r.id));
         const emitIds = ensureStringArray((node as any).emits);
         const emitEvents = events.filter((e) => emitIds.includes(e.id));
@@ -190,29 +193,29 @@ export const introspector = resource({
       },
       getListenersByIds: (ids) => {
         const set = new Set(ensureStringArray(ids));
-        return listeners.filter((l) => set.has(l.id));
+        return hooks.filter((l) => set.has(l.id));
       },
       getEventsByIds: (ids) => {
         const set = new Set(ensureStringArray(ids));
         return events.filter((e) => set.has(e.id));
       },
       getTaskLikesUsingResource: (resourceId) => {
-        return [...tasks, ...listeners].filter((t) =>
+        return [...tasks, ...hooks].filter((t) =>
           ensureStringArray(t.dependsOn).includes(resourceId)
         );
       },
       getTaskLikesUsingMiddleware: (middlewareId) => {
-        return [...tasks, ...listeners].filter((t) =>
+        return [...tasks, ...hooks].filter((t) =>
           ensureStringArray(t.middleware).includes(middlewareId)
         );
       },
       getEmittersOfEvent: (eventId) => {
-        return [...tasks, ...listeners].filter((t) =>
+        return [...tasks, ...hooks].filter((t) =>
           ensureStringArray((t as any).emits).includes(eventId)
         );
       },
       getListenersOfEvent: (eventId) => {
-        return listeners.filter((l) => l.event === eventId);
+        return hooks.filter((l) => l.event === eventId);
       },
       getMiddlewareEmittedEvents: (middlewareId) => {
         const taskLikes = api.getTaskLikesUsingMiddleware(middlewareId);
@@ -258,9 +261,9 @@ export const introspector = resource({
         const result: Array<{
           id: string;
           config: string | null;
-          node: Task | Listener;
+          node: Task | Hook;
         }> = [];
-        const addFrom = (arr: Array<Task | Listener>) => {
+        const addFrom = (arr: Array<Task | Hook>) => {
           for (const tl of arr) {
             if ((tl.middleware || []).includes(middlewareId)) {
               const conf =
@@ -271,7 +274,7 @@ export const introspector = resource({
           }
         };
         addFrom(tasks);
-        addFrom(listeners);
+        addFrom(hooks);
         return result;
       },
       getResourcesUsingMiddlewareDetailed: (middlewareId) => {

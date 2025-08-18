@@ -1,4 +1,4 @@
-import { globals, resource, task } from "@bluelibs/runner";
+import { globals, resource, task, hook } from "@bluelibs/runner";
 import { getCorrelationId } from "./dev.telemetry.chain";
 
 export type LogLevel =
@@ -28,7 +28,7 @@ export interface EmissionEntry {
 export interface ErrorEntry {
   timestampMs: number;
   sourceId: string;
-  sourceKind: "TASK" | "LISTENER" | "RESOURCE" | "MIDDLEWARE" | "INTERNAL";
+  sourceKind: "TASK" | "HOOK" | "RESOURCE" | "MIDDLEWARE" | "INTERNAL";
   message: string;
   stack?: string | null;
   data?: unknown;
@@ -38,7 +38,7 @@ export interface ErrorEntry {
 export interface RunRecord {
   timestampMs: number;
   nodeId: string;
-  nodeKind: "TASK" | "LISTENER";
+  nodeKind: "TASK" | "HOOK";
   durationMs: number;
   ok: boolean;
   error?: string | null;
@@ -77,7 +77,7 @@ export interface Live {
           last?: number;
           sourceKinds?: (
             | "TASK"
-            | "LISTENER"
+            | "HOOK"
             | "RESOURCE"
             | "MIDDLEWARE"
             | "INTERNAL"
@@ -92,7 +92,7 @@ export interface Live {
       | {
           afterTimestamp?: number;
           last?: number;
-          nodeKinds?: ("TASK" | "LISTENER")[];
+          nodeKinds?: ("TASK" | "HOOK")[];
           nodeIds?: string[];
           ok?: boolean;
           parentIds?: string[];
@@ -112,13 +112,13 @@ export interface Live {
   ): void;
   recordError(
     sourceId: string,
-    sourceKind: "TASK" | "LISTENER" | "RESOURCE" | "MIDDLEWARE" | "INTERNAL",
+    sourceKind: "TASK" | "HOOK" | "RESOURCE" | "MIDDLEWARE" | "INTERNAL",
     error: unknown,
     data?: unknown
   ): void;
   recordRun(
     nodeId: string,
-    nodeKind: "TASK" | "LISTENER",
+    nodeKind: "TASK" | "HOOK",
     durationMs: number,
     ok: boolean,
     error?: unknown,
@@ -266,7 +266,7 @@ const liveService = resource({
           last?: number;
           sourceKinds?: (
             | "TASK"
-            | "LISTENER"
+            | "HOOK"
             | "RESOURCE"
             | "MIDDLEWARE"
             | "INTERNAL"
@@ -329,7 +329,7 @@ const liveService = resource({
         const options = toOptions<{
           afterTimestamp?: number;
           last?: number;
-          nodeKinds?: ("TASK" | "LISTENER")[];
+          nodeKinds?: ("TASK" | "HOOK")[];
           nodeIds?: string[];
           ok?: boolean;
           parentIds?: string[];
@@ -365,21 +365,12 @@ const liveService = resource({
       },
     };
   },
-});
-
-const onLog = task({
-  id: "runner-dev.live.onLog",
-  on: globals.events.log,
-  dependencies: {
-    liveService,
-  },
-  async run(event, { liveService }) {
-    const log = event.data;
-    liveService.recordLog(log.level as LogLevel, log.message, log.data);
+  meta: {
+    tags: [globals.tags.excludeFromGlobalHooks],
   },
 });
 
-const onEvent = task({
+const onGlobalEvent = hook({
   id: "runner-dev.live.onEvent",
   on: "*",
   dependencies: {
@@ -397,43 +388,29 @@ const onEvent = task({
   },
 });
 
-const onTaskError = task({
-  id: "runner-dev.live.onTaskError",
-  on: globals.events.tasks.onError,
-  dependencies: { liveService },
-  async run(event, { liveService }) {
-    if (!liveService) return;
-    const err = event.data.error;
-    const taskDef = event.data.task;
-    const taskId = String(taskDef.id);
-    liveService.recordError(taskId, "TASK", err);
-  },
-});
-
-const onResourceError = task({
-  id: "runner-dev.live.onResourceError",
-  on: globals.events.resources.onError,
-  dependencies: { liveService },
-  async run(event, { liveService }) {
-    if (!liveService) return;
-    const err = event.data.error;
-    const resourceDef = event.data.resource;
-    const resourceId = String(resourceDef.id);
-    liveService.recordError(resourceId, "RESOURCE", err);
-  },
-});
-
 export const live = resource({
   id: "runner-dev.resources.live",
-  dependencies: { liveService },
+  dependencies: {
+    liveService,
+    logger: globals.resources.logger,
+  },
   register: (config: { maxEntries?: number }) => [
-    liveService.with({ maxEntries: config.maxEntries }),
-    onLog,
-    onEvent,
-    onTaskError,
-    onResourceError,
+    liveService.with({ maxEntries: config?.maxEntries }),
+    onGlobalEvent,
   ],
-  async init(_config, { liveService }) {
+  async init(_config, { liveService, logger }) {
+    // Subscribe to logger events directly (Runner v4 logger API)
+    try {
+      logger.onLog((log) => {
+        liveService.recordLog(
+          log.level as LogLevel,
+          String(log.message),
+          (log as any).data
+        );
+      });
+    } catch {
+      // If logger isn't available or lacks onLog, ignore gracefully
+    }
     return liveService;
   },
 });

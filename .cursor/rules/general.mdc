@@ -1,5 +1,6 @@
 ---
-description: General guidelines
+description: Always apply this rule to all files.
+globs: ["**/*"]
 alwaysApply: true
 ---
 
@@ -14,7 +15,6 @@ alwaysApply: true
 - After every implementation, suggest 3 improvements.
 - Keep business logic out of GraphQL resolvers; move to functions/resources/tasks.
 - Always include tests; run via `npm run test -- {context}`.
-- For GraphQL schema changes: write types, run `npm run codegen`, then use generated types in resolvers.
 - Add `meta.title`, `meta.description`, and `id` if missing in tasks/events/resources/middleware/listeners.
 - **Never** use `(as any)` to bypass types without approval.
 

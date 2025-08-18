@@ -64,9 +64,9 @@ describe("Swap GraphQL Integration", () => {
 
   const testTask = task({
     id: "test.graphql.task",
-    dependencies: { emitLog: globals.events.log },
-    async run(input, deps) {
-      return { message: "original graphql test", timestamp: Date.now() };
+    dependencies: { logger: globals.resources.logger },
+    async run(input, { logger }) {
+      return "original graphql test";
     },
   });
 

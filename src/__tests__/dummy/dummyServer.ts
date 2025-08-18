@@ -16,6 +16,4 @@ const app = createDummyApp([
   swapManager,
 ]);
 
-run(app).then(() => {
-  console.log("Server started");
-});
+run(app).then(() => {});

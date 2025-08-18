@@ -8,11 +8,27 @@ Runner Dev Tools provide introspection, live telemetry, and a GraphQL API to exp
 npm install @bluelibs/runner-dev
 ```
 
+```ts
+import { dev } from "@bluelibs/runner-dev";
+
+const app = resource({
+  register: [
+    // your resources,
+    dev, // if you are fine with defaults or
+    dev.with({
+      port: 1337, // default,
+      maxEntries: 10000, // how many logs to keep in the store.
+    }),
+  ],
+});
+```
+
 ## What you get
 
-- Introspector: programmatic API to inspect tasks, listeners, resources, events, middleware, and diagnostics
+- Introspector: programmatic API to inspect tasks, listeners, resources, events, middleware, and diagnostics (including file paths, contents)
 - Live: in-memory logs and event emissions
 - GraphQL server: deep graph navigation over your app’s topology and live data
+- MCP server: allow your AI to do introspection for you.
 
 ## Quickstart
 

@@ -15,12 +15,27 @@ export const resources = {
   graphql,
 };
 
-export const dev = resource({
+export type DevConfigType = {
+  /**
+   * Default port to run the dev server on. (Default: 1337)
+   */
+  port?: number;
+  /**
+   * Maximum number of entries to keep in the live resource. (Default: 10000)
+   */
+  maxEntries?: number;
+};
+
+export const dev = resource<DevConfigType>({
   id: "runner-dev.resources.dev",
-  register: [
-    resources.server,
+  register: (c: DevConfigType) => [
+    resources.server.with({
+      port: c.port,
+    }),
     resources.introspector,
-    resources.live,
+    resources.live.with({
+      maxEntries: c.maxEntries,
+    }),
     resources.telemetry,
     resources.swapManager,
     resources.graphql,

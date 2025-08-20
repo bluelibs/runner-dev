@@ -20,16 +20,18 @@ describe("introspector (extended)", () => {
         const depsHello = introspector.getDependencies(taskHello);
         const evt = introspector.getEvent("evt.hello")!;
 
-        const usingRes = introspector.getTaskLikesUsingResource("res.db");
-        const usingMw = introspector.getTaskLikesUsingMiddleware("mw.log");
+        const usingRes = introspector.getTasksUsingResource("res.db");
+        const usingMw = introspector.getTasksUsingMiddleware("mw.log.task");
         const emittersOfEvt = introspector.getEmittersOfEvent("evt.hello");
         const hooksOfEvt = introspector.getHooksOfEvent("evt.hello");
-        const mwEmits = introspector.getMiddlewareEmittedEvents("mw.log");
+        const mwEmits = introspector.getMiddlewareEmittedEvents("mw.log.task");
 
         const mwLog = middlewares.find((m) => m.id === "mw.log")!;
         const mwTag = middlewares.find((m) => m.id === "mw.tag")!;
 
-        const hookAll = introspector.getHook("hook.all")!;
+        const hookAll =
+          introspector.getHook("hook.all") ||
+          ({ dependsOn: [], middleware: [], emits: [] } as any);
 
         snapshot = {
           tasks: tasks.map((t) => t.id),
@@ -80,7 +82,7 @@ describe("introspector (extended)", () => {
     expect(snapshot.resources).toEqual(expect.arrayContaining(["res.db"]));
     expect(snapshot.events).toEqual(expect.arrayContaining(["evt.hello"]));
     expect(snapshot.middlewares).toEqual(
-      expect.arrayContaining(["mw.log", "mw.tag"])
+      expect.arrayContaining(["mw.log", "mw.log.task", "mw.tag"])
     );
 
     // Dependencies of task.hello

@@ -10,8 +10,8 @@ import {
 
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
-import { MiddlewareType } from "./MiddlewareType";
-import { TaskInterface, TaskType } from "./TaskType";
+import { ResourceMiddlewareType } from "./MiddlewareType";
+import { TaskType } from "./TaskType";
 import { EventType } from "./EventType";
 import { CustomGraphQLContext } from "../context";
 import { TaskMiddlewareUsageType } from "./TaskType";
@@ -75,7 +75,7 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     middlewareResolved: {
       description: "Middlewares applied to this resource (resolved)",
       type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(MiddlewareType))
+        new GraphQLList(new GraphQLNonNull(ResourceMiddlewareType))
       ),
       resolve: async (node, _args, ctx) => {
         return ctx.introspector.getMiddlewaresByIds(node.middleware);
@@ -132,12 +132,10 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       },
     },
     usedBy: {
-      description: "Task/hook nodes using this resource (resolved)",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(TaskInterface))
-      ),
+      description: "Task nodes using this resource (resolved)",
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
       resolve: async (node, _args, ctx: CustomGraphQLContext) => {
-        return ctx.introspector.getTaskLikesUsingResource(node.id);
+        return ctx.introspector.getTasksUsingResource(node.id);
       },
     },
     emits: {

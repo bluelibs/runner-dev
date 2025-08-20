@@ -1,10 +1,14 @@
-import { globals, hook, middleware, resource } from "@bluelibs/runner";
+import { globals, hook, resource, taskMiddleware } from "@bluelibs/runner";
 import { live } from "./live.resource";
 import { deriveParentAndRoot, withTaskRunContext } from "./telemetry.chain";
-import { randomUUID } from "node:crypto";
 
 const overrideEventManagerEmittor = resource({
   id: "runner-dev.telemetry.overrideEventManagerEmittor",
+  meta: {
+    title: "Override event manager emittor",
+    description:
+      "Overrides the event manager emittor to record telemetry, no other changes are made to the input.",
+  },
   dependencies: { eventManager: globals.resources.eventManager, live },
   async init(_, { eventManager, live }) {
     const originalEmit = eventManager.emit.bind(eventManager);
@@ -42,14 +46,11 @@ const onHookTriggered = hook({
   },
 });
 
-const telemetryMiddleware = middleware({
+const telemetryMiddleware = taskMiddleware({
+  everywhere: true,
   id: "runner-dev.telemetry.middleware",
   dependencies: { live },
   async run({ task, next }, { live }) {
-    // For typesafety, this only runs for tasks
-    if (!task) {
-      return;
-    }
     const id = String(task.definition.id);
 
     // Skip internal dev tools nodes to avoid self-instrumentation
@@ -108,7 +109,7 @@ const telemetryMiddleware = middleware({
 export const telemetry = resource({
   id: "runner-dev.telemetry",
   register: [
-    telemetryMiddleware.everywhere({ tasks: true, resources: false }),
+    telemetryMiddleware,
     overrideEventManagerEmittor,
     onHookCompleted,
     onHookTriggered,

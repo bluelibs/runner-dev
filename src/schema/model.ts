@@ -20,6 +20,7 @@ export interface BaseElement {
   filePath?: string | null;
   // Id of the resource that registered this element (if any)
   registeredBy?: string | null;
+  overriddenBy?: string | null;
 }
 
 export interface All extends BaseElement {
@@ -28,7 +29,8 @@ export interface All extends BaseElement {
   filePath?: string | null;
 }
 
-export interface Event extends BaseElement {
+// Events can't be overriden
+export interface Event extends Omit<BaseElement, "overriddenBy"> {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
@@ -71,12 +73,11 @@ export interface Middleware extends BaseElement {
   global?: MiddlewareGlobal | null;
   usedByTasks: string[];
   usedByResources: string[];
-  overriddenBy?: string | null;
   // Prettified Zod schema for the middleware config if provided
   configSchema?: string | null;
 }
 
-export interface TaskBase extends BaseElement {
+export interface Task extends BaseElement {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
@@ -84,19 +85,15 @@ export interface TaskBase extends BaseElement {
   dependsOn: string[];
   middleware: string[];
   middlewareDetailed?: MiddlewareUsage[];
-  overriddenBy?: string | null;
   // Prettified Zod schema for the task input if provided
   inputSchema?: string | null;
 }
 
-export interface Task extends TaskBase {
-  kind: "TASK";
-}
-
-export interface Hook extends TaskBase {
-  kind: "HOOK";
+export interface Hook extends BaseElement {
   event: string;
   hookOrder?: number | null;
+  dependsOn: string[];
+  emits: string[];
 }
 
 export interface Resource extends BaseElement {

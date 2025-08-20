@@ -9,7 +9,7 @@ import {
 } from "graphql";
 
 import type { CustomGraphQLContext } from "../context";
-import { MiddlewareType } from "./MiddlewareType";
+import { TaskMiddlewareType } from "./MiddlewareType";
 import { EventType } from "./EventType";
 import { BaseElementInterface } from "./AllType";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
@@ -55,7 +55,7 @@ export function taskLikeCommonFields(params: {
     middlewareResolved: {
       description: "Middlewares applied to this task-like (resolved)",
       type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(MiddlewareType))
+        new GraphQLList(new GraphQLNonNull(TaskMiddlewareType))
       ),
       resolve: (node, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getMiddlewaresByIds(node.middleware),
@@ -69,7 +69,7 @@ export function taskLikeCommonFields(params: {
       resolve:
         middlewareDetailedResolver ||
         ((node, _args, ctx: CustomGraphQLContext) =>
-          ctx.introspector.getMiddlewareUsagesForTaskLike(node.id)),
+          ctx.introspector.getMiddlewareUsagesForTask(node.id)),
     },
     emitsResolved: {
       description: "Events emitted by this task-like (resolved)",

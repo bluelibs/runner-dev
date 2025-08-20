@@ -10,12 +10,12 @@ import { GraphQLBoolean, GraphQLInputObjectType } from "graphql";
 
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
-import { TaskInterface } from "./TaskType";
 import { CustomGraphQLContext } from "../context";
 import { ResourceType } from "./ResourceType";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { HookType } from "./HookType";
 
 export const EventType: GraphQLObjectType = new GraphQLObjectType({
   name: "Event",
@@ -50,9 +50,7 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
     },
     emittedByResolved: {
       description: "Task/hook nodes that emit this event (resolved)",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(TaskInterface))
-      ),
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(HookType))),
       resolve: (node, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getEmittersOfEvent(node.id),
     },
@@ -64,9 +62,7 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
     },
     listenedToByResolved: {
       description: "Task/hook nodes listening to this event (resolved)",
-      type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(TaskInterface))
-      ),
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(HookType))),
       resolve: (node, _args, ctx) => ctx.introspector.getHooksOfEvent(node.id),
     },
     registeredBy: {

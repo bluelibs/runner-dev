@@ -1,8 +1,16 @@
-import { middleware, resource, task, hook, event, tag } from "@bluelibs/runner";
+import {
+  taskMiddleware,
+  resource,
+  task,
+  hook,
+  event,
+  tag,
+  resourceMiddleware,
+} from "@bluelibs/runner";
 import { z } from "zod";
 
 // Middleware
-export const logMw = middleware({
+export const logMw = resourceMiddleware({
   id: "mw.log",
   meta: {
     title: "Logger middleware",
@@ -45,6 +53,13 @@ export const evtHello = event<{ name: string }>({
   payloadSchema: z.object({ name: z.string() }),
 });
 
+const logMwTask = taskMiddleware({
+  id: "mw.log.task",
+  async run({ next }) {
+    return next();
+  },
+});
+
 // Tag
 export const areaTag = tag<{ scope?: string }>({ id: "tag.area" });
 
@@ -52,12 +67,12 @@ export const areaTag = tag<{ scope?: string }>({ id: "tag.area" });
 export const helloTask = task({
   id: "task.hello",
   dependencies: () => ({ db: dbRes, emitHello: evtHello }),
-  middleware: [logMw],
+  middleware: [logMwTask],
   meta: {
     title: "Hello task",
     description: "Emits 'evt.hello' and returns 'ok'",
-    tags: [areaTag.with({ scope: "greetings" })],
   },
+  tags: [areaTag.with({ scope: "greetings" })],
   async run(_input, { emitHello }) {
     await emitHello({ name: "world" });
     return "ok" as const;
@@ -72,8 +87,8 @@ export const helloHook = hook({
   meta: {
     title: "Hello hook",
     description: "Listens to 'evt.hello' and performs no operation",
-    tags: [areaTag.with({ scope: "hooks" })],
   },
+  tags: [areaTag.with({ scope: "hooks" })],
   async run() {
     /* noop */
   },
@@ -93,7 +108,7 @@ export const allEventsHook = hook({
 });
 
 // Middleware with config
-export const tagMw = middleware<{ label: string }, {}>({
+export const tagMw = taskMiddleware<{ label: string }>({
   id: "mw.tag",
   meta: {
     title: "Tagging middleware",
@@ -146,6 +161,7 @@ export function createDummyApp(extra: any[] = []) {
       ...extra,
       logMw,
       tagMw,
+      logMwTask,
       dbRes,
       cacheRes.with({ ttlMs: 1000 }),
       helloTask,

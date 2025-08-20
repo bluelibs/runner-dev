@@ -25,7 +25,7 @@ import type {
   RunRecord as LiveRunRecord,
 } from "../../resources/live.resource";
 import { AllType, BaseElementInterface } from "./AllType";
-import { TaskInterface } from "./TaskType";
+import { TaskType } from "./TaskType";
 import { EventType } from "./EventType";
 import * as os from "node:os";
 import {
@@ -251,15 +251,16 @@ export const RunRecordType = new GraphQLObjectType<
       type: GraphQLString,
     },
     nodeResolved: {
-      description: "Resolved task/hook node",
-      type: TaskInterface,
+      description: "Resolved task node",
+      type: TaskType,
       resolve: (node, _args, ctx: CustomGraphQLContext) => {
         const id = String(node.nodeId);
-        return (
-          ctx.introspector.getTask(id) ||
-          ctx.introspector.getHooksByIds([id])[0] ||
-          null
-        );
+        if (node.nodeKind === "TASK") {
+          return ctx.introspector.getTask(id);
+        } else if (node.nodeKind === "HOOK") {
+          return ctx.introspector.getHook(id);
+        }
+        return null;
       },
     },
   }),

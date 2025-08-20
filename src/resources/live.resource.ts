@@ -365,9 +365,7 @@ const liveService = resource({
       },
     };
   },
-  meta: {
-    tags: [globals.tags.excludeFromGlobalHooks],
-  },
+  tags: [globals.tags.excludeFromGlobalHooks],
 });
 
 const onGlobalEvent = hook({

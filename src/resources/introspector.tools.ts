@@ -144,16 +144,13 @@ export function mapStoreTaskToHookModel(
   throw new Error("deprecated");
 }
 
-export function mapStoreHookToHookModel(hk: any): Hook {
+export function mapStoreHookToHookModel(
+  hkStoreElement: definitions.HookStoreElementType
+): Hook {
+  const hk = hkStoreElement.hook;
   const depsObj = normalizeDependencies(hk?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
-  const middlewareDetailed = (hk?.middleware || []).map((m: any) => ({
-    id: String(m.id),
-    config: m[definitions.symbolMiddlewareConfigured]
-      ? stringifyIfObject(m.config)
-      : null,
-  }));
 
   const eventId =
     typeof hk?.on === "string"
@@ -171,17 +168,16 @@ export function mapStoreHookToHookModel(hk: any): Hook {
         const { ids, detailed } = normalizeTags((base as any).tags);
         return { ...base, tags: ids, tagsDetailed: detailed } as any;
       })(),
-      filePath: hk?.[definitions.symbolFilePath] ?? hk?.filePath ?? null,
+      filePath: hk?.[definitions.symbolFilePath] ?? null,
       emits: eventIdsFromDeps,
       dependsOn: resourceIdsFromDeps,
-      middleware: (hk?.middleware || []).map((m: any) => m.id.toString()),
-      middlewareDetailed,
+      middleware: [],
+      middlewareDetailed: [],
       overriddenBy: null,
       registeredBy: null,
       kind: "HOOK",
       event: eventId,
       hookOrder: typeof hk?.order === "number" ? hk.order : null,
-      inputSchema: formatSchemaIfZod(hk?.inputSchema),
     },
     "HOOK"
   );
@@ -266,23 +262,27 @@ export function buildEvents(
   });
 }
 
-export function buildMiddlewares(
-  middlewaresCollection: definitions.IMiddleware[],
+function buildMiddlewaresGeneric(
+  middlewaresCollection: Array<
+    | {
+        middleware?:
+          | definitions.ITaskMiddleware
+          | definitions.IResourceMiddleware;
+      }
+    | any
+  >,
   tasks: Task[],
   hooks: Hook[],
-  resources: Resource[]
+  resources: Resource[],
+  kind: "task" | "resource"
 ): Middleware[] {
   return toArray(middlewaresCollection).map((entry: any) => {
     const mw = entry?.middleware ?? entry;
     const id = readId(mw);
 
-    // Global flags are stored via .everywhere({ tasks?, resources? })
-    const isEverywhereTasks = Boolean(
-      Reflect.get(mw, definitions.symbolMiddlewareEverywhereTasks)
-    );
-    const isEverywhereResources = Boolean(
-      Reflect.get(mw, definitions.symbolMiddlewareEverywhereResources)
-    );
+    const isEverywhereTasks = mw.everywhere;
+    const isEverywhereResources = mw.everywhere;
+
     const hasEverywhere = isEverywhereTasks || isEverywhereResources;
 
     const globalValue = hasEverywhere
@@ -293,12 +293,18 @@ export function buildMiddlewares(
         }
       : { enabled: false, tasks: false, resources: false };
 
-    const usedByTasks = [...tasks, ...hooks]
-      .filter((t) => (t.middleware || []).includes(id))
-      .map((t) => t.id);
-    const usedByResources = resources
-      .filter((r) => (r.middleware || []).includes(id))
-      .map((r) => r.id);
+    const usedByTasks =
+      kind === "task"
+        ? tasks
+            .filter((t) => (t.middleware || []).includes(id))
+            .map((t) => t.id)
+        : [];
+    const usedByResources =
+      kind === "resource"
+        ? resources
+            .filter((r) => (r.middleware || []).includes(id))
+            .map((r) => r.id)
+        : [];
 
     return stampElementKind(
       {
@@ -316,6 +322,36 @@ export function buildMiddlewares(
       "MIDDLEWARE"
     );
   });
+}
+
+export function buildTaskMiddlewares(
+  middlewaresCollection: definitions.ITaskMiddleware[],
+  tasks: Task[],
+  hooks: Hook[],
+  resources: Resource[]
+): Middleware[] {
+  return buildMiddlewaresGeneric(
+    middlewaresCollection as any,
+    tasks,
+    hooks,
+    resources,
+    "task"
+  );
+}
+
+export function buildResourceMiddlewares(
+  middlewaresCollection: definitions.IResourceMiddleware[],
+  tasks: Task[],
+  hooks: Hook[],
+  resources: Resource[]
+): Middleware[] {
+  return buildMiddlewaresGeneric(
+    middlewaresCollection as any,
+    tasks,
+    hooks,
+    resources,
+    "resource"
+  );
 }
 
 export function attachRegisteredBy(

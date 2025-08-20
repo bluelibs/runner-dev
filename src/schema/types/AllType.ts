@@ -65,8 +65,19 @@ export const BaseElementInterface: GraphQLInterfaceType =
           return "Hook";
         case "RESOURCE":
           return "Resource";
-        case "MIDDLEWARE":
-          return "Middleware";
+        case "MIDDLEWARE": {
+          // Decide specific middleware type based on usage shape
+          const usedByTasks = Array.isArray((value as any)?.usedByTasks)
+            ? ((value as any)?.usedByTasks as unknown[])
+            : [];
+          const usedByResources = Array.isArray((value as any)?.usedByResources)
+            ? ((value as any)?.usedByResources as unknown[])
+            : [];
+          if (usedByTasks.length > 0 || usedByResources.length === 0) {
+            return "TaskMiddleware";
+          }
+          return "ResourceMiddleware";
+        }
         case "EVENT":
           return "Event";
         default:
@@ -77,10 +88,19 @@ export const BaseElementInterface: GraphQLInterfaceType =
         return "Resource";
       }
       if (
-        Array.isArray(value?.usedByTasks) &&
+        Array.isArray(value?.usedByTasks) ||
         Array.isArray(value?.usedByResources)
       ) {
-        return "Middleware";
+        const usedByTasks = Array.isArray((value as any)?.usedByTasks)
+          ? ((value as any)?.usedByTasks as unknown[])
+          : [];
+        const usedByResources = Array.isArray((value as any)?.usedByResources)
+          ? ((value as any)?.usedByResources as unknown[])
+          : [];
+        if (usedByTasks.length > 0 || usedByResources.length === 0) {
+          return "TaskMiddleware";
+        }
+        return "ResourceMiddleware";
       }
       if (Array.isArray(value?.listenedToBy)) {
         return "Event";

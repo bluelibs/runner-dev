@@ -48,5 +48,10 @@ export const server = resource({
     });
 
     logger.info(`🚀 Runner Dev GraphQL Server ready at ${url}`);
+
+    return server;
+  },
+  async dispose(server) {
+    await server.stop();
   },
 });

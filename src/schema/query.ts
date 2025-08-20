@@ -13,6 +13,8 @@ import {
   EventFilterInput,
   HookType,
   MiddlewareType,
+  TaskMiddlewareType,
+  ResourceMiddlewareType,
   ResourceType,
   TaskType,
   LiveType,
@@ -204,6 +206,49 @@ export const QueryType = new GraphQLObjectType({
         if ((args as any)?.idIncludes) {
           const sub = String((args as any).idIncludes);
           result = result.filter((m) => String(m.id).includes(sub));
+        }
+        return result;
+      },
+    },
+    taskMiddlewares: {
+      description: "Get all task middlewares (optionally filter by id prefix).",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(TaskMiddlewareType))
+      ),
+      args: {
+        idIncludes: {
+          description:
+            "Return only middlewares whose id contains this substring.",
+          type: GraphQLID,
+        },
+      },
+      resolve: (_root, args: any, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getTaskMiddlewares();
+        if (args?.idIncludes) {
+          const sub = String(args.idIncludes);
+          result = result.filter((m: any) => String(m.id).includes(sub));
+        }
+        return result;
+      },
+    },
+    resourceMiddlewares: {
+      description:
+        "Get all resource middlewares (optionally filter by id prefix).",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(ResourceMiddlewareType))
+      ),
+      args: {
+        idIncludes: {
+          description:
+            "Return only middlewares whose id contains this substring.",
+          type: GraphQLID,
+        },
+      },
+      resolve: (_root, args: any, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getResourceMiddlewares();
+        if (args?.idIncludes) {
+          const sub = String(args.idIncludes);
+          result = result.filter((m: any) => String(m.id).includes(sub));
         }
         return result;
       },

@@ -15,7 +15,6 @@ import {
   ResourceType,
   SwappedTaskType,
   SwapResultType,
-  TaskInterface,
   TaskType,
 } from "../schema/types";
 
@@ -35,7 +34,6 @@ export const graphqlAccumulator = resource({
         MiddlewareType,
         MetaType,
         ResourceType,
-        TaskInterface,
         TaskType,
         LiveType,
         DiagnosticType,

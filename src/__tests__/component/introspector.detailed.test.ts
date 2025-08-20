@@ -11,14 +11,14 @@ describe("introspector (detailed helpers)", () => {
       dependencies: { introspector },
       async init(_, { introspector }) {
         const taskLikeUsages =
-          introspector.getMiddlewareUsagesForTaskLike("task.hello");
+          introspector.getMiddlewareUsagesForTask("task.hello");
         const hookUsages =
-          introspector.getMiddlewareUsagesForTaskLike("hook.hello");
+          introspector.getMiddlewareUsagesForTask("hook.hello");
         const resourceUsages =
           introspector.getMiddlewareUsagesForResource("res.db");
 
         const usedByTasksDetailed =
-          introspector.getTaskLikesUsingMiddlewareDetailed("mw.log");
+          introspector.getTasksUsingMiddlewareDetailed("mw.log.task");
         const usedByResourcesDetailed =
           introspector.getResourcesUsingMiddlewareDetailed("mw.log");
 
@@ -59,9 +59,11 @@ describe("introspector (detailed helpers)", () => {
     const app = createDummyApp([introspector, probe]);
     await run(app);
 
-    // task.hello uses mw.log
+    // task.hello uses mw.log.task
     expect(snapshot.taskLikeUsages).toEqual(
-      expect.arrayContaining([{ id: "mw.log", nodeId: "mw.log", config: null }])
+      expect.arrayContaining([
+        { id: "mw.log.task", nodeId: "mw.log.task", config: null },
+      ])
     );
 
     // hook.hello also captures detailed usages (none by default)
@@ -72,7 +74,7 @@ describe("introspector (detailed helpers)", () => {
       expect.arrayContaining([{ id: "mw.log", nodeId: "mw.log", config: null }])
     );
 
-    // usedByTasksDetailed/usedByResourcesDetailed for mw.log
+    // usedByTasksDetailed/usedByResourcesDetailed for mw.log(.task)
     expect(snapshot.usedByTasksDetailed).toEqual(
       expect.arrayContaining([
         { id: "task.hello", nodeId: "task.hello", config: null },
@@ -96,7 +98,7 @@ describe("introspector (detailed helpers)", () => {
       dependencies: { introspector },
       async init(_, { introspector }) {
         const usedByTasksDetailed =
-          introspector.getTaskLikesUsingMiddlewareDetailed("mw.tag");
+          introspector.getTasksUsingMiddlewareDetailed("mw.tag");
         const all = introspector.getRoot();
         snapshot = {
           usedByTasksDetailed: usedByTasksDetailed.map((x) => ({

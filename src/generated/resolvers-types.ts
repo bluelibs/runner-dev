@@ -143,7 +143,7 @@ export type Event = BaseElement & {
   /** Ids of task/hook nodes that emit this event */
   emittedBy: Array<Scalars['String']['output']>;
   /** Task/hook nodes that emit this event (resolved) */
-  emittedByResolved: Array<TaskInterface>;
+  emittedByResolved: Array<Hook>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
   /** Path to event file */
@@ -153,7 +153,7 @@ export type Event = BaseElement & {
   /** Ids of task/hook nodes listening to this event */
   listenedToBy: Array<Scalars['String']['output']>;
   /** Task/hook nodes listening to this event (resolved) */
-  listenedToByResolved: Array<TaskInterface>;
+  listenedToByResolved: Array<Hook>;
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Event metadata */
@@ -208,17 +208,15 @@ export type GlobalMiddleware = {
   tasks: Scalars['Boolean']['output'];
 };
 
-export type Hook = BaseElement & TaskInterface & {
+export type Hook = BaseElement & {
   __typename?: 'Hook';
-  /** Ids of resources/tasks this task-like depends on */
+  /** Ids of resources/tasks this hook depends on */
   dependsOn: Array<Scalars['String']['output']>;
-  /** Flattened dependencies resolved to BaseElement (tasks, hooks, resources) */
-  dependsOnResolved: Array<BaseElement>;
   /** Flattened dependencies resolved to All (tasks, hooks, resources) */
   depenendsOnResolved: Array<BaseElement>;
-  /** Event ids this task-like may emit (from dependencies) */
+  /** Event ids this hook may emit (from dependencies) */
   emits: Array<Scalars['String']['output']>;
-  /** Events emitted by this task-like (resolved) */
+  /** Events emitted by this hook (resolved) */
   emitsResolved: Array<Event>;
   /** The event id this hook listens to */
   event: Scalars['String']['output'];
@@ -230,25 +228,21 @@ export type Hook = BaseElement & TaskInterface & {
   hookOrder: Maybe<Scalars['Int']['output']>;
   /** Hook id */
   id: Scalars['ID']['output'];
-  /** Prettified Zod JSON structure for the input schema, if provided */
-  inputSchema: Maybe<Scalars['String']['output']>;
-  /** Readable text representation of the input schema, if provided */
-  inputSchemaReadable: Maybe<Scalars['String']['output']>;
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Hook metadata */
   meta: Maybe<Meta>;
-  /** Ids of middlewares applied to this task-like */
+  /** Ids of middlewares applied to this hook */
   middleware: Array<Scalars['String']['output']>;
-  /** Middlewares applied to this task-like (resolved) */
-  middlewareResolved: Array<Middleware>;
-  /** Middlewares applied to this task-like with per-usage config */
+  /** Middlewares applied to this hook (resolved) */
+  middlewareResolved: Array<TaskMiddleware>;
+  /** Middlewares applied to this hook with per-usage config */
   middlewareResolvedDetailed: Array<TaskMiddlewareUsage>;
-  /** Id of the resource that overrides this task-like (if any) */
+  /** Id of the resource that overrides this hook (if any). Overriding replaces registrations at runtime. */
   overriddenBy: Maybe<Scalars['String']['output']>;
-  /** Id of the resource that registered this task-like (if any) */
+  /** Id of the resource that registered this hook (if any). Useful to trace provenance. */
   registeredBy: Maybe<Scalars['String']['output']>;
-  /** Resource that registered this task-like (resolved, if any) */
+  /** Resource that registered this hook (resolved, if any) */
   registeredByResolved: Maybe<Resource>;
 };
 
@@ -420,7 +414,7 @@ export type Middleware = BaseElement & {
   /** Detailed task/hook usages with per-usage config */
   usedByTasksDetailed: Array<MiddlewareTaskUsage>;
   /** Task/hook nodes that use this middleware (resolved) */
-  usedByTasksResolved: Array<TaskInterface>;
+  usedByTasksResolved: Array<Task>;
 };
 
 
@@ -440,7 +434,7 @@ export type MiddlewareTaskUsage = {
   __typename?: 'MiddlewareTaskUsage';
   config: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
-  node: TaskInterface;
+  node: Task;
 };
 
 /** Kinds of executable nodes */
@@ -469,6 +463,8 @@ export type Query = {
   middlewares: Array<Middleware>;
   /** Get a single resource by its id. */
   resource: Maybe<Resource>;
+  /** Get all resource middlewares (optionally filter by id prefix). */
+  resourceMiddlewares: Array<ResourceMiddleware>;
   /** Get all resources (optionally filter by id prefix). */
   resources: Array<Resource>;
   /** Root application 'resource'. This is what the main run() received as argument. */
@@ -477,6 +473,8 @@ export type Query = {
   swappedTasks: Array<SwappedTask>;
   /** Get a single task by its id. */
   task: Maybe<Task>;
+  /** Get all task middlewares (optionally filter by id prefix). */
+  taskMiddlewares: Array<TaskMiddleware>;
   /** Get all tasks (optionally filter by id prefix). */
   tasks: Array<Task>;
 };
@@ -525,6 +523,12 @@ export type QueryResourceArgs = {
 
 
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
+export type QueryResourceMiddlewaresArgs = {
+  idIncludes: InputMaybe<Scalars['ID']['input']>;
+};
+
+
+/** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryResourcesArgs = {
   idIncludes: InputMaybe<Scalars['ID']['input']>;
 };
@@ -533,6 +537,12 @@ export type QueryResourcesArgs = {
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryTaskArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** Root queries for introspection, live telemetry, and debugging of Runner apps. */
+export type QueryTaskMiddlewaresArgs = {
+  idIncludes: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -570,7 +580,7 @@ export type Resource = BaseElement & {
   /** Ids of middlewares applied to this resource */
   middleware: Array<Scalars['String']['output']>;
   /** Middlewares applied to this resource (resolved) */
-  middlewareResolved: Array<Middleware>;
+  middlewareResolved: Array<ResourceMiddleware>;
   /** Middlewares applied to this resource with per-usage config */
   middlewareResolvedDetailed: Array<TaskMiddlewareUsage>;
   /** Ids of items this resource overrides */
@@ -585,12 +595,50 @@ export type Resource = BaseElement & {
   registers: Array<Scalars['String']['output']>;
   /** The items registered by this resource (resolved) */
   registersResolved: Array<BaseElement>;
-  /** Task/hook nodes using this resource (resolved) */
-  usedBy: Array<TaskInterface>;
+  /** Task nodes using this resource (resolved) */
+  usedBy: Array<Task>;
 };
 
 
 export type ResourceFileContentsArgs = {
+  endLine: InputMaybe<Scalars['Int']['input']>;
+  startLine: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ResourceMiddleware = BaseElement & {
+  __typename?: 'ResourceMiddleware';
+  /** Prettified Zod JSON structure for the middleware config schema, if provided */
+  configSchema: Maybe<Scalars['String']['output']>;
+  /** Readable text representation of the middleware config schema, if provided */
+  configSchemaReadable: Maybe<Scalars['String']['output']>;
+  /** Events emitted by task/hook nodes that use this middleware */
+  emits: Array<Event>;
+  /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
+  fileContents: Maybe<Scalars['String']['output']>;
+  /** Path to middleware file */
+  filePath: Maybe<Scalars['String']['output']>;
+  /** Global middleware configuration */
+  global: Maybe<GlobalMiddleware>;
+  /** Middleware id */
+  id: Scalars['ID']['output'];
+  /** Markdown composed from meta.title and meta.description (if present) */
+  markdownDescription: Scalars['String']['output'];
+  /** Middleware metadata */
+  meta: Maybe<Meta>;
+  /** Id of the resource that overrides this middleware (if any) */
+  overriddenBy: Maybe<Scalars['String']['output']>;
+  /** Id of the resource that registered this middleware (if any) */
+  registeredBy: Maybe<Scalars['String']['output']>;
+  /** Resource that registered this middleware (resolved, if any) */
+  registeredByResolved: Maybe<Resource>;
+  /** Resources that use this middleware (resolved) */
+  usedBy: Array<Resource>;
+  /** Detailed resource usages with per-usage config */
+  usedByDetailed: Array<MiddlewareResourceUsage>;
+};
+
+
+export type ResourceMiddlewareFileContentsArgs = {
   endLine: InputMaybe<Scalars['Int']['input']>;
   startLine: InputMaybe<Scalars['Int']['input']>;
 };
@@ -623,8 +671,8 @@ export type RunRecord = {
   nodeId: Scalars['String']['output'];
   /** Kind of executed node */
   nodeKind: NodeKindEnum;
-  /** Resolved task/hook node */
-  nodeResolved: Maybe<TaskInterface>;
+  /** Resolved task node */
+  nodeResolved: Maybe<Task>;
   /** Whether execution succeeded */
   ok: Scalars['Boolean']['output'];
   /** Immediate parent caller id if available */
@@ -657,17 +705,17 @@ export type SwappedTask = {
   taskId: Scalars['String']['output'];
 };
 
-export type Task = BaseElement & TaskInterface & {
+export type Task = BaseElement & {
   __typename?: 'Task';
-  /** Ids of resources/tasks this task-like depends on */
+  /** Ids of resources/tasks this task depends on */
   dependsOn: Array<Scalars['String']['output']>;
   /** Resolved dependencies and emitted events for this task */
   dependsOnResolved: TaskDependsOn;
   /** Flattened dependencies resolved to All (tasks, hooks, resources) */
   depenendsOnResolved: Array<BaseElement>;
-  /** Event ids this task-like may emit (from dependencies) */
+  /** Event ids this task may emit (from dependencies) */
   emits: Array<Scalars['String']['output']>;
-  /** Events emitted by this task-like (resolved) */
+  /** Events emitted by this task (resolved) */
   emitsResolved: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
@@ -683,17 +731,17 @@ export type Task = BaseElement & TaskInterface & {
   markdownDescription: Scalars['String']['output'];
   /** Task metadata */
   meta: Maybe<Meta>;
-  /** Ids of middlewares applied to this task-like */
+  /** Ids of middlewares applied to this task */
   middleware: Array<Scalars['String']['output']>;
-  /** Middlewares applied to this task-like (resolved) */
-  middlewareResolved: Array<Middleware>;
-  /** Middlewares applied to this task-like with per-usage config */
+  /** Middlewares applied to this task (resolved) */
+  middlewareResolved: Array<TaskMiddleware>;
+  /** Middlewares applied to this task with per-usage config */
   middlewareResolvedDetailed: Array<TaskMiddlewareUsage>;
-  /** Id of the resource that overrides this task-like (if any) */
+  /** Id of the resource that overrides this task (if any). Overriding replaces registrations at runtime. */
   overriddenBy: Maybe<Scalars['String']['output']>;
-  /** Id of the resource that registered this task-like (if any) */
+  /** Id of the resource that registered this task (if any). Useful to trace provenance. */
   registeredBy: Maybe<Scalars['String']['output']>;
-  /** Resource that registered this task-like (resolved, if any) */
+  /** Resource that registered this task (resolved, if any) */
   registeredByResolved: Maybe<Resource>;
 };
 
@@ -707,51 +755,46 @@ export type TaskDependsOn = {
   __typename?: 'TaskDependsOn';
   /** Events this task emits */
   emitters: Array<Event>;
-  /** Hooks this task depends on */
-  hooks: Array<TaskInterface>;
   /** Resources this task depends on */
   resources: Array<Resource>;
   /** Tasks this task depends on */
-  tasks: Array<TaskInterface>;
+  tasks: Array<Task>;
 };
 
-/** Common fields for Task and Hook. These nodes are executable via Runner and can emit events, depend on resources and be wrapped by middleware. */
-export type TaskInterface = {
-  /** Ids of resources/tasks this task depends on */
-  dependsOn: Array<Scalars['String']['output']>;
-  /** Flattened dependencies resolved to All (tasks, hooks, resources) */
-  depenendsOnResolved: Array<BaseElement>;
-  /** Event ids this task may emit (from dependencies) */
-  emits: Array<Scalars['String']['output']>;
-  /** Events emitted by this task (resolved) */
-  emitsResolved: Array<Event>;
-  /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. */
+export type TaskMiddleware = BaseElement & {
+  __typename?: 'TaskMiddleware';
+  /** Prettified Zod JSON structure for the middleware config schema, if provided */
+  configSchema: Maybe<Scalars['String']['output']>;
+  /** Readable text representation of the middleware config schema, if provided */
+  configSchemaReadable: Maybe<Scalars['String']['output']>;
+  /** Events emitted by task/hook nodes that use this middleware */
+  emits: Array<Event>;
+  /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
-  /** Path to task file */
+  /** Path to middleware file */
   filePath: Maybe<Scalars['String']['output']>;
-  /** Task id */
+  /** Global middleware configuration */
+  global: Maybe<GlobalMiddleware>;
+  /** Middleware id */
   id: Scalars['ID']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
-  /** Task metadata */
+  /** Middleware metadata */
   meta: Maybe<Meta>;
-  /** Ids of middlewares applied to this task */
-  middleware: Array<Scalars['String']['output']>;
-  /** Middlewares applied to this task (resolved) */
-  middlewareResolved: Array<Middleware>;
-  /** Middlewares applied to this task with per-usage config */
-  middlewareResolvedDetailed: Array<TaskMiddlewareUsage>;
-  /** Id of the resource that overrides this task (if any). Overriding replaces registrations at runtime. */
+  /** Id of the resource that overrides this middleware (if any) */
   overriddenBy: Maybe<Scalars['String']['output']>;
-  /** Id of the resource that registered this task (if any). Useful to trace provenance. */
+  /** Id of the resource that registered this middleware (if any) */
   registeredBy: Maybe<Scalars['String']['output']>;
-  /** Resource that registered this task (resolved, if any) */
+  /** Resource that registered this middleware (resolved, if any) */
   registeredByResolved: Maybe<Resource>;
+  /** Task nodes that use this middleware (resolved) */
+  usedBy: Array<Task>;
+  /** Detailed task/hook usages with per-usage config */
+  usedByDetailed: Array<MiddlewareTaskUsage>;
 };
 
 
-/** Common fields for Task and Hook. These nodes are executable via Runner and can emit events, depend on resources and be wrapped by middleware. */
-export type TaskInterfaceFileContentsArgs = {
+export type TaskMiddlewareFileContentsArgs = {
   endLine: InputMaybe<Scalars['Int']['input']>;
   startLine: InputMaybe<Scalars['Int']['input']>;
 };
@@ -760,7 +803,7 @@ export type TaskMiddlewareUsage = {
   __typename?: 'TaskMiddlewareUsage';
   config: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
-  node: Middleware;
+  node: TaskMiddleware;
 };
 
 export type WithIndex<TObject> = TObject & Record<string, any>;
@@ -834,8 +877,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  BaseElement: ( All ) | ( Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved'> & { emittedByResolved: Array<_RefType['TaskInterface']>, listenedToByResolved: Array<_RefType['TaskInterface']>, registeredByResolved: Maybe<_RefType['Resource']> } ) | ( Omit<Hook, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: Array<_RefType['BaseElement']>, depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['Middleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']> } ) | ( Omit<Middleware, 'emits' | 'registeredByResolved' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, usedByResourcesDetailed: Array<_RefType['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<_RefType['Resource']>, usedByTasksDetailed: Array<_RefType['MiddlewareTaskUsage']>, usedByTasksResolved: Array<_RefType['TaskInterface']> } ) | ( Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'usedBy'> & { dependsOnResolved: Array<_RefType['Resource']>, emits: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['Middleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, overridesResolved: Array<_RefType['BaseElement']>, registeredByResolved: Maybe<_RefType['Resource']>, registersResolved: Array<_RefType['BaseElement']>, usedBy: Array<_RefType['TaskInterface']> } ) | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['Middleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']> } );
-  TaskInterface: ( Omit<Hook, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: Array<_RefType['BaseElement']>, depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['Middleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']> } ) | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['Middleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']> } );
+  BaseElement: ( All ) | ( Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved'> & { emittedByResolved: Array<_RefType['Hook']>, listenedToByResolved: Array<_RefType['Hook']>, registeredByResolved: Maybe<_RefType['Resource']> } ) | ( Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']> } ) | ( Omit<Middleware, 'emits' | 'registeredByResolved' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, usedByResourcesDetailed: Array<_RefType['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<_RefType['Resource']>, usedByTasksDetailed: Array<_RefType['MiddlewareTaskUsage']>, usedByTasksResolved: Array<_RefType['Task']> } ) | ( Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'usedBy'> & { dependsOnResolved: Array<_RefType['Resource']>, emits: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['ResourceMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, overridesResolved: Array<_RefType['BaseElement']>, registeredByResolved: Maybe<_RefType['Resource']>, registersResolved: Array<_RefType['BaseElement']>, usedBy: Array<_RefType['Task']> } ) | ( Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'usedBy' | 'usedByDetailed'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, usedBy: Array<_RefType['Resource']>, usedByDetailed: Array<_RefType['MiddlewareResourceUsage']> } ) | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']> } ) | ( Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'usedBy' | 'usedByDetailed'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, usedBy: Array<_RefType['Task']>, usedByDetailed: Array<_RefType['MiddlewareTaskUsage']> } );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
@@ -849,13 +891,13 @@ export type ResolversTypes = ResolversObject<{
   EmissionFilterInput: EmissionFilterInput;
   ErrorEntry: ResolverTypeWrapper<Omit<ErrorEntry, 'sourceResolved'> & { sourceResolved: Maybe<ResolversTypes['BaseElement']> }>;
   ErrorFilterInput: ErrorFilterInput;
-  Event: ResolverTypeWrapper<Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved'> & { emittedByResolved: Array<ResolversTypes['TaskInterface']>, listenedToByResolved: Array<ResolversTypes['TaskInterface']>, registeredByResolved: Maybe<ResolversTypes['Resource']> }>;
+  Event: ResolverTypeWrapper<Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved'> & { emittedByResolved: Array<ResolversTypes['Hook']>, listenedToByResolved: Array<ResolversTypes['Hook']>, registeredByResolved: Maybe<ResolversTypes['Resource']> }>;
   EventFilterInput: EventFilterInput;
   EventLoopStats: ResolverTypeWrapper<EventLoopStats>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GcStats: ResolverTypeWrapper<GcStats>;
   GlobalMiddleware: ResolverTypeWrapper<GlobalMiddleware>;
-  Hook: ResolverTypeWrapper<Omit<Hook, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: Array<ResolversTypes['BaseElement']>, depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['Middleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']> }>;
+  Hook: ResolverTypeWrapper<Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']> }>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Live: ResolverTypeWrapper<Omit<Live, 'emissions' | 'errors' | 'runs'> & { emissions: Array<ResolversTypes['EmissionEntry']>, errors: Array<ResolversTypes['ErrorEntry']>, runs: Array<ResolversTypes['RunRecord']> }>;
@@ -865,22 +907,23 @@ export type ResolversTypes = ResolversObject<{
   MemoryStats: ResolverTypeWrapper<MemoryStats>;
   Meta: ResolverTypeWrapper<Meta>;
   MetaTagUsage: ResolverTypeWrapper<MetaTagUsage>;
-  Middleware: ResolverTypeWrapper<Omit<Middleware, 'emits' | 'registeredByResolved' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, usedByResourcesDetailed: Array<ResolversTypes['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<ResolversTypes['Resource']>, usedByTasksDetailed: Array<ResolversTypes['MiddlewareTaskUsage']>, usedByTasksResolved: Array<ResolversTypes['TaskInterface']> }>;
+  Middleware: ResolverTypeWrapper<Omit<Middleware, 'emits' | 'registeredByResolved' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, usedByResourcesDetailed: Array<ResolversTypes['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<ResolversTypes['Resource']>, usedByTasksDetailed: Array<ResolversTypes['MiddlewareTaskUsage']>, usedByTasksResolved: Array<ResolversTypes['Task']> }>;
   MiddlewareResourceUsage: ResolverTypeWrapper<Omit<MiddlewareResourceUsage, 'node'> & { node: ResolversTypes['Resource'] }>;
-  MiddlewareTaskUsage: ResolverTypeWrapper<Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversTypes['TaskInterface'] }>;
+  MiddlewareTaskUsage: ResolverTypeWrapper<Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversTypes['Task'] }>;
   NodeKindEnum: NodeKindEnum;
   Query: ResolverTypeWrapper<{}>;
-  Resource: ResolverTypeWrapper<Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'usedBy'> & { dependsOnResolved: Array<ResolversTypes['Resource']>, emits: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['Middleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversTypes['BaseElement']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, registersResolved: Array<ResolversTypes['BaseElement']>, usedBy: Array<ResolversTypes['TaskInterface']> }>;
+  Resource: ResolverTypeWrapper<Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'usedBy'> & { dependsOnResolved: Array<ResolversTypes['Resource']>, emits: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversTypes['BaseElement']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, registersResolved: Array<ResolversTypes['BaseElement']>, usedBy: Array<ResolversTypes['Task']> }>;
+  ResourceMiddleware: ResolverTypeWrapper<Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, usedBy: Array<ResolversTypes['Resource']>, usedByDetailed: Array<ResolversTypes['MiddlewareResourceUsage']> }>;
   RunFilterInput: RunFilterInput;
-  RunRecord: ResolverTypeWrapper<Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversTypes['TaskInterface']> }>;
+  RunRecord: ResolverTypeWrapper<Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversTypes['Task']> }>;
   SourceKindEnum: SourceKindEnum;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   SwapResult: ResolverTypeWrapper<SwapResult>;
   SwappedTask: ResolverTypeWrapper<SwappedTask>;
-  Task: ResolverTypeWrapper<Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: ResolversTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['Middleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']> }>;
-  TaskDependsOn: ResolverTypeWrapper<Omit<TaskDependsOn, 'emitters' | 'hooks' | 'resources' | 'tasks'> & { emitters: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['TaskInterface']>, resources: Array<ResolversTypes['Resource']>, tasks: Array<ResolversTypes['TaskInterface']> }>;
-  TaskInterface: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['TaskInterface']>;
-  TaskMiddlewareUsage: ResolverTypeWrapper<Omit<TaskMiddlewareUsage, 'node'> & { node: ResolversTypes['Middleware'] }>;
+  Task: ResolverTypeWrapper<Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: ResolversTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']> }>;
+  TaskDependsOn: ResolverTypeWrapper<Omit<TaskDependsOn, 'emitters' | 'resources' | 'tasks'> & { emitters: Array<ResolversTypes['Event']>, resources: Array<ResolversTypes['Resource']>, tasks: Array<ResolversTypes['Task']> }>;
+  TaskMiddleware: ResolverTypeWrapper<Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, usedBy: Array<ResolversTypes['Task']>, usedByDetailed: Array<ResolversTypes['MiddlewareTaskUsage']> }>;
+  TaskMiddlewareUsage: ResolverTypeWrapper<Omit<TaskMiddlewareUsage, 'node'> & { node: ResolversTypes['TaskMiddleware'] }>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -894,13 +937,13 @@ export type ResolversParentTypes = ResolversObject<{
   EmissionFilterInput: EmissionFilterInput;
   ErrorEntry: Omit<ErrorEntry, 'sourceResolved'> & { sourceResolved: Maybe<ResolversParentTypes['BaseElement']> };
   ErrorFilterInput: ErrorFilterInput;
-  Event: Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved'> & { emittedByResolved: Array<ResolversParentTypes['TaskInterface']>, listenedToByResolved: Array<ResolversParentTypes['TaskInterface']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']> };
+  Event: Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved'> & { emittedByResolved: Array<ResolversParentTypes['Hook']>, listenedToByResolved: Array<ResolversParentTypes['Hook']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']> };
   EventFilterInput: EventFilterInput;
   EventLoopStats: EventLoopStats;
   Float: Scalars['Float']['output'];
   GcStats: GcStats;
   GlobalMiddleware: GlobalMiddleware;
-  Hook: Omit<Hook, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: Array<ResolversParentTypes['BaseElement']>, depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['Middleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']> };
+  Hook: Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']> };
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   Live: Omit<Live, 'emissions' | 'errors' | 'runs'> & { emissions: Array<ResolversParentTypes['EmissionEntry']>, errors: Array<ResolversParentTypes['ErrorEntry']>, runs: Array<ResolversParentTypes['RunRecord']> };
@@ -909,20 +952,21 @@ export type ResolversParentTypes = ResolversObject<{
   MemoryStats: MemoryStats;
   Meta: Meta;
   MetaTagUsage: MetaTagUsage;
-  Middleware: Omit<Middleware, 'emits' | 'registeredByResolved' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, usedByResourcesDetailed: Array<ResolversParentTypes['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<ResolversParentTypes['Resource']>, usedByTasksDetailed: Array<ResolversParentTypes['MiddlewareTaskUsage']>, usedByTasksResolved: Array<ResolversParentTypes['TaskInterface']> };
+  Middleware: Omit<Middleware, 'emits' | 'registeredByResolved' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, usedByResourcesDetailed: Array<ResolversParentTypes['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<ResolversParentTypes['Resource']>, usedByTasksDetailed: Array<ResolversParentTypes['MiddlewareTaskUsage']>, usedByTasksResolved: Array<ResolversParentTypes['Task']> };
   MiddlewareResourceUsage: Omit<MiddlewareResourceUsage, 'node'> & { node: ResolversParentTypes['Resource'] };
-  MiddlewareTaskUsage: Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversParentTypes['TaskInterface'] };
+  MiddlewareTaskUsage: Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversParentTypes['Task'] };
   Query: {};
-  Resource: Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'usedBy'> & { dependsOnResolved: Array<ResolversParentTypes['Resource']>, emits: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['Middleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversParentTypes['BaseElement']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, registersResolved: Array<ResolversParentTypes['BaseElement']>, usedBy: Array<ResolversParentTypes['TaskInterface']> };
+  Resource: Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'usedBy'> & { dependsOnResolved: Array<ResolversParentTypes['Resource']>, emits: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversParentTypes['BaseElement']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, registersResolved: Array<ResolversParentTypes['BaseElement']>, usedBy: Array<ResolversParentTypes['Task']> };
+  ResourceMiddleware: Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, usedBy: Array<ResolversParentTypes['Resource']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareResourceUsage']> };
   RunFilterInput: RunFilterInput;
-  RunRecord: Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversParentTypes['TaskInterface']> };
+  RunRecord: Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversParentTypes['Task']> };
   String: Scalars['String']['output'];
   SwapResult: SwapResult;
   SwappedTask: SwappedTask;
-  Task: Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: ResolversParentTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['Middleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']> };
-  TaskDependsOn: Omit<TaskDependsOn, 'emitters' | 'hooks' | 'resources' | 'tasks'> & { emitters: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['TaskInterface']>, resources: Array<ResolversParentTypes['Resource']>, tasks: Array<ResolversParentTypes['TaskInterface']> };
-  TaskInterface: ResolversInterfaceTypes<ResolversParentTypes>['TaskInterface'];
-  TaskMiddlewareUsage: Omit<TaskMiddlewareUsage, 'node'> & { node: ResolversParentTypes['Middleware'] };
+  Task: Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved'> & { dependsOnResolved: ResolversParentTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']> };
+  TaskDependsOn: Omit<TaskDependsOn, 'emitters' | 'resources' | 'tasks'> & { emitters: Array<ResolversParentTypes['Event']>, resources: Array<ResolversParentTypes['Resource']>, tasks: Array<ResolversParentTypes['Task']> };
+  TaskMiddleware: Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, usedBy: Array<ResolversParentTypes['Task']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareTaskUsage']> };
+  TaskMiddlewareUsage: Omit<TaskMiddlewareUsage, 'node'> & { node: ResolversParentTypes['TaskMiddleware'] };
 }>;
 
 export type AllResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['All'] = ResolversParentTypes['All']> = ResolversObject<{
@@ -935,7 +979,7 @@ export type AllResolvers<ContextType = CustomGraphQLContext, ParentType extends 
 }>;
 
 export type BaseElementResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['BaseElement'] = ResolversParentTypes['BaseElement']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'All' | 'Event' | 'Hook' | 'Middleware' | 'Resource' | 'Task', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'All' | 'Event' | 'Hook' | 'Middleware' | 'Resource' | 'ResourceMiddleware' | 'Task' | 'TaskMiddleware', ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, BaseElementFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -983,12 +1027,12 @@ export type ErrorEntryResolvers<ContextType = CustomGraphQLContext, ParentType e
 
 export type EventResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Event'] = ResolversParentTypes['Event']> = ResolversObject<{
   emittedBy: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  emittedByResolved: Resolver<Array<ResolversTypes['TaskInterface']>, ParentType, ContextType>;
+  emittedByResolved: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, EventFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   listenedToBy: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  listenedToByResolved: Resolver<Array<ResolversTypes['TaskInterface']>, ParentType, ContextType>;
+  listenedToByResolved: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   payloadSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1018,7 +1062,6 @@ export type GlobalMiddlewareResolvers<ContextType = CustomGraphQLContext, Parent
 
 export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Hook'] = ResolversParentTypes['Hook']> = ResolversObject<{
   dependsOn: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  dependsOnResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   depenendsOnResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   emitsResolved: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
@@ -1027,12 +1070,10 @@ export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   hookOrder: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  inputSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  inputSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  middlewareResolved: Resolver<Array<ResolversTypes['Middleware']>, ParentType, ContextType>;
+  middlewareResolved: Resolver<Array<ResolversTypes['TaskMiddleware']>, ParentType, ContextType>;
   middlewareResolvedDetailed: Resolver<Array<ResolversTypes['TaskMiddlewareUsage']>, ParentType, ContextType>;
   overriddenBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1099,7 +1140,7 @@ export type MiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType e
   usedByResourcesResolved: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
   usedByTasks: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   usedByTasksDetailed: Resolver<Array<ResolversTypes['MiddlewareTaskUsage']>, ParentType, ContextType>;
-  usedByTasksResolved: Resolver<Array<ResolversTypes['TaskInterface']>, ParentType, ContextType>;
+  usedByTasksResolved: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1113,7 +1154,7 @@ export type MiddlewareResourceUsageResolvers<ContextType = CustomGraphQLContext,
 export type MiddlewareTaskUsageResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MiddlewareTaskUsage'] = ResolversParentTypes['MiddlewareTaskUsage']> = ResolversObject<{
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  node: Resolver<ResolversTypes['TaskInterface'], ParentType, ContextType>;
+  node: Resolver<ResolversTypes['Task'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1127,10 +1168,12 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   middleware: Resolver<Maybe<ResolversTypes['Middleware']>, ParentType, ContextType, RequireFields<QueryMiddlewareArgs, 'id'>>;
   middlewares: Resolver<Array<ResolversTypes['Middleware']>, ParentType, ContextType, QueryMiddlewaresArgs>;
   resource: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType, RequireFields<QueryResourceArgs, 'id'>>;
+  resourceMiddlewares: Resolver<Array<ResolversTypes['ResourceMiddleware']>, ParentType, ContextType, QueryResourceMiddlewaresArgs>;
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType, QueryResourcesArgs>;
   root: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   swappedTasks: Resolver<Array<ResolversTypes['SwappedTask']>, ParentType, ContextType>;
   task: Resolver<Maybe<ResolversTypes['Task']>, ParentType, ContextType, RequireFields<QueryTaskArgs, 'id'>>;
+  taskMiddlewares: Resolver<Array<ResolversTypes['TaskMiddleware']>, ParentType, ContextType, QueryTaskMiddlewaresArgs>;
   tasks: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType, QueryTasksArgs>;
 }>;
 
@@ -1148,7 +1191,7 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  middlewareResolved: Resolver<Array<ResolversTypes['Middleware']>, ParentType, ContextType>;
+  middlewareResolved: Resolver<Array<ResolversTypes['ResourceMiddleware']>, ParentType, ContextType>;
   middlewareResolvedDetailed: Resolver<Array<ResolversTypes['TaskMiddlewareUsage']>, ParentType, ContextType>;
   overrides: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   overridesResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
@@ -1156,7 +1199,25 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   registers: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   registersResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
-  usedBy: Resolver<Array<ResolversTypes['TaskInterface']>, ParentType, ContextType>;
+  usedBy: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ResourceMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceMiddleware'] = ResolversParentTypes['ResourceMiddleware']> = ResolversObject<{
+  configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
+  fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, ResourceMiddlewareFileContentsArgs>;
+  filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  global: Resolver<Maybe<ResolversTypes['GlobalMiddleware']>, ParentType, ContextType>;
+  id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
+  overriddenBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
+  usedBy: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
+  usedByDetailed: Resolver<Array<ResolversTypes['MiddlewareResourceUsage']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1166,7 +1227,7 @@ export type RunRecordResolvers<ContextType = CustomGraphQLContext, ParentType ex
   error: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   nodeId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   nodeKind: Resolver<ResolversTypes['NodeKindEnum'], ParentType, ContextType>;
-  nodeResolved: Resolver<Maybe<ResolversTypes['TaskInterface']>, ParentType, ContextType>;
+  nodeResolved: Resolver<Maybe<ResolversTypes['Task']>, ParentType, ContextType>;
   ok: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   parentId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   rootId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1202,7 +1263,7 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  middlewareResolved: Resolver<Array<ResolversTypes['Middleware']>, ParentType, ContextType>;
+  middlewareResolved: Resolver<Array<ResolversTypes['TaskMiddleware']>, ParentType, ContextType>;
   middlewareResolvedDetailed: Resolver<Array<ResolversTypes['TaskMiddlewareUsage']>, ParentType, ContextType>;
   overriddenBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1212,35 +1273,33 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
 
 export type TaskDependsOnResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskDependsOn'] = ResolversParentTypes['TaskDependsOn']> = ResolversObject<{
   emitters: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
-  hooks: Resolver<Array<ResolversTypes['TaskInterface']>, ParentType, ContextType>;
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
-  tasks: Resolver<Array<ResolversTypes['TaskInterface']>, ParentType, ContextType>;
+  tasks: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type TaskInterfaceResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskInterface'] = ResolversParentTypes['TaskInterface']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Hook' | 'Task', ParentType, ContextType>;
-  dependsOn: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  depenendsOnResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
-  emits: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  emitsResolved: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
-  fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, TaskInterfaceFileContentsArgs>;
+export type TaskMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskMiddleware'] = ResolversParentTypes['TaskMiddleware']> = ResolversObject<{
+  configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
+  fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, TaskMiddlewareFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  global: Resolver<Maybe<ResolversTypes['GlobalMiddleware']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
-  middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  middlewareResolved: Resolver<Array<ResolversTypes['Middleware']>, ParentType, ContextType>;
-  middlewareResolvedDetailed: Resolver<Array<ResolversTypes['TaskMiddlewareUsage']>, ParentType, ContextType>;
   overriddenBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
+  usedBy: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
+  usedByDetailed: Resolver<Array<ResolversTypes['MiddlewareTaskUsage']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type TaskMiddlewareUsageResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskMiddlewareUsage'] = ResolversParentTypes['TaskMiddlewareUsage']> = ResolversObject<{
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  node: Resolver<ResolversTypes['Middleware'], ParentType, ContextType>;
+  node: Resolver<ResolversTypes['TaskMiddleware'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1266,12 +1325,13 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   MiddlewareTaskUsage: MiddlewareTaskUsageResolvers<ContextType>;
   Query: QueryResolvers<ContextType>;
   Resource: ResourceResolvers<ContextType>;
+  ResourceMiddleware: ResourceMiddlewareResolvers<ContextType>;
   RunRecord: RunRecordResolvers<ContextType>;
   SwapResult: SwapResultResolvers<ContextType>;
   SwappedTask: SwappedTaskResolvers<ContextType>;
   Task: TaskResolvers<ContextType>;
   TaskDependsOn: TaskDependsOnResolvers<ContextType>;
-  TaskInterface: TaskInterfaceResolvers<ContextType>;
+  TaskMiddleware: TaskMiddlewareResolvers<ContextType>;
   TaskMiddlewareUsage: TaskMiddlewareUsageResolvers<ContextType>;
 }>;
 

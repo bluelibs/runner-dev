@@ -1,4 +1,4 @@
-import { resource, run, middleware, event } from "@bluelibs/runner";
+import { resource, run, resourceMiddleware, event } from "@bluelibs/runner";
 import { schema } from "../../schema";
 import { createDummyApp } from "../dummy/dummyApp";
 import { introspector } from "../../resources/introspector.resource";
@@ -12,7 +12,7 @@ describe("Graph diagnostics (component)", () => {
     const orphanEvt = event({ id: "evt.orphan" });
 
     // Define a middleware that is not used anywhere
-    const unusedMw = middleware({
+    const unusedMw = resourceMiddleware({
       id: "mw.unused",
       async run({ next }) {
         return next();

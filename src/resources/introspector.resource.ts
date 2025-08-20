@@ -7,7 +7,8 @@ import {
   mapStoreHookToHookModel,
   mapStoreResourceToResourceModel,
   buildEvents,
-  buildMiddlewares,
+  buildTaskMiddlewares,
+  buildResourceMiddlewares,
   buildIdMap,
   attachOverrides,
   attachRegisteredBy,
@@ -38,6 +39,8 @@ export interface Introspector {
   getTasks(): Task[];
   getHooks(): Hook[];
   getMiddlewares(): Middleware[];
+  getTaskMiddlewares(): Middleware[];
+  getResourceMiddlewares(): Middleware[];
   getResources(): Resource[];
   getEvent(id: string): Event | null;
   getTask(id: string): Task | null;
@@ -56,18 +59,20 @@ export interface Introspector {
   getTasksByIds(ids: string[]): Task[];
   getHooksByIds(ids: string[]): Hook[];
   getEventsByIds(ids: string[]): Event[];
-  getTaskLikesUsingResource(resourceId: string): (Task | Hook)[];
-  getTaskLikesUsingMiddleware(middlewareId: string): (Task | Hook)[];
+  getTasksUsingResource(resourceId: string): (Task | Hook)[];
+  getTasksUsingMiddleware(middlewareId: string): (Task | Hook)[];
+  // Backward-compat alias used by schema types
+  getTaskLikesUsingMiddleware?(middlewareId: string): (Task | Hook)[];
   getEmittersOfEvent(eventId: string): (Task | Hook)[];
   getHooksOfEvent(eventId: string): Hook[];
   getMiddlewareEmittedEvents(middlewareId: string): Event[];
-  getMiddlewareUsagesForTaskLike(
+  getMiddlewareUsagesForTask(
     taskLikeId: string
   ): Array<{ id: string; config: string | null; node: Middleware }>;
   getMiddlewareUsagesForResource(
     resourceId: string
   ): Array<{ id: string; config: string | null; node: Middleware }>;
-  getTaskLikesUsingMiddlewareDetailed(
+  getTasksUsingMiddlewareDetailed(
     middlewareId: string
   ): Array<{ id: string; config: string | null; node: Task | Hook }>;
   getResourcesUsingMiddlewareDetailed(
@@ -100,10 +105,7 @@ export const introspector = resource({
     const hooks: Hook[] = [];
 
     for (const t of store.tasks.values()) {
-      // In Runner v4, tasks don't carry 'on'; only legacy may
-      const isLegacyHook = Boolean((t as any).task?.on);
-      if (isLegacyHook) hooks.push(mapStoreTaskToHookModel((t as any).task));
-      else tasks.push(mapStoreTaskToTaskModel((t as any).task));
+      tasks.push(mapStoreTaskToTaskModel(t.task));
     }
 
     for (const h of store.hooks.values()) {
@@ -123,13 +125,23 @@ export const introspector = resource({
       resources
     );
 
-    // Build middlewares
-    const middlewares: Middleware[] = buildMiddlewares(
-      Array.from(store.middlewares.values()).map((v) => v.middleware),
+    // Build middlewares from both task and resource middleware collections
+    const taskMiddlewares: Middleware[] = buildTaskMiddlewares(
+      Array.from(store.taskMiddlewares.values()).map((v) => v.middleware),
       tasks,
       hooks,
       resources
     );
+    const resourceMiddlewares: Middleware[] = buildResourceMiddlewares(
+      Array.from(store.resourceMiddlewares.values()).map((v) => v.middleware),
+      tasks,
+      hooks,
+      resources
+    );
+    const middlewares: Middleware[] = [
+      ...taskMiddlewares,
+      ...resourceMiddlewares,
+    ];
 
     attachOverrides(store.overrideRequests, tasks, hooks, middlewares);
 
@@ -154,6 +166,8 @@ export const introspector = resource({
       getTasks: () => tasks,
       getHooks: () => hooks,
       getMiddlewares: () => middlewares,
+      getTaskMiddlewares: () => taskMiddlewares,
+      getResourceMiddlewares: () => resourceMiddlewares,
       getResources: () => resources,
       getEvent: (id) => eventMap.get(id) ?? null,
       getTask: (id) => taskMap.get(id) ?? null,
@@ -198,16 +212,26 @@ export const introspector = resource({
         const set = new Set(ensureStringArray(ids));
         return events.filter((e) => set.has(e.id));
       },
-      getTaskLikesUsingResource: (resourceId) => {
+      getTasksUsingResource: (resourceId) => {
         return [...tasks, ...hooks].filter((t) =>
           ensureStringArray(t.dependsOn).includes(resourceId)
         );
       },
-      getTaskLikesUsingMiddleware: (middlewareId) => {
-        return [...tasks, ...hooks].filter((t) =>
+      getTasksUsingMiddleware: (middlewareId) => {
+        return tasks.filter((t) =>
           ensureStringArray(t.middleware).includes(middlewareId)
         );
       },
+      // Backward-compat for schema fields expecting this name
+      // Returns only task-like nodes (tasks and hooks)
+      getTaskLikesUsingMiddleware: (middlewareId: string) => {
+        return api.getTasksUsingMiddleware(middlewareId);
+      },
+      // getHooksUsingResource: (resourceId) => {
+      //   return hooks.filter((l) =>
+      //     ensureStringArray(l.dependsOn).includes(resourceId)
+      //   );
+      // },
       getEmittersOfEvent: (eventId) => {
         return [...tasks, ...hooks].filter((t) =>
           ensureStringArray((t as any).emits).includes(eventId)
@@ -217,7 +241,7 @@ export const introspector = resource({
         return hooks.filter((l) => l.event === eventId);
       },
       getMiddlewareEmittedEvents: (middlewareId) => {
-        const taskLikes = api.getTaskLikesUsingMiddleware(middlewareId);
+        const taskLikes = api.getTasksUsingMiddleware(middlewareId);
         const emittedIds = new Set<string>();
         for (const t of taskLikes) {
           for (const e of ensureStringArray((t as any).emits)) {
@@ -226,10 +250,10 @@ export const introspector = resource({
         }
         return events.filter((e) => emittedIds.has(e.id));
       },
-      getMiddlewareUsagesForTaskLike: (taskLikeId) => {
-        const taskLike = taskMap.get(taskLikeId) ?? hookMap.get(taskLikeId);
-        if (!taskLike) return [];
-        const detailed = taskLike.middlewareDetailed ?? [];
+      getMiddlewareUsagesForTask: (taskId) => {
+        const task = taskMap.get(taskId);
+        if (!task) return [];
+        const detailed = task.middlewareDetailed ?? [];
         return detailed
           .map((d) => ({
             id: d.id,
@@ -256,13 +280,13 @@ export const introspector = resource({
               Boolean(x.node)
           );
       },
-      getTaskLikesUsingMiddlewareDetailed: (middlewareId) => {
+      getTasksUsingMiddlewareDetailed: (middlewareId) => {
         const result: Array<{
           id: string;
           config: string | null;
-          node: Task | Hook;
+          node: Task;
         }> = [];
-        const addFrom = (arr: Array<Task | Hook>) => {
+        const addFrom = (arr: Array<Task>) => {
           for (const tl of arr) {
             if ((tl.middleware || []).includes(middlewareId)) {
               const conf =
@@ -273,7 +297,6 @@ export const introspector = resource({
           }
         };
         addFrom(tasks);
-        addFrom(hooks);
         return result;
       },
       getResourcesUsingMiddlewareDetailed: (middlewareId) => {
@@ -293,7 +316,7 @@ export const introspector = resource({
         return result;
       },
       getEmittedEventsForResource: (resourceId) => {
-        const taskLikes = api.getTaskLikesUsingResource(resourceId);
+        const taskLikes = api.getTasksUsingResource(resourceId);
         const emitted = new Set<string>();
         for (const t of taskLikes) {
           for (const e of ensureStringArray((t as any).emits)) emitted.add(e);

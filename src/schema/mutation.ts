@@ -120,8 +120,10 @@ export const MutationType = new GraphQLObjectType({
       type: new GraphQLNonNull(EvalResultType),
       args: {
         code: {
-          description:
-            "The JavaScript/TypeScript code to execute. Given access to dependencies. async function run(deps) { ... }",
+          description: [
+            "The JavaScript/TypeScript code to execute. Given access to dependencies",
+            "You should pass the complete signature (including async): async function run(deps) { CODE }",
+          ].join("\n"),
           type: new GraphQLNonNull(GraphQLString),
         },
       },

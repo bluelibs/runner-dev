@@ -69,7 +69,12 @@ export const serverResource = resource({
     // React SSR endpoints
     app.get("/docs", (req: express.Request, res: express.Response) => {
       const namespacePrefix = req.query.namespace as string | undefined;
-      logger.info(`Rendering documentation with namespace: ${namespacePrefix}`);
+      const message = namespacePrefix
+        ? ""
+        : ` with namespace: ${namespacePrefix}`;
+      logger.info(
+        `Rendering documentation${message}. Use ?namespace=app to filter elements by id.`
+      );
       const component = React.createElement(Documentation, {
         introspector,
         namespacePrefix,

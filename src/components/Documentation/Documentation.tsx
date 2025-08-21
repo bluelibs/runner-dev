@@ -1,5 +1,7 @@
 import React from "react";
 import { Introspector } from "../../resources/introspector.resource";
+
+export type Section = 'overview' | 'tasks' | 'resources' | 'events' | 'hooks' | 'middlewares' | 'tags' | 'diagnostics';
 import { TaskCard } from "./components/TaskCard";
 import { ResourceCard } from "./components/ResourceCard";
 import { MiddlewareCard } from "./components/MiddlewareCard";
@@ -7,13 +9,6 @@ import { EventCard } from "./components/EventCard";
 import { HookCard } from "./components/HookCard";
 import { TagCard } from "./components/TagCard";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
-
-// jQuery type declaration for server-side rendering
-declare global {
-  interface Window {
-    jQuery: any;
-  }
-}
 
 export interface DocumentationProps {
   introspector: Introspector;
@@ -26,7 +21,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
 }) => {
   const filterByNamespace = (items: any[]) => {
     if (!namespacePrefix) return items;
-    return items.filter(item => item.id.startsWith(namespacePrefix));
+    return items.filter((item) => item.id.startsWith(namespacePrefix));
   };
 
   const tasks = filterByNamespace(introspector.getTasks());
@@ -598,11 +593,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
                 }}
               >
                 {tags.map((tag) => (
-                  <TagCard
-                    key={tag.id}
-                    tag={tag}
-                    introspector={introspector}
-                  />
+                  <TagCard key={tag.id} tag={tag} introspector={introspector} />
                 ))}
               </div>
             </section>

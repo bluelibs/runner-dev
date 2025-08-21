@@ -19,7 +19,7 @@ import { HookType } from "./HookType";
 
 export const EventType: GraphQLObjectType = new GraphQLObjectType({
   name: "Event",
-  interfaces: [BaseElementInterface],
+  interfaces: () => [BaseElementInterface],
   isTypeOf: (value) => Array.isArray((value as any)?.listenedToBy),
   fields: (): GraphQLFieldConfigMap<any, any> => ({
     id: { description: "Event id", type: new GraphQLNonNull(GraphQLID) },
@@ -41,7 +41,7 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
       resolve: (node: any) => convertJsonSchemaToReadable(node.payloadSchema),
     },
     emittedBy: {
-      description: "Ids of task/hook nodes that emit this event",
+      description: "Ids of task/hook/resource nodes that emit this event",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
@@ -49,8 +49,11 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
         ctx.introspector.getEmittersOfEvent(node.id).map((t: any) => t.id),
     },
     emittedByResolved: {
-      description: "Task/hook nodes that emit this event (resolved)",
-      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(HookType))),
+      description:
+        "Nodes that emit this event (resolved). Can be Task, Hook or Resource.",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(BaseElementInterface))
+      ),
       resolve: (node, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getEmittersOfEvent(node.id),
     },

@@ -90,6 +90,20 @@ function normalizeTags(
   return { ids: Array.from(new Set(ids)), detailed };
 }
 
+function buildMetaWithNormalizedTags(meta: any, sourceWithTags: any): any {
+  const base = meta ?? null;
+  // Gather tags provided either at top-level (sourceWithTags.tags) or inside meta.tags
+  const topLevel = (sourceWithTags as any)?.tags ?? null;
+  const metaLevel = (base as any)?.tags ?? null;
+  if (!topLevel && !metaLevel) return base;
+  const merged: Array<string | definitions.ITagDefinition> = [
+    ...toArray(metaLevel),
+    ...toArray(topLevel),
+  ];
+  const { ids, detailed } = normalizeTags(merged);
+  return { ...(base || {}), tags: ids, tagsDetailed: detailed } as any;
+}
+
 export function findById(collection: any, id: string): any | undefined {
   if (!collection) return undefined;
   if (collection instanceof Map) return collection.get(id);
@@ -118,12 +132,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
   return stampElementKind(
     {
       id: task.id.toString(),
-      meta: (() => {
-        const base = task.meta ?? null;
-        if (!base) return base;
-        const { ids, detailed } = normalizeTags((base as any).tags);
-        return { ...base, tags: ids, tagsDetailed: detailed } as any;
-      })(),
+      meta: buildMetaWithNormalizedTags(task.meta, task),
       filePath: task[definitions.symbolFilePath],
       dependsOn: resourceIdsFromDeps,
       middleware: task.middleware.map((m) => m.id.toString()),
@@ -162,12 +171,7 @@ export function mapStoreHookToHookModel(
   return stampElementKind(
     {
       id: String(hk?.id),
-      meta: (() => {
-        const base = hk?.meta ?? null;
-        if (!base) return base;
-        const { ids, detailed } = normalizeTags((base as any).tags);
-        return { ...base, tags: ids, tagsDetailed: detailed } as any;
-      })(),
+      meta: buildMetaWithNormalizedTags(hk?.meta, hk),
       filePath: hk?.[definitions.symbolFilePath] ?? null,
       emits: eventIdsFromDeps,
       dependsOn: resourceIdsFromDeps,
@@ -205,18 +209,15 @@ export function mapStoreResourceToResourceModel(
   return stampElementKind(
     {
       id: resource.id.toString(),
-      meta: (() => {
-        const base = resource.meta ?? null;
-        if (!base) return base;
-        const { ids, detailed } = normalizeTags((base as any).tags);
-        return { ...base, tags: ids, tagsDetailed: detailed } as any;
-      })(),
+      meta: buildMetaWithNormalizedTags(resource.meta, resource),
       emits: eventIdsFromDeps,
       dependsOn: resourceIdsFromDeps,
       filePath: resource[definitions.symbolFilePath] ?? null,
       middleware: resource.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
-      overrides: resource.overrides.map((o) => o.id.toString()),
+      overrides: resource.overrides
+        .filter((o) => !!o)
+        .map((o) => o.id.toString()),
       registers: register.map((r) => r.id.toString()) as string[],
       context: stringifyIfObject(resource.context),
       registeredBy: null,
@@ -251,7 +252,7 @@ export function buildEvents(
     return stampElementKind(
       {
         id: eventId,
-        meta: e?.meta ?? null,
+        meta: buildMetaWithNormalizedTags((e as any)?.meta ?? null, e),
         filePath: e?.filePath ?? e?.path ?? null,
         listenedToBy: hooks.filter((l) => l.event === eventId).map((l) => l.id),
         registeredBy: null,
@@ -309,7 +310,7 @@ function buildMiddlewaresGeneric(
     return stampElementKind(
       {
         id,
-        meta: mw?.meta ?? null,
+        meta: buildMetaWithNormalizedTags(mw?.meta ?? null, mw),
         filePath:
           mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null,
         global: globalValue,

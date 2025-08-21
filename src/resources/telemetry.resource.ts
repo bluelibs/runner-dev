@@ -11,38 +11,41 @@ const overrideEventManagerEmittor = resource({
   },
   dependencies: { eventManager: globals.resources.eventManager, live },
   async init(_, { eventManager, live }) {
-    const originalEmit = eventManager.emit.bind(eventManager);
-    eventManager.emit = async (event, ...args) => {
-      return withTaskRunContext(event.id, async () => {
-        await originalEmit(event, ...args);
+    eventManager.intercept((next, emission) => {
+      return withTaskRunContext(emission.id, async () => {
+        live.recordEmission(emission.id, emission.data, emission.source);
+        return next(emission);
       });
-    };
-  },
-});
-const onHookCompleted = hook({
-  id: "runner-dev.telemetry.hooks.completed",
-  on: globals.events.hookCompleted,
-  dependencies: { live },
-  async run(event, { live }) {
-    const { hook, eventId } = event.data;
-    const { parentId, rootId } = deriveParentAndRoot(hook.id);
-
-    // If they don't exist, it means they are the root of the chain
-    // Since we cannot use middleware() strategy here, we will use uuid() to
-
-    live.recordRun(hook.id, "HOOK", 0, true, undefined, parentId, rootId);
+    });
   },
 });
 
-const onHookTriggered = hook({
-  id: "runner-dev.telemetry.hooks.triggered",
-  on: globals.events.hookTriggered,
-  dependencies: { live },
-  async run(event, { live }) {
-    const { hook, eventId } = event.data;
-    const { parentId, rootId } = deriveParentAndRoot(hook.id);
-
-    live.recordRun(hook.id, "HOOK", 0, true, undefined, parentId, rootId);
+const hookInterceptors = resource({
+  id: "runner-dev.telemetry.resources.hookInterceptors",
+  dependencies: { live, eventManager: globals.resources.eventManager },
+  async init(_, { live, eventManager }) {
+    eventManager.interceptHook(async (next, hook, emission) => {
+      const startedAt = Date.now();
+      const { parentId, rootId } = deriveParentAndRoot(hook.id);
+      let error = undefined;
+      try {
+        const result = await next(hook, emission);
+        return result;
+      } catch (error) {
+        live.recordError(hook.id, "HOOK", error);
+      } finally {
+        const durationMs = Date.now() - startedAt;
+        live.recordRun(
+          hook.id,
+          "HOOK",
+          durationMs,
+          !error,
+          undefined,
+          parentId,
+          rootId
+        );
+      }
+    });
   },
 });
 
@@ -65,28 +68,21 @@ const telemetryMiddleware = taskMiddleware({
       try {
         const result = await next(task.input);
         const durationMs = Date.now() - startedAt;
-        try {
-          live.recordRun(
-            id,
-            "TASK",
-            durationMs,
-            true,
-            undefined,
-            parentId,
-            rootId
-          );
-        } catch {
-          // ignore if live lacks recordRun
-        }
+        live.recordRun(
+          id,
+          "TASK",
+          durationMs,
+          true,
+          undefined,
+          parentId,
+          rootId
+        );
         return result as any;
       } catch (error) {
         const durationMs = Date.now() - startedAt;
         // Best-effort error capture via Live (errors buffer)
-        try {
-          (live as any).recordError?.(id, "TASK", error);
-        } catch {
-          // ignore
-        }
+        live.recordError(id, "TASK", error);
+
         try {
           live.recordRun(
             id,
@@ -111,8 +107,7 @@ export const telemetry = resource({
   register: [
     telemetryMiddleware,
     overrideEventManagerEmittor,
-    onHookCompleted,
-    onHookTriggered,
+    hookInterceptors,
   ],
   async init() {
     // no-op

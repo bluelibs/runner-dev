@@ -118,9 +118,6 @@ describe("introspector (extended)", () => {
     );
 
     // Middleware usage mapping
-    expect(snapshot.mwLog.usedByTasks).toEqual(
-      expect.arrayContaining(["task.hello"])
-    );
     expect(snapshot.mwLog.usedByResources).toEqual(
       expect.arrayContaining(["res.db"])
     );

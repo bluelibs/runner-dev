@@ -2,13 +2,15 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "commonjs",
-    "lib": ["esnext"],
+    "lib": ["esnext", "dom"],
     "moduleResolution": "node",
     "sourceMap": true,
     "noImplicitAny": true,
     "rootDir": "./src",
     "outDir": "./dist",
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
     "pretty": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -19,5 +21,5 @@
     "noImplicitThis": false
   },
 
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

@@ -3,6 +3,7 @@ import {
   GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
+  GraphQLString,
 } from "graphql";
 import type { CustomGraphQLContext } from "./context";
 
@@ -13,6 +14,7 @@ import {
   EventFilterInput,
   HookType,
   MiddlewareType,
+  TagType,
   TaskMiddlewareType,
   ResourceMiddlewareType,
   ResourceType,
@@ -33,12 +35,81 @@ import type {
   QueryHooksArgs,
 } from "../generated/resolvers-types";
 import { isSystemEventId } from "../resources/introspector.tools";
+import { docsGenerator } from "../resources/docs.generator.resource";
 
 export const QueryType = new GraphQLObjectType({
   name: "Query",
   description:
     "Root queries for introspection, live telemetry, and debugging of Runner apps.",
   fields: () => ({
+    tags: {
+      description: "List all tags discovered across all elements.",
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TagType))),
+      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getAllTags(),
+    },
+    tag: {
+      description:
+        "Get reverse usage for a tag id. Returns usedBy lists split by kind.",
+      type: new GraphQLNonNull(
+        new GraphQLObjectType({
+          name: "TagUsage",
+          fields: () => ({
+            id: { type: new GraphQLNonNull(GraphQLID) },
+            all: {
+              type: new GraphQLNonNull(
+                new GraphQLList(new GraphQLNonNull(BaseElementInterface))
+              ),
+            },
+            tasks: {
+              type: new GraphQLNonNull(
+                new GraphQLList(new GraphQLNonNull(TaskType))
+              ),
+            },
+            hooks: {
+              type: new GraphQLNonNull(
+                new GraphQLList(new GraphQLNonNull(HookType))
+              ),
+            },
+            resources: {
+              type: new GraphQLNonNull(
+                new GraphQLList(new GraphQLNonNull(ResourceType))
+              ),
+            },
+            middlewares: {
+              type: new GraphQLNonNull(
+                new GraphQLList(new GraphQLNonNull(MiddlewareType))
+              ),
+            },
+            events: {
+              type: new GraphQLNonNull(
+                new GraphQLList(new GraphQLNonNull(EventType))
+              ),
+            },
+          }),
+        })
+      ),
+      args: {
+        id: { description: "Tag id", type: new GraphQLNonNull(GraphQLID) },
+      },
+      resolve: (_root, args: any, ctx: CustomGraphQLContext) => {
+        const id = String(args.id);
+        const tasks = ctx.introspector.getTasksWithTag(id);
+        const hooks = ctx.introspector.getHooksWithTag(id);
+        const resources = ctx.introspector.getResourcesWithTag(id);
+        const middlewares = ctx.introspector.getMiddlewaresWithTag(id);
+        const events = ctx.introspector.getEventsWithTag(id);
+        return {
+          id,
+          all: [...tasks, ...hooks, ...resources, ...middlewares, ...events],
+          tasks,
+          hooks,
+          resources,
+          middlewares,
+          events,
+        };
+      },
+    },
     root: {
       description:
         "Root application 'resource'. This is what the main run() received as argument.",

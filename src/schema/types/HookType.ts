@@ -16,10 +16,12 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { TaskMiddlewareType } from "./MiddlewareType";
 import { TaskMiddlewareUsageType } from "./TaskType";
 import { sanitizePath } from "../../utils/path";
+import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { RunRecordType, RunFilterInput } from "./RunTypes";
 
 export const HookType = new GraphQLObjectType({
   name: "Hook",
-  interfaces: [BaseElementInterface],
+  interfaces: () => [BaseElementInterface],
   isTypeOf: (value) => typeof (value as any)?.event === "string",
   fields: () => ({
     id: { description: "Hook id", type: new GraphQLNonNull(GraphQLID) },
@@ -28,6 +30,17 @@ export const HookType = new GraphQLObjectType({
       description: "Path to hook file",
       type: GraphQLString,
       resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
+    inputSchema: {
+      description:
+        "Prettified Zod JSON structure for the input schema, if provided",
+      type: GraphQLString,
+    },
+    inputSchemaReadable: {
+      description:
+        "Readable text representation of the input schema, if provided",
+      type: GraphQLString,
+      resolve: (node: any) => convertJsonSchemaToReadable(node.inputSchema),
     },
     emits: {
       description: "Event ids this hook may emit (from dependencies)",
@@ -122,6 +135,24 @@ export const HookType = new GraphQLObjectType({
             (r.registers || []).includes((node as any).id)
           ) || null
         );
+      },
+    },
+    runs: {
+      description: "Execution run records for this hook",
+      args: {
+        afterTimestamp: { type: GraphQLInt },
+        last: { type: GraphQLInt },
+        filter: { type: RunFilterInput },
+      },
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(RunRecordType))
+      ),
+      resolve: (node: Hook, args: any, ctx: CustomGraphQLContext) => {
+        const opts = (ctx.introspector as any).buildRunOptionsForHook(
+          (node as any).id,
+          args
+        );
+        return ctx.live.getRuns(opts);
       },
     },
     ...baseElementCommonFields(),

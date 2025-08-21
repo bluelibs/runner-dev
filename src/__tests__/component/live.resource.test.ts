@@ -1,6 +1,7 @@
 import { resource, run, task, hook, globals } from "@bluelibs/runner";
 import { createDummyApp, evtHello } from "../dummy/dummyApp";
 import { live } from "../../resources/live.resource";
+import { telemetry } from "../../resources/telemetry.resource";
 
 describe("live resource (integration)", () => {
   test("records logs and emissions via tasks", async () => {
@@ -42,7 +43,7 @@ describe("live resource (integration)", () => {
       register: [trigger, reader],
     });
 
-    const app = createDummyApp([live, probe]);
+    const app = createDummyApp([live, telemetry, probe]);
     const { getResourceValue } = await run(app);
     const containerLive = await getResourceValue(live);
     const snapshot = {

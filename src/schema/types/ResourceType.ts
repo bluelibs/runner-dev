@@ -23,7 +23,7 @@ import { convertJsonSchemaToReadable } from "../../utils/zod";
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
-  interfaces: [BaseElementInterface],
+  interfaces: () => [BaseElementInterface],
   isTypeOf: (value) =>
     Array.isArray((value as any)?.registers) &&
     Array.isArray((value as any)?.overrides),
@@ -135,7 +135,9 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       description: "Task nodes using this resource (resolved)",
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
       resolve: async (node, _args, ctx: CustomGraphQLContext) => {
-        return ctx.introspector.getTasksUsingResource(node.id);
+        return ctx.introspector
+          .getTasksUsingResource(node.id)
+          .filter((n: any) => !("event" in (n || {})));
       },
     },
     emits: {

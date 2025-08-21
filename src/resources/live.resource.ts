@@ -368,23 +368,23 @@ const liveService = resource({
   tags: [globals.tags.excludeFromGlobalHooks],
 });
 
-const onGlobalEvent = hook({
-  id: "runner-dev.live.onEvent",
-  on: "*",
-  dependencies: {
-    liveService,
-  },
-  async run(event, { liveService }) {
-    // During very early init phases, liveService may not be ready
-    if (!liveService) return;
-    // Record full emission details
-    liveService.recordEmission(
-      String(event.id),
-      event.data,
-      typeof event.source === "string" ? event.source : String(event.source)
-    );
-  },
-});
+// const onGlobalEvent = hook({
+//   id: "runner-dev.live.onEvent",
+//   on: "*",
+//   dependencies: {
+//     liveService,
+//   },
+//   async run(event, { liveService }) {
+//     // During very early init phases, liveService may not be ready
+//     if (!liveService) return;
+//     // Record full emission details
+//     liveService.recordEmission(
+//       String(event.id),
+//       event.data,
+//       typeof event.source === "string" ? event.source : String(event.source)
+//     );
+//   },
+// });
 
 export const live = resource({
   id: "runner-dev.resources.live",
@@ -394,7 +394,6 @@ export const live = resource({
   },
   register: (config: { maxEntries?: number }) => [
     liveService.with({ maxEntries: config?.maxEntries }),
-    onGlobalEvent,
   ],
   async init(_config, { liveService, logger }) {
     logger.onLog((log) => {

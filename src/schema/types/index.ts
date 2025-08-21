@@ -2,14 +2,15 @@ export { AllType, BaseElementInterface } from "./AllType";
 export { MetaType, MetaTagUsageType } from "./MetaType";
 export { EventType } from "./EventType";
 export {
-  MiddlewareGlobalType,
   MiddlewareType,
   TaskMiddlewareType,
   ResourceMiddlewareType,
 } from "./MiddlewareType";
+export { MiddlewareGlobalType } from "./middleware/common";
 export { ResourceType } from "./ResourceType";
 export { TaskType } from "./TaskType";
 export { HookType } from "./HookType";
+export { TagType } from "./TagType";
 export {
   LiveType,
   LogEntryType,

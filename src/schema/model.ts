@@ -39,6 +39,15 @@ export interface Event extends Omit<BaseElement, "overriddenBy"> {
   payloadSchema?: string | null;
 }
 
+export interface Tag {
+  id: string;
+  tasks: Task[];
+  hooks: Hook[];
+  resources: Resource[];
+  middlewares: Middleware[];
+  events: Event[];
+}
+
 // Internal discriminator for GraphQL type resolution (non-enumerable)
 export type ElementKind =
   | "ALL"

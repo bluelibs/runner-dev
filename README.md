@@ -1,6 +1,8 @@
-### README for @bluelibs/runner-dev
+## Welcome
 
 Runner Dev Tools provide introspection, live telemetry, and a GraphQL API to explore and query your running Runner app.
+
+The way it works, is that this is a resource that opens a graphql server which opens your application to introspection.
 
 ## Install
 
@@ -25,7 +27,7 @@ const app = resource({
 
 ## What you get
 
-- Introspector: programmatic API to inspect tasks, listeners, resources, events, middleware, and diagnostics (including file paths, contents)
+- Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
 - Live: in-memory logs and event emissions
 - GraphQL server: deep graph navigation over your app’s topology and live data
 - MCP server: allow your AI to do introspection for you.
@@ -114,12 +116,12 @@ export const probe = resource({
   dependencies: { introspector },
   async init(_c, { introspector }: { introspector: Introspector }) {
     const tasks = introspector.getTasks(); // Task[]
-    const listeners = introspector.getListeners(); // Listener[]
+    const hooks = introspector.getHooks(); // Hook[]
     const resources = introspector.getResources(); // Resource[]
     const events = introspector.getEvents(); // Event[]
     const middlewares = introspector.getMiddlewares(); // Middleware[]
 
-    const deps = introspector.getDependencies(tasks[0]); // tasks/listeners/resources/emitters
+    const deps = introspector.getDependencies(tasks[0]); // tasks/hooks/resources/emitters
 
     // Diagnostics
     const diagnostics = introspector.getDiagnostics();
@@ -139,17 +141,22 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 
 - Common
 
-  - `BaseElement`: `id: ID!`, `meta: Meta`, `filePath: String`
-  - `Meta`: `title: String`, `description: String`, `tags: [String!]!`
+  - `BaseElement`: `id: ID!`, `meta: Meta`, `filePath: String`, `markdownDescription: String!`, `fileContents(startLine: Int, endLine: Int): String`
+  - `Meta`: `title: String`, `description: String`, `tags: [MetaTagUsage!]!`
+  - `MetaTagUsage`: `id: ID!`, `config: String`
 
 - Query root
 
-  - `all: All`
-  - `event(id: ID!): Event`, `events: [Event!]!`
-  - `task(id: ID!): Task`, `tasks: [Task!]!`
-  - `listeners: [Listener!]!`
-  - `middleware(id: ID!): Middleware`, `middlewares: [Middleware!]!`
-  - `resource(id: ID!): Resource`, `resources: [Resource!]!`
+  - `all(idIncludes: ID): [BaseElement!]!`
+  - `event(id: ID!): Event`, `events(filter: EventFilterInput): [Event!]!`
+  - `task(id: ID!): Task`, `tasks(idIncludes: ID): [Task!]!`
+  - `hooks(idIncludes: ID): [Hook!]!`
+  - `middleware(id: ID!): Middleware`, `middlewares(idIncludes: ID): [Middleware!]!`
+  - `taskMiddlewares(idIncludes: ID): [TaskMiddleware!]!`
+  - `resourceMiddlewares(idIncludes: ID): [ResourceMiddleware!]!`
+  - `resource(id: ID!): Resource`, `resources(idIncludes: ID): [Resource!]!`
+  - `root: Resource`
+  - `swappedTasks: [SwappedTask!]!`
   - `live: Live!`
   - `diagnostics: [Diagnostic!]!`
 
@@ -157,36 +164,46 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 
   - `id`, `meta`, `filePath`, `fileContents`, `markdownDescription`
 
-- Tasks/Listeners (TaskInterface implemented by `Task` and `Listener`)
+- Tasks/Hooks
 
-  - `emits: [String!]!`, `emitsResolved: [Event!]!`
-  - `dependsOn: [String!]!`
-  - `middleware: [String!]!`, `middlewareResolved: [Middleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
-  - `overriddenBy: String` (if overridden)
-  - Task-specific: `dependsOnResolved { tasks, listeners, resources, emitters }`
-  - Listener-specific: `event: String!`, `listenerOrder: Int`, `dependsOnResolved {…}`
+  - Shared: `emits: [String!]!`, `emitsResolved: [Event!]!`
+  - Shared: `dependsOn: [String!]!`
+  - Shared: `middleware: [String!]!`, `middlewareResolved: [TaskMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
+  - Shared: `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
+  - Task-specific: `inputSchema: String`, `inputSchemaReadable: String`, `dependsOnResolved { tasks { id } resources { id } emitters { id } }`
+  - Hook-specific: `event: String!`, `hookOrder: Int`
 
 - Resources
 
-  - `config: String`, `context: String`
-  - `middleware`, `middlewareResolved`, `middlewareResolvedDetailed`
+  - `config: String`, `context: String`, `configSchema: String`, `configSchemaReadable: String`
+  - `middleware`, `middlewareResolved: [ResourceMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
   - `overrides`, `overridesResolved`
   - `registers`, `registersResolved`
-  - `usedBy: [TaskInterface!]!`
-  - `emits: [Event!]!` (inferred from task/listener emissions)
+  - `usedBy: [Task!]!`
+  - `emits: [Event!]!` (inferred from task/hook emissions)
+  - `dependsOn: [String!]!`, `dependsOnResolved: [Resource!]!`
+  - `registeredBy: String`, `registeredByResolved: Resource`
 
 - Events
 
-  - `emittedBy: [String!]!`, `emittedByResolved: [TaskInterface!]!`
-  - `listenedToBy: [String!]!`, `listenedToByResolved: [TaskInterface!]!`
+  - `emittedBy: [String!]!`, `emittedByResolved: [Hook!]!`
+  - `listenedToBy: [String!]!`, `listenedToByResolved: [Hook!]!`
+  - `payloadSchema: String`, `payloadSchemaReadable: String`
+  - `registeredBy: String`, `registeredByResolved: Resource`
 
-- Middleware
+- TaskMiddleware
 
-  - `global: GlobalMiddleware` (flags: `enabled`, `tasks`, `resources`)
-  - `usedByTasks`, `usedByTasksResolved`, `usedByTasksDetailed: [MiddlewareTaskUsage!]!`
-  - `usedByResources`, `usedByResourcesResolved`, `usedByResourcesDetailed: [MiddlewareResourceUsage!]!`
-  - `emits: [Event!]!` (events from task/listener nodes using this middleware)
-  - `overriddenBy: String`
+  - `global: GlobalMiddleware`
+  - `usedBy: [Task!]!`, `usedByDetailed: [MiddlewareTaskUsage!]!`
+  - `emits: [Event!]!`
+  - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
+
+- ResourceMiddleware
+
+  - `global: GlobalMiddleware`
+  - `usedBy: [Resource!]!`, `usedByDetailed: [MiddlewareResourceUsage!]!`
+  - `emits: [Event!]!`
+  - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
 
 - Live
 
@@ -203,7 +220,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
     - `RunRecord { timestampMs, nodeId, nodeKind, durationMs, ok, error, parentId, rootId, correlationId }`
     - `RunFilterInput { nodeKinds: [NodeKindEnum!], nodeIds: [String!], ok: Boolean, parentIds: [String!], rootIds: [String!] }`
 
-  Enums: `LogLevelEnum` = `trace|debug|info|warn|error|fatal|log`, `SourceKindEnum` = `TASK|LISTENER|RESOURCE|MIDDLEWARE|INTERNAL`, `NodeKindEnum` = `TASK|LISTENER`.
+  Enums: `LogLevelEnum` = `trace|debug|info|warn|error|fatal|log`, `SourceKindEnum` = `TASK|HOOK|RESOURCE|MIDDLEWARE|INTERNAL`, `NodeKindEnum` = `TASK|HOOK`.
 
 - Diagnostics
 
@@ -231,9 +248,6 @@ query {
     }
     dependsOnResolved {
       tasks {
-        id
-      }
-      listeners {
         id
       }
       resources {
@@ -283,7 +297,7 @@ query {
 }
 ```
 
-- Events and listeners
+- Events and hooks
 
 ```graphql
 query {
@@ -306,7 +320,7 @@ query {
 The `live` resource records:
 
 - Logs emitted via `globals.events.log`
-- All event emissions (via an internal global `on: "*"` listener)
+- All event emissions (via an internal global `on: "*"` hook)
 
 GraphQL (basic):
 
@@ -386,8 +400,6 @@ query {
 ```
 
 ### Live system health
-
-Add this under the Live section of the README.
 
 - **memory: `MemoryStats!`**
   - Fields: `heapUsed` (bytes), `heapTotal` (bytes), `rss` (bytes)
@@ -526,7 +538,7 @@ export const logSomething = task({
 
 ## Development
 
-- Library targets `@bluelibs/runner` v3+
+- Library targets `@bluelibs/runner` v4+
 - GraphQL built with Apollo Server 5
 - Tests cover:
   - Node discovery, dependencies, and emissions

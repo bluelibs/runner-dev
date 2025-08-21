@@ -170,6 +170,8 @@ export function createDummyApp(extra: any[] = []) {
       aggregateTask,
       taggedTask,
       evtHello,
+      areaTag,
     ],
+    dependencies: {},
   });
 }

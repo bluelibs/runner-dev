@@ -211,10 +211,9 @@ describe("GraphQL schema (integration)", () => {
     );
     expect(mwLog).toBeTruthy();
     // mw.log is used by task.hello and resource res.db
-    expect(mwLog.usedByTasksResolved.map((t: any) => t.id)).toEqual(
+    expect(mwLog.usedBy.map((t: any) => t.id)).toEqual(
       expect.arrayContaining(["task.hello"])
     );
-    expect(mwLog.usedByResourcesResolved.map((r: any) => r.id)).toEqual([]);
     expect(mwLog.emits.map((e: any) => e.id)).toEqual(
       expect.arrayContaining(["evt.hello"])
     );

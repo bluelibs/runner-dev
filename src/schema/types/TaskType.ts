@@ -24,6 +24,7 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { definitions } from "@bluelibs/runner";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { RunRecordType, RunFilterInput } from "./RunTypes";
 
 // Forward declaration to allow self-referencing within field thunks
 export let TaskType: GraphQLObjectType<Task, CustomGraphQLContext>;
@@ -43,17 +44,34 @@ export const TaskDependsOnType: GraphQLObjectType<
   > => ({
     tasks: {
       description: "Tasks this task depends on",
-      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(BaseElementInterface))
+      ),
+      resolve: (obj: any) =>
+        Array.isArray(obj?.tasks)
+          ? obj.tasks.filter((n: any) => !("event" in (n || {})))
+          : [],
+    },
+    hooks: {
+      description: "Hooks this task depends on",
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(HookType))),
+      resolve: (obj: any) =>
+        Array.isArray(obj?.hooks)
+          ? obj.hooks.filter((n: any) => "event" in (n || {}))
+          : [],
     },
     resources: {
       description: "Resources this task depends on",
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(ResourceType))
       ),
+      resolve: (obj: any) =>
+        Array.isArray(obj?.resources) ? obj.resources : [],
     },
     emitters: {
       description: "Events this task emits",
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
+      resolve: (obj: any) => (Array.isArray(obj?.emitters) ? obj.emitters : []),
     },
   }),
 });
@@ -69,7 +87,7 @@ export const TaskMiddlewareUsageType = new GraphQLObjectType({
 
 TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
   name: "Task",
-  interfaces: [BaseElementInterface],
+  interfaces: () => [BaseElementInterface],
   isTypeOf: (value: unknown) =>
     Array.isArray((value as any)?.emits) &&
     Array.isArray((value as any)?.dependsOn) &&
@@ -212,6 +230,22 @@ TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
         const { tasks, hooks, resources, emitters } =
           await ctx.introspector.getDependencies(node);
         return { tasks, hooks, resources, emitters };
+      },
+    },
+
+    runs: {
+      description: "Execution run records for this task",
+      args: {
+        afterTimestamp: { type: GraphQLInt },
+        last: { type: GraphQLInt },
+        filter: { type: RunFilterInput },
+      },
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(RunRecordType))
+      ),
+      resolve: (node: Task, args: any, ctx: CustomGraphQLContext) => {
+        const opts = ctx.introspector.buildRunOptionsForTask(node.id, args);
+        return ctx.live.getRuns(opts);
       },
     },
 

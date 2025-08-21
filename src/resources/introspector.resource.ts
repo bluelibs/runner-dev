@@ -29,9 +29,11 @@ import type {
   Resource,
   Task,
   ElementKind,
+  Tag,
 } from "../schema/model";
 import { elementKindSymbol } from "../schema/model";
 import { stampElementKind } from "./introspector.tools";
+// Note: avoid depending on live resource here to keep introspector lightweight
 
 export interface Introspector {
   getRoot(): Resource;
@@ -63,7 +65,7 @@ export interface Introspector {
   getTasksUsingMiddleware(middlewareId: string): (Task | Hook)[];
   // Backward-compat alias used by schema types
   getTaskLikesUsingMiddleware?(middlewareId: string): (Task | Hook)[];
-  getEmittersOfEvent(eventId: string): (Task | Hook)[];
+  getEmittersOfEvent(eventId: string): (Task | Hook | Resource)[];
   getHooksOfEvent(eventId: string): Hook[];
   getMiddlewareEmittedEvents(middlewareId: string): Event[];
   getMiddlewareUsagesForTask(
@@ -79,6 +81,14 @@ export interface Introspector {
     middlewareId: string
   ): Array<{ id: string; config: string | null; node: Resource }>;
   getEmittedEventsForResource(resourceId: string): Event[];
+  // Tags API
+  getTasksWithTag(tagId: string): Task[];
+  getHooksWithTag(tagId: string): Hook[];
+  getResourcesWithTag(tagId: string): Resource[];
+  getMiddlewaresWithTag(tagId: string): Middleware[];
+  getEventsWithTag(tagId: string): Event[];
+  getAllTags(): Tag[];
+  getTag(id: string): Tag | null;
   // Diagnostics API
   getOrphanEvents(): { id: string }[];
   getUnemittedEvents(): { id: string }[];
@@ -92,6 +102,53 @@ export interface Introspector {
     nodeId?: string;
     nodeKind?: string;
   }>;
+  // Runs helpers (filters only, resolver will call ctx.live)
+  buildRunOptionsForTask(
+    taskId: string,
+    args?: {
+      afterTimestamp?: number;
+      last?: number;
+      filter?: {
+        nodeKinds?: ("TASK" | "HOOK")[];
+        ok?: boolean;
+        parentIds?: string[];
+        rootIds?: string[];
+        correlationIds?: string[];
+      } | null;
+    }
+  ): {
+    afterTimestamp?: number;
+    last?: number;
+    nodeKinds?: ("TASK" | "HOOK")[];
+    nodeIds?: string[];
+    ok?: boolean;
+    parentIds?: string[];
+    rootIds?: string[];
+    correlationIds?: string[];
+  };
+  buildRunOptionsForHook(
+    hookId: string,
+    args?: {
+      afterTimestamp?: number;
+      last?: number;
+      filter?: {
+        nodeKinds?: ("TASK" | "HOOK")[];
+        ok?: boolean;
+        parentIds?: string[];
+        rootIds?: string[];
+        correlationIds?: string[];
+      } | null;
+    }
+  ): {
+    afterTimestamp?: number;
+    last?: number;
+    nodeKinds?: ("TASK" | "HOOK")[];
+    nodeIds?: string[];
+    ok?: boolean;
+    parentIds?: string[];
+    rootIds?: string[];
+    correlationIds?: string[];
+  };
 }
 
 export const introspector = resource({
@@ -155,7 +212,82 @@ export const introspector = resource({
     const eventMap = buildIdMap(events);
     const middlewareMap = buildIdMap(middlewares);
 
+    // Tags
+    const getTasksWithTag = (tagId: string) =>
+      tasks.filter((t) => ensureStringArray(t.meta?.tags).includes(tagId));
+    const getHooksWithTag = (tagId: string) =>
+      hooks.filter((h) => ensureStringArray(h.meta?.tags).includes(tagId));
+    const getResourcesWithTag = (tagId: string) =>
+      resources.filter((r) => ensureStringArray(r.meta?.tags).includes(tagId));
+    const getMiddlewaresWithTag = (tagId: string) =>
+      middlewares.filter((m) =>
+        ensureStringArray(m.meta?.tags).includes(tagId)
+      );
+    const getEventsWithTag = (tagId: string) =>
+      events.filter((e) => ensureStringArray(e.meta?.tags).includes(tagId));
+
+    const allTagIds = new Set<string>();
+    const collect = (arr: { meta?: { tags?: string[] | null } | null }[]) => {
+      for (const n of arr) {
+        for (const id of ensureStringArray(n.meta?.tags)) allTagIds.add(id);
+      }
+    };
+    collect(tasks as any);
+    collect(hooks as any);
+    collect(resources as any);
+    collect(middlewares as any);
+    collect(events as any);
+
+    const allTags: Tag[] = Array.from(allTagIds).map((id) => ({
+      id,
+      get tasks() {
+        return getTasksWithTag(id);
+      },
+      get hooks() {
+        return getHooksWithTag(id);
+      },
+      get resources() {
+        return getResourcesWithTag(id);
+      },
+      get middlewares() {
+        return getMiddlewaresWithTag(id);
+      },
+      get events() {
+        return getEventsWithTag(id);
+      },
+    }));
+    const tagMap = new Map<string, Tag>(allTags.map((t) => [t.id, t]));
+
     // API
+    function buildRunsOptions(
+      nodeId: string,
+      args?: {
+        afterTimestamp?: number;
+        last?: number;
+        filter?: {
+          nodeKinds?: ("TASK" | "HOOK")[];
+          ok?: boolean;
+          parentIds?: string[];
+          rootIds?: string[];
+          correlationIds?: string[];
+        } | null;
+      }
+    ) {
+      const opts: any = {} as any;
+      if (typeof args?.afterTimestamp === "number")
+        (opts as any).afterTimestamp = args.afterTimestamp;
+      if (typeof args?.last === "number") (opts as any).last = args.last;
+      const f = (args as any)?.filter ?? {};
+      (opts as any).nodeIds = [String(nodeId)];
+      if (Array.isArray(f.nodeKinds)) (opts as any).nodeKinds = f.nodeKinds;
+      if (typeof f.ok === "boolean") (opts as any).ok = f.ok;
+      if (Array.isArray(f.parentIds)) (opts as any).parentIds = f.parentIds;
+      if (Array.isArray(f.rootIds)) (opts as any).rootIds = f.rootIds;
+      if (Array.isArray(f.correlationIds))
+        (opts as any).correlationIds = f.correlationIds;
+      return opts as any;
+    }
+
     const api: Introspector = {
       getRoot: () =>
         stampElementKind(
@@ -233,7 +365,7 @@ export const introspector = resource({
       //   );
       // },
       getEmittersOfEvent: (eventId) => {
-        return [...tasks, ...hooks].filter((t) =>
+        return [...tasks, ...hooks, ...resources].filter((t) =>
           ensureStringArray((t as any).emits).includes(eventId)
         );
       },
@@ -323,6 +455,14 @@ export const introspector = resource({
         }
         return api.getEventsByIds(Array.from(emitted));
       },
+      // Tags API
+      getTasksWithTag,
+      getHooksWithTag,
+      getResourcesWithTag,
+      getMiddlewaresWithTag,
+      getEventsWithTag,
+      getAllTags: () => allTags,
+      getTag: (id: string) => tagMap.get(id) ?? null,
       // Diagnostics
       getOrphanEvents: () => computeOrphanEvents(api),
       getUnemittedEvents: () => computeUnemittedEvents(api),
@@ -330,6 +470,8 @@ export const introspector = resource({
       getMissingFiles: () => computeMissingFiles(api),
       getOverrideConflicts: () => computeOverrideConflicts(api),
       getDiagnostics: () => buildDiagnostics(api),
+      buildRunOptionsForTask: (taskId, args) => buildRunsOptions(taskId, args),
+      buildRunOptionsForHook: (hookId, args) => buildRunsOptions(hookId, args),
     };
 
     return api;

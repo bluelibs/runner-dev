@@ -22,11 +22,11 @@ import type {
   LogEntry as LiveLogEntry,
   EmissionEntry as LiveEmissionEntry,
   ErrorEntry as LiveErrorEntry,
-  RunRecord as LiveRunRecord,
 } from "../../resources/live.resource";
 import { AllType, BaseElementInterface } from "./AllType";
 import { TaskType } from "./TaskType";
 import { EventType } from "./EventType";
+import { RunRecordType, RunFilterInput, NodeKindEnum } from "./RunTypes";
 import * as os from "node:os";
 import {
   monitorEventLoopDelay,
@@ -211,60 +211,7 @@ export const ErrorEntryType = new GraphQLObjectType<
   }),
 });
 
-export const RunRecordType = new GraphQLObjectType<
-  LiveRunRecord,
-  CustomGraphQLContext
->({
-  name: "RunRecord",
-  fields: () => ({
-    timestampMs: {
-      description: "Run end time (milliseconds since epoch)",
-      type: new GraphQLNonNull(GraphQLFloat),
-    },
-    nodeId: {
-      description: "Id of the executed node",
-      type: new GraphQLNonNull(GraphQLString),
-    },
-    nodeKind: {
-      description: "Kind of executed node",
-      type: new GraphQLNonNull(NodeKindEnum),
-    },
-    durationMs: {
-      description: "Execution duration in milliseconds",
-      type: new GraphQLNonNull(GraphQLFloat),
-    },
-    ok: {
-      description: "Whether execution succeeded",
-      type: new GraphQLNonNull(GraphQLBoolean),
-    },
-    error: { description: "Error message (if failed)", type: GraphQLString },
-    parentId: {
-      description: "Immediate parent caller id if available",
-      type: GraphQLString,
-    },
-    rootId: {
-      description: "Root caller id that initiated the chain",
-      type: GraphQLString,
-    },
-    correlationId: {
-      description: "Correlation id for tracing",
-      type: GraphQLString,
-    },
-    nodeResolved: {
-      description: "Resolved task node",
-      type: TaskType,
-      resolve: (node, _args, ctx: CustomGraphQLContext) => {
-        const id = String(node.nodeId);
-        if (node.nodeKind === "TASK") {
-          return ctx.introspector.getTask(id);
-        } else if (node.nodeKind === "HOOK") {
-          return ctx.introspector.getHook(id);
-        }
-        return null;
-      },
-    },
-  }),
-});
+// RunRecordType moved to RunTypes.ts
 
 // System health types
 type MemoryStats = { heapUsed: number; heapTotal: number; rss: number };
@@ -625,14 +572,7 @@ export const SourceKindEnum = new GraphQLEnumType({
   },
 });
 
-export const NodeKindEnum = new GraphQLEnumType({
-  name: "NodeKindEnum",
-  description: "Kinds of executable nodes",
-  values: {
-    TASK: { value: "TASK" },
-    HOOK: { value: "HOOK" },
-  },
-});
+// NodeKindEnum moved to RunTypes.ts
 
 export const LogFilterInput = new GraphQLInputObjectType({
   name: "LogFilterInput",
@@ -695,30 +635,4 @@ export const ErrorFilterInput = new GraphQLInputObjectType({
   },
 });
 
-export const RunFilterInput = new GraphQLInputObjectType({
-  name: "RunFilterInput",
-  description: "Filters for execution run records",
-  fields: {
-    nodeKinds: {
-      description: "Only include specific node kinds",
-      type: new GraphQLList(new GraphQLNonNull(NodeKindEnum)),
-    },
-    nodeIds: {
-      description: "Only include specific node ids",
-      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
-    },
-    ok: { description: "Filter by success status", type: GraphQLBoolean },
-    parentIds: {
-      description: "Only include runs with specific parent ids",
-      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
-    },
-    rootIds: {
-      description: "Only include runs with specific root ids",
-      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
-    },
-    correlationIds: {
-      description: "Filter by correlation ids",
-      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
-    },
-  },
-});
+// RunFilterInput moved to RunTypes.ts

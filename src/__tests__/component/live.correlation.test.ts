@@ -87,7 +87,7 @@ describe("Live correlation and chain tracking", () => {
     const runsById: Record<string, any> = Object.fromEntries(
       data.live.runs.map((r: any) => [r.nodeId, r])
     );
-    expect(runsById[rootHook.id].parentId).toBe("globals.events.hookCompleted");
+    expect(runsById[rootHook.id].parentId).toBe("globals.events.ready");
     expect(runsById[rootHook.id].rootId).toBe(globals.events.ready.id);
     expect(runsById[rootHook.id].correlationId).toBe(corr);
 

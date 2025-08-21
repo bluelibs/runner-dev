@@ -11,13 +11,14 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 - **Real-time Telemetry**: Monitor logs, events, errors, and performance
 - **GraphQL API**: Comprehensive query interface for all system data
 - **MCP Integration**: AI-native development environment
+- **Tags (first-class)**: Discover Tag objects and reverse usage via GraphQL (`tags`, `tag(id)`).
 
 ## Available GraphQL Queries
 
 ### System Architecture Queries
 
 ```graphql
-# Get all elements (tasks, resources, events, middleware, listeners)
+# Get all elements (tasks, resources, events, middleware, hooks)
 query SystemOverview {
   all {
     id
@@ -56,7 +57,7 @@ query Architecture {
     emittedBy
     listenedToBy
   }
-  middleware {
+  middlewares {
     id
     meta {
       title
@@ -64,7 +65,7 @@ query Architecture {
     }
     usedByTasks
   }
-  listeners {
+  hooks {
     id
     meta {
       title
@@ -221,17 +222,17 @@ mutation EvalCode($code: String!, $inputJson: String, $evalInput: Boolean) {
 
 ### GraphQL Operations
 
-- `graphql.query` - Execute read-only GraphQL queries
-- `graphql.mutation` - Execute GraphQL mutations (if ALLOW_MUTATIONS=true)
+- `graphql_query` - Execute read-only GraphQL queries
+- `graphql_mutation` - Execute GraphQL mutations (if ALLOW_MUTATIONS=true)
 - `graphql.introspect` - Get full schema introspection
-- `graphql.schema.sdl` - Get schema as SDL string
+- `graphql.schemaSdl` - Get schema as SDL string
 - `graphql.ping` - Test connectivity
 
 ### Documentation
 
 - `help.read` - Read local docs (README.md, AI.md) or package docs
 - `help.runner` - Read @bluelibs/runner framework documentation
-- `help.runner-dev` - Read Runner-Dev application documentation (README + AI guide)
+- `help.runnerDev` - Read Runner-Dev application documentation (README + AI guide)
 - `project.overview` - Generate dynamic project overview
 
 **🎯 Pro Tip: Array-Based Heading Filtering**

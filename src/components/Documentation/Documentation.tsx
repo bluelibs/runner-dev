@@ -1,218 +1,613 @@
-import React, { useState } from 'react';
-import { Introspector } from '../../resources/introspector.resource';
-import { Sidebar } from './components/Sidebar';
-import { TaskCard } from './components/TaskCard';
-import { ResourceCard } from './components/ResourceCard';
-import { MiddlewareCard } from './components/MiddlewareCard';
-import { EventCard } from './components/EventCard';
-import { HookCard } from './components/HookCard';
-import { DiagnosticsPanel } from './components/DiagnosticsPanel';
+import React from "react";
+import { Introspector } from "../../resources/introspector.resource";
+import { TaskCard } from "./components/TaskCard";
+import { ResourceCard } from "./components/ResourceCard";
+import { MiddlewareCard } from "./components/MiddlewareCard";
+import { EventCard } from "./components/EventCard";
+import { HookCard } from "./components/HookCard";
+import { TagCard } from "./components/TagCard";
+import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
+
+// jQuery type declaration for server-side rendering
+declare global {
+  interface Window {
+    jQuery: any;
+  }
+}
 
 export interface DocumentationProps {
   introspector: Introspector;
+  namespacePrefix?: string;
 }
 
-export type Section = 'overview' | 'tasks' | 'resources' | 'hooks' | 'events' | 'middlewares' | 'tags' | 'diagnostics';
-
-export const Documentation: React.FC<DocumentationProps> = ({ introspector }) => {
-  const [activeSection, setActiveSection] = useState<Section>('overview');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'overview':
-        return (
-          <div style={{ padding: '20px' }}>
-            <h1>Runner Application Documentation</h1>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '20px' }}>
-              <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>Tasks</h3>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#007acc' }}>{introspector.getTasks().length}</div>
-              </div>
-              <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>Resources</h3>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>{introspector.getResources().length}</div>
-              </div>
-              <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>Events</h3>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107' }}>{introspector.getEvents().length}</div>
-              </div>
-              <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>Middlewares</h3>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#6f42c1' }}>{introspector.getMiddlewares().length}</div>
-              </div>
-            </div>
-            <div style={{ marginTop: '30px' }}>
-              <h3>Diagnostics Summary</h3>
-              <DiagnosticsPanel introspector={introspector} />
-            </div>
-          </div>
-        );
-      
-      case 'tasks':
-        const tasks = introspector.getTasks().filter(task => 
-          searchQuery === '' || task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.meta?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (selectedTag === null || task.meta?.tags?.includes(selectedTag))
-        );
-        return (
-          <div style={{ padding: '20px' }}>
-            <h2>Tasks ({tasks.length})</h2>
-            <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-              {tasks.map(task => (
-                <TaskCard key={task.id} task={task} introspector={introspector} />
-              ))}
-            </div>
-          </div>
-        );
-      
-      case 'resources':
-        const resources = introspector.getResources().filter(resource => 
-          searchQuery === '' || resource.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          resource.meta?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (selectedTag === null || resource.meta?.tags?.includes(selectedTag))
-        );
-        return (
-          <div style={{ padding: '20px' }}>
-            <h2>Resources ({resources.length})</h2>
-            <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-              {resources.map(resource => (
-                <ResourceCard key={resource.id} resource={resource} introspector={introspector} />
-              ))}
-            </div>
-          </div>
-        );
-      
-      case 'events':
-        const events = introspector.getEvents().filter(event => 
-          searchQuery === '' || event.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          event.meta?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (selectedTag === null || event.meta?.tags?.includes(selectedTag))
-        );
-        return (
-          <div style={{ padding: '20px' }}>
-            <h2>Events ({events.length})</h2>
-            <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-              {events.map(event => (
-                <EventCard key={event.id} event={event} introspector={introspector} />
-              ))}
-            </div>
-          </div>
-        );
-      
-      case 'hooks':
-        const hooks = introspector.getHooks().filter(hook => 
-          searchQuery === '' || hook.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          hook.meta?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (selectedTag === null || hook.meta?.tags?.includes(selectedTag))
-        );
-        return (
-          <div style={{ padding: '20px' }}>
-            <h2>Hooks ({hooks.length})</h2>
-            <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-              {hooks.map(hook => (
-                <HookCard key={hook.id} hook={hook} introspector={introspector} />
-              ))}
-            </div>
-          </div>
-        );
-      
-      case 'middlewares':
-        const middlewares = introspector.getMiddlewares().filter(middleware => 
-          searchQuery === '' || middleware.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          middleware.meta?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (selectedTag === null || middleware.meta?.tags?.includes(selectedTag))
-        );
-        return (
-          <div style={{ padding: '20px' }}>
-            <h2>Middlewares ({middlewares.length})</h2>
-            <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-              {middlewares.map(middleware => (
-                <MiddlewareCard key={middleware.id} middleware={middleware} introspector={introspector} />
-              ))}
-            </div>
-          </div>
-        );
-      
-      case 'tags':
-        const tags = introspector.getAllTags();
-        return (
-          <div style={{ padding: '20px' }}>
-            <h2>Tags ({tags.length})</h2>
-            <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-              {tags.map(tag => (
-                <div key={tag.id} style={{
-                  background: '#fff',
-                  border: '1px solid #e9ecef',
-                  borderRadius: '8px',
-                  padding: '20px'
-                }}>
-                  <h3 style={{ margin: '0 0 15px 0', color: '#495057' }}>{tag.id}</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
-                    <div><strong>Tasks:</strong> {tag.tasks.length}</div>
-                    <div><strong>Resources:</strong> {tag.resources.length}</div>
-                    <div><strong>Events:</strong> {tag.events.length}</div>
-                    <div><strong>Middlewares:</strong> {tag.middlewares.length}</div>
-                    <div><strong>Hooks:</strong> {tag.hooks.length}</div>
-                  </div>
-                  <button
-                    style={{
-                      marginTop: '15px',
-                      padding: '8px 16px',
-                      border: '1px solid #007acc',
-                      background: selectedTag === tag.id ? '#007acc' : 'transparent',
-                      color: selectedTag === tag.id ? 'white' : '#007acc',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setSelectedTag(selectedTag === tag.id ? null : tag.id)}
-                  >
-                    {selectedTag === tag.id ? 'Clear Filter' : 'Filter by Tag'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      
-      case 'diagnostics':
-        return (
-          <div style={{ padding: '20px' }}>
-            <h2>Diagnostics</h2>
-            <DiagnosticsPanel introspector={introspector} detailed />
-          </div>
-        );
-      
-      default:
-        return <div>Section not found</div>;
-    }
+export const Documentation: React.FC<DocumentationProps> = ({
+  introspector,
+  namespacePrefix,
+}) => {
+  const filterByNamespace = (items: any[]) => {
+    if (!namespacePrefix) return items;
+    return items.filter(item => item.id.startsWith(namespacePrefix));
   };
 
+  const tasks = filterByNamespace(introspector.getTasks());
+  const resources = filterByNamespace(introspector.getResources());
+  const events = filterByNamespace(introspector.getEvents());
+  const hooks = filterByNamespace(introspector.getHooks());
+  const middlewares = filterByNamespace(introspector.getMiddlewares());
+  const tags = filterByNamespace(introspector.getAllTags());
+
+  const sections = [
+    {
+      id: "overview",
+      label: "Overview",
+      icon: "📋",
+      count: null,
+      hasContent: true,
+    },
+    {
+      id: "diagnostics",
+      label: "Diagnostics",
+      icon: "🔍",
+      count: null,
+      hasContent: true,
+    },
+    {
+      id: "tasks",
+      label: "Tasks",
+      icon: "⚙️",
+      count: tasks.length,
+      hasContent: tasks.length > 0,
+    },
+    {
+      id: "resources",
+      label: "Resources",
+      icon: "🔧",
+      count: resources.length,
+      hasContent: resources.length > 0,
+    },
+    {
+      id: "events",
+      label: "Events",
+      icon: "📡",
+      count: events.length,
+      hasContent: events.length > 0,
+    },
+    {
+      id: "hooks",
+      label: "Hooks",
+      icon: "🪝",
+      count: hooks.length,
+      hasContent: hooks.length > 0,
+    },
+    {
+      id: "middlewares",
+      label: "Middlewares",
+      icon: "🔗",
+      count: middlewares.length,
+      hasContent: middlewares.length > 0,
+    },
+    {
+      id: "tags",
+      label: "Tags",
+      icon: "🏷️",
+      count: tags.length,
+      hasContent: tags.length > 0,
+    },
+  ].filter((section) => section.hasContent);
+
   return (
-    <div style={{ 
-      display: 'flex', 
-      height: '100vh', 
-      fontFamily: 'Arial, sans-serif',
-      background: '#f8f9fa'
-    }}>
-      <Sidebar 
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        introspector={introspector}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedTag={selectedTag}
-        onTagChange={setSelectedTag}
-      />
-      <div style={{ 
-        flex: 1, 
-        overflow: 'auto',
-        background: '#fff',
-        marginLeft: '300px'
-      }}>
-        {renderContent()}
+    <div
+      style={{
+        fontFamily: "Arial, sans-serif",
+        background: "#f8f9fa",
+        minHeight: "100vh",
+        display: "flex",
+      }}
+    >
+      {/* Fixed Navigation Sidebar */}
+      <nav
+        style={{
+          position: "fixed",
+          left: 0,
+          top: 0,
+          width: "280px",
+          height: "100vh",
+          background: "linear-gradient(180deg, #2c3e50 0%, #34495e 100%)",
+          color: "white",
+          padding: "30px 20px",
+          overflowY: "auto",
+          zIndex: 1000,
+          boxShadow: "4px 0 20px rgba(0,0,0,0.1)",
+        }}
+      >
+        <div style={{ marginBottom: "40px" }}>
+          <h2
+            style={{
+              margin: "0 0 10px 0",
+              fontSize: "20px",
+              color: "#ecf0f1",
+              borderBottom: "3px solid #3498db",
+              paddingBottom: "12px",
+              fontWeight: "700",
+            }}
+          >
+            📚 Documentation
+          </h2>
+          <p
+            style={{
+              margin: 0,
+              fontSize: "14px",
+              opacity: 0.8,
+              lineHeight: "1.4",
+            }}
+          >
+            Navigate through your application components
+          </p>
+        </div>
+
+        <ul
+          style={{
+            listStyle: "none",
+            padding: 0,
+            margin: 0,
+          }}
+        >
+          <li style={{ marginBottom: "8px" }}>
+            <a
+              href="#top"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "14px 18px",
+                borderRadius: "8px",
+                textDecoration: "none",
+                color: "white",
+                transition: "all 0.3s ease",
+                background: "rgba(52, 152, 219, 0.15)",
+                border: "1px solid rgba(52, 152, 219, 0.3)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(52, 152, 219, 0.25)";
+                e.currentTarget.style.borderColor = "#3498db";
+                e.currentTarget.style.transform = "translateX(4px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(52, 152, 219, 0.15)";
+                e.currentTarget.style.borderColor = "rgba(52, 152, 219, 0.3)";
+                e.currentTarget.style.transform = "translateX(0)";
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+              >
+                <span style={{ fontSize: "16px" }}>🏠</span>
+                <span style={{ fontSize: "14px", fontWeight: "600" }}>
+                  Home
+                </span>
+              </div>
+            </a>
+          </li>
+          {sections.map((section) => (
+            <li key={section.id} style={{ marginBottom: "8px" }}>
+              <a
+                href={`#${section.id}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "14px 18px",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  color: "white",
+                  transition: "all 0.3s ease",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid transparent",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(52, 152, 219, 0.2)";
+                  e.currentTarget.style.borderColor = "#3498db";
+                  e.currentTarget.style.transform = "translateX(4px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                  e.currentTarget.style.borderColor = "transparent";
+                  e.currentTarget.style.transform = "translateX(0)";
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "12px" }}
+                >
+                  <span style={{ fontSize: "16px" }}>{section.icon}</span>
+                  <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                    {section.label}
+                  </span>
+                </div>
+                {section.count !== null && (
+                  <span
+                    style={{
+                      background: "rgba(52, 152, 219, 0.3)",
+                      color: "#3498db",
+                      padding: "4px 8px",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      border: "1px solid rgba(52, 152, 219, 0.5)",
+                    }}
+                  >
+                    {section.count}
+                  </span>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <div
+          style={{
+            marginTop: "40px",
+            padding: "20px",
+            background: "rgba(52, 152, 219, 0.1)",
+            borderRadius: "8px",
+            border: "1px solid rgba(52, 152, 219, 0.2)",
+          }}
+        >
+          <div style={{ fontSize: "12px", opacity: 0.7, marginBottom: "8px" }}>
+            Quick Stats
+          </div>
+          <div
+            style={{ fontSize: "18px", fontWeight: "bold", color: "#3498db" }}
+          >
+            {tasks.length +
+              resources.length +
+              events.length +
+              hooks.length +
+              middlewares.length}
+          </div>
+          <div style={{ fontSize: "12px", opacity: 0.8 }}>Total Components</div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <div
+        style={{
+          marginLeft: "280px",
+          flex: 1,
+          padding: "40px",
+        }}
+      >
+        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+          <header
+            id="top"
+            style={{
+              textAlign: "center",
+              marginBottom: "50px",
+              background: "linear-gradient(135deg, #007acc, #0056b3)",
+              color: "white",
+              padding: "40px",
+              borderRadius: "12px",
+              boxShadow: "0 8px 32px rgba(0,122,204,0.3)",
+            }}
+          >
+            <h1
+              style={{
+                margin: "0 0 10px 0",
+                fontSize: "36px",
+                fontWeight: "700",
+              }}
+            >
+              Runner Application Documentation
+            </h1>
+            <p style={{ margin: 0, fontSize: "18px", opacity: 0.9 }}>
+              Complete overview of your application's architecture and
+              components
+            </p>
+          </header>
+
+          <section
+            id="overview"
+            style={{ marginBottom: "50px", scrollMarginTop: "20px" }}
+          >
+            <h2
+              style={{
+                fontSize: "28px",
+                marginBottom: "30px",
+                color: "#2c3e50",
+              }}
+            >
+              📋 Overview
+            </h2>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                gap: "25px",
+              }}
+            >
+              <div
+                style={{
+                  padding: "30px",
+                  background: "linear-gradient(135deg, #007acc, #0056b3)",
+                  color: "white",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  boxShadow: "0 4px 20px rgba(0,122,204,0.2)",
+                }}
+              >
+                <h3 style={{ margin: "0 0 15px 0", fontSize: "18px" }}>
+                  Tasks
+                </h3>
+                <div style={{ fontSize: "36px", fontWeight: "bold" }}>
+                  {tasks.length}
+                </div>
+              </div>
+              <div
+                style={{
+                  padding: "30px",
+                  background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                  color: "white",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  boxShadow: "0 4px 20px rgba(40,167,69,0.2)",
+                }}
+              >
+                <h3 style={{ margin: "0 0 15px 0", fontSize: "18px" }}>
+                  Resources
+                </h3>
+                <div style={{ fontSize: "36px", fontWeight: "bold" }}>
+                  {resources.length}
+                </div>
+              </div>
+              <div
+                style={{
+                  padding: "30px",
+                  background: "linear-gradient(135deg, #ffc107, #e0a800)",
+                  color: "white",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  boxShadow: "0 4px 20px rgba(255,193,7,0.2)",
+                }}
+              >
+                <h3 style={{ margin: "0 0 15px 0", fontSize: "18px" }}>
+                  Events
+                </h3>
+                <div style={{ fontSize: "36px", fontWeight: "bold" }}>
+                  {events.length}
+                </div>
+              </div>
+              <div
+                style={{
+                  padding: "30px",
+                  background: "linear-gradient(135deg, #6f42c1, #563d7c)",
+                  color: "white",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  boxShadow: "0 4px 20px rgba(111,66,193,0.2)",
+                }}
+              >
+                <h3 style={{ margin: "0 0 15px 0", fontSize: "18px" }}>
+                  Middlewares
+                </h3>
+                <div style={{ fontSize: "36px", fontWeight: "bold" }}>
+                  {middlewares.length}
+                </div>
+              </div>
+              <div
+                style={{
+                  padding: "30px",
+                  background: "linear-gradient(135deg, #9c27b0, #673ab7)",
+                  color: "white",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  boxShadow: "0 4px 20px rgba(156,39,176,0.2)",
+                }}
+              >
+                <h3 style={{ margin: "0 0 15px 0", fontSize: "18px" }}>
+                  Hooks
+                </h3>
+                <div style={{ fontSize: "36px", fontWeight: "bold" }}>
+                  {hooks.length}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            id="diagnostics"
+            style={{ marginBottom: "50px", scrollMarginTop: "20px" }}
+          >
+            <h2
+              style={{
+                fontSize: "28px",
+                marginBottom: "30px",
+                color: "#2c3e50",
+              }}
+            >
+              🔍 Diagnostics
+            </h2>
+            <DiagnosticsPanel introspector={introspector} detailed />
+          </section>
+
+          {tasks.length > 0 && (
+            <section
+              id="tasks"
+              style={{ marginBottom: "60px", scrollMarginTop: "20px" }}
+            >
+              <h2
+                style={{
+                  fontSize: "28px",
+                  marginBottom: "30px",
+                  color: "#2c3e50",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                ⚙️ Tasks ({tasks.length})
+              </h2>
+              <div style={{ display: "grid", gap: "30px" }}>
+                {tasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    introspector={introspector}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {resources.length > 0 && (
+            <section
+              id="resources"
+              style={{ marginBottom: "60px", scrollMarginTop: "20px" }}
+            >
+              <h2
+                style={{
+                  fontSize: "28px",
+                  marginBottom: "30px",
+                  color: "#2c3e50",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                🔧 Resources ({resources.length})
+              </h2>
+              <div style={{ display: "grid", gap: "30px" }}>
+                {resources.map((resource) => (
+                  <ResourceCard
+                    key={resource.id}
+                    resource={resource}
+                    introspector={introspector}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {events.length > 0 && (
+            <section
+              id="events"
+              style={{ marginBottom: "60px", scrollMarginTop: "20px" }}
+            >
+              <h2
+                style={{
+                  fontSize: "28px",
+                  marginBottom: "30px",
+                  color: "#2c3e50",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                📡 Events ({events.length})
+              </h2>
+              <div style={{ display: "grid", gap: "30px" }}>
+                {events.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    introspector={introspector}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {hooks.length > 0 && (
+            <section
+              id="hooks"
+              style={{ marginBottom: "60px", scrollMarginTop: "20px" }}
+            >
+              <h2
+                style={{
+                  fontSize: "28px",
+                  marginBottom: "30px",
+                  color: "#2c3e50",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                🪝 Hooks ({hooks.length})
+              </h2>
+              <div style={{ display: "grid", gap: "30px" }}>
+                {hooks.map((hook) => (
+                  <HookCard
+                    key={hook.id}
+                    hook={hook}
+                    introspector={introspector}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {middlewares.length > 0 && (
+            <section
+              id="middlewares"
+              style={{ marginBottom: "60px", scrollMarginTop: "20px" }}
+            >
+              <h2
+                style={{
+                  fontSize: "28px",
+                  marginBottom: "30px",
+                  color: "#2c3e50",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                🔗 Middlewares ({middlewares.length})
+              </h2>
+              <div style={{ display: "grid", gap: "30px" }}>
+                {middlewares.map((middleware) => (
+                  <MiddlewareCard
+                    key={middleware.id}
+                    middleware={middleware}
+                    introspector={introspector}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {tags.length > 0 && (
+            <section
+              id="tags"
+              style={{ marginBottom: "50px", scrollMarginTop: "20px" }}
+            >
+              <h2
+                style={{
+                  fontSize: "28px",
+                  marginBottom: "30px",
+                  color: "#2c3e50",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                🏷️ Tags ({tags.length})
+              </h2>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                  gap: "25px",
+                }}
+              >
+                {tags.map((tag) => (
+                  <TagCard
+                    key={tag.id}
+                    tag={tag}
+                    introspector={introspector}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );

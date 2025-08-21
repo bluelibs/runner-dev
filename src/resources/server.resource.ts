@@ -37,6 +37,9 @@ export const serverResource = resource({
     config: ServerConfig,
     { store, logger, introspector, live, swapManager, graphql }
   ) {
+    logger = logger.with({
+      source: serverResource.id,
+    });
     const server = new ApolloServer({ schema: graphql.getSchema() });
     const port = config.port ?? 1337;
     const apolloConfig = config.apollo ?? {};
@@ -64,9 +67,12 @@ export const serverResource = resource({
     app.use("/voyager", voyagerMiddleware({ endpointUrl: "/graphql" }));
 
     // React SSR endpoints
-    app.get("/react", (_req: express.Request, res: express.Response) => {
+    app.get("/docs", (req: express.Request, res: express.Response) => {
+      const namespacePrefix = req.query.namespace as string | undefined;
+      logger.info(`Rendering documentation with namespace: ${namespacePrefix}`);
       const component = React.createElement(Documentation, {
         introspector,
+        namespacePrefix,
       });
 
       const html = renderReactToString(component, {
@@ -80,21 +86,6 @@ export const serverResource = resource({
       res.setHeader("Content-Type", "text/html");
       res.send(html);
     });
-
-    app.get(
-      "/react/component",
-      (_req: express.Request, res: express.Response) => {
-        const component = React.createElement(ExampleComponent, {
-          title: "Component Only",
-          message:
-            "This returns just the React component HTML without the full document wrapper.",
-        });
-
-        const html = renderReactComponentOnly(component);
-        res.setHeader("Content-Type", "text/html");
-        res.send(html);
-      }
-    );
 
     // Convenience redirect
     app.get("/", (_req: Request, res: Response) => res.redirect("/voyager"));
@@ -113,8 +104,9 @@ export const serverResource = resource({
         });
       } else {
         const baseUrl = `http://localhost:${port}`;
-        logger.info(`🚀 Runner Dev GraphQL Server ready at ${baseUrl}/graphql`);
-        logger.info(`🚀 Voyager UI ready at ${baseUrl}/voyager`);
+        logger.info(`GraphQL Server ready at ${baseUrl}/graphql`);
+        logger.info(`Voyager UI ready at ${baseUrl}/voyager`);
+        logger.info(`Project Documentation ready at ${baseUrl}/docs`);
       }
     });
 

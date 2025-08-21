@@ -8,15 +8,6 @@ import { graphql } from "../../resources/graphql-accumulator.resource";
 import { swapManager } from "../../resources/swap.resource";
 import { dev } from "../../resources/dev.resource";
 
-process.on("beforeExit", (code) => console.log("[process] beforeExit", code));
-process.on("exit", (code) => console.log("[process] exit", code));
-process.on("uncaughtException", (err) =>
-  console.error("[process] uncaughtException", err)
-);
-process.on("unhandledRejection", (reason) =>
-  console.error("[process] unhandledRejection", reason)
-);
-
 const app = createDummyApp([
   dev.with({
     port: 31337,

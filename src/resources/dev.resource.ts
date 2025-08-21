@@ -1,6 +1,6 @@
 import { resource } from "@bluelibs/runner";
 import { telemetry } from "./telemetry.resource";
-import { server } from "./server.resource";
+import { serverResource } from "./server.resource";
 import { graphql } from "./graphql-accumulator.resource";
 import { swapManager } from "./swap.resource";
 import { introspector } from "./introspector.resource";
@@ -16,7 +16,7 @@ export const dev = resource({
   register: (config: DevConfig) => [
     introspector,
     telemetry,
-    server.with({
+    serverResource.with({
       port: config.port,
     }),
     graphql,

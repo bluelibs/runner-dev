@@ -23,7 +23,7 @@ export interface ServerConfig {
   apollo?: StartStandaloneServerOptions<CustomGraphQLContext>;
 }
 
-export const server = resource({
+export const serverResource = resource({
   id: "runner-dev.resources.server",
   dependencies: {
     store: globals.resources.store,
@@ -99,10 +99,30 @@ export const server = resource({
     // Convenience redirect
     app.get("/", (_req: Request, res: Response) => res.redirect("/voyager"));
 
-    const httpServer = await app.listen(port, () => {
-      const baseUrl = `http://localhost:${port}`;
-      logger.info(`🚀 Runner Dev GraphQL Server ready at ${baseUrl}/graphql`);
-      logger.info(`🚀 Voyager UI ready at ${baseUrl}/voyager`);
+    let resolve, reject;
+    const promise = new Promise((_resolve, _reject) => {
+      resolve = _resolve;
+      reject = _reject;
+    });
+
+    const httpServer = await app.listen(port, (e) => {
+      if (e) {
+        logger.error("Server error", {
+          error: e,
+          source: serverResource.id,
+        });
+      } else {
+        const baseUrl = `http://localhost:${port}`;
+        logger.info(`🚀 Runner Dev GraphQL Server ready at ${baseUrl}/graphql`);
+        logger.info(`🚀 Voyager UI ready at ${baseUrl}/voyager`);
+      }
+    });
+
+    httpServer.on("error", (err) => {
+      logger.error("Server error", {
+        error: err,
+        source: serverResource.id,
+      });
     });
 
     return { apolloServer: server, httpServer };

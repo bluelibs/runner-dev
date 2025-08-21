@@ -1,6 +1,6 @@
 import { resource } from "@bluelibs/runner";
 
-import { server } from "./resources/server.resource";
+import { serverResource } from "./resources/server.resource";
 import { introspector } from "./resources/introspector.resource";
 import { live } from "./resources/live.resource";
 import { telemetry } from "./resources/telemetry.resource";
@@ -11,7 +11,7 @@ import { dev } from "./resources/dev.resource";
 Error.stackTraceLimit = Infinity;
 
 export const resources = {
-  server,
+  server: serverResource,
   introspector,
   live,
   telemetry,

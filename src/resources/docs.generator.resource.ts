@@ -1,5 +1,5 @@
 import { resource } from "@bluelibs/runner";
-import type { Introspector } from "./introspector.resource";
+import type { Introspector } from "./models/Introspector";
 import { introspector } from "./introspector.resource";
 import type {
   Resource,

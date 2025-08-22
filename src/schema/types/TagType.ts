@@ -10,7 +10,7 @@ import { TaskType } from "./TaskType";
 import { ResourceType } from "./ResourceType";
 import { MiddlewareType } from "./MiddlewareType";
 import { EventType } from "./EventType";
-import type { Introspector } from "../../resources/introspector.resource";
+import type { Introspector } from "../../resources/models/Introspector";
 
 export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
   new GraphQLObjectType({
@@ -20,17 +20,13 @@ export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
         type: new GraphQLNonNull(GraphQLString),
       },
       tasks: {
-        type: new GraphQLNonNull(
-          new GraphQLList(new GraphQLNonNull(TaskType))
-        ),
+        type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
         resolve: (tag, _, { introspector }) => {
           return introspector.getTasksWithTag(tag.id);
         },
       },
       hooks: {
-        type: new GraphQLNonNull(
-          new GraphQLList(new GraphQLNonNull(HookType))
-        ),
+        type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(HookType))),
         resolve: (tag, _, { introspector }) => {
           return introspector.getHooksWithTag(tag.id);
         },

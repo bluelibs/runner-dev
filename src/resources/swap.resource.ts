@@ -1,6 +1,6 @@
 import { globals, resource } from "@bluelibs/runner";
 import { introspector } from "./introspector.resource";
-import type { Introspector } from "./introspector.resource";
+import type { Introspector } from "./models/Introspector";
 import {
   compileRunFunction,
   getTaskFromStore,

@@ -1,7 +1,15 @@
 import React from "react";
-import { Introspector } from "../../resources/introspector.resource";
+import { Introspector } from "../../resources/models/Introspector";
 
-export type Section = 'overview' | 'tasks' | 'resources' | 'events' | 'hooks' | 'middlewares' | 'tags' | 'diagnostics';
+export type Section =
+  | "overview"
+  | "tasks"
+  | "resources"
+  | "events"
+  | "hooks"
+  | "middlewares"
+  | "tags"
+  | "diagnostics";
 import { TaskCard } from "./components/TaskCard";
 import { ResourceCard } from "./components/ResourceCard";
 import { MiddlewareCard } from "./components/MiddlewareCard";

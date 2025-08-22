@@ -1,5 +1,5 @@
 import type { Store } from "@bluelibs/runner";
-import type { Introspector } from "../resources/introspector.resource";
+import type { Introspector } from "../resources/models/Introspector";
 import type { Live } from "../resources/live.resource";
 import type { SwapManager } from "../resources/swap.resource";
 

@@ -9,7 +9,7 @@ import type {
 } from "../schema/model";
 import { elementKindSymbol } from "../schema/model";
 import { definitions } from "@bluelibs/runner";
-import type { Introspector } from "./introspector.resource";
+import type { Introspector } from "./models/Introspector";
 import type { DiagnosticItem } from "../schema/model";
 import { accessSync, constants as fsConstants } from "fs";
 import { sanitizePath } from "../utils/path";

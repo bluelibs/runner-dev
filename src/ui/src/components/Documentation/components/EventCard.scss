@@ -157,6 +157,52 @@
 }
 
 // -----------------------------------------------------------------------------
+// Listeners List
+// -----------------------------------------------------------------------------
+.event-card__listeners-list {
+  display: grid;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+.event-card__listener-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-sm;
+  padding: $spacing-sm;
+  border-left: 4px solid #ff9500;
+  transition: $transition-fast;
+
+  &:hover {
+    background: rgba(52, 152, 219, 0.05);
+    border-color: rgba(52, 152, 219, 0.3);
+    text-decoration: none;
+  }
+
+  &:visited {
+    color: inherit;
+  }
+
+  &__content {
+    .title {
+      font-weight: 600;
+      margin-bottom: $spacing-xs;
+      color: $text-darker;
+      font-size: $font-size-sm;
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      color: #666;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Code Block
 // -----------------------------------------------------------------------------
 .event-card__code-block {

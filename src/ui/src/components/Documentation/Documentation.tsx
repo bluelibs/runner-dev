@@ -287,7 +287,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
           {tags.length > 0 && (
             <section id="tags" className="docs-section">
               <h2>🏷️ Tags ({tags.length})</h2>
-              <div className="overview-grid">
+              <div className="docs-tags-grid">
                 {tags.map((tag) => (
                   <TagCard key={tag.id} tag={tag} introspector={introspector} />
                 ))}

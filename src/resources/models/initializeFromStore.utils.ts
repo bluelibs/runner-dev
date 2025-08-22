@@ -10,6 +10,7 @@ import type {
 import { elementKindSymbol } from "../../schema/model";
 import { definitions } from "@bluelibs/runner";
 import { formatSchemaIfZod } from "../../utils/zod";
+import { sanitizePath } from "../../utils/path";
 import {
   buildIdMap,
   readId,
@@ -86,7 +87,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
       meta: buildMetaWithNormalizedTags(task.meta, task),
       tags: tagIds,
       tagsDetailed,
-      filePath: task[definitions.symbolFilePath],
+      filePath: sanitizePath(task[definitions.symbolFilePath] ?? null),
       dependsOn: resourceIdsFromDeps,
       middleware: task.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
@@ -130,7 +131,7 @@ export function mapStoreHookToHookModel(
       meta: buildMetaWithNormalizedTags(hk?.meta, hk),
       tags: tagIds,
       tagsDetailed,
-      filePath: hk?.[definitions.symbolFilePath] ?? null,
+      filePath: sanitizePath(hk?.[definitions.symbolFilePath] ?? null),
       emits: eventIdsFromDeps,
       dependsOn: resourceIdsFromDeps,
       middleware: [],
@@ -175,7 +176,7 @@ export function mapStoreResourceToResourceModel(
       tagsDetailed,
       emits: eventIdsFromDeps,
       dependsOn: resourceIdsFromDeps,
-      filePath: resource[definitions.symbolFilePath] ?? null,
+      filePath: sanitizePath(resource[definitions.symbolFilePath] ?? null),
       middleware: resource.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
       overrides: resource.overrides
@@ -221,7 +222,12 @@ export function buildEvents(
         meta: buildMetaWithNormalizedTags((e as any)?.meta ?? null, e),
         tags: tagIds,
         tagsDetailed,
-        filePath: e?.filePath ?? e?.path ?? null,
+        filePath: sanitizePath(
+          (e && (e as any)[definitions.symbolFilePath]) ??
+            e?.filePath ??
+            e?.path ??
+            null
+        ),
         listenedToBy: hooks.filter((l) => l.event === eventId).map((l) => l.id),
         registeredBy: null,
         payloadSchema: formatSchemaIfZod((e as any)?.payloadSchema),
@@ -284,8 +290,9 @@ function buildMiddlewaresGeneric(
         meta: buildMetaWithNormalizedTags(mw?.meta ?? null, mw),
         tags: tagIds,
         tagsDetailed,
-        filePath:
-          mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null,
+        filePath: sanitizePath(
+          mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null
+        ),
         global: globalValue,
         usedByTasks,
         usedByResources,

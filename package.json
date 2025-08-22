@@ -8,6 +8,7 @@
     "url": "https://github.com/bluelibs/runner-dev"
   },
   "scripts": {
+    "pretest": "npm run build",
     "build": "npm run codegen && tsc && npm run build:ui",
     "watch": "tsc -w",
     "clean": "rm -rf dist",
@@ -28,7 +29,11 @@
     "typedoc": "typedoc --options typedoc.json",
     "codegen": "graphql-codegen --config codegen.ts",
     "prebuild": "npm run codegen",
-    "play": "concurrently -k -n UI,SRV -c blue,green \"npm:build:ui:watch\" \"npm:play:server\""
+    "play": "concurrently -k -n UI,SRV -c blue,green \"npm:build:ui:watch\" \"npm:play:server\"",
+    "play:cli": "npm run play:server",
+    "demo:ping": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js ping",
+    "demo:query": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js query 'query { tasks { id } }' --format pretty",
+    "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5"
   },
   "bin": {
     "runner-dev": "dist/cli.js"

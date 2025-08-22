@@ -104,6 +104,119 @@ Available tools once connected:
 - `graphql.ping` — reachability check
 - `project.overview` — dynamic Markdown overview aggregated from the API
 
+### CLI usage (direct)
+
+This package also ships a CLI that can query the same GraphQL API or generate an overview directly from your terminal.
+
+Prerequisites:
+
+- Ensure your app registers the Dev GraphQL server (`dev.with({ port: 1337 })`) or otherwise expose a compatible endpoint.
+- Build this package (or install it) so the binary is available.
+
+Help:
+
+```bash
+npx @bluelibs/runner-dev --help
+```
+
+Ping endpoint:
+
+```bash
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev ping
+```
+
+Run a query:
+
+```bash
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }'
+
+# With variables and pretty output
+ENDPOINT=http://localhost:1337/graphql \
+  npx @bluelibs/runner-dev query \
+  'query Q($ns: ID){ tasks(idIncludes: $ns) { id } }' \
+  --variables '{"ns":"task."}' \
+  --format pretty
+
+# Add a namespace sugar to inject idIncludes/filter automatically
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }' --namespace task.
+```
+
+Project overview (Markdown):
+
+```bash
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev overview --details 10 --include-live
+```
+
+Schema tools:
+
+```bash
+# SDL string
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema sdl
+
+# Introspection JSON
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema json
+```
+
+Environment variables used by all commands:
+
+- `ENDPOINT` (or `GRAPHQL_ENDPOINT`): GraphQL endpoint URL
+- `HEADERS`: JSON for extra headers, e.g. `{"Authorization":"Bearer ..."}`
+
+Flags:
+
+- `--endpoint <url>`: override endpoint
+- `--headers '<json>'`: override headers
+- `--variables '<json>'`: JSON variables for query
+- `--operation <name>`: operation name for documents with multiple operations
+- `--format data|json|pretty`: output mode (default `data`)
+- `--raw`: print full GraphQL envelope including errors
+- `--namespace <str>`: convenience filter that injects `idIncludes` or `events(filter: { idIncludes })` at the top-level fields when possible
+
+### Local dev playbook
+
+Quickly boot the dummy server and UI, then exercise the CLI against it.
+
+1. Start dev play (UI + Server):
+
+```bash
+npm run play
+```
+
+This starts:
+
+- UI watcher (`vite build --watch`)
+- Dummy GraphQL server with Dev resources on port 31337
+
+2. In another terminal, build the CLI and run demo commands:
+
+```bash
+npm run build
+npm run demo:ping
+npm run demo:query
+npm run demo:overview
+```
+
+Alternatively, you can keep a server-only process:
+
+```bash
+npm run play:cli
+# Then:
+npm run demo:query
+```
+
+### Testing
+
+- Unit/integration tests are executed via Jest: `npm test`.
+- CLI remote tests spin up the dummy app on ephemeral ports and dispose cleanly.
+
+Run only the CLI tests:
+
+```bash
+npm test -- src/__tests__/component/cli.query.remote.test.ts src/__tests__/component/cli.overview.remote.test.ts
+```
+
+CI note: we prebuild before tests via `pretest` so the CLI binary `dist/cli.js` is available.
+
 ## Programmatic Introspection (without GraphQL)
 
 ```ts

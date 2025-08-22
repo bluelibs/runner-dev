@@ -1,0 +1,89 @@
+@use "../../../styles/variables" as *;
+
+.code-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.code-modal__dialog {
+  width: min(1100px, 92vw);
+  max-height: 85vh;
+  background: $white;
+  border-radius: $border-radius-xl;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.code-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: $gradient-purple-dark;
+  color: $white;
+  padding: $spacing-lg $spacing-xl;
+}
+
+.code-modal__title {
+  margin: 0;
+  font-size: $font-size-xl;
+}
+
+.code-modal__subtitle {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+}
+
+.code-modal__close {
+  background: transparent;
+  border: none;
+  color: $white;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.code-modal__content {
+  padding: $spacing-xl;
+  background: $light-gray;
+  overflow: auto;
+}
+
+.code-modal__pre {
+  margin: 0;
+  background: #0d1117; // dark code bg like github
+  color: #e6edf3;
+  padding: $spacing-xl;
+  border-radius: $border-radius-lg;
+  border: 1px solid #30363d;
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+// Simple minimal syntax colors (not full tokenizer)
+code.language-ts {
+  .kw {
+    color: #ff7b72;
+  }
+  .ty {
+    color: #79c0ff;
+  }
+  .fn {
+    color: #d2a8ff;
+  }
+  .str {
+    color: #a5d6ff;
+  }
+  .num {
+    color: #ffa657;
+  }
+}

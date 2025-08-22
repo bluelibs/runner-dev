@@ -6,7 +6,7 @@ import {
   type GraphQLFieldConfigMap,
 } from "graphql";
 import { readFile, type ReadFileOptions } from "../utils";
-import { sanitizePath } from "../../utils/path";
+import { sanitizePath, resolvePathInput } from "../../utils/path";
 import type { BaseElement } from "../model";
 import type { Introspector } from "../../resources/models/Introspector";
 import { TagType } from "./TagType";
@@ -37,8 +37,8 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
       },
       resolve: async (node: BaseElement, args: ReadFileOptions) => {
         if (!node?.filePath) return null;
-        // Note: we keep reading from the real path, only redacting what we expose elsewhere
-        return await readFile(node.filePath, args);
+        const abs = resolvePathInput(node.filePath) ?? node.filePath;
+        return await readFile(abs, args);
       },
     },
     markdownDescription: {

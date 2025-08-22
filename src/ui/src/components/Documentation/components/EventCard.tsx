@@ -1,13 +1,14 @@
 import React from "react";
 import { Event } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import {
-  formatSchema,
-  formatFilePath,
-  formatId,
-} from "../utils/formatting";
+import { formatSchema, formatFilePath, formatId } from "../utils/formatting";
 import { TagsSection } from "./TagsSection";
 import "./EventCard.scss";
+import { CodeModal } from "./CodeModal";
+import {
+  graphqlRequest,
+  SAMPLE_EVENT_FILE_QUERY,
+} from "../utils/graphqlClient";
 
 export interface EventCardProps {
   event: Event;
@@ -21,6 +22,29 @@ export const EventCard: React.FC<EventCardProps> = ({
   const emitters = introspector.getEmittersOfEvent(event.id);
   const hooks = introspector.getHooksOfEvent(event.id);
   const isGlobalEvent = event.id === "*";
+
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [fileContent, setFileContent] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function openFileModal() {
+    if (!event?.id) return;
+    setIsModalOpen(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await graphqlRequest<{
+        event: { fileContents: string | null };
+      }>(SAMPLE_EVENT_FILE_QUERY, { id: event.id });
+      setFileContent(data?.event?.fileContents ?? null);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load file");
+      setFileContent(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const getEventIcon = () => {
     if (isGlobalEvent) return "🌐";
@@ -105,7 +129,29 @@ export const EventCard: React.FC<EventCardProps> = ({
                 )}
                 <div className="event-card__info-block">
                   <div className="label">File Path:</div>
-                  <div className="value">{formatFilePath(event.filePath)}</div>
+                  <div className="value">
+                    {event.filePath ? (
+                      <button
+                        type="button"
+                        onClick={openFileModal}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#3498db",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          padding: 0,
+                          fontFamily: "inherit",
+                          fontSize: "inherit",
+                        }}
+                        title="View file contents"
+                      >
+                        {formatFilePath(event.filePath)}
+                      </button>
+                    ) : (
+                      formatFilePath(event.filePath)
+                    )}
+                  </div>
                 </div>
 
                 {event.registeredBy && (
@@ -132,50 +178,25 @@ export const EventCard: React.FC<EventCardProps> = ({
                   </div>
                 </div>
 
-                <div className="event-card__info-block">
-                  <div className="label">Listened To By:</div>
-                  <div className="value">
-                    {!event.listenedToBy || event.listenedToBy.length === 0 ? (
-                      'None'
-                    ) : event.listenedToBy.length === 1 ? (
-                      <a
-                        href={`#element-${event.listenedToBy[0]}`}
-                        className="event-card__registrar-link"
-                      >
-                        {event.listenedToBy[0]}
-                      </a>
-                    ) : event.listenedToBy.length <= 3 ? (
-                      event.listenedToBy.map((id, index) => (
-                        <span key={id}>
-                          <a
-                            href={`#element-${id}`}
-                            className="event-card__registrar-link"
-                          >
-                            {id}
-                          </a>
-                          {index < event.listenedToBy!.length - 1 && ', '}
-                        </span>
-                      ))
-                    ) : (
-                      <>
-                        {event.listenedToBy.slice(0, 3).map((id, index) => (
-                          <span key={id}>
-                            <a
-                              href={`#element-${id}`}
-                              className="event-card__registrar-link"
-                            >
-                              {id}
-                            </a>
-                            {index < 2 && ', '}
-                          </span>
-                        ))}
-                        {' and '}
-                        {event.listenedToBy.length - 3}
-                        {' more'}
-                      </>
-                    )}
+                {event.listenedToBy && event.listenedToBy.length > 0 && (
+                  <div className="event-card__info-block">
+                    <div className="label">Listened To By:</div>
+                    <div className="event-card__listeners-list">
+                      {event.listenedToBy.map((id) => (
+                        <a
+                          key={id}
+                          href={`#element-${id}`}
+                          className="event-card__listener-item"
+                        >
+                          <div className="event-card__listener-item__content">
+                            <div className="title">{formatId(id)}</div>
+                            <div className="id">{id}</div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {((!isGlobalEvent && emitters.length === 0) ||
                   hooks.length === 0) && (
@@ -343,12 +364,24 @@ export const EventCard: React.FC<EventCardProps> = ({
           )}
         </div>
 
-        <TagsSection 
-          element={event} 
-          introspector={introspector} 
+        <TagsSection
+          element={event}
+          introspector={introspector}
           className="event-card__tags-section"
         />
       </div>
+
+      <CodeModal
+        title={
+          isGlobalEvent
+            ? event.meta?.title || "Global Event"
+            : event.meta?.title || formatId(event.id)
+        }
+        subtitle={event.filePath || undefined}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+      />
     </div>
   );
 };

@@ -7,6 +7,8 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
+import { CodeModal } from "./CodeModal";
+import { graphqlRequest, SAMPLE_TASK_FILE_QUERY } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./TaskCard.scss";
 export interface TaskCardProps {
@@ -18,6 +20,28 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const dependencies = introspector.getDependencies(task);
   const middlewareUsages = introspector.getMiddlewareUsagesForTask(task.id);
   const emittedEvents = introspector.getEmittedEvents(task);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [fileContent, setFileContent] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function openFileModal() {
+    if (!task?.id) return;
+    setIsModalOpen(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await graphqlRequest<{
+        task: { fileContents: string | null };
+      }>(SAMPLE_TASK_FILE_QUERY, { id: task.id });
+      setFileContent(data?.task?.fileContents ?? null);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load file");
+      setFileContent(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div id={`element-${task.id}`} className="task-card">
@@ -52,7 +76,29 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
               <div className="task-card__section__content">
                 <div className="task-card__info-block">
                   <div className="label">File Path:</div>
-                  <div className="value">{formatFilePath(task.filePath)}</div>
+                  <div className="value">
+                    {task.filePath ? (
+                      <button
+                        type="button"
+                        onClick={openFileModal}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#0056b3",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          padding: 0,
+                          fontFamily: "inherit",
+                          fontSize: "inherit",
+                        }}
+                        title="View file contents"
+                      >
+                        {formatFilePath(task.filePath)}
+                      </button>
+                    ) : (
+                      formatFilePath(task.filePath)
+                    )}
+                  </div>
                 </div>
 
                 {task.registeredBy && (
@@ -71,7 +117,33 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
                 <div className="task-card__info-block">
                   <div className="label">Emits Events:</div>
-                  <div className="value">{formatArray(task.emits)}</div>
+                  <div className="value">
+                    {task.emits && task.emits.length > 0 ? (
+                      <div className="task-card__emits-events">
+                        {task.emits.map((eventName) => {
+                          const event = introspector.getEvent(eventName);
+                          return event ? (
+                            <a
+                              key={eventName}
+                              href={`#element-${event.id}`}
+                              className="task-card__emit-event-link"
+                            >
+                              {eventName}
+                            </a>
+                          ) : (
+                            <span
+                              key={eventName}
+                              className="task-card__emit-event-text"
+                            >
+                              {eventName}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="task-card__no-events">None</span>
+                    )}
+                  </div>
                 </div>
 
                 {task.overriddenBy && (
@@ -194,12 +266,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           </div>
         )}
 
-        <TagsSection 
-          element={task} 
-          introspector={introspector} 
+        <TagsSection
+          element={task}
+          introspector={introspector}
           className="task-card__tags-section"
         />
       </div>
+
+      <CodeModal
+        title={task.meta?.title || formatId(task.id)}
+        subtitle={task.filePath || undefined}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+      />
     </div>
   );
 };

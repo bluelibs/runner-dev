@@ -61,6 +61,32 @@
 }
 
 // -----------------------------------------------------------------------------
+// Type Badge
+// -----------------------------------------------------------------------------
+.middleware-card__type-badge {
+  padding: $spacing-md $spacing-lg;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-md;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: $spacing-sm;
+
+  &--task {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+
+  &--resource {
+    background: rgba(255, 193, 7, 0.3);
+    color: #fff;
+    border: 1px solid rgba(255, 193, 7, 0.6);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Global Middleware Badges
 // -----------------------------------------------------------------------------
 .middleware-card__global-badges {
@@ -367,7 +393,7 @@
       font-weight: 500;
 
       &--task {
-        background: #bbdefb;
+        background: #fff;
         color: #1565c0;
       }
 

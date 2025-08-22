@@ -408,4 +408,28 @@ describe("Format Utilities", () => {
       });
     });
   });
+
+  test("formatFilePath preserves sanitize prefixes and truncates tail", () => {
+    const {
+      formatFilePath,
+    } = require("../../ui/src/components/Documentation/utils/formatting");
+
+    expect(formatFilePath(null)).toBe("Unknown location");
+    expect(formatFilePath("workspace:src/index.ts")).toBe(
+      "workspace:src/index.ts"
+    );
+    expect(formatFilePath("workspace:src/a/b/c/d/e.ts")).toBe(
+      "workspace:/.../c/d/e.ts"
+    );
+    expect(formatFilePath("node_modules:@scope/pkg/dist/index.js")).toBe(
+      "node_modules:@scope/pkg/dist/index.js"
+    );
+    expect(formatFilePath("node_modules:@scope/pkg/a/b/c/d.js")).toBe(
+      "node_modules:/.../b/c/d.js"
+    );
+    // Non-prefixed fallback
+    expect(formatFilePath("/Users/me/project/src/a/b/c.ts")).toBe(
+      ".../a/b/c.ts"
+    );
+  });
 });

@@ -8,6 +8,11 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
+import { CodeModal } from "./CodeModal";
+import {
+  graphqlRequest,
+  SAMPLE_RESOURCE_FILE_QUERY,
+} from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./ResourceCard.scss";
 export interface ResourceCardProps {
@@ -32,6 +37,29 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     ...introspector.getHooksByIds(resource.registers),
   ];
   const overriddenElements = introspector.getResourcesByIds(resource.overrides);
+
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [fileContent, setFileContent] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function openFileModal() {
+    if (!resource?.id) return;
+    setIsModalOpen(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await graphqlRequest<{
+        resource: { fileContents: string | null };
+      }>(SAMPLE_RESOURCE_FILE_QUERY, { id: resource.id });
+      setFileContent(data?.resource?.fileContents ?? null);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load file");
+      setFileContent(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div id={`element-${resource.id}`} className="resource-card">
@@ -69,7 +97,27 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                 <div className="resource-card__info-block">
                   <div className="label">File Path:</div>
                   <div className="value">
-                    {formatFilePath(resource.filePath)}
+                    {resource.filePath ? (
+                      <button
+                        type="button"
+                        onClick={openFileModal}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#2e7d32",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          padding: 0,
+                          fontFamily: "inherit",
+                          fontSize: "inherit",
+                        }}
+                        title="View file contents"
+                      >
+                        {formatFilePath(resource.filePath)}
+                      </button>
+                    ) : (
+                      formatFilePath(resource.filePath)
+                    )}
                   </div>
                 </div>
 
@@ -232,12 +280,20 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
           </div>
         )}
 
-        <TagsSection 
-          element={resource} 
-          introspector={introspector} 
+        <TagsSection
+          element={resource}
+          introspector={introspector}
           className="resource-card__tags-section"
         />
       </div>
+
+      <CodeModal
+        title={resource.meta?.title || formatId(resource.id)}
+        subtitle={resource.filePath || undefined}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+      />
     </div>
   );
 };

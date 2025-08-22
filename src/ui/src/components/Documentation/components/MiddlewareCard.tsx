@@ -9,6 +9,11 @@ import {
 } from "../utils/formatting";
 import { TagsSection } from "./TagsSection";
 import "./MiddlewareCard.scss";
+import { CodeModal } from "./CodeModal";
+import {
+  graphqlRequest,
+  SAMPLE_MIDDLEWARE_FILE_QUERY,
+} from "../utils/graphqlClient";
 
 export interface MiddlewareCardProps {
   middleware: Middleware;
@@ -29,15 +34,33 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
 
   const getMiddlewareTypeIcon = () => {
     if (middleware.global?.enabled) return "🌐";
-    if (
-      middleware.usedByTasks.length > 0 &&
-      middleware.usedByResources.length > 0
-    )
-      return "🔗";
-    if (middleware.usedByTasks.length > 0) return "⚙️";
-    if (middleware.usedByResources.length > 0) return "🔧";
+    if (middleware.type === "task") return "⚙️";
+    if (middleware.type === "resource") return "🔧";
     return "🔗";
   };
+
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [fileContent, setFileContent] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function openFileModal() {
+    if (!middleware?.id) return;
+    setIsModalOpen(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await graphqlRequest<{
+        middleware: { fileContents: string | null };
+      }>(SAMPLE_MIDDLEWARE_FILE_QUERY, { id: middleware.id });
+      setFileContent(data?.middleware?.fileContents ?? null);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load file");
+      setFileContent(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div id={`element-${middleware.id}`} className="middleware-card">
@@ -70,6 +93,11 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             )}
           </div>
           <div className="meta">
+            <div
+              className={`middleware-card__type-badge middleware-card__type-badge--${middleware.type}`}
+            >
+              {middleware.type === "task" ? "⚙️ Task" : "🔧 Resource"}
+            </div>
             {middleware.tags && middleware.tags.length > 0 && (
               <div className="middleware-card__tags">
                 {middleware.tags.map((tag) => (
@@ -91,7 +119,27 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
               <div className="middleware-card__info-block">
                 <div className="label">File Path:</div>
                 <div className="value">
-                  {formatFilePath(middleware.filePath)}
+                  {middleware.filePath ? (
+                    <button
+                      type="button"
+                      onClick={openFileModal}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "#7b1fa2",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        padding: 0,
+                        fontFamily: "inherit",
+                        fontSize: "inherit",
+                      }}
+                      title="View file contents"
+                    >
+                      {formatFilePath(middleware.filePath)}
+                    </button>
+                  ) : (
+                    formatFilePath(middleware.filePath)
+                  )}
                 </div>
               </div>
 
@@ -168,6 +216,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
               {formatSchema(middleware.configSchema)}
             </pre>
           </div>
+
           {(taskUsages.length > 0 || resourceUsages.length > 0) && (
             <div className="middleware-card__usage-details">
               <h4 className="middleware-card__usage-details__title">
@@ -275,13 +324,21 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             </div>
           )}
 
-          <TagsSection 
-            element={middleware} 
-            introspector={introspector} 
+          <TagsSection
+            element={middleware}
+            introspector={introspector}
             className="middleware-card__tags-section"
           />
         </div>
       </div>
+
+      <CodeModal
+        title={middleware.meta?.title || formatId(middleware.id)}
+        subtitle={middleware.filePath || undefined}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+      />
     </div>
   );
 };

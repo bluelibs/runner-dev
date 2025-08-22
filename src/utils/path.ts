@@ -77,3 +77,43 @@ export function sanitizePath(input: unknown): string | null {
 export function __resetPathRootsCache(): void {
   cachedRoots = null;
 }
+
+/**
+ * Attempts to resolve a sanitized/friendly path (eg. "workspace:src/index.ts",
+ * "node_modules:@scope/pkg/index.js", "home:.") back to an absolute path.
+ * If the input is already absolute, it is normalized and returned.
+ * Returns null when it cannot be resolved.
+ */
+export function resolvePathInput(input: unknown): string | null {
+  if (typeof input !== "string" || input.length === 0) return null;
+  // If already absolute, normalize and return
+  try {
+    const absTry = path.resolve(input);
+    // heuristic: if input starts with '/' (posix) or has drive letter (win), treat as absolute
+    const isAbsolute = path.isAbsolute(input) || /^[A-Za-z]:[\\/]/.test(input);
+    if (isAbsolute) return absTry;
+  } catch {
+    // continue
+  }
+
+  const idx = input.indexOf(":");
+  if (idx > 0) {
+    const prefix = input.slice(0, idx);
+    const rest = input.slice(idx + 1);
+    const roots = getPathRoots();
+    const root = roots.find((r) => r.name === prefix);
+    if (!root) return null;
+    const rel = rest === "." ? "" : rest.replace(/^\/*/, "");
+    return path.join(root.path, rel);
+  }
+
+  // Inputs like "…/a/b/c" cannot be resolved reliably
+  if (input.startsWith("…/")) return null;
+
+  // Fallback: treat as relative to cwd
+  try {
+    return path.resolve(input);
+  } catch {
+    return null;
+  }
+}

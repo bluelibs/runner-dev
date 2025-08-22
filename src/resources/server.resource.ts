@@ -121,7 +121,7 @@ export const serverResource = resource({
       });
     });
 
-    return { apolloServer: server, httpServer };
+    return { apolloServer: server, httpServer, app };
   },
   async dispose(instance) {
     console.log("Disposing server");

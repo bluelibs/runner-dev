@@ -290,3 +290,20 @@
     text-decoration: none;
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tags Grid (Responsive Layout)
+// -----------------------------------------------------------------------------
+.docs-tags-grid {
+  display: grid;
+  gap: $spacing-xl;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+}

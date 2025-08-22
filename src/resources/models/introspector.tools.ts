@@ -70,6 +70,8 @@ export function computeUnemittedEvents(
   const events = introspector.getEvents();
   return events
     .filter((e) => introspector.getEmittersOfEvent(e.id).length === 0)
+    .filter((e) => e.id !== "globals.events.ready")
+    .filter((e) => e.id !== "*")
     .map((e) => ({ id: e.id }));
 }
 

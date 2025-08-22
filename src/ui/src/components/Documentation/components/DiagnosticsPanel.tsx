@@ -70,43 +70,58 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
     </div>
   );
 
-  const renderDiagnosticItem = (diagnostic: any) => (
-    <div
-      key={`${diagnostic.code}-${diagnostic.nodeId || "global"}`}
-      className={`diagnostics-panel__item diagnostics-panel__item--${diagnostic.severity}`}
-    >
-      <div className="diagnostics-panel__item-content">
-        <span className="icon">
-          {getSeverityIcon(diagnostic.severity)}
-        </span>
-        <div className="main">
-          <div className="diagnostics-panel__item-header">
-            <span className={`diagnostics-panel__severity-badge diagnostics-panel__severity-badge--${diagnostic.severity}`}>
-              {diagnostic.severity}
-            </span>
-            <span className="diagnostics-panel__code-badge">
-              {diagnostic.code}
-            </span>
-          </div>
-          <div className="diagnostics-panel__message">
-            {diagnostic.message}
+  const renderDiagnosticItem = (diagnostic: any) => {
+    const ItemWrapper = diagnostic.nodeId ? 'a' : 'div';
+    const wrapperProps = diagnostic.nodeId ? {
+      href: `#element-${diagnostic.nodeId}`,
+      className: `diagnostics-panel__item diagnostics-panel__item--${diagnostic.severity} diagnostics-panel__item--clickable`
+    } : {
+      className: `diagnostics-panel__item diagnostics-panel__item--${diagnostic.severity}`
+    };
+
+    return (
+      <ItemWrapper
+        key={`${diagnostic.code}-${diagnostic.nodeId || "global"}`}
+        {...wrapperProps}
+      >
+        <div className="diagnostics-panel__item-content">
+          <span className="icon">
+            {getSeverityIcon(diagnostic.severity)}
+          </span>
+          <div className="main">
+            <div className="diagnostics-panel__item-header">
+              <span className={`diagnostics-panel__severity-badge diagnostics-panel__severity-badge--${diagnostic.severity}`}>
+                {diagnostic.severity}
+              </span>
+              <span className="diagnostics-panel__code-badge">
+                {diagnostic.code}
+              </span>
+            </div>
+            <div className="diagnostics-panel__message">
+              {diagnostic.message}
+            </div>
+            {diagnostic.nodeId && (
+              <div className="diagnostics-panel__node-info">
+                <div>
+                  <strong>Node:</strong> {formatId(diagnostic.nodeId)}
+                </div>
+                {diagnostic.nodeKind && (
+                  <div>
+                    <strong>Type:</strong> {diagnostic.nodeKind}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {diagnostic.nodeId && (
-            <div className="diagnostics-panel__node-info">
-              <div>
-                <strong>Node:</strong> {formatId(diagnostic.nodeId)}
-              </div>
-              {diagnostic.nodeKind && (
-                <div>
-                  <strong>Type:</strong> {diagnostic.nodeKind}
-                </div>
-              )}
+            <div className="diagnostics-panel__click-indicator">
+              🔗
             </div>
           )}
         </div>
-      </div>
-    </div>
-  );
+      </ItemWrapper>
+    );
+  };
 
   const renderSpecialItems = (
     items: any[],
@@ -130,9 +145,10 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
       ) : (
         <div className="diagnostics-panel__special-section__items">
           {items.map((item, index) => (
-            <div
+            <a
               key={index}
-              className={`diagnostics-panel__special-section__item ${className || ''}`}
+              href={`#element-${getItemId(item)}`}
+              className={`diagnostics-panel__special-section__item diagnostics-panel__special-section__item--clickable ${className || ''}`}
             >
               <div className="title">
                 {getItemTitle ? getItemTitle(item) : formatId(getItemId(item))}
@@ -140,7 +156,10 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               <div className="id">
                 {getItemId(item)}
               </div>
-            </div>
+              <div className="diagnostics-panel__click-indicator">
+                🔗
+              </div>
+            </a>
           ))}
         </div>
       )}
@@ -341,17 +360,42 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "diagnostics-panel__special-section__item--unused"
         )}
 
-      {activeCategory === "conflicts" &&
-        renderSpecialItems(
-          overrideConflicts,
-          "Override Conflicts",
-          "⚔️",
-          "#dc3545",
-          (item) => item.targetId,
-          (item) =>
-            `${formatId(item.targetId)} ← overridden by → ${formatId(item.by)}`,
-          "diagnostics-panel__special-section__item--conflict"
-        )}
+      {activeCategory === "conflicts" && (
+        <div className="diagnostics-panel__special-section">
+          <h4>
+            <span className="icon">⚔️</span>
+            Override Conflicts ({overrideConflicts.length})
+          </h4>
+          {overrideConflicts.length === 0 ? (
+            <div className="diagnostics-panel__empty-state">
+              <div className="celebration">🎉</div>
+              No override conflicts found. Great job!
+            </div>
+          ) : (
+            <div className="diagnostics-panel__special-section__items">
+              {overrideConflicts.map((item, index) => (
+                <div
+                  key={index}
+                  className="diagnostics-panel__special-section__item diagnostics-panel__special-section__item--conflict diagnostics-panel__conflict-item"
+                >
+                  <div className="title">
+                    <a href={`#element-${item.targetId}`} className="diagnostics-panel__conflict-link">
+                      {formatId(item.targetId)}
+                    </a>
+                    {" ← overridden by → "}
+                    <a href={`#element-${item.by}`} className="diagnostics-panel__conflict-link">
+                      {formatId(item.by)}
+                    </a>
+                  </div>
+                  <div className="id">
+                    Target: {item.targetId}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

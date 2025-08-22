@@ -6,6 +6,7 @@ export interface ReactSSROptions {
   meta?: Record<string, string>;
   stylesheets?: string[];
   scripts?: string[];
+  moduleScripts?: string[];
   inlineScript?: string;
 }
 
@@ -20,6 +21,7 @@ export function renderReactToString(
     meta = {},
     stylesheets = [],
     scripts = [],
+    moduleScripts = [],
     inlineScript,
   } = options;
 
@@ -35,6 +37,10 @@ export function renderReactToString(
     .map((src) => `<script src="${src}"></script>`)
     .join("\n    ");
 
+  const moduleScriptTags = moduleScripts
+    .map((src) => `<script type="module" src="${src}"></script>`)
+    .join("\n    ");
+
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -47,6 +53,7 @@ export function renderReactToString(
   <body>
     <div id="root">${html}</div>
     ${inlineScript ? `<script>${inlineScript}</script>` : ""}
+    ${moduleScriptTags}
     ${scriptTags}
   </body>
 </html>`;

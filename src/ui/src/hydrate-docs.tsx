@@ -1,6 +1,11 @@
 import React from "react";
-import { hydrateRoot } from "react-dom/client";
-import { Documentation } from "./Documentation";
+import "./styles/docs.scss";
+import { hydrateRoot, createRoot } from "react-dom/client";
+import { Documentation } from "./components/Documentation";
+import {
+  Introspector,
+  SerializedIntrospector,
+} from "../../resources/models/Introspector";
 
 // Expect SSR to inject window.__DOCS_PROPS__ with pre-fetched data
 declare global {
@@ -12,31 +17,45 @@ declare global {
   }
 }
 
-// A minimal wrapper that reconstructs an introspector-like object from data
-function createIntrospectorFromData(data: any) {
-  return {
-    getTasks: () => data.tasks ?? [],
-    getResources: () => data.resources ?? [],
-    getEvents: () => data.events ?? [],
-    getHooks: () => data.hooks ?? [],
-    getMiddlewares: () => data.middlewares ?? [],
-    getAllTags: () => data.tags ?? [],
-    getDiagnostics: () => data.diagnostics ?? [],
-    getOrphanEvents: () => data.orphanEvents ?? [],
-    getUnemittedEvents: () => data.unemittedEvents ?? [],
-    getUnusedMiddleware: () => data.unusedMiddleware ?? [],
-    getMissingFiles: () => data.missingFiles ?? [],
-    getOverrideConflicts: () => data.overrideConflicts ?? [],
-  };
+// Placeholder token replaced at serve-time in JS by the static router
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare const __API_URL__: string;
+
+// Use the real Introspector deserializer to avoid exposing runner
+function createIntrospectorFromData(data: SerializedIntrospector) {
+  return Introspector.deserialize(data);
 }
 
-const props = window.__DOCS_PROPS__ ?? { introspectorData: {} };
-const introspector = createIntrospectorFromData(props.introspectorData);
+async function bootstrap() {
+  const container = document.getElementById("root")!;
+  const props = window.__DOCS_PROPS__;
+  if (props && props.introspectorData) {
+    const introspector = createIntrospectorFromData(
+      props.introspectorData as SerializedIntrospector
+    );
+    hydrateRoot(
+      container,
+      React.createElement(Documentation as any, {
+        introspector,
+        namespacePrefix: props.namespacePrefix,
+      })
+    );
+    return;
+  }
 
-hydrateRoot(
-  document.getElementById("root")!,
-  React.createElement(Documentation as any, {
-    introspector,
-    namespacePrefix: props.namespacePrefix,
-  })
-);
+  const baseUrl = __API_URL__ || "";
+  const url = new URL("/docs/data", baseUrl || window.location.origin);
+  const response = await fetch(url.toString());
+  const json = await response.json();
+  const introspector = createIntrospectorFromData(
+    json.introspectorData as SerializedIntrospector
+  );
+  createRoot(container).render(
+    React.createElement(Documentation as any, {
+      introspector,
+      namespacePrefix: json.namespacePrefix,
+    })
+  );
+}
+
+bootstrap();

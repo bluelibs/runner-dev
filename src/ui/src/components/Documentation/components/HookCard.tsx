@@ -1,6 +1,6 @@
 import React from "react";
-import { Hook } from "../../../schema/model";
-import { Introspector } from "../../../resources/models/Introspector";
+import { Hook } from "../../../../../schema/model";
+import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   formatSchema,
   formatFilePath,

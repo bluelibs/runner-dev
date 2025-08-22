@@ -1,0 +1,12 @@
+// Basic placeholder style to verify SCSS is bundled and linked
+#root {
+  // Example nested selector and variable usage
+  $brand: #0ea5e9;
+  .hydrated-ok {
+    color: $brand;
+  }
+}
+
+dev {
+  background: purple;
+}

@@ -1,6 +1,6 @@
 import React from "react";
-import { Middleware } from "../../../schema/model";
-import { Introspector } from "../../../resources/models/Introspector";
+import { Middleware } from "../../../../../schema/model";
+import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   formatSchema,
   formatFilePath,

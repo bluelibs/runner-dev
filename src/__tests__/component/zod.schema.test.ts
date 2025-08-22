@@ -4,7 +4,7 @@ import {
   mapStoreTaskToTaskModel,
   mapStoreResourceToResourceModel,
   buildEvents,
-} from "../../resources/introspector.tools";
+} from "../../resources/models/introspector.tools";
 
 describe("Zod schema conversion", () => {
   test("formatSchemaIfZod returns JSON schema string", () => {

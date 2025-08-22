@@ -1,22 +1,36 @@
 import React from "react";
-import { Task } from "../../../schema/model";
-import { Introspector } from "../../../resources/models/Introspector";
+import { Resource } from "../../../../../schema/model";
+import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   formatSchema,
+  formatConfig,
   formatFilePath,
   formatArray,
   formatId,
 } from "../utils/formatting";
 
-export interface TaskCardProps {
-  task: Task;
+export interface ResourceCardProps {
+  resource: Resource;
   introspector: Introspector;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
-  const dependencies = introspector.getDependencies(task);
-  const middlewareUsages = introspector.getMiddlewareUsagesForTask(task.id);
-  const emittedEvents = introspector.getEmittedEvents(task);
+export const ResourceCard: React.FC<ResourceCardProps> = ({
+  resource,
+  introspector,
+}) => {
+  const middlewareUsages = introspector.getMiddlewareUsagesForResource(
+    resource.id
+  );
+  const dependentTasks = introspector.getTasksUsingResource(resource.id);
+  const dependencies = introspector.getResourcesByIds(resource.dependsOn);
+  const registeredElements = [
+    ...introspector.getTasksByIds(resource.registers),
+    ...introspector.getResourcesByIds(resource.registers),
+    ...introspector.getMiddlewaresByIds(resource.registers),
+    ...introspector.getEventsByIds(resource.registers),
+    ...introspector.getHooksByIds(resource.registers),
+  ];
+  const overriddenElements = introspector.getResourcesByIds(resource.overrides);
 
   const cardStyle = {
     background: "#fff",
@@ -28,7 +42,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   };
 
   const headerStyle = {
-    background: "linear-gradient(135deg, #007acc, #0056b3)",
+    background: "linear-gradient(135deg, #28a745, #20c997)",
     color: "white",
     padding: "25px",
   };
@@ -55,7 +69,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 fontWeight: "700",
               }}
             >
-              ⚙️ {task.meta?.title || formatId(task.id)}
+              🔧 {resource.meta?.title || formatId(resource.id)}
             </h3>
             <div
               style={{
@@ -65,9 +79,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 marginBottom: "15px",
               }}
             >
-              {task.id}
+              {resource.id}
             </div>
-            {task.meta?.description && (
+            {resource.meta?.description && (
               <p
                 style={{
                   margin: "0",
@@ -76,13 +90,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   lineHeight: "1.5",
                 }}
               >
-                {task.meta.description}
+                {resource.meta.description}
               </p>
             )}
           </div>
-          {task.meta?.tags && task.meta.tags.length > 0 && (
+          {resource.meta?.tags && resource.meta.tags.length > 0 && (
             <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-              {task.meta.tags.map((tag) => (
+              {resource.meta.tags.map((tag) => (
                 <span
                   key={tag}
                   style={{
@@ -135,11 +149,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                     borderRadius: "4px",
                   }}
                 >
-                  {formatFilePath(task.filePath)}
+                  {formatFilePath(resource.filePath)}
                 </div>
               </div>
 
-              {task.registeredBy && (
+              {resource.registeredBy && (
                 <div>
                   <strong style={{ color: "#495057" }}>Registered By:</strong>
                   <div
@@ -153,13 +167,31 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                       borderRadius: "4px",
                     }}
                   >
-                    {task.registeredBy}
+                    {resource.registeredBy}
+                  </div>
+                </div>
+              )}
+
+              {resource.context && (
+                <div>
+                  <strong style={{ color: "#495057" }}>Context:</strong>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      color: "#6c757d",
+                      marginTop: "4px",
+                      background: "#f8f9fa",
+                      padding: "8px",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    {resource.context}
                   </div>
                 </div>
               )}
 
               <div>
-                <strong style={{ color: "#495057" }}>Emits Events:</strong>
+                <strong style={{ color: "#495057" }}>Used By Tasks:</strong>
                 <div
                   style={{
                     fontSize: "13px",
@@ -170,11 +202,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                     borderRadius: "4px",
                   }}
                 >
-                  {formatArray(task.emits)}
+                  {dependentTasks.length} task(s)
                 </div>
               </div>
 
-              {task.overriddenBy && (
+              {resource.overriddenBy && (
                 <div
                   style={{
                     background: "#fff3cd",
@@ -194,7 +226,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                       fontFamily: "monospace",
                     }}
                   >
-                    {task.overriddenBy}
+                    {resource.overriddenBy}
                   </div>
                 </div>
               )}
@@ -211,28 +243,67 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 paddingBottom: "8px",
               }}
             >
-              📝 Schema
+              ⚙️ Configuration
             </h4>
-            <pre
-              style={{
-                background: "#f8f9fa",
-                padding: "20px",
-                borderRadius: "8px",
-                fontSize: "12px",
-                lineHeight: "1.6",
-                overflow: "auto",
-                border: "1px solid #e9ecef",
-                margin: 0,
-              }}
-            >
-              {formatSchema(task.inputSchema)}
-            </pre>
+            <div style={{ display: "grid", gap: "20px" }}>
+              <div>
+                <h5
+                  style={{
+                    margin: "0 0 10px 0",
+                    color: "#495057",
+                    fontSize: "14px",
+                  }}
+                >
+                  Current Configuration
+                </h5>
+                <pre
+                  style={{
+                    background: "#f8f9fa",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    lineHeight: "1.6",
+                    overflow: "auto",
+                    border: "1px solid #e9ecef",
+                    margin: 0,
+                  }}
+                >
+                  {formatConfig(resource.config)}
+                </pre>
+              </div>
+
+              <div>
+                <h5
+                  style={{
+                    margin: "0 0 10px 0",
+                    color: "#495057",
+                    fontSize: "14px",
+                  }}
+                >
+                  Configuration Schema
+                </h5>
+                <pre
+                  style={{
+                    background: "#f8f9fa",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    lineHeight: "1.6",
+                    overflow: "auto",
+                    border: "1px solid #e9ecef",
+                    margin: 0,
+                  }}
+                >
+                  {formatSchema(resource.configSchema)}
+                </pre>
+              </div>
+            </div>
           </div>
         </div>
 
-        {(dependencies.tasks.length > 0 ||
-          dependencies.resources.length > 0 ||
-          emittedEvents.length > 0) && (
+        {(dependencies.length > 0 ||
+          dependentTasks.length > 0 ||
+          registeredElements.length > 0) && (
           <div style={{ marginTop: "30px" }}>
             <h4
               style={{
@@ -252,47 +323,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 gap: "25px",
               }}
             >
-              {dependencies.tasks.length > 0 && (
-                <div>
-                  <h5
-                    style={{
-                      margin: "0 0 15px 0",
-                      color: "#495057",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Task Dependencies
-                  </h5>
-                  <div style={{ display: "grid", gap: "10px" }}>
-                    {dependencies.tasks.map((dep) => (
-                      <div
-                        key={dep.id}
-                        style={{
-                          padding: "12px 16px",
-                          background: "#e3f2fd",
-                          borderRadius: "8px",
-                          borderLeft: "4px solid #2196f3",
-                        }}
-                      >
-                        <div style={{ fontWeight: "600", color: "#1976d2" }}>
-                          {dep.meta?.title || formatId(dep.id)}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {dep.id}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {dependencies.resources.length > 0 && (
+              {dependencies.length > 0 && (
                 <div>
                   <h5
                     style={{
@@ -304,7 +335,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                     Resource Dependencies
                   </h5>
                   <div style={{ display: "grid", gap: "10px" }}>
-                    {dependencies.resources.map((dep) => (
+                    {dependencies.map((dep) => (
                       <div
                         key={dep.id}
                         style={{
@@ -332,7 +363,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 </div>
               )}
 
-              {emittedEvents.length > 0 && (
+              {dependentTasks.length > 0 && (
                 <div>
                   <h5
                     style={{
@@ -341,21 +372,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                       fontSize: "16px",
                     }}
                   >
-                    Emitted Events
+                    Used By Tasks
                   </h5>
                   <div style={{ display: "grid", gap: "10px" }}>
-                    {emittedEvents.map((event) => (
+                    {dependentTasks.map((task) => (
                       <div
-                        key={event.id}
+                        key={task.id}
                         style={{
                           padding: "12px 16px",
-                          background: "#fff3e0",
+                          background: "#e3f2fd",
                           borderRadius: "8px",
-                          borderLeft: "4px solid #ff9800",
+                          borderLeft: "4px solid #2196f3",
                         }}
                       >
-                        <div style={{ fontWeight: "600", color: "#f57c00" }}>
-                          {event.meta?.title || formatId(event.id)}
+                        <div style={{ fontWeight: "600", color: "#1976d2" }}>
+                          {task.meta?.title || formatId(task.id)}
                         </div>
                         <div
                           style={{
@@ -364,7 +395,47 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                             fontFamily: "monospace",
                           }}
                         >
-                          {event.id}
+                          {task.id}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {registeredElements.length > 0 && (
+                <div>
+                  <h5
+                    style={{
+                      margin: "0 0 15px 0",
+                      color: "#495057",
+                      fontSize: "16px",
+                    }}
+                  >
+                    Registered Elements
+                  </h5>
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    {registeredElements.map((element) => (
+                      <div
+                        key={element.id}
+                        style={{
+                          padding: "12px 16px",
+                          background: "#f3e5f5",
+                          borderRadius: "8px",
+                          borderLeft: "4px solid #9c27b0",
+                        }}
+                      >
+                        <div style={{ fontWeight: "600", color: "#7b1fa2" }}>
+                          {element.meta?.title || formatId(element.id)}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#666",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          {element.id}
                         </div>
                       </div>
                     ))}

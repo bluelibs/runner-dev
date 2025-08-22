@@ -8,26 +8,17 @@ import type {
 } from "../../schema";
 import type { DiagnosticItem } from "../../schema";
 import {
-  mapStoreTaskToTaskModel,
-  mapStoreHookToHookModel,
-  mapStoreResourceToResourceModel,
-  buildEvents,
-  buildTaskMiddlewares,
-  buildResourceMiddlewares,
-  attachOverrides,
-  attachRegisteredBy,
-  buildIdMap,
-  ensureStringArray,
-  stampElementKind,
   computeOrphanEvents,
   computeUnemittedEvents,
   computeUnusedMiddleware,
-  computeMissingFiles,
   computeOverrideConflicts,
   buildDiagnostics,
-} from "../introspector.tools";
+  stampElementKind,
+  buildIdMap,
+  ensureStringArray,
+} from "./introspector.tools";
 
-type SerializedIntrospector = {
+export type SerializedIntrospector = {
   tasks: Task[];
   hooks: Hook[];
   resources: Resource[];
@@ -44,152 +35,32 @@ type SerializedIntrospector = {
 };
 
 export class Introspector {
-  private tasks: Task[] = [];
-  private hooks: Hook[] = [];
-  private resources: Resource[] = [];
-  private events: Event[] = [];
-  private taskMiddlewares: Middleware[] = [];
-  private resourceMiddlewares: Middleware[] = [];
-  private middlewares: Middleware[] = [];
-  private allTags: Tag[] = [];
-  private store: unknown | null = null;
-  private rootId: string | null = null;
+  public tasks: Task[] = [];
+  public hooks: Hook[] = [];
+  public resources: Resource[] = [];
+  public events: Event[] = [];
+  public taskMiddlewares: Middleware[] = [];
+  public resourceMiddlewares: Middleware[] = [];
+  public middlewares: Middleware[] = [];
+  public allTags: Tag[] = [];
+  public store: unknown | null = null;
+  public rootId: string | null = null;
 
-  private taskMap: Map<string, Task> = new Map();
-  private hookMap: Map<string, Hook> = new Map();
-  private resourceMap: Map<string, Resource> = new Map();
-  private eventMap: Map<string, Event> = new Map();
-  private middlewareMap: Map<string, Middleware> = new Map();
-  private tagMap: Map<string, Tag> = new Map();
+  public taskMap: Map<string, Task> = new Map();
+  public hookMap: Map<string, Hook> = new Map();
+  public resourceMap: Map<string, Resource> = new Map();
+  public eventMap: Map<string, Event> = new Map();
+  public middlewareMap: Map<string, Middleware> = new Map();
+  public tagMap: Map<string, Tag> = new Map();
 
   constructor(input: { store: unknown } | { data: SerializedIntrospector }) {
     if ("store" in input) {
-      this.store = input.store;
-      this.initializeFromStore();
+      // this.store = input.store;
+      // this.initializeFromStore();
     } else {
       this.store = null;
       this.initializeFromData(input.data);
     }
-  }
-
-  private initializeFromStore(): void {
-    // Build tasks
-    this.tasks = [];
-    this.hooks = [];
-
-    const s: any = this.store as any;
-    for (const t of s.tasks.values()) {
-      this.tasks.push(mapStoreTaskToTaskModel(t.task));
-    }
-
-    for (const h of s.hooks.values()) {
-      this.hooks.push(mapStoreHookToHookModel(h));
-    }
-
-    // Build resources
-    this.resources = Array.from(s.resources.values()).map((r: any) =>
-      mapStoreResourceToResourceModel(r.resource)
-    );
-
-    // Build events
-    this.events = buildEvents(
-      Array.from(s.events.values()).map((v: any) => v.event),
-      this.tasks,
-      this.hooks,
-      this.resources
-    );
-
-    // Build middlewares from both task and resource middleware collections
-    this.taskMiddlewares = buildTaskMiddlewares(
-      Array.from(s.taskMiddlewares.values()).map((v: any) => v.middleware),
-      this.tasks,
-      this.hooks,
-      this.resources
-    );
-    this.resourceMiddlewares = buildResourceMiddlewares(
-      Array.from(s.resourceMiddlewares.values()).map((v: any) => v.middleware),
-      this.tasks,
-      this.hooks,
-      this.resources
-    );
-    this.middlewares = [...this.taskMiddlewares, ...this.resourceMiddlewares];
-
-    attachOverrides(
-      s.overrideRequests,
-      this.tasks,
-      this.hooks,
-      this.middlewares
-    );
-
-    // Attach registeredBy to all nodes based on each resource.registers
-    attachRegisteredBy(
-      this.resources,
-      this.tasks,
-      this.hooks,
-      this.middlewares,
-      this.events
-    );
-
-    // Maps
-    this.taskMap = buildIdMap(this.tasks);
-    this.hookMap = buildIdMap(this.hooks);
-    this.resourceMap = buildIdMap(this.resources);
-    this.eventMap = buildIdMap(this.events);
-    this.middlewareMap = buildIdMap(this.middlewares);
-
-    // Tags
-    const getTasksWithTag = (tagId: string) =>
-      this.tasks.filter((t) => ensureStringArray(t.meta?.tags).includes(tagId));
-    const getHooksWithTag = (tagId: string) =>
-      this.hooks.filter((h) => ensureStringArray(h.meta?.tags).includes(tagId));
-    const getResourcesWithTag = (tagId: string) =>
-      this.resources.filter((r) =>
-        ensureStringArray(r.meta?.tags).includes(tagId)
-      );
-    const getMiddlewaresWithTag = (tagId: string) =>
-      this.middlewares.filter((m) =>
-        ensureStringArray(m.meta?.tags).includes(tagId)
-      );
-    const getEventsWithTag = (tagId: string) =>
-      this.events.filter((e) =>
-        ensureStringArray(e.meta?.tags).includes(tagId)
-      );
-
-    const allTagIds = new Set<string>();
-    const collect = (arr: { meta?: { tags?: string[] | null } | null }[]) => {
-      for (const n of arr) {
-        for (const id of ensureStringArray(n.meta?.tags)) allTagIds.add(id);
-      }
-    };
-    collect(this.tasks as any);
-    collect(this.hooks as any);
-    collect(this.resources as any);
-    collect(this.middlewares as any);
-    collect(this.events as any);
-
-    this.allTags = Array.from(allTagIds).map((id) => ({
-      id,
-      get tasks() {
-        return getTasksWithTag(id);
-      },
-      get hooks() {
-        return getHooksWithTag(id);
-      },
-      get resources() {
-        return getResourcesWithTag(id);
-      },
-      get middlewares() {
-        return getMiddlewaresWithTag(id);
-      },
-      get events() {
-        return getEventsWithTag(id);
-      },
-    }));
-    this.tagMap = new Map<string, Tag>(this.allTags.map((t) => [t.id, t]));
-    this.rootId =
-      s?.root?.resource?.id != null
-        ? String(s.root.resource.id)
-        : this.rootId ?? null;
   }
 
   private initializeFromData(data: SerializedIntrospector): void {
@@ -575,10 +446,6 @@ export class Introspector {
     return computeUnusedMiddleware(this);
   }
 
-  getMissingFiles(): Array<{ id: string; filePath: string }> {
-    return computeMissingFiles(this);
-  }
-
   getOverrideConflicts(): Array<{ targetId: string; by: string }> {
     return computeOverrideConflicts(this);
   }
@@ -658,7 +525,6 @@ export class Introspector {
       orphanEvents: this.getOrphanEvents(),
       unemittedEvents: this.getUnemittedEvents(),
       unusedMiddleware: this.getUnusedMiddleware(),
-      missingFiles: this.getMissingFiles(),
       overrideConflicts: this.getOverrideConflicts(),
       rootId:
         (this.store as any)?.root?.resource?.id != null

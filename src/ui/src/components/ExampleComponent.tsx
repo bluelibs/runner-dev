@@ -1,6 +1,6 @@
 import React from "react";
 import { Documentation } from "./Documentation";
-import { Introspector } from "../resources/models/Introspector";
+import { Introspector } from "../../../resources/models/Introspector";
 
 export interface ExampleComponentProps {
   title?: string;

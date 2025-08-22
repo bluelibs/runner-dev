@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Introspector } from "../../../resources/models/Introspector";
+import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   getSeverityColor,
   getSeverityIcon,
@@ -21,7 +21,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   const orphanEvents = introspector.getOrphanEvents();
   const unemittedEvents = introspector.getUnemittedEvents();
   const unusedMiddleware = introspector.getUnusedMiddleware();
-  const missingFiles = introspector.getMissingFiles();
   const overrideConflicts = introspector.getOverrideConflicts();
 
   const errorCount = diagnostics.filter((d) => d.severity === "error").length;
@@ -45,7 +44,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
       label: "Unused Middleware",
       count: unusedMiddleware.length,
     },
-    { id: "missing", label: "Missing Files", count: missingFiles.length },
     {
       id: "conflicts",
       label: "Override Conflicts",
@@ -276,13 +274,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "Middleware not in use"
         )}
         {renderSummaryCard(
-          "Missing Files",
-          missingFiles.length,
-          "#e74c3c",
-          "📁",
-          "Referenced files not found"
-        )}
-        {renderSummaryCard(
           "Override Conflicts",
           overrideConflicts.length,
           "#dc3545",
@@ -506,16 +497,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "#6c757d",
           (item) => item.id,
           (item) => `${formatId(item.id)} (Not used)`
-        )}
-
-      {activeCategory === "missing" &&
-        renderSpecialItems(
-          missingFiles,
-          "Missing Files",
-          "📁",
-          "#e74c3c",
-          (item) => item.id,
-          (item) => `${formatId(item.id)} → ${item.filePath}`
         )}
 
       {activeCategory === "conflicts" &&

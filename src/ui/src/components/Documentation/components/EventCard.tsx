@@ -1,6 +1,6 @@
 import React from "react";
-import { Event } from "../../../schema/model";
-import { Introspector } from "../../../resources/models/Introspector";
+import { Event } from "../../../../../schema/model";
+import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   formatSchema,
   formatFilePath,

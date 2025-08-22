@@ -12,7 +12,8 @@ import path from "node:path";
 import { createUiStaticRouter } from "./ui.static";
 import { express as voyagerMiddleware } from "graphql-voyager/middleware";
 import { printSchema } from "graphql/utilities/printSchema";
-import { createDocsRouteHandler } from "./docs.route";
+import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
+import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
 
 export interface ServerConfig {
   port?: number;
@@ -62,8 +63,14 @@ export const serverResource = resource({
     // Voyager UI at /voyager (points to /graphql)
     app.use("/voyager", voyagerMiddleware({ endpointUrl: "/graphql" }));
 
-    // Static UI (Vite build) + runtime JS placeholder injection
-    const uiDir = path.resolve(__dirname, "../ui");
+    // Static UI (Vite build output) + runtime JS placeholder injection
+    // Vite builds to dist/ui (see src/ui/vite.config.ts)
+    const uiDir = path.resolve(process.cwd(), "./dist/ui");
+
+    // Compute base URL and expose via token replacement in JS
+    const baseUrl = `http://localhost:${port}`;
+    process.env.API_URL = process.env.API_URL || baseUrl;
+
     app.use(createUiStaticRouter(uiDir));
 
     // Optional SPA fallback
@@ -71,15 +78,19 @@ export const serverResource = resource({
     //   res.sendFile(path.join(uiDir, "index.html"));
     // });
 
-    // React SSR + Hydration for /docs
+    // Serve docs data as JSON for client-side rendering
     app.get(
-      "/docs",
-      createDocsRouteHandler({
+      "/docs/data",
+      createDocsDataRouteHandler({
         uiDir,
+        store,
         introspector,
         logger,
       })
     );
+
+    // Serve minimal HTML for /docs that loads the built docs entry from the Vite manifest
+    app.get("/docs", createDocsServeHandler(uiDir, logger));
 
     // Convenience redirect
     app.get("/", (_req: Request, res: Response) => res.redirect("/voyager"));
@@ -97,7 +108,6 @@ export const serverResource = resource({
           source: serverResource.id,
         });
       } else {
-        const baseUrl = `http://localhost:${port}`;
         logger.info(`GraphQL Server ready at ${baseUrl}/graphql`);
         logger.info(`Voyager UI ready at ${baseUrl}/voyager`);
         logger.info(`Project Documentation ready at ${baseUrl}/docs`);

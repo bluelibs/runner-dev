@@ -9,7 +9,8 @@ export function createUiStaticRouter(uiDir: string) {
 
   router.get(/.*\.js$/, async (req: Request, res: Response, next) => {
     try {
-      const filePath = path.join(uiDir, req.path);
+      const cleanedPath = req.path.startsWith("/") ? req.path.slice(1) : req.path;
+      const filePath = path.join(uiDir, cleanedPath);
       const cacheKey = `${req.path}:${process.env.API_URL ?? ""}:${
         process.env.OPENAI_API_BASE_URL ?? ""
       }:${process.env.OPENAI_API_KEY ?? ""}`;

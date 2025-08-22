@@ -34,7 +34,7 @@ import type {
   QueryTasksArgs,
   QueryHooksArgs,
 } from "../generated/resolvers-types";
-import { isSystemEventId } from "../resources/introspector.tools";
+import { isSystemEventId } from "../resources/models/introspector.tools";
 import { docsGenerator } from "../resources/docs.generator.resource";
 
 export const QueryType = new GraphQLObjectType({

@@ -1,5 +1,5 @@
 import React from "react";
-import { Introspector } from "../../../resources/models/Introspector";
+import { Introspector } from "../../../../../resources/models/Introspector";
 import { Section } from "../Documentation";
 
 export interface SidebarProps {

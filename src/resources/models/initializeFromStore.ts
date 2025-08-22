@@ -86,30 +86,26 @@ export function initializeFromStore(
 
   // Tags
   const getTasksWithTag = (tagId: string) =>
-    introspector.tasks.filter((t) =>
-      ensureStringArray(t.meta?.tags).includes(tagId)
-    );
+    introspector.tasks.filter((t) => ensureStringArray(t.tags).includes(tagId));
   const getHooksWithTag = (tagId: string) =>
-    introspector.hooks.filter((h) =>
-      ensureStringArray(h.meta?.tags).includes(tagId)
-    );
+    introspector.hooks.filter((h) => ensureStringArray(h.tags).includes(tagId));
   const getResourcesWithTag = (tagId: string) =>
     introspector.resources.filter((r) =>
-      ensureStringArray(r.meta?.tags).includes(tagId)
+      ensureStringArray(r.tags).includes(tagId)
     );
   const getMiddlewaresWithTag = (tagId: string) =>
     introspector.middlewares.filter((m) =>
-      ensureStringArray(m.meta?.tags).includes(tagId)
+      ensureStringArray(m.tags).includes(tagId)
     );
   const getEventsWithTag = (tagId: string) =>
     introspector.events.filter((e) =>
-      ensureStringArray(e.meta?.tags).includes(tagId)
+      ensureStringArray(e.tags).includes(tagId)
     );
 
   const allTagIds = new Set<string>();
-  const collect = (arr: { meta?: { tags?: string[] | null } | null }[]) => {
+  const collect = (arr: { tags?: string[] | null }[]) => {
     for (const n of arr) {
-      for (const id of ensureStringArray(n.meta?.tags)) allTagIds.add(id);
+      for (const id of ensureStringArray(n.tags)) allTagIds.add(id);
     }
   };
   collect(introspector.tasks as any);

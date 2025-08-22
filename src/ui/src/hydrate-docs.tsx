@@ -26,6 +26,26 @@ function createIntrospectorFromData(data: SerializedIntrospector) {
   return Introspector.deserialize(data);
 }
 
+// Auto-scroll to hash element after render
+function scrollToHashElement() {
+  const hash = window.location.hash;
+  if (!hash) return;
+
+  // Use ID-based lookup to avoid CSS selector semantics (e.g. '.' meaning class)
+  const id = decodeURIComponent(hash.slice(1));
+
+  // Use requestAnimationFrame to ensure DOM is fully rendered
+  requestAnimationFrame(() => {
+    // Add a small delay to ensure complex components are fully mounted
+    setTimeout(() => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
+  });
+}
+
 async function bootstrap() {
   const container = document.getElementById("root")!;
   const props = window.__DOCS_PROPS__;
@@ -40,6 +60,7 @@ async function bootstrap() {
         namespacePrefix: props.namespacePrefix,
       })
     );
+    scrollToHashElement();
     return;
   }
 
@@ -56,6 +77,7 @@ async function bootstrap() {
       namespacePrefix: json.namespacePrefix,
     })
   );
+  scrollToHashElement();
 }
 
 bootstrap();

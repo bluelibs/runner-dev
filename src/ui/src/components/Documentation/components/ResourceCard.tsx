@@ -8,6 +8,7 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
+import { TagsSection } from "./TagsSection";
 import "./ResourceCard.scss";
 export interface ResourceCardProps {
   resource: Resource;
@@ -230,6 +231,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             </div>
           </div>
         )}
+
+        <TagsSection 
+          element={resource} 
+          introspector={introspector} 
+          className="resource-card__tags-section"
+        />
       </div>
     </div>
   );

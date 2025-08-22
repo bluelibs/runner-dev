@@ -4,9 +4,9 @@ import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   formatSchema,
   formatFilePath,
-  formatArray,
   formatId,
 } from "../utils/formatting";
+import { TagsSection } from "./TagsSection";
 import "./EventCard.scss";
 
 export interface EventCardProps {
@@ -65,11 +65,11 @@ export const EventCard: React.FC<EventCardProps> = ({
             <div className="event-card__stats">
               <div className="event-card__stat-badge">
                 <span className="icon">📤</span>
-                <span className="count">{emitters.length}</span>
+                <span className="count">Emitters: {emitters.length}</span>
               </div>
               <div className="event-card__stat-badge">
                 <span className="icon">📥</span>
-                <span className="count">{hooks.length}</span>
+                <span className="count">Hooks: {hooks.length}</span>
               </div>
             </div>
             {event.tags && event.tags.length > 0 && (
@@ -134,7 +134,47 @@ export const EventCard: React.FC<EventCardProps> = ({
 
                 <div className="event-card__info-block">
                   <div className="label">Listened To By:</div>
-                  <div className="value">{formatArray(event.listenedToBy)}</div>
+                  <div className="value">
+                    {!event.listenedToBy || event.listenedToBy.length === 0 ? (
+                      'None'
+                    ) : event.listenedToBy.length === 1 ? (
+                      <a
+                        href={`#element-${event.listenedToBy[0]}`}
+                        className="event-card__registrar-link"
+                      >
+                        {event.listenedToBy[0]}
+                      </a>
+                    ) : event.listenedToBy.length <= 3 ? (
+                      event.listenedToBy.map((id, index) => (
+                        <span key={id}>
+                          <a
+                            href={`#element-${id}`}
+                            className="event-card__registrar-link"
+                          >
+                            {id}
+                          </a>
+                          {index < event.listenedToBy!.length - 1 && ', '}
+                        </span>
+                      ))
+                    ) : (
+                      <>
+                        {event.listenedToBy.slice(0, 3).map((id, index) => (
+                          <span key={id}>
+                            <a
+                              href={`#element-${id}`}
+                              className="event-card__registrar-link"
+                            >
+                              {id}
+                            </a>
+                            {index < 2 && ', '}
+                          </span>
+                        ))}
+                        {' and '}
+                        {event.listenedToBy.length - 3}
+                        {' more'}
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {((!isGlobalEvent && emitters.length === 0) ||
@@ -302,6 +342,12 @@ export const EventCard: React.FC<EventCardProps> = ({
             </div>
           )}
         </div>
+
+        <TagsSection 
+          element={event} 
+          introspector={introspector} 
+          className="event-card__tags-section"
+        />
       </div>
     </div>
   );

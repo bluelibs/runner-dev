@@ -30,7 +30,6 @@ export function normalizeTags(
     if (typeof t === "string") {
       ids.push(t);
     } else if (t && typeof t === "object" && "id" in t) {
-      // t can be ITagDefinition or ITagWithConfig
       const id = String((t as any).id);
       ids.push(id);
       const config = (t as any).config ?? null;
@@ -45,15 +44,11 @@ export function buildMetaWithNormalizedTags(
   sourceWithTags: any
 ): any {
   const base = meta ?? null;
-  // Gather tags provided either at top-level (sourceWithTags.tags) or inside meta.tags
+  // Only return meta fields; tags are handled at the top-level of elements.
   const topLevel = (sourceWithTags as any)?.tags ?? null;
-  const metaLevel = (base as any)?.tags ?? null;
-  if (!topLevel && !metaLevel) return base;
-  const merged: Array<string | definitions.ITagDefinition> = [
-    ...toArray(metaLevel),
-    ...toArray(topLevel),
-  ];
-  const { ids, detailed } = normalizeTags(merged);
+  if (!topLevel) return base;
+  const { ids, detailed } = normalizeTags(topLevel);
+  // Keep a copy for backward GraphQL meta.tags resolver compatibility.
   return { ...(base || {}), tags: ids, tagsDetailed: detailed } as any;
 }
 
@@ -81,11 +76,16 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
       ? stringifyIfObject(m.config)
       : null,
   }));
+  const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
+    (task as any)?.tags
+  );
 
   return stampElementKind(
     {
       id: task.id.toString(),
       meta: buildMetaWithNormalizedTags(task.meta, task),
+      tags: tagIds,
+      tagsDetailed,
       filePath: task[definitions.symbolFilePath],
       dependsOn: resourceIdsFromDeps,
       middleware: task.middleware.map((m) => m.id.toString()),
@@ -113,6 +113,9 @@ export function mapStoreHookToHookModel(
   const depsObj = normalizeDependencies(hk?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
+  const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
+    (hk as any)?.tags
+  );
 
   const eventId =
     typeof hk?.on === "string"
@@ -125,6 +128,8 @@ export function mapStoreHookToHookModel(
     {
       id: String(hk?.id),
       meta: buildMetaWithNormalizedTags(hk?.meta, hk),
+      tags: tagIds,
+      tagsDetailed,
       filePath: hk?.[definitions.symbolFilePath] ?? null,
       emits: eventIdsFromDeps,
       dependsOn: resourceIdsFromDeps,
@@ -159,10 +164,15 @@ export function mapStoreResourceToResourceModel(
       : null,
   }));
 
+  const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
+    (resource as any)?.tags
+  );
   return stampElementKind(
     {
       id: resource.id.toString(),
       meta: buildMetaWithNormalizedTags(resource.meta, resource),
+      tags: tagIds,
+      tagsDetailed,
       emits: eventIdsFromDeps,
       dependsOn: resourceIdsFromDeps,
       filePath: resource[definitions.symbolFilePath] ?? null,
@@ -202,10 +212,15 @@ export function buildEvents(
   );
   return allEventIds.map((eventId) => {
     const e = findById(eventsCollection, eventId);
+    const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
+      (e as any)?.tags
+    );
     return stampElementKind(
       {
         id: eventId,
         meta: buildMetaWithNormalizedTags((e as any)?.meta ?? null, e),
+        tags: tagIds,
+        tagsDetailed,
         filePath: e?.filePath ?? e?.path ?? null,
         listenedToBy: hooks.filter((l) => l.event === eventId).map((l) => l.id),
         registeredBy: null,
@@ -233,6 +248,9 @@ function buildMiddlewaresGeneric(
   return toArray(middlewaresCollection).map((entry: any) => {
     const mw = entry?.middleware ?? entry;
     const id = readId(mw);
+    const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
+      (mw as any)?.tags
+    );
 
     const isEverywhereTasks = mw.everywhere;
     const isEverywhereResources = mw.everywhere;
@@ -264,6 +282,8 @@ function buildMiddlewaresGeneric(
       {
         id,
         meta: buildMetaWithNormalizedTags(mw?.meta ?? null, mw),
+        tags: tagIds,
+        tagsDetailed,
         filePath:
           mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null,
         global: globalValue,
@@ -272,6 +292,7 @@ function buildMiddlewaresGeneric(
         overriddenBy: mw?.overriddenBy ?? null,
         registeredBy: null,
         configSchema: formatSchemaIfZod(mw.configSchema),
+        type: kind,
       },
       "MIDDLEWARE"
     );

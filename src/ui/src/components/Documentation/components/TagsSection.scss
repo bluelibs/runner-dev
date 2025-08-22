@@ -1,0 +1,144 @@
+// =============================================================================
+// TAGS SECTION COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Tags Section Base
+// -----------------------------------------------------------------------------
+.tags-section {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__content {
+    display: grid;
+    gap: $spacing-lg;
+  }
+
+  &__items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: $spacing-md;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tag Items
+// -----------------------------------------------------------------------------
+.tags-section__tag {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid #ff6b6b;
+  background: linear-gradient(135deg, #fff5f5, #ffe8e8);
+  transition: $transition-fast;
+
+  &__title {
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+    color: #c53030;
+    font-size: $font-size-md;
+  }
+
+  &__id {
+    font-size: $font-size-xs;
+    color: #666;
+    font-family: $font-family-mono;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__stats {
+    .stat {
+      font-size: $font-size-xs;
+      color: #999;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 2px 8px;
+      border-radius: $border-radius-pill;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tag Links
+// -----------------------------------------------------------------------------
+.tags-section__tag-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+
+  &:hover .tags-section__tag {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+    background: linear-gradient(135deg, #fff0f0, #ffe0e0);
+  }
+
+  &:hover .tags-section__tag__title {
+    color: #a53030;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Detailed Tag Configurations
+// -----------------------------------------------------------------------------
+.tags-section__detailed {
+  &__title {
+    margin: 0 0 $spacing-md 0;
+    color: $text-dark;
+    font-size: $font-size-md;
+    font-weight: 600;
+  }
+
+  &__items {
+    display: grid;
+    gap: $spacing-md;
+  }
+
+  &__item {
+    background: $light-gray;
+    border: 1px solid $border-gray;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+
+    .tag-name {
+      font-weight: 600;
+      margin-bottom: $spacing-sm;
+      
+      a {
+        color: #c53030;
+        text-decoration: none;
+        
+        &:hover {
+          color: #a53030;
+          text-decoration: underline;
+        }
+      }
+    }
+
+    .tag-config {
+      .config-title {
+        font-size: $font-size-sm;
+        color: $text-dark;
+        margin-bottom: $spacing-xs;
+        font-weight: 500;
+      }
+
+      .config-block {
+        background: $white;
+        padding: $spacing-sm;
+        border-radius: $border-radius-md;
+        font-size: $font-size-xs;
+        margin: 0;
+        border: 1px solid #dee2e6;
+        line-height: 1.4;
+        font-family: $font-family-mono;
+        color: $text-dark;
+      }
+    }
+  }
+}

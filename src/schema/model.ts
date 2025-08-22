@@ -85,6 +85,7 @@ export interface Middleware extends BaseElement {
   meta?: Meta | null;
   filePath?: string | null;
   global?: MiddlewareGlobal | null;
+  type: "task" | "resource";
   usedByTasks: string[];
   usedByResources: string[];
   // Prettified Zod schema for the middleware config if provided

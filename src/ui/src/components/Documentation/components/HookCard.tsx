@@ -7,6 +7,7 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
+import { TagsSection } from "./TagsSection";
 import "./HookCard.scss";
 
 export interface HookCardProps {
@@ -209,22 +210,24 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
                 </div>
               ) : targetEvent ? (
                 <div>
-                  <div className="hook-card__target-event">
-                    <div className="hook-card__target-event__header">
-                      <span className="icon">📡</span>
-                      <h5 className="title">
-                        {targetEvent.meta?.title || formatId(targetEvent.id)}
-                      </h5>
-                    </div>
-                    <div className="hook-card__target-event__id">
-                      {targetEvent.id}
-                    </div>
-                    {targetEvent.meta?.description && (
-                      <div className="hook-card__target-event__description">
-                        {targetEvent.meta.description}
+                  <a href={`#element-${targetEvent.id}`}>
+                    <div className="hook-card__target-event">
+                      <div className="hook-card__target-event__header">
+                        <span className="icon">📡</span>
+                        <h5 className="title">
+                          {targetEvent.meta?.title || formatId(targetEvent.id)}
+                        </h5>
                       </div>
-                    )}
-                  </div>
+                      <div className="hook-card__target-event__id">
+                        {targetEvent.id}
+                      </div>
+                      {targetEvent.meta?.description && (
+                        <div className="hook-card__target-event__description">
+                          {targetEvent.meta.description}
+                        </div>
+                      )}
+                    </div>
+                  </a>
 
                   <div className="hook-card__section__content">
                     <div className="hook-card__schema-block">
@@ -343,6 +346,12 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
             </div>
           </div>
         )}
+
+        <TagsSection 
+          element={hook} 
+          introspector={introspector} 
+          className="hook-card__tags-section"
+        />
       </div>
     </div>
   );

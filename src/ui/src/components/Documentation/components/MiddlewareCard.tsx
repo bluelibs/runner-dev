@@ -7,6 +7,7 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
+import { TagsSection } from "./TagsSection";
 import "./MiddlewareCard.scss";
 
 export interface MiddlewareCardProps {
@@ -273,6 +274,12 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
               This middleware is not currently used by any tasks or resources.
             </div>
           )}
+
+          <TagsSection 
+            element={middleware} 
+            introspector={introspector} 
+            className="middleware-card__tags-section"
+          />
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
+import { TagsSection } from "./TagsSection";
 import "./TaskCard.scss";
 export interface TaskCardProps {
   task: Task;
@@ -192,6 +193,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
             </div>
           </div>
         )}
+
+        <TagsSection 
+          element={task} 
+          introspector={introspector} 
+          className="task-card__tags-section"
+        />
       </div>
     </div>
   );

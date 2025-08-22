@@ -82,26 +82,20 @@ export class Introspector {
 
     // Tags
     const getTasksWithTag = (tagId: string) =>
-      this.tasks.filter((t) => ensureStringArray(t.meta?.tags).includes(tagId));
+      this.tasks.filter((t) => ensureStringArray(t.tags).includes(tagId));
     const getHooksWithTag = (tagId: string) =>
-      this.hooks.filter((h) => ensureStringArray(h.meta?.tags).includes(tagId));
+      this.hooks.filter((h) => ensureStringArray(h.tags).includes(tagId));
     const getResourcesWithTag = (tagId: string) =>
-      this.resources.filter((r) =>
-        ensureStringArray(r.meta?.tags).includes(tagId)
-      );
+      this.resources.filter((r) => ensureStringArray(r.tags).includes(tagId));
     const getMiddlewaresWithTag = (tagId: string) =>
-      this.middlewares.filter((m) =>
-        ensureStringArray(m.meta?.tags).includes(tagId)
-      );
+      this.middlewares.filter((m) => ensureStringArray(m.tags).includes(tagId));
     const getEventsWithTag = (tagId: string) =>
-      this.events.filter((e) =>
-        ensureStringArray(e.meta?.tags).includes(tagId)
-      );
+      this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
 
     const allTagIds = new Set<string>();
-    const collect = (arr: { meta?: { tags?: string[] | null } | null }[]) => {
+    const collect = (arr: { tags?: string[] | null }[]) => {
       for (const n of arr) {
-        for (const id of ensureStringArray(n.meta?.tags)) allTagIds.add(id);
+        for (const id of ensureStringArray(n.tags)) allTagIds.add(id);
       }
     };
     collect(this.tasks as any);
@@ -396,33 +390,27 @@ export class Introspector {
 
   // Tags API
   getTasksWithTag(tagId: string): Task[] {
-    return this.tasks.filter((t) =>
-      ensureStringArray(t.meta?.tags).includes(tagId)
-    );
+    return this.tasks.filter((t) => ensureStringArray(t.tags).includes(tagId));
   }
 
   getHooksWithTag(tagId: string): Hook[] {
-    return this.hooks.filter((h) =>
-      ensureStringArray(h.meta?.tags).includes(tagId)
-    );
+    return this.hooks.filter((h) => ensureStringArray(h.tags).includes(tagId));
   }
 
   getResourcesWithTag(tagId: string): Resource[] {
     return this.resources.filter((r) =>
-      ensureStringArray(r.meta?.tags).includes(tagId)
+      ensureStringArray(r.tags).includes(tagId)
     );
   }
 
   getMiddlewaresWithTag(tagId: string): Middleware[] {
     return this.middlewares.filter((m) =>
-      ensureStringArray(m.meta?.tags).includes(tagId)
+      ensureStringArray(m.tags).includes(tagId)
     );
   }
 
   getEventsWithTag(tagId: string): Event[] {
-    return this.events.filter((e) =>
-      ensureStringArray(e.meta?.tags).includes(tagId)
-    );
+    return this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
   }
 
   getAllTags(): Tag[] {
@@ -431,6 +419,10 @@ export class Introspector {
 
   getTag(id: string): Tag | null {
     return this.tagMap.get(id) ?? null;
+  }
+
+  getTagsByIds(ids: string[]): Tag[] {
+    return ids.map((id) => this.getTag(id)).filter((tag): tag is Tag => tag !== null);
   }
 
   // Diagnostics

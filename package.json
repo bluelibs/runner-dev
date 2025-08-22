@@ -8,11 +8,14 @@
     "url": "https://github.com/bluelibs/runner-dev"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run codegen && tsc && npm run build:ui",
     "watch": "tsc -w",
     "clean": "rm -rf dist",
     "start": "node dist/main.js",
     "dev": "npm run build && npm run start",
+    "build:ui": "cd ui && vite build",
+    "dev:ui": "cd ui && vite",
+    "preview:ui": "cd ui && vite preview --port 5173",
     "test": "jest --verbose --runInBand",
     "test:dev": "jest --verbose --watch",
     "coverage": "jest --verbose --coverage",
@@ -40,8 +43,10 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.7",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "8.39.0",
     "@typescript-eslint/parser": "8.39.0",
+    "@vitejs/plugin-react": "^4.3.1",
     "benchmark": "^2.1.4",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "6.3.0",
@@ -52,11 +57,13 @@
     "prettier": "^2.0.5",
     "reflect-metadata": "^0.2.2",
     "source-map-support": "^0.5.13",
+    "supertest": "^7.1.4",
     "ts-jest": "^29.0.0",
     "ts-node": "^10.9.2",
     "typedoc": "^0.26.7",
     "typedoc-material-theme": "^1.1.0",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vite": "^5.4.0"
   },
   "typings": "dist/index.d.ts",
   "typescript": {

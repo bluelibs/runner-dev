@@ -8,6 +8,9 @@ import { live } from "./live.resource";
 import { swapManager } from "./swap.resource";
 import { expressMiddleware } from "@as-integrations/express5";
 import express, { Request, Response } from "express";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { createUiStaticRouter } from "./ui.static";
 import { express as voyagerMiddleware } from "graphql-voyager/middleware";
 import { printSchema } from "graphql/utilities/printSchema";
 import React from "react";
@@ -66,8 +69,17 @@ export const serverResource = resource({
     // Voyager UI at /voyager (points to /graphql)
     app.use("/voyager", voyagerMiddleware({ endpointUrl: "/graphql" }));
 
-    // React SSR endpoints
-    app.get("/docs", (req: express.Request, res: express.Response) => {
+    // Static UI (Vite build) + runtime JS placeholder injection
+    const uiDir = path.resolve(__dirname, "../ui");
+    app.use(createUiStaticRouter(uiDir));
+
+    // Optional SPA fallback
+    // app.get(/^(?!\/graphql|\/voyager|\/docs).*/, (_req, res) => {
+    //   res.sendFile(path.join(uiDir, "index.html"));
+    // });
+
+    // React SSR + Hydration for /docs
+    app.get("/docs", async (req: express.Request, res: express.Response) => {
       const namespacePrefix = req.query.namespace as string | undefined;
       const message = namespacePrefix
         ? ""
@@ -75,10 +87,63 @@ export const serverResource = resource({
       logger.info(
         `Rendering documentation${message}. Use ?namespace=app to filter elements by id.`
       );
-      const component = React.createElement(Documentation, {
-        introspector,
+      // Prepare data for hydration
+      const data = {
+        tasks: introspector.getTasks(),
+        resources: introspector.getResources(),
+        events: introspector.getEvents(),
+        hooks: introspector.getHooks(),
+        middlewares: introspector.getMiddlewares(),
+        tags: introspector.getAllTags(),
+        diagnostics: introspector.getDiagnostics(),
+        orphanEvents: introspector.getOrphanEvents(),
+        unemittedEvents: introspector.getUnemittedEvents(),
+        unusedMiddleware: introspector.getUnusedMiddleware(),
+        missingFiles: introspector.getMissingFiles(),
+        overrideConflicts: introspector.getOverrideConflicts(),
+      };
+
+      const component = React.createElement(Documentation as any, {
+        introspector: {
+          getTasks: () => data.tasks,
+          getResources: () => data.resources,
+          getEvents: () => data.events,
+          getHooks: () => data.hooks,
+          getMiddlewares: () => data.middlewares,
+          getAllTags: () => data.tags,
+          getDiagnostics: () => data.diagnostics,
+          getOrphanEvents: () => data.orphanEvents,
+          getUnemittedEvents: () => data.unemittedEvents,
+          getUnusedMiddleware: () => data.unusedMiddleware,
+          getMissingFiles: () => data.missingFiles,
+          getOverrideConflicts: () => data.overrideConflicts,
+        } as any,
         namespacePrefix,
       });
+
+      // Load Vite manifest to locate hydration script
+      let scripts: string[] = [];
+      try {
+        const manifestPath = path.resolve(uiDir, "manifest.json");
+        const manifestRaw = await fs.readFile(manifestPath, "utf8");
+        const manifest = JSON.parse(manifestRaw);
+        const entry = manifest["src/hydrate-docs.tsx"]; // keyed by input path
+        if (entry?.file) {
+          scripts.push(`./${entry.file}`);
+          if (Array.isArray(entry.css)) {
+            // Optional: could inject CSS via stylesheets option if needed
+          }
+        }
+      } catch (e) {
+        logger.warn?.(
+          "Vite manifest not found or unreadable, hydration script may be missing"
+        );
+      }
+
+      const inlineScript = `window.__DOCS_PROPS__ = ${JSON.stringify({
+        namespacePrefix,
+        introspectorData: data,
+      })}`;
 
       const html = renderReactToString(component, {
         title: "Runner Dev React SSR",
@@ -86,6 +151,8 @@ export const serverResource = resource({
           description: "Server-side rendered React component in Runner Dev",
           author: "BlueLibs Runner Dev",
         },
+        scripts,
+        inlineScript,
       });
 
       res.setHeader("Content-Type", "text/html");

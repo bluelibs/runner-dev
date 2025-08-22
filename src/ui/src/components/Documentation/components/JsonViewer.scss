@@ -1,0 +1,73 @@
+
+@use '../../../styles/variables' as *;
+
+.json-viewer {
+  font-family: monospace;
+  font-size: $font-size-sm;
+  background-color: #f4f4f4;
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  overflow-x: auto;
+}
+
+.json-node {
+  margin-left: $spacing-lg;
+  position: relative;
+
+  &.expanded > .json-children {
+    display: block;
+  }
+}
+
+.json-toggle {
+  cursor: pointer;
+  position: absolute;
+  left: -$spacing-lg;
+  top: 0;
+  color: #999;
+  user-select: none;
+
+  &:hover {
+    color: $primary-blue;
+  }
+}
+
+.json-children {
+  display: none;
+  padding-left: $spacing-md;
+  border-left: 1px dotted #ccc;
+}
+
+.json-key-value {
+  display: flex;
+  align-items: flex-start;
+}
+
+.json-key {
+  color: #a52a2a; // brown
+  margin-right: $spacing-sm;
+  white-space: nowrap;
+}
+
+.json-value {
+  &--string {
+    color: #008000; // green
+  }
+
+  &--number {
+    color: #0000ff; // blue
+  }
+
+  &--boolean {
+    color: #ff00ff; // magenta
+  }
+
+  &--null {
+    color: #808080; // gray
+  }
+}
+
+.json-ellipsis {
+  color: #999;
+  margin: 0 $spacing-xs;
+}

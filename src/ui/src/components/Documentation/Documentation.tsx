@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Introspector } from "../../../../resources/models/Introspector";
 import "./Documentation.scss";
+import { TreeView } from "./components/TreeView";
+import { buildNamespaceTree, buildTypeFirstTree, filterTree, toggleNodeExpansion, TreeNode } from "./utils/tree-utils";
 export type Section =
   | "overview"
   | "tasks"
@@ -29,16 +31,32 @@ export const Documentation: React.FC<DocumentationProps> = ({
   introspector,
   namespacePrefix,
 }) => {
-  const [localNamespacePrefix, setLocalNamespacePrefix] = useState(
+  const [localNamespaceSearch, setLocalNamespaceSearch] = useState(
     namespacePrefix || ""
   );
+  const [viewMode, setViewMode] = useState<'list' | 'tree'>(() => {
+    try {
+      return localStorage.getItem('docs-view-mode') as 'list' | 'tree' || 'list';
+    } catch {
+      return 'list';
+    }
+  });
+  const [treeType, setTreeType] = useState<'namespace' | 'type'>(() => {
+    try {
+      return localStorage.getItem('docs-tree-type') as 'namespace' | 'type' || 'namespace';
+    } catch {
+      return 'namespace';
+    }
+  });
+  const [treeNodes, setTreeNodes] = useState<TreeNode[]>([]);
   // Sync local state when prop changes
   useEffect(() => {
-    setLocalNamespacePrefix(namespacePrefix || "");
+    setLocalNamespaceSearch(namespacePrefix || "");
   }, [namespacePrefix]);
+
   const filterByNamespace = (items: any[]) => {
-    if (!localNamespacePrefix) return items;
-    return items.filter((item) => item.id.startsWith(localNamespacePrefix));
+    if (!localNamespaceSearch) return items;
+    return items.filter((item) => item.id.includes(localNamespaceSearch));
   };
 
   const tasks = filterByNamespace(introspector.getTasks());
@@ -47,6 +65,88 @@ export const Documentation: React.FC<DocumentationProps> = ({
   const hooks = filterByNamespace(introspector.getHooks());
   const middlewares = filterByNamespace(introspector.getMiddlewares());
   const tags = filterByNamespace(introspector.getAllTags());
+
+  // Build tree data when elements or view mode changes
+  useEffect(() => {
+    const allElements = [
+      ...tasks,
+      ...resources,
+      ...events,
+      ...hooks,
+      ...middlewares,
+      ...tags
+    ];
+
+    let tree: TreeNode[];
+    if (treeType === 'namespace') {
+      tree = buildNamespaceTree(allElements);
+    } else {
+      tree = buildTypeFirstTree(allElements);
+    }
+
+    // Apply search filter
+    if (localNamespaceSearch) {
+      tree = filterTree(tree, localNamespaceSearch);
+    }
+
+    setTreeNodes(tree);
+  }, [tasks, resources, events, hooks, middlewares, tags, treeType, localNamespaceSearch]);
+
+  // Handlers for tree interaction
+  const handleTreeNodeClick = (node: TreeNode) => {
+    if (node.elementId) {
+      // For tree elements, scroll to the appropriate section
+      // Determine which section this element belongs to based on type
+      let sectionId = '';
+      if (node.type === 'task') sectionId = 'tasks';
+      else if (node.type === 'resource') sectionId = 'resources';
+      else if (node.type === 'event') sectionId = 'events';
+      else if (node.type === 'hook') sectionId = 'hooks';
+      else if (node.type === 'middleware') sectionId = 'middlewares';
+      else if (node.type === 'tag') sectionId = 'tags';
+      
+      // Try to find the exact element first, fallback to section
+      let targetElement = document.getElementById(node.elementId);
+      if (!targetElement && sectionId) {
+        targetElement = document.getElementById(sectionId);
+      }
+      
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth' });
+        // Highlight the target if it's a specific element
+        if (targetElement.id === node.elementId) {
+          targetElement.classList.add('docs-highlight-target');
+          setTimeout(() => {
+            targetElement.classList.remove('docs-highlight-target');
+          }, 2000);
+        }
+      }
+    }
+  };
+
+  const handleToggleExpansion = (nodeId: string, expanded?: boolean) => {
+    setTreeNodes(prevNodes => toggleNodeExpansion(prevNodes, nodeId, expanded));
+  };
+
+  // Persist view mode preference
+  const handleViewModeChange = (mode: 'list' | 'tree') => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('docs-view-mode', mode);
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
+
+  // Persist tree type preference
+  const handleTreeTypeChange = (type: 'namespace' | 'type') => {
+    setTreeType(type);
+    try {
+      localStorage.setItem('docs-tree-type', type);
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
 
   const sections = [
     {
@@ -127,41 +227,88 @@ export const Documentation: React.FC<DocumentationProps> = ({
           <p>Navigate through your application components</p>
         </div>
 
+        {/* View Mode Toggle */}
+        <div className="docs-view-controls">
+          <div className="docs-view-toggle">
+            <button
+              className={`docs-view-button ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => handleViewModeChange('list')}
+              title="List View"
+            >
+              📄 List
+            </button>
+            <button
+              className={`docs-view-button ${viewMode === 'tree' ? 'active' : ''}`}
+              onClick={() => handleViewModeChange('tree')}
+              title="Tree View"
+            >
+              🌳 Tree
+            </button>
+          </div>
+          {viewMode === 'tree' && (
+            <div className="docs-tree-controls">
+              <select
+                value={treeType}
+                onChange={(e) => handleTreeTypeChange(e.target.value as 'namespace' | 'type')}
+                className="docs-tree-type-select"
+              >
+                <option value="namespace">By Namespace</option>
+                <option value="type">By Type</option>
+              </select>
+            </div>
+          )}
+        </div>
+
         {/* Namespace Prefix Input */}
         <div className="docs-namespace-input">
-          <label htmlFor="namespace-input">Filter by Namespace</label>
+          <label htmlFor="namespace-input">
+            {viewMode === 'tree' ? 'Search Tree' : 'Filter by Namespace'}
+          </label>
           <input
             id="namespace-input"
             type="text"
-            placeholder="Enter namespace prefix..."
-            value={localNamespacePrefix}
-            onChange={(e) => setLocalNamespacePrefix(e.target.value)}
+            placeholder={viewMode === 'tree' ? 'Search elements...' : 'Enter namespace prefix or any key...'}
+            value={localNamespaceSearch}
+            onChange={(e) => setLocalNamespaceSearch(e.target.value)}
           />
         </div>
 
-        <ul className="docs-nav-list">
-          <li>
-            <a href="#top" className="docs-nav-link docs-nav-link--home">
-              <div className="docs-nav-content">
-                <span className="icon">🏠</span>
-                <span className="text">Home</span>
-              </div>
-            </a>
-          </li>
-          {sections.map((section) => (
-            <li key={section.id}>
-              <a href={`#${section.id}`} className="docs-nav-link">
+        {/* Navigation Content */}
+        {viewMode === 'list' ? (
+          <ul className="docs-nav-list">
+            <li>
+              <a href="#top" className="docs-nav-link docs-nav-link--home">
                 <div className="docs-nav-content">
-                  <span className="icon">{section.icon}</span>
-                  <span className="text">{section.label}</span>
+                  <span className="icon">🏠</span>
+                  <span className="text">Home</span>
                 </div>
-                {section.count !== null && (
-                  <span className="docs-nav-badge">{section.count}</span>
-                )}
               </a>
             </li>
-          ))}
-        </ul>
+            {sections.map((section) => (
+              <li key={section.id}>
+                <a href={`#${section.id}`} className="docs-nav-link">
+                  <div className="docs-nav-content">
+                    <span className="icon">{section.icon}</span>
+                    <span className="text">{section.label}</span>
+                  </div>
+                  {section.count !== null && (
+                    <span className="docs-nav-badge">{section.count}</span>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="docs-tree-container">
+            <TreeView
+              nodes={treeNodes}
+              onNodeClick={handleTreeNodeClick}
+              onToggleExpansion={handleToggleExpansion}
+              searchTerm={localNamespaceSearch}
+              className="docs-tree-view"
+            />
+          </div>
+        )}
 
         <div className="docs-nav-stats">
           <div className="label">Quick Stats</div>

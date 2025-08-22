@@ -50,7 +50,7 @@ export const serverResource = resource({
       "/graphql",
       express.json(),
       (req: Request, res: Response, next: any) => {
-        logger.debug("GraphQL request", req.body);
+        // logger.debug("GraphQL request", req.body);
         next();
       },
       expressMiddleware(server, {

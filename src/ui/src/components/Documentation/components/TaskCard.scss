@@ -65,6 +65,10 @@
   display: flex;
   gap: $spacing-xs;
   flex-wrap: wrap;
+  a {
+    color: #fff;
+    text-decoration: none;
+  }
 }
 
 .task-card__tag {
@@ -147,7 +151,7 @@
   font-weight: 500;
   border: 1px solid #bbdefb;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background: #bbdefb;
     color: #0d47a1;
@@ -155,7 +159,7 @@
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
   }
-  
+
   &:focus {
     outline: 2px solid #2196f3;
     outline-offset: 2px;
@@ -307,37 +311,37 @@
   color: inherit;
   transition: all 0.2s ease;
   position: relative;
-  
+
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-decoration: none;
-    
+
     &.task-card__relation-item--task {
       background: #bbdefb;
       box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
     }
-    
+
     &.task-card__relation-item--resource {
       background: #c8e6c9;
       box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
     }
-    
+
     &.task-card__relation-item--event {
       background: #ffe0b2;
       box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
     }
   }
-  
+
   &:focus {
     outline: 2px solid #667eea;
     outline-offset: 2px;
   }
-  
+
   &:active {
     transform: translateY(0);
   }
-  
+
   // Add a subtle click indicator
   &::after {
     content: "🔗";
@@ -349,7 +353,7 @@
     font-size: $font-size-xs;
     transition: opacity 0.2s ease;
   }
-  
+
   &:hover::after {
     opacity: 0.6;
   }

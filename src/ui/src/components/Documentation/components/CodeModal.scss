@@ -45,6 +45,21 @@
   opacity: 0.9;
 }
 
+.code-modal__header-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.code-modal__esc-hint {
+  font-size: $font-size-xs;
+  opacity: 0.8;
+  font-weight: 400;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .code-modal__close {
   background: transparent;
   border: none;
@@ -52,6 +67,11 @@
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
 }
 
 .code-modal__content {
@@ -69,7 +89,7 @@
   line-height: 1.5;
   max-height: 60vh;
   overflow: auto;
-  
+
   // Override Prism theme background to match our design
   background: #0d1117 !important;
   border: 1px solid #30363d;

@@ -1,5 +1,8 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { graphqlRequest } from "../utils/graphqlClient";
+import JsonViewer from "./JsonViewer";
+
 
 interface MemoryStats {
   heapUsed: number;
@@ -277,6 +280,15 @@ export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false }) => {
     }
   };
 
+  const tryParseJson = (jsonString: string): object | null => {
+    try {
+      const json = JSON.parse(jsonString);
+      return typeof json === "object" && json !== null ? json : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
   if (error) {
     return (
       <div className="live-panel live-panel--error">
@@ -370,12 +382,19 @@ export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false }) => {
                   {log.level.toUpperCase()}
                 </span>
                 <span className="entry-message">{log.message}</span>
-                {log.data && (
-                  <details className="entry-data">
-                    <summary>Data</summary>
-                    <pre>{log.data}</pre>
-                  </details>
-                )}
+                {log.data && (() => {
+                  const jsonData = tryParseJson(log.data);
+                  return (
+                    <details className="entry-data">
+                      <summary>Data</summary>
+                      {jsonData ? (
+                        <JsonViewer data={jsonData} />
+                      ) : (
+                        <pre>{log.data}</pre>
+                      )}
+                    </details>
+                  );
+                })()}
               </div>
             ))}
           </div>

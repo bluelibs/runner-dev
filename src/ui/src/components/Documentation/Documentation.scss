@@ -14,6 +14,27 @@
   display: flex;
 }
 
+// Highlight animation for tree navigation targets
+.docs-highlight-target {
+  animation: docs-highlight-pulse 2s ease-in-out;
+  border-radius: $border-radius-md;
+}
+
+@keyframes docs-highlight-pulse {
+  0% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(59, 130, 246, 0.2);
+    transform: scale(1.02);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Sidebar Navigation
 // -----------------------------------------------------------------------------
@@ -48,6 +69,119 @@
     font-size: $font-size-base;
     opacity: 0.8;
     line-height: 1.4;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// View Controls (Tree/List Toggle)
+// -----------------------------------------------------------------------------
+.docs-view-controls {
+  margin-bottom: $spacing-lg;
+}
+
+.docs-view-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: $spacing-sm;
+  
+  .docs-view-button {
+    flex: 1;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: $border-radius-md;
+    font-size: $font-size-xs;
+    cursor: pointer;
+    transition: $transition-normal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-xs;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+    
+    &.active {
+      background: $primary-blue;
+      border-color: $primary-blue;
+      color: white;
+      font-weight: 600;
+    }
+  }
+}
+
+.docs-tree-controls {
+  .docs-tree-type-select {
+    width: 100%;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border-radius: $border-radius-md;
+    font-size: $font-size-xs;
+    cursor: pointer;
+    
+    &:focus {
+      outline: none;
+      border-color: $primary-blue;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    
+    option {
+      background: #2c3e50;
+      color: white;
+    }
+  }
+}
+
+.docs-tree-container {
+  margin-bottom: $spacing-xl;
+  max-height: 60vh;
+  overflow-y: auto;
+  
+  .docs-tree-view {
+    // Override tree view colors for dark sidebar
+    .tree-node {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      &--focused {
+        background-color: rgba(59, 130, 246, 0.3);
+        outline-color: rgba(59, 130, 246, 0.6);
+      }
+    }
+    
+    .tree-node-label {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .tree-node-count {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .tree-expander {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+      }
+    }
+    
+    .tree-expander-icon {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .tree-children {
+      border-left-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .tree-search-highlight {
+      background-color: rgba(251, 191, 36, 0.3);
+      color: #fbbf24;
+    }
   }
 }
 

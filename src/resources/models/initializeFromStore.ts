@@ -12,6 +12,7 @@ import {
 } from "./initializeFromStore.utils";
 import { Introspector } from "./Introspector";
 import { buildIdMap, ensureStringArray } from "./introspector.tools";
+import { formatSchemaIfZod, isZodSchema } from "../../utils/zod";
 
 export function initializeFromStore(
   introspector: Introspector,
@@ -114,23 +115,25 @@ export function initializeFromStore(
   collect(introspector.middlewares as any);
   collect(introspector.events as any);
 
-  introspector.allTags = Array.from(allTagIds).map((id) => ({
-    id,
-    configSchema: introspector.getTag(id)?.configSchema ?? null,
+  introspector.allTags = Array.from(store.tags.values()).map((tag) => ({
+    id: tag.id,
+    configSchema: isZodSchema(tag.configSchema)
+      ? formatSchemaIfZod(tag.configSchema)
+      : null,
     get tasks() {
-      return getTasksWithTag(id);
+      return getTasksWithTag(tag.id);
     },
     get hooks() {
-      return getHooksWithTag(id);
+      return getHooksWithTag(tag.id);
     },
     get resources() {
-      return getResourcesWithTag(id);
+      return getResourcesWithTag(tag.id);
     },
     get middlewares() {
-      return getMiddlewaresWithTag(id);
+      return getMiddlewaresWithTag(tag.id);
     },
     get events() {
-      return getEventsWithTag(id);
+      return getEventsWithTag(tag.id);
     },
   }));
   introspector.tagMap = new Map<string, Tag>(

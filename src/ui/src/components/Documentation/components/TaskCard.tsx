@@ -59,9 +59,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           {task.tags && task.tags.length > 0 && (
             <div className="task-card__tags">
               {task.tags.map((tag) => (
-                <span key={tag} className="task-card__tag">
-                  {tag}
-                </span>
+                <a href={`#element-${tag}`} key={tag}>
+                  <span className="task-card__tag">{tag}</span>
+                </a>
               ))}
             </div>
           )}

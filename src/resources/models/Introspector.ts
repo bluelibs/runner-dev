@@ -17,6 +17,7 @@ import {
   buildIdMap,
   ensureStringArray,
 } from "./introspector.tools";
+import { formatSchemaIfZod } from "../../utils/zod";
 
 export type SerializedIntrospector = {
   tasks: Task[];
@@ -24,7 +25,7 @@ export type SerializedIntrospector = {
   resources: Resource[];
   events: Event[];
   middlewares: Middleware[];
-  tags?: Array<{ id: string }>;
+  tags?: Tag[];
   diagnostics?: DiagnosticItem[];
   orphanEvents?: { id: string }[];
   unemittedEvents?: { id: string }[];
@@ -104,24 +105,35 @@ export class Introspector {
     collect(this.middlewares as any);
     collect(this.events as any);
 
-    this.allTags = Array.from(allTagIds).map((id) => ({
-      id,
-      get tasks() {
-        return getTasksWithTag(id);
-      },
-      get hooks() {
-        return getHooksWithTag(id);
-      },
-      get resources() {
-        return getResourcesWithTag(id);
-      },
-      get middlewares() {
-        return getMiddlewaresWithTag(id);
-      },
-      get events() {
-        return getEventsWithTag(id);
-      },
-    }));
+    const incomingTagSchemas = new Map<string, string | null>(
+      (Array.isArray(data.tags) ? data.tags : []).map((t) => [
+        t.id,
+        t.configSchema ?? null,
+      ])
+    );
+
+    this.allTags = Array.from(allTagIds).map((id) => {
+      const configSchema = incomingTagSchemas.get(id) ?? null;
+      return {
+        id,
+        configSchema,
+        get tasks() {
+          return getTasksWithTag(id);
+        },
+        get hooks() {
+          return getHooksWithTag(id);
+        },
+        get resources() {
+          return getResourcesWithTag(id);
+        },
+        get middlewares() {
+          return getMiddlewaresWithTag(id);
+        },
+        get events() {
+          return getEventsWithTag(id);
+        },
+      };
+    });
     this.tagMap = new Map<string, Tag>(this.allTags.map((t) => [t.id, t]));
   }
 
@@ -422,7 +434,9 @@ export class Introspector {
   }
 
   getTagsByIds(ids: string[]): Tag[] {
-    return ids.map((id) => this.getTag(id)).filter((tag): tag is Tag => tag !== null);
+    return ids
+      .map((id) => this.getTag(id))
+      .filter((tag): tag is Tag => tag !== null);
   }
 
   // Diagnostics
@@ -512,7 +526,15 @@ export class Introspector {
       resources: this.resources,
       events: this.events,
       middlewares: this.middlewares,
-      tags: this.allTags.map((t) => ({ id: t.id })),
+      tags: this.allTags.map((t) => ({
+        id: t.id,
+        configSchema: t.configSchema,
+        tasks: [],
+        hooks: [],
+        resources: [],
+        middlewares: [],
+        events: [],
+      })),
       diagnostics: this.getDiagnostics(),
       orphanEvents: this.getOrphanEvents(),
       unemittedEvents: this.getUnemittedEvents(),

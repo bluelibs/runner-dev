@@ -1,7 +1,7 @@
 // =============================================================================
 // HOOK CARD COMPONENT STYLES
 // =============================================================================
-@use '../../../styles/variables' as *;
+@use "../../../styles/variables" as *;
 
 // -----------------------------------------------------------------------------
 // Hook Card Base
@@ -67,7 +67,7 @@
   display: flex;
   align-items: center;
   gap: $spacing-xs;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-xl;
 
@@ -82,7 +82,7 @@
 }
 
 .hook-card__order-badge {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-xl;
   font-size: $font-size-xs;
@@ -96,7 +96,7 @@
 }
 
 .hook-card__tag {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -224,6 +224,7 @@
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
     font-size: $font-size-xs;
+    max-height: 600px;
     margin: 0;
     border: 1px solid #dee2e6;
     overflow: auto;
@@ -247,8 +248,12 @@
       font-size: $font-size-lg;
       font-weight: bold;
 
-      &--emitters { color: $primary-blue; }
-      &--hooks { color: $purple; }
+      &--emitters {
+        color: $primary-blue;
+      }
+      &--hooks {
+        color: $purple;
+      }
     }
 
     .label {
@@ -387,9 +392,15 @@
     font-weight: 600;
     margin-bottom: $spacing-xs;
 
-    &--task { color: #1976d2; }
-    &--resource { color: #2e7d32; }
-    &--event { color: #f57c00; }
+    &--task {
+      color: #1976d2;
+    }
+    &--resource {
+      color: #2e7d32;
+    }
+    &--event {
+      color: #f57c00;
+    }
   }
 
   .id {
@@ -410,19 +421,19 @@
   font-size: $font-size-xs;
   font-weight: 600;
   margin-left: $spacing-sm;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   50% {
     box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
   }
   100% {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -508,37 +519,37 @@
   color: inherit;
   transition: all 0.2s ease;
   position: relative;
-  
+
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-decoration: none;
-    
+
     &.hook-card__dependency-item--task {
       background: #bbdefb;
       box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
     }
-    
+
     &.hook-card__dependency-item--resource {
       background: #c8e6c9;
       box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
     }
-    
+
     &.hook-card__dependency-item--event {
       background: #ffe0b2;
       box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
     }
   }
-  
+
   &:focus {
     outline: 2px solid #667eea;
     outline-offset: 2px;
   }
-  
+
   &:active {
     transform: translateY(0);
   }
-  
+
   // Add a subtle click indicator
   &::after {
     content: "🔗";
@@ -550,7 +561,7 @@
     font-size: $font-size-xs;
     transition: opacity 0.2s ease;
   }
-  
+
   &:hover::after {
     opacity: 0.6;
   }

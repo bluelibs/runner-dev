@@ -187,7 +187,8 @@ export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
                               )
                             }
                             style={{
-                              marginLeft: 8,
+                              marginLeft: 0,
+                              paddingLeft: 0,
                               background: "transparent",
                               border: "none",
                               color: "#1976d2",

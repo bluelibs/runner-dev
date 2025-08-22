@@ -50,6 +50,19 @@
   }
 }
 
+.docs-namespace-input {
+  margin-bottom: $spacing-lg;
+  
+  input {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: $border-radius-sm;
+    border: 1px solid #555;
+    background: #2c3e50;
+    color: white;
+  }
+}
+
 .docs-nav-list {
   list-style: none;
   padding: 0;
@@ -236,4 +249,12 @@
       font-weight: bold;
     }
   }
+}
+
+// -----------------------------------------------------------------------------
+// Component Grid
+// -----------------------------------------------------------------------------
+.docs-component-grid {
+  display: grid;
+  gap: $spacing-xxl;
 }

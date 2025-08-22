@@ -19,24 +19,6 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
   const emittedEvents = introspector.getEmittedEvents(hook);
   const targetEvent = introspector.getEvent(hook.event);
 
-  const cardStyle = {
-    background: "#fff",
-    border: "1px solid #e9ecef",
-    borderRadius: "12px",
-    overflow: "hidden" as const,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-    marginBottom: "20px",
-  };
-
-  const headerStyle = {
-    background: "linear-gradient(135deg, #9c27b0, #673ab7)",
-    color: "white",
-    padding: "25px",
-  };
-
-  const contentStyle = {
-    padding: "25px",
-  };
 
   const getHookOrderDisplay = () => {
     if (hook.hookOrder === null || hook.hookOrder === undefined)
@@ -45,92 +27,36 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
   };
 
   return (
-    <div style={cardStyle}>
-      <div style={headerStyle}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <h3
-              style={{
-                margin: "0 0 10px 0",
-                fontSize: "24px",
-                fontWeight: "700",
-              }}
-            >
+    <div className="hook-card">
+      <div className="hook-card__header">
+        <div className="hook-card__header-content">
+          <div className="main">
+            <h3 className="hook-card__title">
               🪝 {hook.meta?.title || formatId(hook.id)}
             </h3>
-            <div
-              style={{
-                fontSize: "14px",
-                opacity: 0.9,
-                fontFamily: "monospace",
-                marginBottom: "15px",
-              }}
-            >
+            <div className="hook-card__id">
               {hook.id}
             </div>
             {hook.meta?.description && (
-              <p
-                style={{
-                  margin: "0",
-                  fontSize: "16px",
-                  opacity: 0.95,
-                  lineHeight: "1.5",
-                }}
-              >
+              <p className="hook-card__description">
                 {hook.meta.description}
               </p>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              {hook.hookOrder !== null && hook.hookOrder !== undefined && (
-                <div
-                  style={{
-                    background: "rgba(255,255,255,0.2)",
-                    padding: "4px 8px",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                  }}
-                >
-                  #{hook.hookOrder}
-                </div>
-              )}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  background: "rgba(255,255,255,0.2)",
-                  padding: "4px 8px",
-                  borderRadius: "12px",
-                }}
-              >
-                <span style={{ fontSize: "12px" }}>📤</span>
-                <span style={{ fontSize: "12px", fontWeight: "500" }}>
-                  {emittedEvents.length}
-                </span>
+          <div className="hook-card__stats">
+            {hook.hookOrder !== null && hook.hookOrder !== undefined && (
+              <div className="hook-card__order-badge">
+                #{hook.hookOrder}
               </div>
+            )}
+            <div className="hook-card__stat-badge">
+              <span className="icon">📤</span>
+              <span className="count">{emittedEvents.length}</span>
             </div>
             {hook.meta?.tags && hook.meta.tags.length > 0 && (
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              <div className="hook-card__tags">
                 {hook.meta.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    style={{
-                      background: "rgba(255,255,255,0.2)",
-                      padding: "4px 12px",
-                      borderRadius: "16px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                    }}
-                  >
+                  <span key={tag} className="hook-card__tag">
                     {tag}
                   </span>
                 ))}
@@ -140,435 +66,159 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
         </div>
       </div>
 
-      <div style={contentStyle}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-            gap: "25px",
-          }}
-        >
+      <div className="hook-card__content">
+        <div className="hook-card__grid">
           <div>
-            <h4
-              style={{
-                margin: "0 0 15px 0",
-                color: "#2c3e50",
-                fontSize: "18px",
-                borderBottom: "2px solid #e9ecef",
-                paddingBottom: "8px",
-              }}
-            >
-              📋 Overview
-            </h4>
-            <div style={{ display: "grid", gap: "15px" }}>
-              <div>
-                <strong style={{ color: "#495057" }}>File Path:</strong>
-                <div
-                  style={{
-                    fontFamily: "monospace",
-                    fontSize: "13px",
-                    color: "#6c757d",
-                    marginTop: "4px",
-                    background: "#f8f9fa",
-                    padding: "8px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  {formatFilePath(hook.filePath)}
+            <div className="hook-card__section">
+              <h4 className="hook-card__section__title">📋 Overview</h4>
+              <div className="hook-card__section__content">
+                <div className="hook-card__info-block">
+                  <div className="label">File Path:</div>
+                  <div className="value">{formatFilePath(hook.filePath)}</div>
                 </div>
-              </div>
 
-              {hook.registeredBy && (
-                <div>
-                  <strong style={{ color: "#495057" }}>Registered By:</strong>
-                  <div
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: "13px",
-                      color: "#6c757d",
-                      marginTop: "4px",
-                      background: "#f8f9fa",
-                      padding: "8px",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    {hook.registeredBy}
+                {hook.registeredBy && (
+                  <div className="hook-card__info-block">
+                    <div className="label">Registered By:</div>
+                    <div className="value">{hook.registeredBy}</div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div>
-                <strong style={{ color: "#495057" }}>Target Event:</strong>
-                <div
-                  style={{
-                    fontFamily: "monospace",
-                    fontSize: "13px",
-                    color: "#6c757d",
-                    marginTop: "4px",
-                    background: "#f8f9fa",
-                    padding: "8px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  {formatId(hook.event)}
-                  {targetEvent && targetEvent.meta?.title && (
-                    <div
-                      style={{
+                <div className="hook-card__info-block">
+                  <div className="label">Target Event:</div>
+                  <div className="value">
+                    {formatId(hook.event)}
+                    {targetEvent && targetEvent.meta?.title && (
+                      <div style={{
                         fontSize: "11px",
                         color: "#6c757d",
                         marginTop: "4px",
                         fontStyle: "italic",
-                      }}
-                    >
-                      ({targetEvent.meta.title})
+                      }}>
+                        ({targetEvent.meta.title})
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="hook-card__info-block">
+                  <div className="label">Execution Order:</div>
+                  <div className="value value--order">
+                    {getHookOrderDisplay()}
+                    <div className="order-description">
+                      {hook.hookOrder === null || hook.hookOrder === undefined
+                        ? "Uses default ordering"
+                        : `Priority level ${hook.hookOrder}`}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <strong style={{ color: "#495057" }}>Execution Order:</strong>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#9c27b0",
-                    marginTop: "4px",
-                    background: "#f8f9fa",
-                    padding: "8px",
-                    borderRadius: "4px",
-                    fontWeight: "500",
-                  }}
-                >
-                  {getHookOrderDisplay()}
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "#6c757d",
-                      marginTop: "2px",
-                      fontWeight: "normal",
-                    }}
-                  >
-                    {hook.hookOrder === null || hook.hookOrder === undefined
-                      ? "Uses default ordering"
-                      : `Priority level ${hook.hookOrder}`}
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <strong style={{ color: "#495057" }}>Emits Events:</strong>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#6c757d",
-                    marginTop: "4px",
-                    background: "#f8f9fa",
-                    padding: "8px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  {formatArray(hook.emits)}
+                <div className="hook-card__info-block">
+                  <div className="label">Emits Events:</div>
+                  <div className="value">{formatArray(hook.emits)}</div>
                 </div>
-              </div>
 
-              {!targetEvent && (
-                <div
-                  style={{
-                    background: "#f8d7da",
-                    border: "1px solid #f5c6cb",
-                    padding: "15px",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <strong style={{ color: "#721c24" }}>
-                    ❌ Invalid Target Event
-                  </strong>
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      fontSize: "13px",
-                      color: "#721c24",
-                    }}
-                  >
-                    The event "{hook.event}" that this hook is listening to does
-                    not exist or is not registered.
+                {!targetEvent && (
+                  <div className="hook-card__alert hook-card__alert--danger">
+                    <div className="title">❌ Invalid Target Event</div>
+                    <div className="content">
+                      The event "{hook.event}" that this hook is listening to does
+                      not exist or is not registered.
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {hook.overriddenBy && (
-                <div
-                  style={{
-                    background: "#fff3cd",
-                    border: "1px solid #ffeaa7",
-                    padding: "15px",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <strong style={{ color: "#856404" }}>
-                    ⚠️ Overridden By:
-                  </strong>
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      color: "#856404",
-                      marginTop: "8px",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {hook.overriddenBy}
+                {hook.overriddenBy && (
+                  <div className="hook-card__alert hook-card__alert--warning">
+                    <div className="title">⚠️ Overridden By:</div>
+                    <div className="content">{hook.overriddenBy}</div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
           <div>
-            <h4
-              style={{
-                margin: "0 0 15px 0",
-                color: "#2c3e50",
-                fontSize: "18px",
-                borderBottom: "2px solid #e9ecef",
-                paddingBottom: "8px",
-              }}
-            >
-              📡 Target Event Details
-            </h4>
-            {targetEvent ? (
-              <div>
-                <div
-                  style={{
-                    background: "#f3e5f5",
-                    border: "1px solid #e1bee7",
-                    borderRadius: "8px",
-                    padding: "20px",
-                    marginBottom: "20px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    <span style={{ fontSize: "18px" }}>📡</span>
-                    <h5
-                      style={{ margin: 0, color: "#4a148c", fontSize: "16px" }}
-                    >
-                      {targetEvent.meta?.title || formatId(targetEvent.id)}
-                    </h5>
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: "13px",
-                      color: "#6a1b9a",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    {targetEvent.id}
-                  </div>
-                  {targetEvent.meta?.description && (
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        color: "#6a1b9a",
-                        lineHeight: "1.4",
-                      }}
-                    >
-                      {targetEvent.meta.description}
+            <div className="hook-card__section">
+              <h4 className="hook-card__section__title">📡 Target Event Details</h4>
+              {targetEvent ? (
+                <div>
+                  <div className="hook-card__target-event">
+                    <div className="hook-card__target-event__header">
+                      <span className="icon">📡</span>
+                      <h5 className="title">
+                        {targetEvent.meta?.title || formatId(targetEvent.id)}
+                      </h5>
                     </div>
-                  )}
-                </div>
-
-                <div style={{ display: "grid", gap: "15px" }}>
-                  <div
-                    style={{
-                      background: "#f8f9fa",
-                      padding: "15px",
-                      borderRadius: "8px",
-                      border: "1px solid #e9ecef",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: "600",
-                        marginBottom: "8px",
-                        color: "#495057",
-                      }}
-                    >
-                      Payload Schema
+                    <div className="hook-card__target-event__id">
+                      {targetEvent.id}
                     </div>
-                    <pre
-                      style={{
-                        background: "#fff",
-                        padding: "12px",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        margin: 0,
-                        border: "1px solid #dee2e6",
-                        overflow: "auto",
-                        lineHeight: "1.4",
-                      }}
-                    >
-                      {formatSchema(targetEvent.payloadSchema)}
-                    </pre>
-                  </div>
-
-                  <div
-                    style={{
-                      background: "#f8f9fa",
-                      padding: "15px",
-                      borderRadius: "8px",
-                      border: "1px solid #e9ecef",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: "600",
-                        marginBottom: "10px",
-                        color: "#495057",
-                      }}
-                    >
-                      Event Statistics
-                    </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(120px, 1fr))",
-                        gap: "15px",
-                      }}
-                    >
-                      <div style={{ textAlign: "center" }}>
-                        <div
-                          style={{
-                            fontSize: "20px",
-                            fontWeight: "bold",
-                            color: "#007acc",
-                          }}
-                        >
-                          {
-                            introspector.getEmittersOfEvent(targetEvent.id)
-                              .length
-                          }
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#6c757d",
-                            fontWeight: "500",
-                          }}
-                        >
-                          Emitters
-                        </div>
+                    {targetEvent.meta?.description && (
+                      <div className="hook-card__target-event__description">
+                        {targetEvent.meta.description}
                       </div>
-                      <div style={{ textAlign: "center" }}>
-                        <div
-                          style={{
-                            fontSize: "20px",
-                            fontWeight: "bold",
-                            color: "#9c27b0",
-                          }}
-                        >
-                          {introspector.getHooksOfEvent(targetEvent.id).length}
+                    )}
+                  </div>
+
+                  <div className="hook-card__section__content">
+                    <div className="hook-card__schema-block">
+                      <div className="title">Payload Schema</div>
+                      <pre className="schema">
+                        {formatSchema(targetEvent.payloadSchema)}
+                      </pre>
+                    </div>
+
+                    <div className="hook-card__schema-block">
+                      <div className="title">Event Statistics</div>
+                      <div className="hook-card__event-stats">
+                        <div className="hook-card__event-stats__stat">
+                          <div className="value value--emitters">
+                            {introspector.getEmittersOfEvent(targetEvent.id).length}
+                          </div>
+                          <div className="label">Emitters</div>
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#6c757d",
-                            fontWeight: "500",
-                          }}
-                        >
-                          Hooks
+                        <div className="hook-card__event-stats__stat">
+                          <div className="value value--hooks">
+                            {introspector.getHooksOfEvent(targetEvent.id).length}
+                          </div>
+                          <div className="label">Hooks</div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div
-                style={{
-                  background: "#f8d7da",
-                  border: "1px solid #f5c6cb",
-                  padding: "30px",
-                  borderRadius: "8px",
-                  textAlign: "center",
-                }}
-              >
-                <span style={{ fontSize: "48px" }}>❌</span>
-                <h5 style={{ color: "#721c24", margin: "15px 0 10px 0" }}>
-                  Event Not Found
-                </h5>
-                <p style={{ color: "#721c24", margin: 0 }}>
-                  The target event "{hook.event}" does not exist in the current
-                  application.
-                </p>
-              </div>
-            )}
+              ) : (
+                <div className="hook-card__not-found">
+                  <div className="icon">❌</div>
+                  <h5 className="title">Event Not Found</h5>
+                  <p className="message">
+                    The target event "{hook.event}" does not exist in the current
+                    application.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {(dependencies.tasks.length > 0 ||
           dependencies.resources.length > 0 ||
           emittedEvents.length > 0) && (
-          <div style={{ marginTop: "30px" }}>
-            <h4
-              style={{
-                margin: "0 0 20px 0",
-                color: "#2c3e50",
-                fontSize: "18px",
-                borderBottom: "2px solid #e9ecef",
-                paddingBottom: "8px",
-              }}
-            >
+          <div className="hook-card__dependencies">
+            <h4 className="hook-card__dependencies__title">
               🔗 Dependencies & Relations
             </h4>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                gap: "25px",
-              }}
-            >
+            <div className="hook-card__dependencies__grid">
               {dependencies.tasks.length > 0 && (
-                <div>
-                  <h5
-                    style={{
-                      margin: "0 0 15px 0",
-                      color: "#495057",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Task Dependencies
-                  </h5>
-                  <div style={{ display: "grid", gap: "10px" }}>
+                <div className="hook-card__dependencies__category">
+                  <h5>Task Dependencies</h5>
+                  <div className="hook-card__dependencies__items">
                     {dependencies.tasks.map((dep) => (
-                      <div
-                        key={dep.id}
-                        style={{
-                          padding: "12px 16px",
-                          background: "#e3f2fd",
-                          borderRadius: "8px",
-                          borderLeft: "4px solid #2196f3",
-                        }}
-                      >
-                        <div style={{ fontWeight: "600", color: "#1976d2" }}>
+                      <div key={dep.id} className="hook-card__dependency-item hook-card__dependency-item--task">
+                        <div className="title title--task">
                           {dep.meta?.title || formatId(dep.id)}
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {dep.id}
-                        </div>
+                        <div className="id">{dep.id}</div>
                       </div>
                     ))}
                   </div>
@@ -576,39 +226,15 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
               )}
 
               {dependencies.resources.length > 0 && (
-                <div>
-                  <h5
-                    style={{
-                      margin: "0 0 15px 0",
-                      color: "#495057",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Resource Dependencies
-                  </h5>
-                  <div style={{ display: "grid", gap: "10px" }}>
+                <div className="hook-card__dependencies__category">
+                  <h5>Resource Dependencies</h5>
+                  <div className="hook-card__dependencies__items">
                     {dependencies.resources.map((dep) => (
-                      <div
-                        key={dep.id}
-                        style={{
-                          padding: "12px 16px",
-                          background: "#e8f5e8",
-                          borderRadius: "8px",
-                          borderLeft: "4px solid #4caf50",
-                        }}
-                      >
-                        <div style={{ fontWeight: "600", color: "#2e7d32" }}>
+                      <div key={dep.id} className="hook-card__dependency-item hook-card__dependency-item--resource">
+                        <div className="title title--resource">
                           {dep.meta?.title || formatId(dep.id)}
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {dep.id}
-                        </div>
+                        <div className="id">{dep.id}</div>
                       </div>
                     ))}
                   </div>
@@ -616,39 +242,15 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
               )}
 
               {emittedEvents.length > 0 && (
-                <div>
-                  <h5
-                    style={{
-                      margin: "0 0 15px 0",
-                      color: "#495057",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Emitted Events
-                  </h5>
-                  <div style={{ display: "grid", gap: "10px" }}>
+                <div className="hook-card__dependencies__category">
+                  <h5>Emitted Events</h5>
+                  <div className="hook-card__dependencies__items">
                     {emittedEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        style={{
-                          padding: "12px 16px",
-                          background: "#fff3e0",
-                          borderRadius: "8px",
-                          borderLeft: "4px solid #ff9800",
-                        }}
-                      >
-                        <div style={{ fontWeight: "600", color: "#f57c00" }}>
+                      <div key={event.id} className="hook-card__dependency-item hook-card__dependency-item--event">
+                        <div className="title title--event">
                           {event.meta?.title || formatId(event.id)}
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {event.id}
-                        </div>
+                        <div className="id">{event.id}</div>
                       </div>
                     ))}
                   </div>

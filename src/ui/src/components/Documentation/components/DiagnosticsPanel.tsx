@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import {
-  getSeverityColor,
   getSeverityIcon,
   formatId,
 } from "../utils/formatting";
@@ -54,106 +53,46 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   const renderSummaryCard = (
     title: string,
     count: number,
-    color: string,
+    _color: string,
     icon: string,
-    description: string
+    description: string,
+    className?: string
   ) => (
-    <div
-      style={{
-        background: "#fff",
-        border: `1px solid ${color}20`,
-        borderRadius: "6px",
-        padding: "16px",
-        borderLeft: `4px solid ${color}`,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          marginBottom: "8px",
-        }}
-      >
-        <span style={{ fontSize: "18px" }}>{icon}</span>
-        <h4 style={{ margin: 0, color: color }}>{title}</h4>
+    <div className={`diagnostics-panel__summary-card ${className || ''}`}>
+      <div className="diagnostics-panel__summary-card__header">
+        <span className="icon">{icon}</span>
+        <h4>{title}</h4>
       </div>
-      <div
-        style={{
-          fontSize: "24px",
-          fontWeight: "bold",
-          color,
-          marginBottom: "4px",
-        }}
-      >
+      <div className="diagnostics-panel__summary-card__value">
         {count}
       </div>
-      <div style={{ fontSize: "12px", color: "#6c757d" }}>{description}</div>
+      <div className="diagnostics-panel__summary-card__description">{description}</div>
     </div>
   );
 
   const renderDiagnosticItem = (diagnostic: any) => (
     <div
       key={`${diagnostic.code}-${diagnostic.nodeId || "global"}`}
-      style={{
-        background: "#fff",
-        border: "1px solid #e9ecef",
-        borderRadius: "4px",
-        padding: "12px",
-        borderLeft: `4px solid ${getSeverityColor(diagnostic.severity)}`,
-      }}
+      className={`diagnostics-panel__item diagnostics-panel__item--${diagnostic.severity}`}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-        <span style={{ fontSize: "16px" }}>
+      <div className="diagnostics-panel__item-content">
+        <span className="icon">
           {getSeverityIcon(diagnostic.severity)}
         </span>
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "4px",
-            }}
-          >
-            <span
-              style={{
-                background: getSeverityColor(diagnostic.severity),
-                color: "white",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                fontSize: "11px",
-                fontWeight: "500",
-                textTransform: "uppercase",
-              }}
-            >
+        <div className="main">
+          <div className="diagnostics-panel__item-header">
+            <span className={`diagnostics-panel__severity-badge diagnostics-panel__severity-badge--${diagnostic.severity}`}>
               {diagnostic.severity}
             </span>
-            <span
-              style={{
-                background: "#f8f9fa",
-                color: "#495057",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                fontSize: "11px",
-                fontFamily: "monospace",
-              }}
-            >
+            <span className="diagnostics-panel__code-badge">
               {diagnostic.code}
             </span>
           </div>
-          <div style={{ marginBottom: "8px", lineHeight: "1.4" }}>
+          <div className="diagnostics-panel__message">
             {diagnostic.message}
           </div>
           {diagnostic.nodeId && (
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                fontSize: "12px",
-                color: "#6c757d",
-              }}
-            >
+            <div className="diagnostics-panel__node-info">
               <div>
                 <strong>Node:</strong> {formatId(diagnostic.nodeId)}
               </div>
@@ -173,60 +112,32 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
     items: any[],
     title: string,
     icon: string,
-    color: string,
+    _color: string,
     getItemId: (item: any) => string,
-    getItemTitle?: (item: any) => string
+    getItemTitle?: (item: any) => string,
+    className?: string
   ) => (
-    <div>
-      <h4
-        style={{
-          margin: "0 0 15px 0",
-          color: "#495057",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <span>{icon}</span>
+    <div className="diagnostics-panel__special-section">
+      <h4>
+        <span className="icon">{icon}</span>
         {title} ({items.length})
       </h4>
       {items.length === 0 ? (
-        <div
-          style={{
-            color: "#6c757d",
-            fontStyle: "italic",
-            textAlign: "center",
-            padding: "20px",
-            background: "#f8f9fa",
-            borderRadius: "4px",
-          }}
-        >
-          No {title.toLowerCase()} found. Great job! 🎉
+        <div className="diagnostics-panel__empty-state">
+          <div className="celebration">🎉</div>
+          No {title.toLowerCase()} found. Great job!
         </div>
       ) : (
-        <div style={{ display: "grid", gap: "8px" }}>
+        <div className="diagnostics-panel__special-section__items">
           {items.map((item, index) => (
             <div
               key={index}
-              style={{
-                background: "#fff",
-                border: "1px solid #e9ecef",
-                borderRadius: "4px",
-                padding: "12px",
-                borderLeft: `4px solid ${color}`,
-              }}
+              className={`diagnostics-panel__special-section__item ${className || ''}`}
             >
-              <div style={{ fontWeight: "500" }}>
+              <div className="title">
                 {getItemTitle ? getItemTitle(item) : formatId(getItemId(item))}
               </div>
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "#666",
-                  fontFamily: "monospace",
-                  marginTop: "4px",
-                }}
-              >
+              <div className="id">
                 {getItemId(item)}
               </div>
             </div>
@@ -238,47 +149,46 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
 
   if (!detailed) {
     return (
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: "15px",
-        }}
-      >
+      <div className="diagnostics-panel__summary-grid">
         {renderSummaryCard(
           "Errors",
           errorCount,
           "#dc3545",
           "❌",
-          "Critical issues"
+          "Critical issues",
+          "diagnostics-panel__summary-card--errors"
         )}
         {renderSummaryCard(
           "Warnings",
           warningCount,
           "#ffc107",
           "⚠️",
-          "Potential problems"
+          "Potential problems",
+          "diagnostics-panel__summary-card--warnings"
         )}
         {renderSummaryCard(
           "Orphan Events",
           orphanEvents.length,
           "#6f42c1",
           "👻",
-          "Events with no listeners"
+          "Events with no listeners",
+          "diagnostics-panel__summary-card--orphans"
         )}
         {renderSummaryCard(
           "Unused Middleware",
           unusedMiddleware.length,
           "#fd7e14",
           "🔗",
-          "Middleware not in use"
+          "Middleware not in use",
+          "diagnostics-panel__summary-card--unused"
         )}
         {renderSummaryCard(
           "Override Conflicts",
           overrideConflicts.length,
           "#dc3545",
           "⚔️",
-          "Resource override issues"
+          "Resource override issues",
+          "diagnostics-panel__summary-card--conflicts"
         )}
       </div>
     );
@@ -286,51 +196,18 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          borderBottom: "1px solid #e9ecef",
-          marginBottom: "20px",
-          gap: "0",
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="diagnostics-panel__tabs">
         {categories.map((category) => (
           <button
             key={category.id}
             onClick={() => setActiveCategory(category.id)}
-            style={{
-              padding: "12px 16px",
-              border: "none",
-              background:
-                activeCategory === category.id ? "#007acc" : "transparent",
-              color: activeCategory === category.id ? "white" : "#6c757d",
-              cursor: "pointer",
-              borderRadius: "4px 4px 0 0",
-              fontWeight: activeCategory === category.id ? "600" : "400",
-              transition: "all 0.2s ease",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
+            className={`diagnostics-panel__tab ${
+              activeCategory === category.id ? 'diagnostics-panel__tab--active' : ''
+            }`}
           >
             {category.label}
             {category.count > 0 && (
-              <span
-                style={{
-                  background:
-                    activeCategory === category.id
-                      ? "rgba(255,255,255,0.3)"
-                      : "#dee2e6",
-                  color: activeCategory === category.id ? "white" : "#495057",
-                  padding: "2px 6px",
-                  borderRadius: "10px",
-                  fontSize: "11px",
-                  fontWeight: "bold",
-                  minWidth: "18px",
-                  textAlign: "center",
-                }}
-              >
+              <span className="diagnostics-panel__tab-count">
                 {category.count}
               </span>
             )}
@@ -340,41 +217,38 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
 
       {activeCategory === "summary" && (
         <div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "15px",
-              marginBottom: "30px",
-            }}
-          >
+          <div className="diagnostics-panel__detailed-grid">
             {renderSummaryCard(
               "Total Issues",
               diagnostics.length,
               "#6c757d",
               "📊",
-              "All diagnostic items"
+              "All diagnostic items",
+              "diagnostics-panel__summary-card--total"
             )}
             {renderSummaryCard(
               "Errors",
               errorCount,
               "#dc3545",
               "❌",
-              "Critical issues requiring attention"
+              "Critical issues requiring attention",
+              "diagnostics-panel__summary-card--errors"
             )}
             {renderSummaryCard(
               "Warnings",
               warningCount,
               "#ffc107",
               "⚠️",
-              "Potential problems to review"
+              "Potential problems to review",
+              "diagnostics-panel__summary-card--warnings"
             )}
             {renderSummaryCard(
               "Information",
               infoCount,
               "#17a2b8",
               "ℹ️",
-              "Informational messages"
+              "Informational messages",
+              "diagnostics-panel__summary-card--info"
             )}
           </div>
 
@@ -383,21 +257,12 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               <h4 style={{ margin: "0 0 15px 0", color: "#495057" }}>
                 Recent Diagnostics
               </h4>
-              <div style={{ display: "grid", gap: "10px" }}>
+              <div className="diagnostics-panel__items">
                 {diagnostics.slice(0, 5).map(renderDiagnosticItem)}
                 {diagnostics.length > 5 && (
-                  <div style={{ textAlign: "center", marginTop: "10px" }}>
+                  <div className="diagnostics-panel__view-all">
                     <button
                       onClick={() => setActiveCategory("errors")}
-                      style={{
-                        padding: "8px 16px",
-                        border: "1px solid #007acc",
-                        background: "transparent",
-                        color: "#007acc",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                      }}
                     >
                       View All {diagnostics.length} Diagnostics
                     </button>
@@ -411,28 +276,15 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
 
       {activeCategory === "errors" && (
         <div>
-          <div style={{ display: "grid", gap: "10px" }}>
+          <div className="diagnostics-panel__items">
             {diagnostics
               .filter((d) => d.severity === "error")
               .map(renderDiagnosticItem)}
             {errorCount === 0 && (
-              <div
-                style={{
-                  color: "#28a745",
-                  textAlign: "center",
-                  padding: "40px",
-                  background: "#d4edda",
-                  borderRadius: "4px",
-                  border: "1px solid #c3e6cb",
-                }}
-              >
-                <span style={{ fontSize: "48px" }}>✅</span>
-                <h4 style={{ color: "#155724", margin: "10px 0" }}>
-                  No Errors Found!
-                </h4>
-                <p style={{ color: "#155724", margin: 0 }}>
-                  Your application has no critical errors.
-                </p>
+              <div className="diagnostics-panel__success-state">
+                <div className="icon">✅</div>
+                <h4>No Errors Found!</h4>
+                <p>Your application has no critical errors.</p>
               </div>
             )}
           </div>
@@ -441,28 +293,15 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
 
       {activeCategory === "warnings" && (
         <div>
-          <div style={{ display: "grid", gap: "10px" }}>
+          <div className="diagnostics-panel__items">
             {diagnostics
               .filter((d) => d.severity === "warning")
               .map(renderDiagnosticItem)}
             {warningCount === 0 && (
-              <div
-                style={{
-                  color: "#856404",
-                  textAlign: "center",
-                  padding: "40px",
-                  background: "#fff3cd",
-                  borderRadius: "4px",
-                  border: "1px solid #ffeaa7",
-                }}
-              >
-                <span style={{ fontSize: "48px" }}>👍</span>
-                <h4 style={{ color: "#856404", margin: "10px 0" }}>
-                  No Warnings!
-                </h4>
-                <p style={{ color: "#856404", margin: 0 }}>
-                  No potential issues detected.
-                </p>
+              <div className="diagnostics-panel__success-state" style={{ background: "#fff3cd", border: "1px solid #ffeaa7" }}>
+                <div className="icon">👍</div>
+                <h4 style={{ color: "#856404" }}>No Warnings!</h4>
+                <p style={{ color: "#856404" }}>No potential issues detected.</p>
               </div>
             )}
           </div>
@@ -476,7 +315,8 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "👻",
           "#6f42c1",
           (item) => item.id,
-          (item) => `${formatId(item.id)} (No listeners)`
+          (item) => `${formatId(item.id)} (No listeners)`,
+          "diagnostics-panel__special-section__item--orphan"
         )}
 
       {activeCategory === "unemitted" &&
@@ -486,7 +326,8 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "📤",
           "#fd7e14",
           (item) => item.id,
-          (item) => `${formatId(item.id)} (No emitters)`
+          (item) => `${formatId(item.id)} (No emitters)`,
+          "diagnostics-panel__special-section__item--unused"
         )}
 
       {activeCategory === "unused" &&
@@ -496,7 +337,8 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "🔗",
           "#6c757d",
           (item) => item.id,
-          (item) => `${formatId(item.id)} (Not used)`
+          (item) => `${formatId(item.id)} (Not used)`,
+          "diagnostics-panel__special-section__item--unused"
         )}
 
       {activeCategory === "conflicts" &&
@@ -507,7 +349,8 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "#dc3545",
           (item) => item.targetId,
           (item) =>
-            `${formatId(item.targetId)} ← overridden by → ${formatId(item.by)}`
+            `${formatId(item.targetId)} ← overridden by → ${formatId(item.by)}`,
+          "diagnostics-panel__special-section__item--conflict"
         )}
     </div>
   );

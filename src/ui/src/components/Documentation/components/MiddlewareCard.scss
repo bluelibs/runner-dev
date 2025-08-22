@@ -1,0 +1,420 @@
+// =============================================================================
+// MIDDLEWARE CARD COMPONENT STYLES
+// =============================================================================
+@use '../../../styles/variables' as *;
+
+// -----------------------------------------------------------------------------
+// Middleware Card Base
+// -----------------------------------------------------------------------------
+.middleware-card {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+}
+
+// -----------------------------------------------------------------------------
+// Middleware Card Header
+// -----------------------------------------------------------------------------
+.middleware-card__header {
+  background: linear-gradient(135deg, $purple, #5a2b99);
+  color: white;
+  padding: $spacing-xl;
+}
+
+.middleware-card__header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  .main {
+    flex: 1;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.middleware-card__title {
+  margin: 0 0 10px 0;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.middleware-card__id {
+  font-size: $font-size-base;
+  opacity: 0.9;
+  font-family: $font-family-mono;
+  margin-bottom: $spacing-md;
+}
+
+.middleware-card__description {
+  margin: 0;
+  font-size: $font-size-md;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
+// -----------------------------------------------------------------------------
+// Global Middleware Badges
+// -----------------------------------------------------------------------------
+.middleware-card__global-badges {
+  margin-top: $spacing-md;
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.middleware-card__global-badge {
+  background: rgba(255,255,255,0.25);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
+.middleware-card__tags {
+  display: flex;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.middleware-card__tag {
+  background: rgba(255,255,255,0.2);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
+// -----------------------------------------------------------------------------
+// Middleware Card Content
+// -----------------------------------------------------------------------------
+.middleware-card__content {
+  padding: $spacing-xl;
+}
+
+.middleware-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-xl;
+}
+
+// -----------------------------------------------------------------------------
+// Middleware Card Sections
+// -----------------------------------------------------------------------------
+.middleware-card__section {
+  &__title {
+    margin: 0 0 $spacing-md 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__content {
+    display: grid;
+    gap: $spacing-md;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Info Blocks
+// -----------------------------------------------------------------------------
+.middleware-card__info-block {
+  .label {
+    font-weight: bold;
+    color: $text-dark;
+  }
+
+  .value {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    background: $light-gray;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Usage Statistics
+// -----------------------------------------------------------------------------
+.middleware-card__usage-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: $spacing-md;
+  margin-top: 10px;
+}
+
+.middleware-card__usage-stat {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+  text-align: center;
+  border: 2px solid;
+
+  &--tasks {
+    background: #e3f2fd;
+    border-color: #2196f3;
+  }
+
+  &--resources {
+    background: #e8f5e8;
+    border-color: #4caf50;
+  }
+
+  &--events {
+    background: #fff3e0;
+    border-color: #ff9800;
+  }
+
+  .value {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    margin-bottom: $spacing-xs;
+
+    &--tasks { color: #1976d2; }
+    &--resources { color: #2e7d32; }
+    &--events { color: #f57c00; }
+  }
+
+  .label {
+    font-size: $font-size-xs;
+    font-weight: 500;
+
+    &--tasks { color: #1976d2; }
+    &--resources { color: #2e7d32; }
+    &--events { color: #f57c00; }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Code Block
+// -----------------------------------------------------------------------------
+.middleware-card__code-block {
+  background: $light-gray;
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  overflow: auto;
+  border: 1px solid $border-gray;
+  margin: 0;
+  font-family: $font-family-mono;
+}
+
+// -----------------------------------------------------------------------------
+// Global Configuration Alert
+// -----------------------------------------------------------------------------
+.middleware-card__global-config {
+  background: #e8f4fd;
+  border: 1px solid #bee5eb;
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+
+  .title {
+    color: #0c5460;
+    font-weight: bold;
+  }
+
+  .content {
+    margin-top: 10px;
+    font-size: $font-size-sm;
+    color: #0c5460;
+
+    .config-item {
+      margin-bottom: 5px;
+
+      strong {
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Override Alert
+// -----------------------------------------------------------------------------
+.middleware-card__alert {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+
+  &--warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+
+    .title {
+      color: #856404;
+      font-weight: bold;
+    }
+
+    .content {
+      font-size: $font-size-sm;
+      color: #856404;
+      margin-top: $spacing-sm;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Usage Details Section
+// -----------------------------------------------------------------------------
+.middleware-card__usage-details {
+  margin-top: $spacing-xxxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-xl;
+  }
+
+  &__category {
+    h5 {
+      margin: 0 0 $spacing-md 0;
+      color: $text-dark;
+      font-size: $font-size-md;
+    }
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Usage Item
+// -----------------------------------------------------------------------------
+.middleware-card__usage-item {
+  background: $light-gray;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: $spacing-md;
+
+    .main {
+      flex: 1;
+
+      .title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: $text-darker;
+        font-size: $font-size-md;
+      }
+
+      .id {
+        font-size: $font-size-xs;
+        color: #666;
+        font-family: $font-family-mono;
+      }
+    }
+
+    .configured-badge {
+      padding: $spacing-xs $spacing-sm;
+      border-radius: $border-radius-pill;
+      font-size: $font-size-xs;
+      font-weight: 500;
+
+      &--task {
+        background: #bbdefb;
+        color: #1565c0;
+      }
+
+      &--resource {
+        background: #c8e6c9;
+        color: #2e7d32;
+      }
+    }
+  }
+
+  &__config {
+    .config-title {
+      font-size: $font-size-base;
+      color: $text-dark;
+      margin-bottom: $spacing-sm;
+      font-weight: 600;
+    }
+
+    .config-code {
+      background: $white;
+      padding: $spacing-md;
+      border-radius: $border-radius-md;
+      font-size: $font-size-xs;
+      margin: 0;
+      border: 1px solid #dee2e6;
+      line-height: 1.4;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Events Section
+// -----------------------------------------------------------------------------
+.middleware-card__events {
+  margin-top: $spacing-xxxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+  }
+}
+
+.middleware-card__event-item {
+  padding: $spacing-sm $font-size-md;
+  background: #fff3e0;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid #ff9800;
+
+  .title {
+    font-weight: 600;
+    color: #f57c00;
+  }
+
+  .id {
+    font-size: $font-size-xs;
+    color: #666;
+    font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Empty State
+// -----------------------------------------------------------------------------
+.middleware-card__empty-state {
+  margin-top: $spacing-xxxl;
+  color: $text-gray;
+  font-style: italic;
+  text-align: center;
+  padding: $spacing-xxxl;
+  background: $light-gray;
+  border-radius: $border-radius-lg;
+}

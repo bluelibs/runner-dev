@@ -53,30 +53,30 @@
   &__value {
     font-size: $font-size-lg;
     font-weight: bold;
-
-    &--tasks {
-      color: $primary-blue;
-    }
-
-    &--resources {
-      color: $success-green;
-    }
-
-    &--events {
-      color: $warning-orange;
-    }
-
-    &--middlewares {
-      color: $purple;
-    }
-
-    &--hooks {
-      color: $info-teal;
-    }
   }
 
   &__label {
     font-size: $font-size-xs;
     color: $text-gray;
+  }
+
+  &--tasks .tag-card__stat__value {
+    color: $primary-blue;
+  }
+
+  &--resources .tag-card__stat__value {
+    color: $success-green;
+  }
+
+  &--events .tag-card__stat__value {
+    color: $warning-orange;
+  }
+
+  &--middlewares .tag-card__stat__value {
+    color: $purple;
+  }
+
+  &--hooks .tag-card__stat__value {
+    color: $info-teal;
   }
 }

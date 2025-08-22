@@ -32,81 +32,28 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   ];
   const overriddenElements = introspector.getResourcesByIds(resource.overrides);
 
-  const cardStyle = {
-    background: "#fff",
-    border: "1px solid #e9ecef",
-    borderRadius: "12px",
-    overflow: "hidden" as const,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-    marginBottom: "20px",
-  };
-
-  const headerStyle = {
-    background: "linear-gradient(135deg, #28a745, #20c997)",
-    color: "white",
-    padding: "25px",
-  };
-
-  const contentStyle = {
-    padding: "25px",
-  };
 
   return (
-    <div style={cardStyle}>
-      <div style={headerStyle}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <h3
-              style={{
-                margin: "0 0 10px 0",
-                fontSize: "24px",
-                fontWeight: "700",
-              }}
-            >
+    <div className="resource-card">
+      <div className="resource-card__header">
+        <div className="resource-card__header-content">
+          <div className="main">
+            <h3 className="resource-card__title">
               🔧 {resource.meta?.title || formatId(resource.id)}
             </h3>
-            <div
-              style={{
-                fontSize: "14px",
-                opacity: 0.9,
-                fontFamily: "monospace",
-                marginBottom: "15px",
-              }}
-            >
+            <div className="resource-card__id">
               {resource.id}
             </div>
             {resource.meta?.description && (
-              <p
-                style={{
-                  margin: "0",
-                  fontSize: "16px",
-                  opacity: 0.95,
-                  lineHeight: "1.5",
-                }}
-              >
+              <p className="resource-card__description">
                 {resource.meta.description}
               </p>
             )}
           </div>
           {resource.meta?.tags && resource.meta.tags.length > 0 && (
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            <div className="resource-card__tags">
               {resource.meta.tags.map((tag) => (
-                <span
-                  key={tag}
-                  style={{
-                    background: "rgba(255,255,255,0.2)",
-                    padding: "4px 12px",
-                    borderRadius: "16px",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                  }}
-                >
+                <span key={tag} className="resource-card__tag">
                   {tag}
                 </span>
               ))}
@@ -115,187 +62,63 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         </div>
       </div>
 
-      <div style={contentStyle}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-            gap: "25px",
-          }}
-        >
+      <div className="resource-card__content">
+        <div className="resource-card__grid">
           <div>
-            <h4
-              style={{
-                margin: "0 0 15px 0",
-                color: "#2c3e50",
-                fontSize: "18px",
-                borderBottom: "2px solid #e9ecef",
-                paddingBottom: "8px",
-              }}
-            >
-              📋 Overview
-            </h4>
-            <div style={{ display: "grid", gap: "15px" }}>
-              <div>
-                <strong style={{ color: "#495057" }}>File Path:</strong>
-                <div
-                  style={{
-                    fontFamily: "monospace",
-                    fontSize: "13px",
-                    color: "#6c757d",
-                    marginTop: "4px",
-                    background: "#f8f9fa",
-                    padding: "8px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  {formatFilePath(resource.filePath)}
+            <div className="resource-card__section">
+              <h4 className="resource-card__section__title">📋 Overview</h4>
+              <div className="resource-card__section__content">
+                <div className="resource-card__info-block">
+                  <div className="label">File Path:</div>
+                  <div className="value">{formatFilePath(resource.filePath)}</div>
                 </div>
+
+                {resource.registeredBy && (
+                  <div className="resource-card__info-block">
+                    <div className="label">Registered By:</div>
+                    <div className="value">{resource.registeredBy}</div>
+                  </div>
+                )}
+
+                {resource.context && (
+                  <div className="resource-card__info-block">
+                    <div className="label">Context:</div>
+                    <div className="value">{resource.context}</div>
+                  </div>
+                )}
+
+                <div className="resource-card__info-block">
+                  <div className="label">Used By Tasks:</div>
+                  <div className="value">{dependentTasks.length} task(s)</div>
+                </div>
+
+                {resource.overriddenBy && (
+                  <div className="resource-card__alert resource-card__alert--warning">
+                    <div className="title">⚠️ Overridden By:</div>
+                    <div className="content">{resource.overriddenBy}</div>
+                  </div>
+                )}
               </div>
-
-              {resource.registeredBy && (
-                <div>
-                  <strong style={{ color: "#495057" }}>Registered By:</strong>
-                  <div
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: "13px",
-                      color: "#6c757d",
-                      marginTop: "4px",
-                      background: "#f8f9fa",
-                      padding: "8px",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    {resource.registeredBy}
-                  </div>
-                </div>
-              )}
-
-              {resource.context && (
-                <div>
-                  <strong style={{ color: "#495057" }}>Context:</strong>
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      color: "#6c757d",
-                      marginTop: "4px",
-                      background: "#f8f9fa",
-                      padding: "8px",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    {resource.context}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <strong style={{ color: "#495057" }}>Used By Tasks:</strong>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#6c757d",
-                    marginTop: "4px",
-                    background: "#f8f9fa",
-                    padding: "8px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  {dependentTasks.length} task(s)
-                </div>
-              </div>
-
-              {resource.overriddenBy && (
-                <div
-                  style={{
-                    background: "#fff3cd",
-                    border: "1px solid #ffeaa7",
-                    padding: "15px",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <strong style={{ color: "#856404" }}>
-                    ⚠️ Overridden By:
-                  </strong>
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      color: "#856404",
-                      marginTop: "8px",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {resource.overriddenBy}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
           <div>
-            <h4
-              style={{
-                margin: "0 0 15px 0",
-                color: "#2c3e50",
-                fontSize: "18px",
-                borderBottom: "2px solid #e9ecef",
-                paddingBottom: "8px",
-              }}
-            >
-              ⚙️ Configuration
-            </h4>
-            <div style={{ display: "grid", gap: "20px" }}>
-              <div>
-                <h5
-                  style={{
-                    margin: "0 0 10px 0",
-                    color: "#495057",
-                    fontSize: "14px",
-                  }}
-                >
-                  Current Configuration
-                </h5>
-                <pre
-                  style={{
-                    background: "#f8f9fa",
-                    padding: "15px",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    lineHeight: "1.6",
-                    overflow: "auto",
-                    border: "1px solid #e9ecef",
-                    margin: 0,
-                  }}
-                >
-                  {formatConfig(resource.config)}
-                </pre>
-              </div>
+            <div className="resource-card__section">
+              <h4 className="resource-card__section__title">⚙️ Configuration</h4>
+              <div className="resource-card__config">
+                <div className="resource-card__config__subsection">
+                  <h5>Current Configuration</h5>
+                  <pre className="resource-card__config__block">
+                    {formatConfig(resource.config)}
+                  </pre>
+                </div>
 
-              <div>
-                <h5
-                  style={{
-                    margin: "0 0 10px 0",
-                    color: "#495057",
-                    fontSize: "14px",
-                  }}
-                >
-                  Configuration Schema
-                </h5>
-                <pre
-                  style={{
-                    background: "#f8f9fa",
-                    padding: "15px",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    lineHeight: "1.6",
-                    overflow: "auto",
-                    border: "1px solid #e9ecef",
-                    margin: 0,
-                  }}
-                >
-                  {formatSchema(resource.configSchema)}
-                </pre>
+                <div className="resource-card__config__subsection">
+                  <h5>Configuration Schema</h5>
+                  <pre className="resource-card__config__block">
+                    {formatSchema(resource.configSchema)}
+                  </pre>
+                </div>
               </div>
             </div>
           </div>
@@ -304,59 +127,21 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         {(dependencies.length > 0 ||
           dependentTasks.length > 0 ||
           registeredElements.length > 0) && (
-          <div style={{ marginTop: "30px" }}>
-            <h4
-              style={{
-                margin: "0 0 20px 0",
-                color: "#2c3e50",
-                fontSize: "18px",
-                borderBottom: "2px solid #e9ecef",
-                paddingBottom: "8px",
-              }}
-            >
+          <div className="resource-card__relations">
+            <h4 className="resource-card__relations__title">
               🔗 Dependencies & Relations
             </h4>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                gap: "25px",
-              }}
-            >
+            <div className="resource-card__relations__grid">
               {dependencies.length > 0 && (
-                <div>
-                  <h5
-                    style={{
-                      margin: "0 0 15px 0",
-                      color: "#495057",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Resource Dependencies
-                  </h5>
-                  <div style={{ display: "grid", gap: "10px" }}>
+                <div className="resource-card__relations__category">
+                  <h5>Resource Dependencies</h5>
+                  <div className="resource-card__relations__items">
                     {dependencies.map((dep) => (
-                      <div
-                        key={dep.id}
-                        style={{
-                          padding: "12px 16px",
-                          background: "#e8f5e8",
-                          borderRadius: "8px",
-                          borderLeft: "4px solid #4caf50",
-                        }}
-                      >
-                        <div style={{ fontWeight: "600", color: "#2e7d32" }}>
+                      <div key={dep.id} className="resource-card__relation-item resource-card__relation-item--resource">
+                        <div className="title title--resource">
                           {dep.meta?.title || formatId(dep.id)}
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {dep.id}
-                        </div>
+                        <div className="id">{dep.id}</div>
                       </div>
                     ))}
                   </div>
@@ -364,39 +149,15 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               )}
 
               {dependentTasks.length > 0 && (
-                <div>
-                  <h5
-                    style={{
-                      margin: "0 0 15px 0",
-                      color: "#495057",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Used By Tasks
-                  </h5>
-                  <div style={{ display: "grid", gap: "10px" }}>
+                <div className="resource-card__relations__category">
+                  <h5>Used By Tasks</h5>
+                  <div className="resource-card__relations__items">
                     {dependentTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        style={{
-                          padding: "12px 16px",
-                          background: "#e3f2fd",
-                          borderRadius: "8px",
-                          borderLeft: "4px solid #2196f3",
-                        }}
-                      >
-                        <div style={{ fontWeight: "600", color: "#1976d2" }}>
+                      <div key={task.id} className="resource-card__relation-item resource-card__relation-item--task">
+                        <div className="title title--task">
                           {task.meta?.title || formatId(task.id)}
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {task.id}
-                        </div>
+                        <div className="id">{task.id}</div>
                       </div>
                     ))}
                   </div>
@@ -404,39 +165,15 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               )}
 
               {registeredElements.length > 0 && (
-                <div>
-                  <h5
-                    style={{
-                      margin: "0 0 15px 0",
-                      color: "#495057",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Registered Elements
-                  </h5>
-                  <div style={{ display: "grid", gap: "10px" }}>
+                <div className="resource-card__relations__category">
+                  <h5>Registered Elements</h5>
+                  <div className="resource-card__relations__items">
                     {registeredElements.map((element) => (
-                      <div
-                        key={element.id}
-                        style={{
-                          padding: "12px 16px",
-                          background: "#f3e5f5",
-                          borderRadius: "8px",
-                          borderLeft: "4px solid #9c27b0",
-                        }}
-                      >
-                        <div style={{ fontWeight: "600", color: "#7b1fa2" }}>
+                      <div key={element.id} className="resource-card__relation-item resource-card__relation-item--registered">
+                        <div className="title title--registered">
                           {element.meta?.title || formatId(element.id)}
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#666",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {element.id}
-                        </div>
+                        <div className="id">{element.id}</div>
                       </div>
                     ))}
                   </div>
@@ -447,74 +184,21 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         )}
 
         {middlewareUsages.length > 0 && (
-          <div style={{ marginTop: "30px" }}>
-            <h4
-              style={{
-                margin: "0 0 20px 0",
-                color: "#2c3e50",
-                fontSize: "18px",
-                borderBottom: "2px solid #e9ecef",
-                paddingBottom: "8px",
-              }}
-            >
+          <div className="resource-card__middleware">
+            <h4 className="resource-card__middleware__title">
               🔗 Middleware Configuration
             </h4>
-            <div style={{ display: "grid", gap: "15px" }}>
+            <div className="resource-card__middleware__items">
               {middlewareUsages.map((usage) => (
-                <div
-                  key={usage.id}
-                  style={{
-                    background: "#f8f9fa",
-                    border: "1px solid #e9ecef",
-                    borderRadius: "8px",
-                    padding: "20px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: "600",
-                      marginBottom: "10px",
-                      color: "#2c3e50",
-                      fontSize: "16px",
-                    }}
-                  >
+                <div key={usage.id} className="resource-card__middleware__item">
+                  <div className="title">
                     {usage.node.meta?.title || formatId(usage.id)}
                   </div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#666",
-                      fontFamily: "monospace",
-                      marginBottom: "15px",
-                    }}
-                  >
-                    {usage.id}
-                  </div>
+                  <div className="id">{usage.id}</div>
                   {usage.config && (
                     <div>
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          color: "#495057",
-                          marginBottom: "8px",
-                          fontWeight: "600",
-                        }}
-                      >
-                        Configuration:
-                      </div>
-                      <pre
-                        style={{
-                          background: "#fff",
-                          padding: "15px",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          margin: 0,
-                          border: "1px solid #dee2e6",
-                          lineHeight: "1.4",
-                        }}
-                      >
-                        {usage.config}
-                      </pre>
+                      <div className="config-title">Configuration:</div>
+                      <pre className="config-block">{usage.config}</pre>
                     </div>
                   )}
                 </div>

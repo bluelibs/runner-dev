@@ -39,32 +39,60 @@
 // -----------------------------------------------------------------------------
 .sidebar__search {
   margin-bottom: $spacing-lg;
+}
 
-  &__input {
-    width: 100%;
-    padding: $spacing-sm $spacing-sm;
-    border: 1px solid #34495e;
-    border-radius: $border-radius-sm;
-    background: #34495e;
-    color: white;
-    font-size: $font-size-base;
-    box-sizing: border-box;
+.sidebar__search-input {
+  width: 100%;
+  padding: $spacing-sm $spacing-sm;
+  border: 1px solid #34495e;
+  border-radius: $border-radius-sm;
+  background: #34495e;
+  color: white;
+  font-size: $font-size-base;
+  box-sizing: border-box;
 
-    &::placeholder {
-      color: #bdc3c7;
-    }
+  &::placeholder {
+    color: #bdc3c7;
+  }
 
-    &:focus {
-      outline: none;
-      border-color: $primary-blue;
-      box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
+  &:focus {
+    outline: none;
+    border-color: $primary-blue;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
   }
 }
 
 // -----------------------------------------------------------------------------
-// Selected Tag Display
+// Tag Filter Display
 // -----------------------------------------------------------------------------
+.sidebar__tag-filter {
+  background: $primary-blue;
+  padding: $spacing-sm $spacing-sm;
+  border-radius: $border-radius-sm;
+  margin-bottom: $spacing-md;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &__label {
+    font-size: $font-size-xs;
+  }
+
+  &__clear {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 2px $spacing-xs;
+    border-radius: 2px;
+    font-size: $font-size-xs;
+
+    &:hover {
+      background: rgba(255,255,255,0.2);
+    }
+  }
+}
+
 .sidebar__selected-tag {
   background: $primary-blue;
   padding: $spacing-sm $spacing-sm;

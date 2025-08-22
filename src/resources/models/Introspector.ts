@@ -16,6 +16,7 @@ import {
   stampElementKind,
   buildIdMap,
   ensureStringArray,
+  stringifyIfObject,
 } from "./introspector.tools";
 import { formatSchemaIfZod } from "../../utils/zod";
 

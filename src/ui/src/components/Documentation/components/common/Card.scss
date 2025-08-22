@@ -1,0 +1,90 @@
+@use "../../../../styles/variables" as *;
+
+@mixin card-header-variant($gradient) {
+  background: $gradient;
+}
+
+.card {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+
+  &__header {
+    color: white;
+    padding: $spacing-xl;
+  }
+
+  &--task {
+    .card__header {
+      @include card-header-variant($gradient-primary);
+    }
+  }
+  &--resource {
+    .card__header {
+      @include card-header-variant($gradient-success);
+    }
+  }
+  &--event {
+    .card__header {
+      @include card-header-variant($gradient-warning);
+    }
+  }
+  &--hook {
+    .card__header {
+      @include card-header-variant($gradient-purple);
+    }
+  }
+  &--middleware {
+    .card__header {
+      @include card-header-variant(linear-gradient(135deg, $purple, #5a2b99));
+    }
+  }
+  &--tag {
+    .card__header {
+      @include card-header-variant(linear-gradient(135deg, #ff6b6b, #ee5a52));
+    }
+  }
+
+  &__header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .main {
+      flex: 1;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+  }
+
+  &__title {
+    margin: 0 0 10px 0;
+    font-size: $font-size-xl;
+    font-weight: 700;
+  }
+
+  &__id {
+    font-size: $font-size-base;
+    opacity: 0.9;
+    font-family: $font-family-mono;
+    margin-bottom: $spacing-md;
+  }
+
+  &__description {
+    margin: 0;
+    font-size: $font-size-md;
+    opacity: 0.95;
+    line-height: 1.5;
+  }
+
+  &__content {
+    padding: $spacing-xl;
+  }
+}

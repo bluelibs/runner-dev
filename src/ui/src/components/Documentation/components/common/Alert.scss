@@ -1,0 +1,49 @@
+@use "../../../../styles/variables" as *;
+
+.alert {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+
+  &__title {
+    font-weight: bold;
+  }
+
+  &__content {
+    margin-top: $spacing-sm;
+    font-size: $font-size-sm;
+  }
+
+  &--danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    .alert__title {
+      color: #721c24;
+    }
+    .alert__content {
+      color: #721c24;
+    }
+  }
+
+  &--warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    .alert__title {
+      color: #856404;
+    }
+    .alert__content {
+      color: #856404;
+      font-family: $font-family-mono;
+    }
+  }
+
+  &--info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    .alert__title {
+      color: #0c5460;
+    }
+    .alert__content {
+      color: #0c5460;
+    }
+  }
+}

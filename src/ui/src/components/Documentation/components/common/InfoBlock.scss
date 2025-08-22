@@ -1,0 +1,18 @@
+@use "../../../../styles/variables" as *;
+
+.info-block {
+  .info-block__label {
+    font-weight: bold;
+    color: $text-dark;
+  }
+
+  .info-block__value {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    background: $light-gray;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+  }
+}

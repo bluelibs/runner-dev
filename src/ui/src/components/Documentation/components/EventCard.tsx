@@ -20,9 +20,10 @@ export const EventCard: React.FC<EventCardProps> = ({
 }) => {
   const emitters = introspector.getEmittersOfEvent(event.id);
   const hooks = introspector.getHooksOfEvent(event.id);
-
+  const isGlobalEvent = event.id === "*";
 
   const getEventIcon = () => {
+    if (isGlobalEvent) return "🌐";
     if (hooks.length > 0 && emitters.length > 0) return "📡";
     if (emitters.length > 0) return "📤";
     if (hooks.length > 0) return "📥";
@@ -40,16 +41,20 @@ export const EventCard: React.FC<EventCardProps> = ({
   const status = getEventStatus();
 
   return (
-    <div className="event-card">
+    <div id={`element-${event.id}`} className="event-card">
       <div className="event-card__header">
         <div className="event-card__header-content">
           <div className="main">
             <h3 className="event-card__title">
-              {getEventIcon()} {event.meta?.title || formatId(event.id)}
+              {getEventIcon()}{" "}
+              {isGlobalEvent
+                ? event.meta?.title || "Global Event"
+                : event.meta?.title || formatId(event.id)}
+              {isGlobalEvent && (
+                <span className="event-card__global-badge">GLOBAL</span>
+              )}
             </h3>
-            <div className="event-card__id">
-              {event.id}
-            </div>
+            {!isGlobalEvent && <div className="event-card__id">{event.id}</div>}
             {event.meta?.description && (
               <p className="event-card__description">
                 {event.meta.description}
@@ -67,9 +72,9 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <span className="count">{hooks.length}</span>
               </div>
             </div>
-            {event.meta?.tags && event.meta.tags.length > 0 && (
+            {event.tags && event.tags.length > 0 && (
               <div className="event-card__tags">
-                {event.meta.tags.map((tag) => (
+                {event.tags.map((tag) => (
                   <span key={tag} className="event-card__tag">
                     {tag}
                   </span>
@@ -86,6 +91,18 @@ export const EventCard: React.FC<EventCardProps> = ({
             <div className="event-card__section">
               <h4 className="event-card__section__title">📋 Overview</h4>
               <div className="event-card__section__content">
+                {isGlobalEvent && (
+                  <div className="event-card__global-message">
+                    <div className="event-card__global-message__header">
+                      <span className="icon">🌐</span>
+                      <h5 className="title">Global/System Event</h5>
+                    </div>
+                    <div className="event-card__global-message__content">
+                      This event is part of the global/system namespace and can
+                      be used across the entire application lifecycle.
+                    </div>
+                  </div>
+                )}
                 <div className="event-card__info-block">
                   <div className="label">File Path:</div>
                   <div className="value">{formatFilePath(event.filePath)}</div>
@@ -94,13 +111,23 @@ export const EventCard: React.FC<EventCardProps> = ({
                 {event.registeredBy && (
                   <div className="event-card__info-block">
                     <div className="label">Registered By:</div>
-                    <div className="value">{event.registeredBy}</div>
+                    <div className="value">
+                      <a
+                        href={`#element-${event.registeredBy}`}
+                        className="event-card__registrar-link"
+                      >
+                        {event.registeredBy}
+                      </a>
+                    </div>
                   </div>
                 )}
 
                 <div className="event-card__info-block">
                   <div className="label">Event Status:</div>
-                  <div className="value value--status" style={{ color: status.color }}>
+                  <div
+                    className="value value--status"
+                    style={{ color: status.color }}
+                  >
                     {status.text}
                   </div>
                 </div>
@@ -110,17 +137,22 @@ export const EventCard: React.FC<EventCardProps> = ({
                   <div className="value">{formatArray(event.listenedToBy)}</div>
                 </div>
 
-                {(emitters.length === 0 || hooks.length === 0) && (
-                  <div className={`event-card__alert ${
-                    emitters.length === 0 ? 'event-card__alert--danger' : 'event-card__alert--warning'
-                  }`}>
+                {((!isGlobalEvent && emitters.length === 0) ||
+                  hooks.length === 0) && (
+                  <div
+                    className={`event-card__alert ${
+                      emitters.length === 0
+                        ? "event-card__alert--danger"
+                        : "event-card__alert--warning"
+                    }`}
+                  >
                     <div className="title">
-                      {emitters.length === 0
+                      {!isGlobalEvent && emitters.length === 0
                         ? "⚠️ No Emitters Found"
                         : "⚠️ No Listeners Found"}
                     </div>
                     <div className="content">
-                      {emitters.length === 0
+                      {!isGlobalEvent && emitters.length === 0
                         ? "This event is not emitted by any tasks, hooks, or resources."
                         : "This event has no hooks listening to it."}
                     </div>
@@ -141,17 +173,27 @@ export const EventCard: React.FC<EventCardProps> = ({
         </div>
 
         <div className="event-card__flow">
-          <h4 className="event-card__flow__title">🔗 Event Flow & Statistics</h4>
+          <h4 className="event-card__flow__title">
+            🔗 Event Flow & Statistics
+          </h4>
           <div className="event-card__metrics">
-            <div className={`event-card__metric ${
-              emitters.length > 0 ? 'event-card__metric--active' : 'event-card__metric--danger'
-            }`}>
+            <div
+              className={`event-card__metric ${
+                emitters.length > 0
+                  ? "event-card__metric--active"
+                  : "event-card__metric--danger"
+              }`}
+            >
               <div className="value">{emitters.length}</div>
               <div className="label">Emitters</div>
             </div>
-            <div className={`event-card__metric ${
-              hooks.length > 0 ? 'event-card__metric--active' : 'event-card__metric--warning'
-            }`}>
+            <div
+              className={`event-card__metric ${
+                hooks.length > 0
+                  ? "event-card__metric--active"
+                  : "event-card__metric--warning"
+              }`}
+            >
               <div className="value">{hooks.length}</div>
               <div className="label">Listeners</div>
             </div>
@@ -184,20 +226,29 @@ export const EventCard: React.FC<EventCardProps> = ({
                     }
 
                     return (
-                      <div key={emitter.id} className={className}>
+                      <a
+                        key={emitter.id}
+                        href={`#element-${emitter.id}`}
+                        className={`${className} event-card__emitter-link`}
+                      >
                         <div className="event-card__emitter__content">
                           <span>{icon}</span>
                           <div className="event-card__emitter__info">
-                            <div className={`title ${
-                              className.includes('--task') ? 'title--task' :
-                              className.includes('--hook') ? 'title--hook' : 'title--resource'
-                            }`}>
+                            <div
+                              className={`title ${
+                                className.includes("--task")
+                                  ? "title--task"
+                                  : className.includes("--hook")
+                                  ? "title--hook"
+                                  : "title--resource"
+                              }`}
+                            >
                               {emitter.meta?.title || formatId(emitter.id)}
                             </div>
                             <div className="id">{emitter.id}</div>
                           </div>
                         </div>
-                      </div>
+                      </a>
                     );
                   })}
                 </div>
@@ -209,7 +260,11 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <h5>Event Listeners</h5>
                 <div className="event-card__participant-section__items">
                   {hooks.map((hook) => (
-                    <div key={hook.id} className="event-card__listener">
+                    <a
+                      key={hook.id}
+                      href={`#element-${hook.id}`}
+                      className="event-card__listener event-card__listener-link"
+                    >
                       <div className="event-card__listener__content">
                         <div className="main">
                           <div className="event-card__listener__info">
@@ -234,7 +289,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                             </span>
                           )}
                       </div>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </div>

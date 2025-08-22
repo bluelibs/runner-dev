@@ -1,6 +1,6 @@
 import React from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import './TagCard.scss';
+import "./TagCard.scss";
 
 export interface TagCardProps {
   tag: any;
@@ -8,9 +8,16 @@ export interface TagCardProps {
 }
 
 export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
+  const truncateId = (id: string, maxLength: number = 20) => {
+    if (id.length <= maxLength) return id;
+    return id.substring(0, maxLength) + "...";
+  };
+
   return (
-    <div key={tag.id} className="tag-card">
-      <h3 className="tag-card__title">🏷️ {tag.id}</h3>
+    <div id={`element-${tag.id}`} key={tag.id} className="tag-card">
+      <h3 className="tag-card__title" title={tag.id}>
+        🏷️ {truncateId(tag.id)}
+      </h3>
       <div className="tag-card__stats">
         <div className="tag-card__stat tag-card__stat--tasks">
           <div className="tag-card__stat__value">{tag.tasks.length}</div>

@@ -18,14 +18,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const middlewareUsages = introspector.getMiddlewareUsagesForTask(task.id);
   const emittedEvents = introspector.getEmittedEvents(task);
 
-
   return (
-    <div
-      className="task-card"
-      onClick={() => {
-        alert("aaaa");
-      }}
-    >
+    <div id={`element-${task.id}`} className="task-card">
       <div className="task-card__header">
         <div className="task-card__header-content">
           <div className="main">
@@ -34,14 +28,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
             </h3>
             <div className="task-card__id">{task.id}</div>
             {task.meta?.description && (
-              <p className="task-card__description">
-                {task.meta.description}
-              </p>
+              <p className="task-card__description">{task.meta.description}</p>
             )}
           </div>
-          {task.meta?.tags && task.meta.tags.length > 0 && (
+          {task.tags && task.tags.length > 0 && (
             <div className="task-card__tags">
-              {task.meta.tags.map((tag) => (
+              {task.tags.map((tag) => (
                 <span key={tag} className="task-card__tag">
                   {tag}
                 </span>
@@ -65,7 +57,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 {task.registeredBy && (
                   <div className="task-card__info-block">
                     <div className="label">Registered By:</div>
-                    <div className="value">{task.registeredBy}</div>
+                    <div className="value">
+                      <a
+                        href={`#element-${task.registeredBy}`}
+                        className="task-card__registrar-link"
+                      >
+                        {task.registeredBy}
+                      </a>
+                    </div>
                   </div>
                 )}
 
@@ -107,12 +106,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   <h5>Task Dependencies</h5>
                   <div className="task-card__relations__items">
                     {dependencies.tasks.map((dep) => (
-                      <div key={dep.id} className="task-card__relation-item task-card__relation-item--task">
+                      <a
+                        key={dep.id}
+                        href={`#element-${dep.id}`}
+                        className="task-card__relation-item task-card__relation-item--task task-card__relation-link"
+                      >
                         <div className="title title--task">
                           {dep.meta?.title || formatId(dep.id)}
                         </div>
                         <div className="id">{dep.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -123,12 +126,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   <h5>Resource Dependencies</h5>
                   <div className="task-card__relations__items">
                     {dependencies.resources.map((dep) => (
-                      <div key={dep.id} className="task-card__relation-item task-card__relation-item--resource">
+                      <a
+                        key={dep.id}
+                        href={`#element-${dep.id}`}
+                        className="task-card__relation-item task-card__relation-item--resource task-card__relation-link"
+                      >
                         <div className="title title--resource">
                           {dep.meta?.title || formatId(dep.id)}
                         </div>
                         <div className="id">{dep.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -139,12 +146,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   <h5>Emitted Events</h5>
                   <div className="task-card__relations__items">
                     {emittedEvents.map((event) => (
-                      <div key={event.id} className="task-card__relation-item task-card__relation-item--event">
+                      <a
+                        key={event.id}
+                        href={`#element-${event.id}`}
+                        className="task-card__relation-item task-card__relation-item--event task-card__relation-link"
+                      >
                         <div className="title title--event">
                           {event.meta?.title || formatId(event.id)}
                         </div>
                         <div className="id">{event.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -161,10 +172,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
             <div className="task-card__middleware__items">
               {middlewareUsages.map((usage) => (
                 <div key={usage.id} className="task-card__middleware__item">
-                  <div className="title">
-                    {usage.node.meta?.title || formatId(usage.id)}
-                  </div>
-                  <div className="id">{usage.id}</div>
+                  <a
+                    href={`#element-${usage.id}`}
+                    className="task-card__middleware-link"
+                  >
+                    <div className="title">
+                      {usage.node.meta?.title || formatId(usage.id)}
+                    </div>
+                    <div className="id">{usage.id}</div>
+                  </a>
                   {usage.config && (
                     <div>
                       <div className="config-title">Configuration:</div>

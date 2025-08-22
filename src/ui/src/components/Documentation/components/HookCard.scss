@@ -366,6 +366,7 @@
   padding: $spacing-sm $font-size-md;
   border-radius: $border-radius-lg;
   border-left: 4px solid;
+  display: block;
 
   &--task {
     background: #e3f2fd;
@@ -395,5 +396,162 @@
     font-size: $font-size-xs;
     color: #666;
     font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Global Hook Styles
+// -----------------------------------------------------------------------------
+.hook-card__global-badge {
+  background: linear-gradient(135deg, #ff6b6b, #feca57);
+  color: white;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  margin-left: $spacing-sm;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  50% {
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  }
+  100% {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+}
+
+.hook-card__global-event {
+  .global-indicator {
+    color: #ff6b6b;
+    font-weight: 600;
+    font-size: $font-size-sm;
+  }
+
+  .global-description {
+    font-size: $font-size-xs;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    font-style: italic;
+  }
+}
+
+.hook-card__global-info {
+  display: grid;
+  gap: $spacing-lg;
+}
+
+.hook-card__global-message {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+
+    .icon {
+      font-size: $font-size-lg;
+    }
+
+    .title {
+      margin: 0;
+      font-size: $font-size-md;
+      font-weight: 600;
+    }
+  }
+
+  &__content {
+    font-size: $font-size-sm;
+    line-height: 1.5;
+    opacity: 0.95;
+  }
+}
+
+.hook-card__global-benefits {
+  display: grid;
+  gap: $spacing-sm;
+
+  .benefit {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: $border-radius-sm;
+    border-left: 3px solid #667eea;
+
+    .icon {
+      font-size: $font-size-sm;
+    }
+
+    .text {
+      font-size: $font-size-sm;
+      color: $text-dark;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Dependency Link Styles
+// -----------------------------------------------------------------------------
+.hook-card__dependency-link {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  position: relative;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    text-decoration: none;
+    
+    &.hook-card__dependency-item--task {
+      background: #bbdefb;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+    }
+    
+    &.hook-card__dependency-item--resource {
+      background: #c8e6c9;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    }
+    
+    &.hook-card__dependency-item--event {
+      background: #ffe0b2;
+      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+    }
+  }
+  
+  &:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  // Add a subtle click indicator
+  &::after {
+    content: "🔗";
+    position: absolute;
+    top: 50%;
+    right: $spacing-sm;
+    transform: translateY(-50%);
+    opacity: 0;
+    font-size: $font-size-xs;
+    transition: opacity 0.2s ease;
+  }
+  
+  &:hover::after {
+    opacity: 0.6;
   }
 }

@@ -106,7 +106,7 @@ describe("introspector (detailed helpers)", () => {
             config: x.config,
           })),
           // collect tagsDetailed from model
-          tagsDetailed: all.meta?.tagsDetailed ?? [],
+          tagsDetailed: all.tagsDetailed ?? [],
         };
       },
     });

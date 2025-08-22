@@ -1,7 +1,7 @@
 // =============================================================================
 // MIDDLEWARE CARD COMPONENT STYLES
 // =============================================================================
-@use '../../../styles/variables' as *;
+@use "../../../styles/variables" as *;
 
 // -----------------------------------------------------------------------------
 // Middleware Card Base
@@ -71,7 +71,7 @@
 }
 
 .middleware-card__global-badge {
-  background: rgba(255,255,255,0.25);
+  background: rgba(255, 255, 255, 0.25);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -85,7 +85,7 @@
 }
 
 .middleware-card__tag {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -179,18 +179,30 @@
     font-weight: bold;
     margin-bottom: $spacing-xs;
 
-    &--tasks { color: #1976d2; }
-    &--resources { color: #2e7d32; }
-    &--events { color: #f57c00; }
+    &--tasks {
+      color: #1976d2;
+    }
+    &--resources {
+      color: #2e7d32;
+    }
+    &--events {
+      color: #f57c00;
+    }
   }
 
   .label {
     font-size: $font-size-xs;
     font-weight: 500;
 
-    &--tasks { color: #1976d2; }
-    &--resources { color: #2e7d32; }
-    &--events { color: #f57c00; }
+    &--tasks {
+      color: #1976d2;
+    }
+    &--resources {
+      color: #2e7d32;
+    }
+    &--events {
+      color: #f57c00;
+    }
   }
 }
 
@@ -267,8 +279,6 @@
 // Usage Details Section
 // -----------------------------------------------------------------------------
 .middleware-card__usage-details {
-  margin-top: $spacing-xxxl;
-
   &__title {
     margin: 0 0 $spacing-lg 0;
     color: $text-darker;
@@ -294,6 +304,27 @@
   &__items {
     display: grid;
     gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: $spacing-xs;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: $light-gray;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $border-gray;
+      border-radius: 3px;
+
+      &:hover {
+        background: #999;
+      }
+    }
   }
 }
 
@@ -385,6 +416,27 @@
   &__items {
     display: grid;
     gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: $spacing-xs;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: $light-gray;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $border-gray;
+      border-radius: 3px;
+
+      &:hover {
+        background: #999;
+      }
+    }
   }
 }
 

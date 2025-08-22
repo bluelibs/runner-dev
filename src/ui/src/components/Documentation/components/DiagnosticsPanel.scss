@@ -93,7 +93,6 @@
   &--active {
     background: $primary-blue;
     color: white;
-    font-weight: 600;
   }
 
   &:hover:not(&--active) {
@@ -339,11 +338,11 @@
 .diagnostics-panel__summary-card--errors {
   border-color: #{$danger-red}20;
   border-left-color: $danger-red;
-  
+
   h4 {
     color: $danger-red;
   }
-  
+
   .diagnostics-panel__summary-card__value {
     color: $danger-red;
   }
@@ -352,11 +351,11 @@
 .diagnostics-panel__summary-card--warnings {
   border-color: #{$warning-orange}20;
   border-left-color: $warning-orange;
-  
+
   h4 {
     color: $warning-orange;
   }
-  
+
   .diagnostics-panel__summary-card__value {
     color: $warning-orange;
   }
@@ -365,11 +364,11 @@
 .diagnostics-panel__summary-card--orphans {
   border-color: #{$purple}20;
   border-left-color: $purple;
-  
+
   h4 {
     color: $purple;
   }
-  
+
   .diagnostics-panel__summary-card__value {
     color: $purple;
   }
@@ -378,11 +377,11 @@
 .diagnostics-panel__summary-card--unused {
   border-color: #{$warning-orange}20;
   border-left-color: $warning-orange;
-  
+
   h4 {
     color: $warning-orange;
   }
-  
+
   .diagnostics-panel__summary-card__value {
     color: $warning-orange;
   }
@@ -391,11 +390,11 @@
 .diagnostics-panel__summary-card--conflicts {
   border-color: #{$danger-red}20;
   border-left-color: $danger-red;
-  
+
   h4 {
     color: $danger-red;
   }
-  
+
   .diagnostics-panel__summary-card__value {
     color: $danger-red;
   }
@@ -404,11 +403,11 @@
 .diagnostics-panel__summary-card--total {
   border-color: #{$text-gray}20;
   border-left-color: $text-gray;
-  
+
   h4 {
     color: $text-gray;
   }
-  
+
   .diagnostics-panel__summary-card__value {
     color: $text-gray;
   }
@@ -417,11 +416,11 @@
 .diagnostics-panel__summary-card--info {
   border-color: #{$info-blue}20;
   border-left-color: $info-blue;
-  
+
   h4 {
     color: $info-blue;
   }
-  
+
   .diagnostics-panel__summary-card__value {
     color: $info-blue;
   }

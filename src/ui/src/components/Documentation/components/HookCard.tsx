@@ -7,7 +7,7 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
-import './HookCard.scss';
+import "./HookCard.scss";
 
 export interface HookCardProps {
   hook: Hook;
@@ -17,8 +17,9 @@ export interface HookCardProps {
 export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
   const dependencies = introspector.getDependencies(hook);
   const emittedEvents = introspector.getEmittedEvents(hook);
-  const targetEvent = introspector.getEvent(hook.event);
-
+  const targetEvent =
+    hook.event === "*" ? null : introspector.getEvent(hook.event);
+  const isGlobalHook = hook.event === "*";
 
   const getHookOrderDisplay = () => {
     if (hook.hookOrder === null || hook.hookOrder === undefined)
@@ -27,35 +28,33 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
   };
 
   return (
-    <div className="hook-card">
+    <div id={`element-${hook.id}`} className="hook-card">
       <div className="hook-card__header">
         <div className="hook-card__header-content">
           <div className="main">
             <h3 className="hook-card__title">
-              🪝 {hook.meta?.title || formatId(hook.id)}
+              {isGlobalHook ? "🌐" : "🪝"}{" "}
+              {hook.meta?.title || formatId(hook.id)}
+              {isGlobalHook && (
+                <span className="hook-card__global-badge">GLOBAL</span>
+              )}
             </h3>
-            <div className="hook-card__id">
-              {hook.id}
-            </div>
+            <div className="hook-card__id">{hook.id}</div>
             {hook.meta?.description && (
-              <p className="hook-card__description">
-                {hook.meta.description}
-              </p>
+              <p className="hook-card__description">{hook.meta.description}</p>
             )}
           </div>
           <div className="hook-card__stats">
             {hook.hookOrder !== null && hook.hookOrder !== undefined && (
-              <div className="hook-card__order-badge">
-                #{hook.hookOrder}
-              </div>
+              <div className="hook-card__order-badge">#{hook.hookOrder}</div>
             )}
             <div className="hook-card__stat-badge">
               <span className="icon">📤</span>
               <span className="count">{emittedEvents.length}</span>
             </div>
-            {hook.meta?.tags && hook.meta.tags.length > 0 && (
+            {hook.tags && hook.tags.length > 0 && (
               <div className="hook-card__tags">
-                {hook.meta.tags.map((tag) => (
+                {hook.tags.map((tag) => (
                   <span key={tag} className="hook-card__tag">
                     {tag}
                   </span>
@@ -80,23 +79,48 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
                 {hook.registeredBy && (
                   <div className="hook-card__info-block">
                     <div className="label">Registered By:</div>
-                    <div className="value">{hook.registeredBy}</div>
+                    <div className="value">
+                      <a
+                        href={`#element-${hook.registeredBy}`}
+                        className="hook-card__registrar-link"
+                      >
+                        {hook.registeredBy}
+                      </a>
+                    </div>
                   </div>
                 )}
 
                 <div className="hook-card__info-block">
                   <div className="label">Target Event:</div>
                   <div className="value">
-                    {formatId(hook.event)}
-                    {targetEvent && targetEvent.meta?.title && (
-                      <div style={{
-                        fontSize: "11px",
-                        color: "#6c757d",
-                        marginTop: "4px",
-                        fontStyle: "italic",
-                      }}>
-                        ({targetEvent.meta.title})
+                    {isGlobalHook ? (
+                      <div className="hook-card__global-event">
+                        <span className="global-indicator">🌐 ALL EVENTS</span>
+                        <div className="global-description">
+                          This hook listens to every event in the system
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <a
+                          href={`#element-${hook.event}`}
+                          className="hook-card__event-link"
+                        >
+                          {formatId(hook.event)}
+                        </a>
+                        {targetEvent && targetEvent.meta?.title && (
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              color: "#6c757d",
+                              marginTop: "4px",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            ({targetEvent.meta.title})
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -118,12 +142,12 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
                   <div className="value">{formatArray(hook.emits)}</div>
                 </div>
 
-                {!targetEvent && (
+                {!targetEvent && !isGlobalHook && (
                   <div className="hook-card__alert hook-card__alert--danger">
                     <div className="title">❌ Invalid Target Event</div>
                     <div className="content">
-                      The event "{hook.event}" that this hook is listening to does
-                      not exist or is not registered.
+                      The event "{hook.event}" that this hook is listening to
+                      does not exist or is not registered.
                     </div>
                   </div>
                 )}
@@ -140,8 +164,50 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
 
           <div>
             <div className="hook-card__section">
-              <h4 className="hook-card__section__title">📡 Target Event Details</h4>
-              {targetEvent ? (
+              <h4 className="hook-card__section__title">
+                {isGlobalHook
+                  ? "🌐 Global Hook Details"
+                  : "📡 Target Event Details"}
+              </h4>
+              {isGlobalHook ? (
+                <div className="hook-card__global-info">
+                  <div className="hook-card__global-message">
+                    <div className="hook-card__global-message__header">
+                      <span className="icon">🌐</span>
+                      <h5 className="title">Universal Event Listener</h5>
+                    </div>
+                    <div className="hook-card__global-message__content">
+                      This hook is triggered by <strong>every event</strong>{" "}
+                      that occurs in the system. It acts as a universal listener
+                      that can respond to any event type.
+                    </div>
+                  </div>
+
+                  <div className="hook-card__schema-block">
+                    <div className="title">Global Hook Benefits</div>
+                    <div className="hook-card__global-benefits">
+                      <div className="benefit">
+                        <span className="icon">🔍</span>
+                        <span className="text">
+                          Monitor all system activity
+                        </span>
+                      </div>
+                      <div className="benefit">
+                        <span className="icon">📊</span>
+                        <span className="text">
+                          Collect comprehensive metrics
+                        </span>
+                      </div>
+                      <div className="benefit">
+                        <span className="icon">🛡️</span>
+                        <span className="text">
+                          Implement cross-cutting concerns
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : targetEvent ? (
                 <div>
                   <div className="hook-card__target-event">
                     <div className="hook-card__target-event__header">
@@ -173,13 +239,19 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
                       <div className="hook-card__event-stats">
                         <div className="hook-card__event-stats__stat">
                           <div className="value value--emitters">
-                            {introspector.getEmittersOfEvent(targetEvent.id).length}
+                            {
+                              introspector.getEmittersOfEvent(targetEvent.id)
+                                .length
+                            }
                           </div>
                           <div className="label">Emitters</div>
                         </div>
                         <div className="hook-card__event-stats__stat">
                           <div className="value value--hooks">
-                            {introspector.getHooksOfEvent(targetEvent.id).length}
+                            {
+                              introspector.getHooksOfEvent(targetEvent.id)
+                                .length
+                            }
                           </div>
                           <div className="label">Hooks</div>
                         </div>
@@ -192,8 +264,8 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
                   <div className="icon">❌</div>
                   <h5 className="title">Event Not Found</h5>
                   <p className="message">
-                    The target event "{hook.event}" does not exist in the current
-                    application.
+                    The target event "{hook.event}" does not exist in the
+                    current application.
                   </p>
                 </div>
               )}
@@ -214,12 +286,16 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
                   <h5>Task Dependencies</h5>
                   <div className="hook-card__dependencies__items">
                     {dependencies.tasks.map((dep) => (
-                      <div key={dep.id} className="hook-card__dependency-item hook-card__dependency-item--task">
+                      <a
+                        key={dep.id}
+                        href={`#element-${dep.id}`}
+                        className="hook-card__dependency-item hook-card__dependency-item--task hook-card__dependency-link"
+                      >
                         <div className="title title--task">
                           {dep.meta?.title || formatId(dep.id)}
                         </div>
                         <div className="id">{dep.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -230,12 +306,16 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
                   <h5>Resource Dependencies</h5>
                   <div className="hook-card__dependencies__items">
                     {dependencies.resources.map((dep) => (
-                      <div key={dep.id} className="hook-card__dependency-item hook-card__dependency-item--resource">
+                      <a
+                        key={dep.id}
+                        href={`#element-${dep.id}`}
+                        className="hook-card__dependency-item hook-card__dependency-item--resource hook-card__dependency-link"
+                      >
                         <div className="title title--resource">
                           {dep.meta?.title || formatId(dep.id)}
                         </div>
                         <div className="id">{dep.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -246,12 +326,16 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
                   <h5>Emitted Events</h5>
                   <div className="hook-card__dependencies__items">
                     {emittedEvents.map((event) => (
-                      <div key={event.id} className="hook-card__dependency-item hook-card__dependency-item--event">
+                      <a
+                        key={event.id}
+                        href={`#element-${event.id}`}
+                        className="hook-card__dependency-item hook-card__dependency-item--event hook-card__dependency-link"
+                      >
                         <div className="title title--event">
                           {event.meta?.title || formatId(event.id)}
                         </div>
                         <div className="id">{event.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>

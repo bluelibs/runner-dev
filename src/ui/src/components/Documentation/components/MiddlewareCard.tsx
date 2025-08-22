@@ -39,7 +39,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
   };
 
   return (
-    <div className="middleware-card">
+    <div id={`element-${middleware.id}`} className="middleware-card">
       <div className="middleware-card__header">
         <div className="middleware-card__header-content">
           <div className="main">
@@ -69,9 +69,9 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             )}
           </div>
           <div className="meta">
-            {middleware.meta?.tags && middleware.meta.tags.length > 0 && (
+            {middleware.tags && middleware.tags.length > 0 && (
               <div className="middleware-card__tags">
-                {middleware.meta.tags.map((tag) => (
+                {middleware.tags.map((tag) => (
                   <span key={tag} className="middleware-card__tag">
                     {tag}
                   </span>
@@ -84,87 +84,89 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
 
       <div className="middleware-card__content">
         <div className="middleware-card__grid">
-          <div>
-            <div className="middleware-card__section">
-              <h4 className="middleware-card__section__title">📋 Overview</h4>
-              <div className="middleware-card__section__content">
+          <div className="middleware-card__section">
+            <h4 className="middleware-card__section__title">📋 Overview</h4>
+            <div className="middleware-card__section__content">
+              <div className="middleware-card__info-block">
+                <div className="label">File Path:</div>
+                <div className="value">
+                  {formatFilePath(middleware.filePath)}
+                </div>
+              </div>
+
+              {middleware.registeredBy && (
                 <div className="middleware-card__info-block">
-                  <div className="label">File Path:</div>
+                  <div className="label">Registered By:</div>
                   <div className="value">
-                    {formatFilePath(middleware.filePath)}
+                    <a
+                      href={`#element-${middleware.registeredBy}`}
+                      className="middleware-card__registrar-link"
+                    >
+                      {middleware.registeredBy}
+                    </a>
                   </div>
                 </div>
+              )}
 
-                {middleware.registeredBy && (
-                  <div className="middleware-card__info-block">
-                    <div className="label">Registered By:</div>
-                    <div className="value">{middleware.registeredBy}</div>
+              <div className="middleware-card__info-block">
+                <div className="label">Usage Statistics:</div>
+                <div className="middleware-card__usage-stats">
+                  <div className="middleware-card__usage-stat middleware-card__usage-stat--tasks">
+                    <div className="value value--tasks">
+                      {taskUsages.length}
+                    </div>
+                    <div className="label label--tasks">Tasks</div>
                   </div>
-                )}
+                  <div className="middleware-card__usage-stat middleware-card__usage-stat--resources">
+                    <div className="value value--resources">
+                      {resourceUsages.length}
+                    </div>
+                    <div className="label label--resources">Resources</div>
+                  </div>
+                  <div className="middleware-card__usage-stat middleware-card__usage-stat--events">
+                    <div className="value value--events">
+                      {emittedEvents.length}
+                    </div>
+                    <div className="label label--events">Events</div>
+                  </div>
+                </div>
+              </div>
 
-                <div className="middleware-card__info-block">
-                  <div className="label">Usage Statistics:</div>
-                  <div className="middleware-card__usage-stats">
-                    <div className="middleware-card__usage-stat middleware-card__usage-stat--tasks">
-                      <div className="value value--tasks">
-                        {taskUsages.length}
-                      </div>
-                      <div className="label label--tasks">Tasks</div>
+              {middleware.global?.enabled && (
+                <div className="middleware-card__global-config">
+                  <div className="title">
+                    🌐 Global Middleware Configuration
+                  </div>
+                  <div className="content">
+                    <div className="config-item">
+                      <strong>Tasks:</strong>{" "}
+                      {middleware.global.tasks ? "Enabled" : "Disabled"}
                     </div>
-                    <div className="middleware-card__usage-stat middleware-card__usage-stat--resources">
-                      <div className="value value--resources">
-                        {resourceUsages.length}
-                      </div>
-                      <div className="label label--resources">Resources</div>
-                    </div>
-                    <div className="middleware-card__usage-stat middleware-card__usage-stat--events">
-                      <div className="value value--events">
-                        {emittedEvents.length}
-                      </div>
-                      <div className="label label--events">Events</div>
+                    <div className="config-item">
+                      <strong>Resources:</strong>{" "}
+                      {middleware.global.resources ? "Enabled" : "Disabled"}
                     </div>
                   </div>
                 </div>
+              )}
 
-                {middleware.global?.enabled && (
-                  <div className="middleware-card__global-config">
-                    <div className="title">
-                      🌐 Global Middleware Configuration
-                    </div>
-                    <div className="content">
-                      <div className="config-item">
-                        <strong>Tasks:</strong>{" "}
-                        {middleware.global.tasks ? "Enabled" : "Disabled"}
-                      </div>
-                      <div className="config-item">
-                        <strong>Resources:</strong>{" "}
-                        {middleware.global.resources ? "Enabled" : "Disabled"}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {middleware.overriddenBy && (
-                  <div className="middleware-card__alert middleware-card__alert--warning">
-                    <div className="title">⚠️ Overridden By:</div>
-                    <div className="content">{middleware.overriddenBy}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <div className="middleware-card__section">
-                <h4 className="middleware-card__section__title">
-                  📝 Configuration Schema
-                </h4>
-                <pre className="middleware-card__code-block">
-                  {formatSchema(middleware.configSchema)}
-                </pre>
-              </div>
+              {middleware.overriddenBy && (
+                <div className="middleware-card__alert middleware-card__alert--warning">
+                  <div className="title">⚠️ Overridden By:</div>
+                  <div className="content">{middleware.overriddenBy}</div>
+                </div>
+              )}
             </div>
           </div>
 
+          <div className="middleware-card__section">
+            <h4 className="middleware-card__section__title">
+              📝 Configuration Schema
+            </h4>
+            <pre className="middleware-card__code-block">
+              {formatSchema(middleware.configSchema)}
+            </pre>
+          </div>
           {(taskUsages.length > 0 || resourceUsages.length > 0) && (
             <div className="middleware-card__usage-details">
               <h4 className="middleware-card__usage-details__title">
@@ -176,9 +178,10 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                     <h5>Used by Tasks</h5>
                     <div className="middleware-card__usage-details__items">
                       {taskUsages.map((usage) => (
-                        <div
+                        <a
                           key={usage.id}
-                          className="middleware-card__usage-item"
+                          href={`#element-${usage.id}`}
+                          className="middleware-card__usage-item middleware-card__usage-link"
                         >
                           <div className="middleware-card__usage-item__header">
                             <div className="main">
@@ -199,7 +202,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                               <pre className="config-code">{usage.config}</pre>
                             </div>
                           )}
-                        </div>
+                        </a>
                       ))}
                     </div>
                   </div>
@@ -210,9 +213,10 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                     <h5>Used by Resources</h5>
                     <div className="middleware-card__usage-details__items">
                       {resourceUsages.map((usage) => (
-                        <div
+                        <a
                           key={usage.id}
-                          className="middleware-card__usage-item"
+                          href={`#element-${usage.id}`}
+                          className="middleware-card__usage-item middleware-card__usage-link"
                         >
                           <div className="middleware-card__usage-item__header">
                             <div className="main">
@@ -233,7 +237,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                               <pre className="config-code">{usage.config}</pre>
                             </div>
                           )}
-                        </div>
+                        </a>
                       ))}
                     </div>
                   </div>
@@ -249,12 +253,16 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
               </h4>
               <div className="middleware-card__events__items">
                 {emittedEvents.map((event) => (
-                  <div key={event.id} className="middleware-card__event-item">
+                  <a
+                    key={event.id}
+                    href={`#element-${event.id}`}
+                    className="middleware-card__event-item middleware-card__event-link"
+                  >
                     <div className="title">
                       {event.meta?.title || formatId(event.id)}
                     </div>
                     <div className="id">{event.id}</div>
-                  </div>
+                  </a>
                 ))}
               </div>
             </div>

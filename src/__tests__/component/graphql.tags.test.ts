@@ -58,7 +58,7 @@ describe("GraphQL Tags", () => {
     expect(usage.hooks.length).toBeGreaterThan(0);
     // configs present
     const taggedTask = usage.tasks.find((t: any) => t.id === helloTask.id);
-    expect(taggedTask.meta.tags).toEqual(
+    expect(taggedTask.tags).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: areaTag.id,

@@ -207,6 +207,7 @@
   padding: $spacing-sm $font-size-md;
   border-radius: $border-radius-lg;
   border-left: 4px solid;
+  display: block;
 
   &--task {
     background: #e3f2fd;
@@ -242,6 +243,62 @@
     font-size: $font-size-xs;
     color: #666;
     font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relation Link Styles
+// -----------------------------------------------------------------------------
+.task-card__relation-link {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  position: relative;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    text-decoration: none;
+    
+    &.task-card__relation-item--task {
+      background: #bbdefb;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+    }
+    
+    &.task-card__relation-item--resource {
+      background: #c8e6c9;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    }
+    
+    &.task-card__relation-item--event {
+      background: #ffe0b2;
+      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+    }
+  }
+  
+  &:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  // Add a subtle click indicator
+  &::after {
+    content: "🔗";
+    position: absolute;
+    top: 50%;
+    right: $spacing-sm;
+    transform: translateY(-50%);
+    opacity: 0;
+    font-size: $font-size-xs;
+    transition: opacity 0.2s ease;
+  }
+  
+  &:hover::after {
+    opacity: 0.6;
   }
 }
 

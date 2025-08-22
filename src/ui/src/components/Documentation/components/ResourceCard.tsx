@@ -32,27 +32,24 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   ];
   const overriddenElements = introspector.getResourcesByIds(resource.overrides);
 
-
   return (
-    <div className="resource-card">
+    <div id={`element-${resource.id}`} className="resource-card">
       <div className="resource-card__header">
         <div className="resource-card__header-content">
           <div className="main">
             <h3 className="resource-card__title">
               🔧 {resource.meta?.title || formatId(resource.id)}
             </h3>
-            <div className="resource-card__id">
-              {resource.id}
-            </div>
+            <div className="resource-card__id">{resource.id}</div>
             {resource.meta?.description && (
               <p className="resource-card__description">
                 {resource.meta.description}
               </p>
             )}
           </div>
-          {resource.meta?.tags && resource.meta.tags.length > 0 && (
+          {resource.tags && resource.tags.length > 0 && (
             <div className="resource-card__tags">
-              {resource.meta.tags.map((tag) => (
+              {resource.tags.map((tag) => (
                 <span key={tag} className="resource-card__tag">
                   {tag}
                 </span>
@@ -70,13 +67,22 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               <div className="resource-card__section__content">
                 <div className="resource-card__info-block">
                   <div className="label">File Path:</div>
-                  <div className="value">{formatFilePath(resource.filePath)}</div>
+                  <div className="value">
+                    {formatFilePath(resource.filePath)}
+                  </div>
                 </div>
 
                 {resource.registeredBy && (
                   <div className="resource-card__info-block">
                     <div className="label">Registered By:</div>
-                    <div className="value">{resource.registeredBy}</div>
+                    <div className="value">
+                      <a
+                        href={`#element-${resource.registeredBy}`}
+                        className="resource-card__registrar-link"
+                      >
+                        {resource.registeredBy}
+                      </a>
+                    </div>
                   </div>
                 )}
 
@@ -104,7 +110,9 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
           <div>
             <div className="resource-card__section">
-              <h4 className="resource-card__section__title">⚙️ Configuration</h4>
+              <h4 className="resource-card__section__title">
+                ⚙️ Configuration
+              </h4>
               <div className="resource-card__config">
                 <div className="resource-card__config__subsection">
                   <h5>Current Configuration</h5>
@@ -137,12 +145,16 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   <h5>Resource Dependencies</h5>
                   <div className="resource-card__relations__items">
                     {dependencies.map((dep) => (
-                      <div key={dep.id} className="resource-card__relation-item resource-card__relation-item--resource">
+                      <a
+                        key={dep.id}
+                        href={`#element-${dep.id}`}
+                        className="resource-card__relation-item resource-card__relation-item--resource resource-card__relation-link"
+                      >
                         <div className="title title--resource">
                           {dep.meta?.title || formatId(dep.id)}
                         </div>
                         <div className="id">{dep.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -153,12 +165,16 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   <h5>Used By Tasks</h5>
                   <div className="resource-card__relations__items">
                     {dependentTasks.map((task) => (
-                      <div key={task.id} className="resource-card__relation-item resource-card__relation-item--task">
+                      <a
+                        key={task.id}
+                        href={`#element-${task.id}`}
+                        className="resource-card__relation-item resource-card__relation-item--task resource-card__relation-link"
+                      >
                         <div className="title title--task">
                           {task.meta?.title || formatId(task.id)}
                         </div>
                         <div className="id">{task.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -169,12 +185,16 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   <h5>Registered Elements</h5>
                   <div className="resource-card__relations__items">
                     {registeredElements.map((element) => (
-                      <div key={element.id} className="resource-card__relation-item resource-card__relation-item--registered">
+                      <a
+                        key={element.id}
+                        href={`#element-${element.id}`}
+                        className="resource-card__relation-item resource-card__relation-item--registered resource-card__relation-link"
+                      >
                         <div className="title title--registered">
                           {element.meta?.title || formatId(element.id)}
                         </div>
                         <div className="id">{element.id}</div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -190,7 +210,11 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             </h4>
             <div className="resource-card__middleware__items">
               {middlewareUsages.map((usage) => (
-                <div key={usage.id} className="resource-card__middleware__item">
+                <a
+                  key={usage.id}
+                  href={`#element-${usage.id}`}
+                  className="resource-card__middleware__item resource-card__middleware-link"
+                >
                   <div className="title">
                     {usage.node.meta?.title || formatId(usage.id)}
                   </div>
@@ -201,7 +225,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                       <pre className="config-block">{usage.config}</pre>
                     </div>
                   )}
-                </div>
+                </a>
               ))}
             </div>
           </div>

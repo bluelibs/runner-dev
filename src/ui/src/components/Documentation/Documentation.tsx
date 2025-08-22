@@ -105,6 +105,10 @@ export const Documentation: React.FC<DocumentationProps> = ({
     },
   ].filter((section) => section.hasContent);
 
+  if (window !== undefined) {
+    console.log(introspector.serialize());
+  }
+
   return (
     <div className="docs-app">
       {/* Fixed Navigation Sidebar */}
@@ -116,9 +120,11 @@ export const Documentation: React.FC<DocumentationProps> = ({
 
         {/* Namespace Prefix Input */}
         <div className="docs-namespace-input">
+          <label htmlFor="namespace-input">Filter by Namespace</label>
           <input
+            id="namespace-input"
             type="text"
-            placeholder="Namespace Prefix"
+            placeholder="Enter namespace prefix..."
             value={localNamespacePrefix}
             onChange={(e) => setLocalNamespacePrefix(e.target.value)}
           />
@@ -141,9 +147,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
                   <span className="text">{section.label}</span>
                 </div>
                 {section.count !== null && (
-                  <span className="docs-nav-badge">
-                    {section.count}
-                  </span>
+                  <span className="docs-nav-badge">{section.count}</span>
                 )}
               </a>
             </li>

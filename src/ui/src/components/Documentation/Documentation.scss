@@ -51,15 +51,44 @@
 }
 
 .docs-namespace-input {
-  margin-bottom: $spacing-lg;
-  
+  margin-bottom: $spacing-xl;
+
+  label {
+    display: block;
+    font-size: $font-size-xs;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: $spacing-xs;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
   input {
     width: 100%;
-    padding: 6px 10px;
-    border-radius: $border-radius-sm;
-    border: 1px solid #555;
-    background: #2c3e50;
+    box-sizing: border-box;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-lg;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08);
     color: white;
+    font-size: $font-size-base;
+    transition: $transition-normal;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primary-blue;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.1);
+    }
   }
 }
 
@@ -114,7 +143,7 @@
 
 .docs-nav-badge {
   background: rgba(52, 152, 219, 0.3);
-  color: $primary-blue;
+  color: $white;
   padding: $spacing-xs $spacing-sm;
   border-radius: $spacing-sm;
   font-size: $font-size-xs;
@@ -257,4 +286,7 @@
 .docs-component-grid {
   display: grid;
   gap: $spacing-xxl;
+  a {
+    text-decoration: none;
+  }
 }

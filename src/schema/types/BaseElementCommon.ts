@@ -58,7 +58,7 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
       description: "Tags associated with this element.",
       type: new GraphQLList(new GraphQLNonNull(TagType)),
       resolve: (node: BaseElement, _, { introspector }) => {
-        const tagIds = node.meta?.tags ?? [];
+        const tagIds = node.tags ?? [];
         if (!tagIds.length) {
           return [];
         }

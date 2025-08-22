@@ -1,16 +1,29 @@
 import {
-  GraphQLList,
-  GraphQLNonNull,
   GraphQLObjectType,
   GraphQLString,
+  GraphQLList,
+  GraphQLNonNull,
 } from "graphql";
-import type { Tag } from "../model";
+import type { Tag, TagUsage } from "../model";
 import { HookType } from "./HookType";
 import { TaskType } from "./TaskType";
 import { ResourceType } from "./ResourceType";
 import { MiddlewareType } from "./MiddlewareType";
 import { EventType } from "./EventType";
 import type { Introspector } from "../../resources/models/Introspector";
+import { BaseElementInterface } from "./AllType";
+
+export const TagUsageType: GraphQLObjectType<
+  TagUsage,
+  { introspector: Introspector }
+> = new GraphQLObjectType({
+  name: "TagUsage",
+  fields: () => ({
+    id: { type: new GraphQLNonNull(GraphQLString) },
+    configSchema: { type: GraphQLString },
+    config: { type: GraphQLString },
+  }),
+});
 
 export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
   new GraphQLObjectType({
@@ -19,6 +32,7 @@ export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
       id: {
         type: new GraphQLNonNull(GraphQLString),
       },
+      configSchema: { type: GraphQLString },
       tasks: {
         type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
         resolve: (tag, _, { introspector }) => {
@@ -53,6 +67,20 @@ export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
         ),
         resolve: (tag, _, { introspector }) => {
           return introspector.getEventsWithTag(tag.id);
+        },
+      },
+      all: {
+        type: new GraphQLNonNull(
+          new GraphQLList(new GraphQLNonNull(BaseElementInterface))
+        ),
+        resolve: (tag, _, { introspector }) => {
+          return [
+            ...introspector.getMiddlewaresWithTag(tag.id),
+            ...introspector.getTasksWithTag(tag.id),
+            ...introspector.getHooksWithTag(tag.id),
+            ...introspector.getResourcesWithTag(tag.id),
+            ...introspector.getEventsWithTag(tag.id),
+          ];
         },
       },
     }),

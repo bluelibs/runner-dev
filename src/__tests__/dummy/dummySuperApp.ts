@@ -25,6 +25,7 @@ export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
 
 export const domainTag = tag<{ domain: string }>({
   id: "app.tags.domain",
+  configSchema: z.object({ domain: z.string() }).strict(),
 });
 
 export const apiTag = tag<{ method: string; path: string }>({
@@ -864,6 +865,15 @@ export const sendWelcomeEmailTask = task({
 });
 
 // Hooks - Cross-domain event handlers
+export const onProductOutOfStockEventHook = hook({
+  id: "app.notifications.hooks.onProductOutOfStockEvent",
+  on: productOutOfStockEvent,
+  dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
+  async run(event, { sendWelcomeEmail }) {
+    console.log(`Product out of stock: ${event.data.productId}`);
+  },
+});
+
 export const welcomeEmailOnRegistrationHook = hook({
   id: "app.notifications.hooks.welcomeOnRegistration",
   on: userRegisteredEvent,
@@ -987,6 +997,7 @@ export function createDummySuperApp(extra: any[] = []) {
       productCreatedEvent,
       inventoryUpdatedEvent,
       productOutOfStockEvent,
+      onProductOutOfStockEventHook,
 
       // Order Processing
       orderDatabaseResource,

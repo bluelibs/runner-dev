@@ -1,4 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import Prism from "prismjs";
+import "prismjs/components/prism-typescript";
+import "prismjs/themes/prism-tomorrow.css";
 import "./CodeModal.scss";
 
 export interface CodeModalProps {
@@ -16,13 +19,26 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   onClose,
   code,
 }) => {
+  const codeRef = useRef<HTMLElement>(null);
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    if (isOpen) window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (isOpen) {
+      window.addEventListener("keydown", onKey);
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (isOpen && codeRef.current && code) {
+      Prism.highlightElement(codeRef.current);
+    }
+  }, [isOpen, code]);
 
   if (!isOpen) return null;
 
@@ -45,7 +61,7 @@ export const CodeModal: React.FC<CodeModalProps> = ({
         </div>
         <div className="code-modal__content">
           <pre className="code-modal__pre">
-            <code className="language-ts">{code ?? "No content"}</code>
+            <code ref={codeRef} className="language-typescript">{code ?? "No content"}</code>
           </pre>
         </div>
       </div>

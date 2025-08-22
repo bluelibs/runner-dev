@@ -2,12 +2,17 @@
 
 .code-modal__backdrop {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 5vh;
   z-index: 9999;
+  overflow-y: auto;
 }
 
 .code-modal__dialog {
@@ -57,33 +62,15 @@
 
 .code-modal__pre {
   margin: 0;
-  background: #0d1117; // dark code bg like github
-  color: #e6edf3;
   padding: $spacing-xl;
   border-radius: $border-radius-lg;
-  border: 1px solid #30363d;
   font-family: $font-family-mono;
   font-size: $font-size-sm;
   line-height: 1.5;
   max-height: 60vh;
   overflow: auto;
-}
-
-// Simple minimal syntax colors (not full tokenizer)
-code.language-ts {
-  .kw {
-    color: #ff7b72;
-  }
-  .ty {
-    color: #79c0ff;
-  }
-  .fn {
-    color: #d2a8ff;
-  }
-  .str {
-    color: #a5d6ff;
-  }
-  .num {
-    color: #ffa657;
-  }
+  
+  // Override Prism theme background to match our design
+  background: #0d1117 !important;
+  border: 1px solid #30363d;
 }

@@ -1,6 +1,7 @@
 export interface TagUsage {
   id: string;
   config?: string | null;
+  configSchema?: string | null;
 }
 
 export interface Meta {

@@ -51,44 +51,7 @@ export const QueryType = new GraphQLObjectType({
     tag: {
       description:
         "Get reverse usage for a tag id. Returns usedBy lists split by kind.",
-      type: new GraphQLNonNull(
-        new GraphQLObjectType({
-          name: "TagUsage",
-          fields: () => ({
-            id: { type: new GraphQLNonNull(GraphQLID) },
-            all: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(BaseElementInterface))
-              ),
-            },
-            tasks: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(TaskType))
-              ),
-            },
-            hooks: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(HookType))
-              ),
-            },
-            resources: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(ResourceType))
-              ),
-            },
-            middlewares: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(MiddlewareType))
-              ),
-            },
-            events: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(EventType))
-              ),
-            },
-          }),
-        })
-      ),
+      type: TagType,
       args: {
         id: { description: "Tag id", type: new GraphQLNonNull(GraphQLID) },
       },

@@ -26,6 +26,27 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: $spacing-md;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: $spacing-xs;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: $light-gray;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $border-gray;
+      border-radius: 3px;
+
+      &:hover {
+        background: #999;
+      }
+    }
   }
 }
 

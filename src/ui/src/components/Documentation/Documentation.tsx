@@ -9,7 +9,8 @@ export type Section =
   | "hooks"
   | "middlewares"
   | "tags"
-  | "diagnostics";
+  | "diagnostics"
+  | "live";
 import { TaskCard } from "./components/TaskCard";
 import { ResourceCard } from "./components/ResourceCard";
 import { MiddlewareCard } from "./components/MiddlewareCard";
@@ -17,6 +18,7 @@ import { EventCard } from "./components/EventCard";
 import { HookCard } from "./components/HookCard";
 import { TagCard } from "./components/TagCard";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
+import { LivePanel } from "./components/LivePanel";
 
 export interface DocumentationProps {
   introspector: Introspector;
@@ -51,6 +53,13 @@ export const Documentation: React.FC<DocumentationProps> = ({
       id: "overview",
       label: "Overview",
       icon: "📋",
+      count: null,
+      hasContent: true,
+    },
+    {
+      id: "live",
+      label: "Live",
+      icon: "📡",
       count: null,
       hasContent: true,
     },
@@ -181,27 +190,32 @@ export const Documentation: React.FC<DocumentationProps> = ({
           <section id="overview" className="docs-section">
             <h2>📋 Overview</h2>
             <div className="overview-grid">
-              <div className="card card--tasks">
+              <a href="#tasks" className="card card--tasks">
                 <h3>Tasks</h3>
                 <div className="count">{tasks.length}</div>
-              </div>
-              <div className="card card--resources">
+              </a>
+              <a href="#resources" className="card card--resources">
                 <h3>Resources</h3>
                 <div className="count">{resources.length}</div>
-              </div>
-              <div className="card card--events">
+              </a>
+              <a href="#events" className="card card--events">
                 <h3>Events</h3>
                 <div className="count">{events.length}</div>
-              </div>
-              <div className="card card--middlewares">
+              </a>
+              <a href="#middlewares" className="card card--middlewares">
                 <h3>Middlewares</h3>
                 <div className="count">{middlewares.length}</div>
-              </div>
-              <div className="card card--hooks">
+              </a>
+              <a href="#hooks" className="card card--hooks">
                 <h3>Hooks</h3>
                 <div className="count">{hooks.length}</div>
-              </div>
+              </a>
             </div>
+          </section>
+
+          <section id="live" className="docs-section">
+            <h2>📡 Live Telemetry</h2>
+            <LivePanel detailed />
           </section>
 
           <section id="diagnostics" className="docs-section">

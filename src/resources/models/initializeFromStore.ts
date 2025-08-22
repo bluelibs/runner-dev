@@ -116,6 +116,7 @@ export function initializeFromStore(
 
   introspector.allTags = Array.from(allTagIds).map((id) => ({
     id,
+    configSchema: introspector.getTag(id)?.configSchema ?? null,
     get tasks() {
       return getTasksWithTag(id);
     },

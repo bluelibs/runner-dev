@@ -33,6 +33,8 @@ export type All = BaseElement & {
   meta: Maybe<Meta>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
 };
 
 
@@ -54,6 +56,10 @@ export type BaseElement = {
   markdownDescription: Scalars['String']['output'];
   /** Optional metadata (title, description, tags) */
   meta: Maybe<Meta>;
+  /** Tags associated with this element */
+  tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
 };
 
 
@@ -170,6 +176,8 @@ export type Event = BaseElement & {
   registeredByResolved: Maybe<Resource>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
 };
 
 
@@ -256,6 +264,8 @@ export type Hook = BaseElement & {
   runs: Array<RunRecord>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
 };
 
 
@@ -424,6 +434,8 @@ export type Middleware = BaseElement & {
   registeredByResolved: Maybe<Resource>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
   /** Ids of resources that use this middleware */
   usedByResources: Array<Scalars['String']['output']>;
   /** Detailed resource usages with per-usage config */
@@ -493,7 +505,7 @@ export type Query = {
   /** List of tasks currently hot-swapped. */
   swappedTasks: Array<SwappedTask>;
   /** Get reverse usage for a tag id. Returns usedBy lists split by kind. */
-  tag: TagUsage;
+  tag: Maybe<Tag>;
   /** List all tags discovered across all elements. */
   tags: Array<Tag>;
   /** Get a single task by its id. */
@@ -628,6 +640,8 @@ export type Resource = BaseElement & {
   registersResolved: Array<BaseElement>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
   /** Task nodes using this resource (resolved) */
   usedBy: Array<Task>;
 };
@@ -666,6 +680,8 @@ export type ResourceMiddleware = BaseElement & {
   registeredByResolved: Maybe<Resource>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
   /** Resources that use this middleware (resolved) */
   usedBy: Array<Resource>;
   /** Detailed resource usages with per-usage config */
@@ -742,6 +758,8 @@ export type SwappedTask = {
 
 export type Tag = {
   __typename?: 'Tag';
+  all: Array<BaseElement>;
+  configSchema: Maybe<Scalars['String']['output']>;
   events: Array<Event>;
   hooks: Array<Hook>;
   id: Scalars['String']['output'];
@@ -752,13 +770,9 @@ export type Tag = {
 
 export type TagUsage = {
   __typename?: 'TagUsage';
-  all: Array<BaseElement>;
-  events: Array<Event>;
-  hooks: Array<Hook>;
-  id: Scalars['ID']['output'];
-  middlewares: Array<Middleware>;
-  resources: Array<Resource>;
-  tasks: Array<Task>;
+  config: Maybe<Scalars['String']['output']>;
+  configSchema: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
 };
 
 export type Task = BaseElement & {
@@ -803,6 +817,8 @@ export type Task = BaseElement & {
   runs: Array<RunRecord>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
 };
 
 
@@ -858,6 +874,8 @@ export type TaskMiddleware = BaseElement & {
   registeredByResolved: Maybe<Resource>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
+  /** Detailed tags associated with this element */
+  tagsDetailed: Maybe<Array<TagUsage>>;
   /** Task nodes that use this middleware (resolved) */
   usedBy: Array<Task>;
   /** Detailed task/hook usages with per-usage config */
@@ -991,8 +1009,8 @@ export type ResolversTypes = ResolversObject<{
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   SwapResult: ResolverTypeWrapper<SwapResult>;
   SwappedTask: ResolverTypeWrapper<SwappedTask>;
-  Tag: ResolverTypeWrapper<Omit<Tag, 'events' | 'hooks' | 'middlewares' | 'resources' | 'tasks'> & { events: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['Hook']>, middlewares: Array<ResolversTypes['Middleware']>, resources: Array<ResolversTypes['Resource']>, tasks: Array<ResolversTypes['Task']> }>;
-  TagUsage: ResolverTypeWrapper<Omit<TagUsage, 'all' | 'events' | 'hooks' | 'middlewares' | 'resources' | 'tasks'> & { all: Array<ResolversTypes['BaseElement']>, events: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['Hook']>, middlewares: Array<ResolversTypes['Middleware']>, resources: Array<ResolversTypes['Resource']>, tasks: Array<ResolversTypes['Task']> }>;
+  Tag: ResolverTypeWrapper<Omit<Tag, 'all' | 'events' | 'hooks' | 'middlewares' | 'resources' | 'tasks'> & { all: Array<ResolversTypes['BaseElement']>, events: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['Hook']>, middlewares: Array<ResolversTypes['Middleware']>, resources: Array<ResolversTypes['Resource']>, tasks: Array<ResolversTypes['Task']> }>;
+  TagUsage: ResolverTypeWrapper<TagUsage>;
   Task: ResolverTypeWrapper<Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, runs: Array<ResolversTypes['RunRecord']>, tags: Maybe<Array<ResolversTypes['Tag']>> }>;
   TaskDependsOn: ResolverTypeWrapper<Omit<TaskDependsOn, 'emitters' | 'hooks' | 'resources' | 'tasks'> & { emitters: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['Hook']>, resources: Array<ResolversTypes['Resource']>, tasks: Array<ResolversTypes['BaseElement']> }>;
   TaskMiddleware: ResolverTypeWrapper<Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Task']>, usedByDetailed: Array<ResolversTypes['MiddlewareTaskUsage']> }>;
@@ -1036,8 +1054,8 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   SwapResult: SwapResult;
   SwappedTask: SwappedTask;
-  Tag: Omit<Tag, 'events' | 'hooks' | 'middlewares' | 'resources' | 'tasks'> & { events: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['Hook']>, middlewares: Array<ResolversParentTypes['Middleware']>, resources: Array<ResolversParentTypes['Resource']>, tasks: Array<ResolversParentTypes['Task']> };
-  TagUsage: Omit<TagUsage, 'all' | 'events' | 'hooks' | 'middlewares' | 'resources' | 'tasks'> & { all: Array<ResolversParentTypes['BaseElement']>, events: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['Hook']>, middlewares: Array<ResolversParentTypes['Middleware']>, resources: Array<ResolversParentTypes['Resource']>, tasks: Array<ResolversParentTypes['Task']> };
+  Tag: Omit<Tag, 'all' | 'events' | 'hooks' | 'middlewares' | 'resources' | 'tasks'> & { all: Array<ResolversParentTypes['BaseElement']>, events: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['Hook']>, middlewares: Array<ResolversParentTypes['Middleware']>, resources: Array<ResolversParentTypes['Resource']>, tasks: Array<ResolversParentTypes['Task']> };
+  TagUsage: TagUsage;
   Task: Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversParentTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
   TaskDependsOn: Omit<TaskDependsOn, 'emitters' | 'hooks' | 'resources' | 'tasks'> & { emitters: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['Hook']>, resources: Array<ResolversParentTypes['Resource']>, tasks: Array<ResolversParentTypes['BaseElement']> };
   TaskMiddleware: Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Task']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareTaskUsage']> };
@@ -1051,6 +1069,7 @@ export type AllResolvers<ContextType = CustomGraphQLContext, ParentType extends 
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1061,6 +1080,8 @@ export type BaseElementResolvers<ContextType = CustomGraphQLContext, ParentType 
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
+  tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
 }>;
 
 export type CpuStatsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['CpuStats'] = ResolversParentTypes['CpuStats']> = ResolversObject<{
@@ -1116,6 +1137,7 @@ export type EventResolvers<ContextType = CustomGraphQLContext, ParentType extend
   registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1159,6 +1181,7 @@ export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   runs: Resolver<Array<ResolversTypes['RunRecord']>, ParentType, ContextType, HookRunsArgs>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1217,6 +1240,7 @@ export type MiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType e
   registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedByResources: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   usedByResourcesDetailed: Resolver<Array<ResolversTypes['MiddlewareResourceUsage']>, ParentType, ContextType>;
   usedByResourcesResolved: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
@@ -1254,7 +1278,7 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType, QueryResourcesArgs>;
   root: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   swappedTasks: Resolver<Array<ResolversTypes['SwappedTask']>, ParentType, ContextType>;
-  tag: Resolver<ResolversTypes['TagUsage'], ParentType, ContextType, RequireFields<QueryTagArgs, 'id'>>;
+  tag: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<QueryTagArgs, 'id'>>;
   tags: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
   task: Resolver<Maybe<ResolversTypes['Task']>, ParentType, ContextType, RequireFields<QueryTaskArgs, 'id'>>;
   taskMiddlewares: Resolver<Array<ResolversTypes['TaskMiddleware']>, ParentType, ContextType, QueryTaskMiddlewaresArgs>;
@@ -1284,6 +1308,7 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   registers: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   registersResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1302,6 +1327,7 @@ export type ResourceMiddlewareResolvers<ContextType = CustomGraphQLContext, Pare
   registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
   usedByDetailed: Resolver<Array<ResolversTypes['MiddlewareResourceUsage']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1336,6 +1362,8 @@ export type SwappedTaskResolvers<ContextType = CustomGraphQLContext, ParentType 
 }>;
 
 export type TagResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Tag'] = ResolversParentTypes['Tag']> = ResolversObject<{
+  all: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
+  configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   events: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1346,13 +1374,9 @@ export type TagResolvers<ContextType = CustomGraphQLContext, ParentType extends 
 }>;
 
 export type TagUsageResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TagUsage'] = ResolversParentTypes['TagUsage']> = ResolversObject<{
-  all: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
-  events: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
-  hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
-  id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  middlewares: Resolver<Array<ResolversTypes['Middleware']>, ParentType, ContextType>;
-  resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
-  tasks: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
+  config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1377,6 +1401,7 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   runs: Resolver<Array<ResolversTypes['RunRecord']>, ParentType, ContextType, TaskRunsArgs>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1402,6 +1427,7 @@ export type TaskMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentTy
   registeredBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
   usedByDetailed: Resolver<Array<ResolversTypes['MiddlewareTaskUsage']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

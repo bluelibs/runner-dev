@@ -9,7 +9,7 @@ import { readFile, type ReadFileOptions } from "../utils";
 import { sanitizePath, resolvePathInput } from "../../utils/path";
 import type { BaseElement } from "../model";
 import type { Introspector } from "../../resources/models/Introspector";
-import { TagType } from "./TagType";
+import { TagType, TagUsageType } from "./TagType";
 
 /**
  * Shared fields that we want available on all concrete element types.
@@ -65,6 +65,23 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
         return tagIds
           .map((id) => introspector.getTag(id))
           .filter((t): t is NonNullable<typeof t> => t !== null);
+      },
+    },
+    tagsDetailed: {
+      description: "Detailed tags associated with this element",
+      type: new GraphQLList(new GraphQLNonNull(TagUsageType)),
+      resolve: (node: BaseElement, _, { introspector }) => {
+        const tagIds = node.tags ?? [];
+        if (!tagIds.length) {
+          return [];
+        }
+        return tagIds
+          .map((id) => introspector.getTag(id))
+          .filter((t): t is NonNullable<typeof t> => t !== null)
+          .map((t) => ({
+            id: t.id,
+            configSchema: t.configSchema,
+          }));
       },
     },
   };

@@ -224,6 +224,27 @@
   &__items {
     display: grid;
     gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: $spacing-xs;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: $light-gray;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $border-gray;
+      border-radius: 3px;
+
+      &:hover {
+        background: #999;
+      }
+    }
   }
 }
 

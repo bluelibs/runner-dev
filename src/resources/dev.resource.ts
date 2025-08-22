@@ -7,6 +7,7 @@ import { introspector } from "./introspector.resource";
 import { live } from "./live.resource";
 import { registerHttpRoutes } from "./routeHandlers/registerHttpRoutes.hook";
 import { getFileContents } from "./getFileContents.task";
+import { graphqlQueryTask } from "./graphql.query.task";
 
 export type DevConfig = {
   port?: number;
@@ -28,5 +29,6 @@ export const dev = resource({
     }),
     registerHttpRoutes,
     getFileContents,
+    graphqlQueryTask,
   ],
 });

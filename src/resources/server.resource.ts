@@ -49,14 +49,20 @@ export const serverResource = resource({
     app.use(
       "/graphql",
       express.json(),
+      (req: Request, res: Response, next: any) => {
+        logger.debug("GraphQL request", req.body);
+        next();
+      },
       expressMiddleware(server, {
-        context: async () => ({
-          store,
-          logger,
-          introspector,
-          live,
-          swapManager,
-        }),
+        context: async () => {
+          return {
+            store,
+            logger,
+            introspector,
+            live,
+            swapManager,
+          };
+        },
       })
     );
 

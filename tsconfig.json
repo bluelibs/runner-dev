@@ -4,6 +4,7 @@
     "module": "Node16",
     "lib": ["esnext", "dom", "dom.iterable"],
     "moduleResolution": "node16",
+    "isolatedModules": true,
     "sourceMap": true,
     "noImplicitAny": true,
     "rootDir": "./src",

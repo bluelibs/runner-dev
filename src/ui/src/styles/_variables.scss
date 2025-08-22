@@ -25,6 +25,9 @@ $border-gray: #e9ecef;
 $text-gray: #6c757d;
 $text-dark: #495057;
 $text-darker: #2c3e50;
+// Common aliases used in component styles
+$text-muted: $text-gray;
+$error-red: $danger-red;
 
 // -----------------------------------------------------------------------------
 // Spacing

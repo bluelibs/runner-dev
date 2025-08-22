@@ -1,6 +1,6 @@
 import React from "react";
 import { Introspector } from "../../../../resources/models/Introspector";
-
+import "./Documentation.scss";
 export type Section =
   | "overview"
   | "tasks"

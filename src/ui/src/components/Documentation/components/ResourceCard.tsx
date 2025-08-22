@@ -8,7 +8,7 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
-
+import "./ResourceCard.scss";
 export interface ResourceCardProps {
   resource: Resource;
   introspector: Introspector;

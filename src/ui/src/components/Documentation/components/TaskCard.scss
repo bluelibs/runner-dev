@@ -1,0 +1,305 @@
+// =============================================================================
+// TASK CARD COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Task Card Base
+// -----------------------------------------------------------------------------
+.task-card {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    transition: $transition-normal;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Header
+// -----------------------------------------------------------------------------
+.task-card__header {
+  background: $gradient-primary;
+  color: white;
+  padding: $spacing-xl;
+}
+
+.task-card__header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  .main {
+    flex: 1;
+  }
+}
+
+.task-card__title {
+  margin: 0 0 10px 0;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.task-card__id {
+  font-size: $font-size-base;
+  opacity: 0.9;
+  font-family: $font-family-mono;
+  margin-bottom: $spacing-md;
+}
+
+.task-card__description {
+  margin: 0;
+  font-size: $font-size-md;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
+.task-card__tags {
+  display: flex;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.task-card__tag {
+  background: rgba(255, 255, 255, 0.2);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Content
+// -----------------------------------------------------------------------------
+.task-card__content {
+  padding: $spacing-xl;
+}
+
+.task-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-xl;
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Sections
+// -----------------------------------------------------------------------------
+.task-card__section {
+  &__title {
+    margin: 0 0 $spacing-md 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__content {
+    display: grid;
+    gap: $spacing-md;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Info Blocks
+// -----------------------------------------------------------------------------
+.task-card__info-block {
+  .label {
+    font-weight: bold;
+    color: $text-dark;
+  }
+
+  .value {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    background: $light-gray;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Code Block
+// -----------------------------------------------------------------------------
+.task-card__code-block {
+  background: $light-gray;
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  overflow: auto;
+  border: 1px solid $border-gray;
+  margin: 0;
+  font-family: $font-family-mono;
+}
+
+// -----------------------------------------------------------------------------
+// Alert/Override Warning
+// -----------------------------------------------------------------------------
+.task-card__alert {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+
+  &--warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+
+    .title {
+      color: #856404;
+      font-weight: bold;
+    }
+
+    .content {
+      font-size: $font-size-sm;
+      color: #856404;
+      margin-top: $spacing-sm;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relations Section
+// -----------------------------------------------------------------------------
+.task-card__relations {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-xl;
+  }
+
+  &__category {
+    h5 {
+      margin: 0 0 $spacing-md 0;
+      color: $text-dark;
+      font-size: $font-size-md;
+    }
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relation Items
+// -----------------------------------------------------------------------------
+.task-card__relation-item {
+  padding: $spacing-sm $font-size-md;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid;
+
+  &--task {
+    background: #e3f2fd;
+    border-left-color: #2196f3;
+  }
+
+  &--resource {
+    background: #e8f5e8;
+    border-left-color: #4caf50;
+  }
+
+  &--event {
+    background: #fff3e0;
+    border-left-color: #ff9800;
+  }
+
+  .title {
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+
+    &--task {
+      color: #1976d2;
+    }
+    &--resource {
+      color: #2e7d32;
+    }
+    &--event {
+      color: #f57c00;
+    }
+  }
+
+  .id {
+    font-size: $font-size-xs;
+    color: #666;
+    font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Middleware Configuration
+// -----------------------------------------------------------------------------
+.task-card__middleware {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__items {
+    display: grid;
+    gap: $spacing-md;
+  }
+
+  &__item {
+    background: $light-gray;
+    border: 1px solid $border-gray;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+
+    .title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: $text-darker;
+      font-size: $font-size-md;
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      color: #666;
+      font-family: $font-family-mono;
+      margin-bottom: $spacing-md;
+    }
+
+    .config-title {
+      font-size: $font-size-base;
+      color: $text-dark;
+      margin-bottom: $spacing-sm;
+      font-weight: 600;
+    }
+
+    .config-block {
+      background: $white;
+      padding: $spacing-md;
+      border-radius: $border-radius-md;
+      font-size: $font-size-xs;
+      margin: 0;
+      border: 1px solid #dee2e6;
+      line-height: 1.4;
+      font-family: $font-family-mono;
+    }
+  }
+}

@@ -7,7 +7,7 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
-
+import "./TaskCard.scss";
 export interface TaskCardProps {
   task: Task;
   introspector: Introspector;

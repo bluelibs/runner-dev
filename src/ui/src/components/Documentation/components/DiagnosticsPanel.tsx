@@ -5,7 +5,7 @@ import {
   getSeverityIcon,
   formatId,
 } from "../utils/formatting";
-
+import "./DiagnosticsPanel.scss";
 export interface DiagnosticsPanelProps {
   introspector: Introspector;
   detailed?: boolean;

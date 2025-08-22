@@ -1,0 +1,334 @@
+// =============================================================================
+// DIAGNOSTICS PANEL COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Diagnostics Panel Base
+// -----------------------------------------------------------------------------
+.diagnostics-panel {
+  // Base container styles handled by parent component
+}
+
+// -----------------------------------------------------------------------------
+// Summary Grid (for compact view)
+// -----------------------------------------------------------------------------
+.diagnostics-panel__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $spacing-md;
+}
+
+// -----------------------------------------------------------------------------
+// Detailed Grid (for full view)
+// -----------------------------------------------------------------------------
+.diagnostics-panel__detailed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-md;
+  margin-bottom: $spacing-xxl;
+}
+
+// -----------------------------------------------------------------------------
+// Summary Cards
+// -----------------------------------------------------------------------------
+.diagnostics-panel__summary-card {
+  background: $white;
+  border: 1px solid;
+  border-radius: $border-radius-md;
+  padding: $font-size-md;
+  border-left: 4px solid;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-sm;
+
+    .icon {
+      font-size: $font-size-lg;
+    }
+
+    h4 {
+      margin: 0;
+    }
+  }
+
+  &__value {
+    font-size: $font-size-xl;
+    font-weight: bold;
+    margin-bottom: $spacing-xs;
+  }
+
+  &__description {
+    font-size: $font-size-xs;
+    color: $text-gray;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tab Navigation
+// -----------------------------------------------------------------------------
+.diagnostics-panel__tabs {
+  display: flex;
+  border-bottom: 1px solid $border-gray;
+  margin-bottom: $spacing-lg;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.diagnostics-panel__tab {
+  padding: $spacing-sm $font-size-md;
+  border: none;
+  background: transparent;
+  color: $text-gray;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  font-weight: 400;
+  transition: $transition-fast;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  &--active {
+    background: $primary-blue;
+    color: white;
+    font-weight: 600;
+  }
+
+  &:hover:not(&--active) {
+    background: rgba(52, 152, 219, 0.1);
+  }
+}
+
+.diagnostics-panel__tab-count {
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: $font-size-xs;
+  font-weight: bold;
+  min-width: 18px;
+  text-align: center;
+
+  .diagnostics-panel__tab--active & {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+  }
+
+  .diagnostics-panel__tab:not(.diagnostics-panel__tab--active) & {
+    background: #dee2e6;
+    color: $text-dark;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Diagnostic Items
+// -----------------------------------------------------------------------------
+.diagnostics-panel__items {
+  display: grid;
+  gap: 10px;
+}
+
+.diagnostics-panel__item {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-sm;
+  padding: $spacing-sm;
+  border-left: 4px solid;
+
+  &--error {
+    border-left-color: $danger-red;
+  }
+
+  &--warning {
+    border-left-color: $warning-orange;
+  }
+
+  &--info {
+    border-left-color: $info-blue;
+  }
+}
+
+.diagnostics-panel__item-content {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+
+  .icon {
+    font-size: $font-size-md;
+  }
+
+  .main {
+    flex: 1;
+  }
+}
+
+.diagnostics-panel__item-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-xs;
+}
+
+.diagnostics-panel__severity-badge {
+  color: white;
+  padding: 2px $spacing-sm;
+  border-radius: $spacing-sm;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  text-transform: uppercase;
+
+  &--error {
+    background: $danger-red;
+  }
+
+  &--warning {
+    background: $warning-orange;
+  }
+
+  &--info {
+    background: $info-blue;
+  }
+}
+
+.diagnostics-panel__code-badge {
+  background: $light-gray;
+  color: $text-dark;
+  padding: 2px $spacing-sm;
+  border-radius: $spacing-sm;
+  font-size: $font-size-xs;
+  font-family: $font-family-mono;
+}
+
+.diagnostics-panel__message {
+  margin-bottom: $spacing-sm;
+  line-height: 1.4;
+}
+
+.diagnostics-panel__node-info {
+  display: flex;
+  gap: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $text-gray;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Special Item Lists (Orphans, Unused, etc.)
+// -----------------------------------------------------------------------------
+.diagnostics-panel__special-section {
+  h4 {
+    margin: 0 0 $spacing-md 0;
+    color: $text-dark;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    .icon {
+      font-size: $font-size-lg;
+    }
+  }
+
+  &__items {
+    display: grid;
+    gap: $spacing-sm;
+  }
+
+  &__item {
+    background: $white;
+    border: 1px solid $border-gray;
+    border-radius: $border-radius-sm;
+    padding: $spacing-sm;
+    border-left: 4px solid;
+
+    &--orphan {
+      border-left-color: $purple;
+    }
+
+    &--unused {
+      border-left-color: $warning-orange;
+    }
+
+    &--conflict {
+      border-left-color: $danger-red;
+    }
+
+    .title {
+      font-weight: 500;
+      margin-bottom: $spacing-xs;
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      color: #666;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Empty States
+// -----------------------------------------------------------------------------
+.diagnostics-panel__empty-state {
+  color: $text-gray;
+  font-style: italic;
+  text-align: center;
+  padding: $spacing-lg;
+  background: $light-gray;
+  border-radius: $border-radius-sm;
+
+  .celebration {
+    font-size: $font-size-xl;
+    margin-bottom: $spacing-sm;
+  }
+}
+
+.diagnostics-panel__success-state {
+  color: #28a745;
+  text-align: center;
+  padding: $spacing-xxxl;
+  background: #d4edda;
+  border-radius: $border-radius-sm;
+  border: 1px solid #c3e6cb;
+
+  .icon {
+    font-size: 48px;
+    margin-bottom: $spacing-sm;
+  }
+
+  h4 {
+    color: #155724;
+    margin: 10px 0;
+  }
+
+  p {
+    color: #155724;
+    margin: 0;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// View All Button
+// -----------------------------------------------------------------------------
+.diagnostics-panel__view-all {
+  text-align: center;
+  margin-top: $spacing-sm;
+
+  button {
+    padding: $spacing-sm $font-size-md;
+    border: 1px solid $primary-blue;
+    background: transparent;
+    color: $primary-blue;
+    border-radius: $border-radius-sm;
+    cursor: pointer;
+    font-size: $font-size-base;
+    transition: $transition-fast;
+
+    &:hover {
+      background: $primary-blue;
+      color: white;
+    }
+  }
+}

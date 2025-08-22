@@ -1,5 +1,6 @@
 import React from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
+import './TagCard.scss';
 
 export interface TagCardProps {
   tag: any;

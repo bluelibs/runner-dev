@@ -1,6 +1,7 @@
 import React from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { Section } from "../Documentation";
+import "./Sidebar.scss";
 
 export interface SidebarProps {
   activeSection: Section;

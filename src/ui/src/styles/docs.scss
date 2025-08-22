@@ -1,12 +1,28 @@
-// Basic placeholder style to verify SCSS is bundled and linked
-#root {
-  // Example nested selector and variable usage
-  $brand: #0ea5e9;
-  .hydrated-ok {
-    color: $brand;
-  }
-}
+// =============================================================================
+// DOCS STYLES - Main import file for all documentation components
+// =============================================================================
 
+// Import shared variables first
+@use "variables";
+
+// Import all component styles
+// @use 'Documentation';
+// @use 'TaskCard';
+// @use 'ResourceCard';
+// @use 'EventCard';
+// @use 'DiagnosticsPanel';
+
+// Import component-specific styles
+@use "../components/Documentation/components/HookCard";
+@use "../components/Documentation/components/TagCard";
+@use "../components/Documentation/components/Sidebar";
+@use "../components/Documentation/components/DiagnosticsPanel";
+@use "../components/Documentation/Documentation";
+@use "../components/Documentation/components/EventCard";
+@use "../components/Documentation/components/TaskCard";
+@use "../components/Documentation/components/ResourceCard";
+
+// Dev placeholder - remove when ready
 dev {
   background: purple;
 }

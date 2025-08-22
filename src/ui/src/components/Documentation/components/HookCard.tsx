@@ -7,6 +7,7 @@ import {
   formatArray,
   formatId,
 } from "../utils/formatting";
+import './HookCard.scss';
 
 export interface HookCardProps {
   hook: Hook;

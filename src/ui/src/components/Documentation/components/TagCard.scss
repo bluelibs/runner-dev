@@ -1,0 +1,82 @@
+// =============================================================================
+// TAG CARD COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Tag Card Base
+// -----------------------------------------------------------------------------
+.tag-card {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-xl;
+  padding: $spacing-xl;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: $transition-fast;
+  word-wrap: break-word;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tag Card Header
+// -----------------------------------------------------------------------------
+.tag-card__title {
+  margin: 0 0 $spacing-lg 0;
+  color: $text-darker;
+  font-size: $font-size-lg;
+  border-bottom: 2px solid $border-gray;
+  padding-bottom: 10px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+// -----------------------------------------------------------------------------
+// Tag Card Stats Grid
+// -----------------------------------------------------------------------------
+.tag-card__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: $spacing-md;
+}
+
+.tag-card__stat {
+  text-align: center;
+  padding: 10px;
+  background: $light-gray;
+  border-radius: $border-radius-lg;
+
+  &__value {
+    font-size: $font-size-lg;
+    font-weight: bold;
+
+    &--tasks {
+      color: $primary-blue;
+    }
+
+    &--resources {
+      color: $success-green;
+    }
+
+    &--events {
+      color: $warning-orange;
+    }
+
+    &--middlewares {
+      color: $purple;
+    }
+
+    &--hooks {
+      color: $info-teal;
+    }
+  }
+
+  &__label {
+    font-size: $font-size-xs;
+    color: $text-gray;
+  }
+}

@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Introspector } from "../../../../resources/models/Introspector";
 import "./Documentation.scss";
 import { TreeView } from "./components/TreeView";
-import { buildNamespaceTree, buildTypeFirstTree, filterTree, toggleNodeExpansion, TreeNode } from "./utils/tree-utils";
+import {
+  buildNamespaceTree,
+  buildTypeFirstTree,
+  filterTree,
+  toggleNodeExpansion,
+  TreeNode,
+} from "./utils/tree-utils";
 export type Section =
   | "overview"
   | "tasks"
@@ -34,18 +40,33 @@ export const Documentation: React.FC<DocumentationProps> = ({
   const [localNamespaceSearch, setLocalNamespaceSearch] = useState(
     namespacePrefix || ""
   );
-  const [viewMode, setViewMode] = useState<'list' | 'tree'>(() => {
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
     try {
-      return localStorage.getItem('docs-view-mode') as 'list' | 'tree' || 'list';
+      return parseInt(localStorage.getItem("docs-sidebar-width") || "280", 10);
     } catch {
-      return 'list';
+      return 280;
     }
   });
-  const [treeType, setTreeType] = useState<'namespace' | 'type'>(() => {
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const resizerRef = useRef<HTMLDivElement>(null);
+  const [viewMode, setViewMode] = useState<"list" | "tree">(() => {
     try {
-      return localStorage.getItem('docs-tree-type') as 'namespace' | 'type' || 'namespace';
+      return (
+        (localStorage.getItem("docs-view-mode") as "list" | "tree") || "list"
+      );
     } catch {
-      return 'namespace';
+      return "list";
+    }
+  });
+  const [treeType, setTreeType] = useState<"namespace" | "type">(() => {
+    try {
+      return (
+        (localStorage.getItem("docs-tree-type") as "namespace" | "type") ||
+        "namespace"
+      );
+    } catch {
+      return "namespace";
     }
   });
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([]);
@@ -74,11 +95,11 @@ export const Documentation: React.FC<DocumentationProps> = ({
       ...events,
       ...hooks,
       ...middlewares,
-      ...tags
+      ...tags,
     ];
 
     let tree: TreeNode[];
-    if (treeType === 'namespace') {
+    if (treeType === "namespace") {
       tree = buildNamespaceTree(allElements);
     } else {
       tree = buildTypeFirstTree(allElements);
@@ -90,63 +111,110 @@ export const Documentation: React.FC<DocumentationProps> = ({
     }
 
     setTreeNodes(tree);
-  }, [tasks, resources, events, hooks, middlewares, tags, treeType, localNamespaceSearch]);
+  }, [
+    tasks,
+    resources,
+    events,
+    hooks,
+    middlewares,
+    tags,
+    treeType,
+    localNamespaceSearch,
+  ]);
 
   // Handlers for tree interaction
   const handleTreeNodeClick = (node: TreeNode) => {
-    if (node.elementId) {
-      // For tree elements, scroll to the appropriate section
-      // Determine which section this element belongs to based on type
-      let sectionId = '';
-      if (node.type === 'task') sectionId = 'tasks';
-      else if (node.type === 'resource') sectionId = 'resources';
-      else if (node.type === 'event') sectionId = 'events';
-      else if (node.type === 'hook') sectionId = 'hooks';
-      else if (node.type === 'middleware') sectionId = 'middlewares';
-      else if (node.type === 'tag') sectionId = 'tags';
-      
-      // Try to find the exact element first, fallback to section
-      let targetElement = document.getElementById(node.elementId);
-      if (!targetElement && sectionId) {
-        targetElement = document.getElementById(sectionId);
-      }
-      
-      if (targetElement) {
-        targetElement.scrollIntoView({ behavior: 'smooth' });
-        // Highlight the target if it's a specific element
-        if (targetElement.id === node.elementId) {
-          targetElement.classList.add('docs-highlight-target');
-          setTimeout(() => {
-            targetElement.classList.remove('docs-highlight-target');
-          }, 2000);
-        }
-      }
+    if (!node.elementId) return;
+
+    const anchorId = `element-${node.elementId}`;
+
+    // If already at this hash, force scroll; otherwise update hash for instant navigation
+    if (window.location.hash === `#${anchorId}`) {
+      document
+        .getElementById(anchorId)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.location.hash = `#${anchorId}`;
+    }
+
+    const target = document.getElementById(anchorId);
+    if (target) {
+      target.classList.add("docs-highlight-target");
+      setTimeout(() => {
+        target.classList.remove("docs-highlight-target");
+      }, 2000);
     }
   };
 
   const handleToggleExpansion = (nodeId: string, expanded?: boolean) => {
-    setTreeNodes(prevNodes => toggleNodeExpansion(prevNodes, nodeId, expanded));
+    setTreeNodes((prevNodes) =>
+      toggleNodeExpansion(prevNodes, nodeId, expanded)
+    );
   };
 
   // Persist view mode preference
-  const handleViewModeChange = (mode: 'list' | 'tree') => {
+  const handleViewModeChange = (mode: "list" | "tree") => {
     setViewMode(mode);
     try {
-      localStorage.setItem('docs-view-mode', mode);
+      localStorage.setItem("docs-view-mode", mode);
     } catch {
       // Ignore localStorage errors
     }
   };
 
   // Persist tree type preference
-  const handleTreeTypeChange = (type: 'namespace' | 'type') => {
+  const handleTreeTypeChange = (type: "namespace" | "type") => {
     setTreeType(type);
     try {
-      localStorage.setItem('docs-tree-type', type);
+      localStorage.setItem("docs-tree-type", type);
     } catch {
       // Ignore localStorage errors
     }
   };
+
+  // Handle sidebar resizing
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = Math.min(Math.max(e.clientX, 200), 600);
+      setSidebarWidth(newWidth);
+    },
+    [isResizing]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    if (!isResizing) return;
+
+    setIsResizing(false);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+
+    try {
+      localStorage.setItem("docs-sidebar-width", sidebarWidth.toString());
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [isResizing, sidebarWidth]);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   const sections = [
     {
@@ -221,7 +289,11 @@ export const Documentation: React.FC<DocumentationProps> = ({
   return (
     <div className="docs-app">
       {/* Fixed Navigation Sidebar */}
-      <nav className="docs-sidebar">
+      <nav
+        ref={sidebarRef}
+        className="docs-sidebar"
+        style={{ width: `${sidebarWidth}px` }}
+      >
         <div className="docs-nav-header">
           <h2>📚 Documentation</h2>
           <p>Navigate through your application components</p>
@@ -231,25 +303,31 @@ export const Documentation: React.FC<DocumentationProps> = ({
         <div className="docs-view-controls">
           <div className="docs-view-toggle">
             <button
-              className={`docs-view-button ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => handleViewModeChange('list')}
+              className={`docs-view-button ${
+                viewMode === "list" ? "active" : ""
+              }`}
+              onClick={() => handleViewModeChange("list")}
               title="List View"
             >
               📄 List
             </button>
             <button
-              className={`docs-view-button ${viewMode === 'tree' ? 'active' : ''}`}
-              onClick={() => handleViewModeChange('tree')}
+              className={`docs-view-button ${
+                viewMode === "tree" ? "active" : ""
+              }`}
+              onClick={() => handleViewModeChange("tree")}
               title="Tree View"
             >
               🌳 Tree
             </button>
           </div>
-          {viewMode === 'tree' && (
+          {viewMode === "tree" && (
             <div className="docs-tree-controls">
               <select
                 value={treeType}
-                onChange={(e) => handleTreeTypeChange(e.target.value as 'namespace' | 'type')}
+                onChange={(e) =>
+                  handleTreeTypeChange(e.target.value as "namespace" | "type")
+                }
                 className="docs-tree-type-select"
               >
                 <option value="namespace">By Namespace</option>
@@ -262,19 +340,23 @@ export const Documentation: React.FC<DocumentationProps> = ({
         {/* Namespace Prefix Input */}
         <div className="docs-namespace-input">
           <label htmlFor="namespace-input">
-            {viewMode === 'tree' ? 'Search Tree' : 'Filter by Namespace'}
+            {viewMode === "tree" ? "Search Tree" : "Filter by Namespace"}
           </label>
           <input
             id="namespace-input"
             type="text"
-            placeholder={viewMode === 'tree' ? 'Search elements...' : 'Enter namespace prefix or any key...'}
+            placeholder={
+              viewMode === "tree"
+                ? "Search elements..."
+                : "Enter namespace prefix or any key..."
+            }
             value={localNamespaceSearch}
             onChange={(e) => setLocalNamespaceSearch(e.target.value)}
           />
         </div>
 
         {/* Navigation Content */}
-        {viewMode === 'list' ? (
+        {viewMode === "list" ? (
           <ul className="docs-nav-list">
             <li>
               <a href="#top" className="docs-nav-link docs-nav-link--home">
@@ -323,8 +405,21 @@ export const Documentation: React.FC<DocumentationProps> = ({
         </div>
       </nav>
 
+      {/* Sidebar Resizer */}
+      <div
+        ref={resizerRef}
+        className={`docs-sidebar-resizer ${
+          isResizing ? "docs-sidebar-resizer--active" : ""
+        }`}
+        style={{ left: `${sidebarWidth + 40}px` }}
+        onMouseDown={handleMouseDown}
+      />
+
       {/* Main Content */}
-      <div className="docs-main-content">
+      <div
+        className="docs-main-content"
+        style={{ marginLeft: `${sidebarWidth + 40}px` }}
+      >
         <div className="docs-content-container">
           <header id="top" className="docs-header">
             <h1>Runner Application Documentation</h1>

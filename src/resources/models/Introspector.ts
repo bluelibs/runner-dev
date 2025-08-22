@@ -134,7 +134,10 @@ export class Introspector {
         },
       };
     });
-    this.tagMap = new Map<string, Tag>(this.allTags.map((t) => [t.id, t]));
+    this.tagMap = new Map<string, Tag>();
+    for (const tag of this.allTags) {
+      this.tagMap.set(tag.id, tag);
+    }
   }
 
   // Helper function for building runs options

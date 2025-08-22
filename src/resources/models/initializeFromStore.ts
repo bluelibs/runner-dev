@@ -136,9 +136,10 @@ export function initializeFromStore(
       return getEventsWithTag(tag.id);
     },
   }));
-  introspector.tagMap = new Map<string, Tag>(
-    introspector.allTags.map((t) => [t.id, t])
-  );
+  introspector.tagMap = new Map<string, Tag>();
+  for (const tag of introspector.allTags) {
+    introspector.tagMap.set(tag.id, tag);
+  }
   introspector.rootId =
     s?.root?.resource?.id != null
       ? String(s.root.resource.id)

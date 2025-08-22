@@ -9,17 +9,10 @@ import { swapManager } from "./swap.resource";
 import { expressMiddleware } from "@as-integrations/express5";
 import express, { Request, Response } from "express";
 import path from "node:path";
-import fs from "node:fs/promises";
 import { createUiStaticRouter } from "./ui.static";
 import { express as voyagerMiddleware } from "graphql-voyager/middleware";
 import { printSchema } from "graphql/utilities/printSchema";
-import React from "react";
-import {
-  renderReactToString,
-  renderReactComponentOnly,
-} from "../utils/react-ssr";
-import { ExampleComponent } from "../components/ExampleComponent";
-import { Documentation } from "../components/Documentation";
+import { createDocsRouteHandler } from "./docs.route";
 
 export interface ServerConfig {
   port?: number;
@@ -79,85 +72,14 @@ export const serverResource = resource({
     // });
 
     // React SSR + Hydration for /docs
-    app.get("/docs", async (req: express.Request, res: express.Response) => {
-      const namespacePrefix = req.query.namespace as string | undefined;
-      const message = namespacePrefix
-        ? ""
-        : ` with namespace: ${namespacePrefix}`;
-      logger.info(
-        `Rendering documentation${message}. Use ?namespace=app to filter elements by id.`
-      );
-      // Prepare data for hydration
-      const data = {
-        tasks: introspector.getTasks(),
-        resources: introspector.getResources(),
-        events: introspector.getEvents(),
-        hooks: introspector.getHooks(),
-        middlewares: introspector.getMiddlewares(),
-        tags: introspector.getAllTags(),
-        diagnostics: introspector.getDiagnostics(),
-        orphanEvents: introspector.getOrphanEvents(),
-        unemittedEvents: introspector.getUnemittedEvents(),
-        unusedMiddleware: introspector.getUnusedMiddleware(),
-        missingFiles: introspector.getMissingFiles(),
-        overrideConflicts: introspector.getOverrideConflicts(),
-      };
-
-      const component = React.createElement(Documentation as any, {
-        introspector: {
-          getTasks: () => data.tasks,
-          getResources: () => data.resources,
-          getEvents: () => data.events,
-          getHooks: () => data.hooks,
-          getMiddlewares: () => data.middlewares,
-          getAllTags: () => data.tags,
-          getDiagnostics: () => data.diagnostics,
-          getOrphanEvents: () => data.orphanEvents,
-          getUnemittedEvents: () => data.unemittedEvents,
-          getUnusedMiddleware: () => data.unusedMiddleware,
-          getMissingFiles: () => data.missingFiles,
-          getOverrideConflicts: () => data.overrideConflicts,
-        } as any,
-        namespacePrefix,
-      });
-
-      // Load Vite manifest to locate hydration script
-      let scripts: string[] = [];
-      try {
-        const manifestPath = path.resolve(uiDir, "manifest.json");
-        const manifestRaw = await fs.readFile(manifestPath, "utf8");
-        const manifest = JSON.parse(manifestRaw);
-        const entry = manifest["src/hydrate-docs.tsx"]; // keyed by input path
-        if (entry?.file) {
-          scripts.push(`./${entry.file}`);
-          if (Array.isArray(entry.css)) {
-            // Optional: could inject CSS via stylesheets option if needed
-          }
-        }
-      } catch (e) {
-        logger.warn?.(
-          "Vite manifest not found or unreadable, hydration script may be missing"
-        );
-      }
-
-      const inlineScript = `window.__DOCS_PROPS__ = ${JSON.stringify({
-        namespacePrefix,
-        introspectorData: data,
-      })}`;
-
-      const html = renderReactToString(component, {
-        title: "Runner Dev React SSR",
-        meta: {
-          description: "Server-side rendered React component in Runner Dev",
-          author: "BlueLibs Runner Dev",
-        },
-        scripts,
-        inlineScript,
-      });
-
-      res.setHeader("Content-Type", "text/html");
-      res.send(html);
-    });
+    app.get(
+      "/docs",
+      createDocsRouteHandler({
+        uiDir,
+        introspector,
+        logger,
+      })
+    );
 
     // Convenience redirect
     app.get("/", (_req: Request, res: Response) => res.redirect("/voyager"));

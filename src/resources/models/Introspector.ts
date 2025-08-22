@@ -6,6 +6,7 @@ import type {
   Middleware,
   Tag,
 } from "../../schema";
+import type { DiagnosticItem } from "../../schema";
 import {
   mapStoreTaskToTaskModel,
   mapStoreHookToHookModel,
@@ -26,6 +27,22 @@ import {
   buildDiagnostics,
 } from "../introspector.tools";
 
+type SerializedIntrospector = {
+  tasks: Task[];
+  hooks: Hook[];
+  resources: Resource[];
+  events: Event[];
+  middlewares: Middleware[];
+  tags?: Array<{ id: string }>;
+  diagnostics?: DiagnosticItem[];
+  orphanEvents?: { id: string }[];
+  unemittedEvents?: { id: string }[];
+  unusedMiddleware?: { id: string }[];
+  missingFiles?: Array<{ id: string; filePath: string }>;
+  overrideConflicts?: Array<{ targetId: string; by: string }>;
+  rootId?: string | null;
+};
+
 export class Introspector {
   private tasks: Task[] = [];
   private hooks: Hook[] = [];
@@ -35,7 +52,8 @@ export class Introspector {
   private resourceMiddlewares: Middleware[] = [];
   private middlewares: Middleware[] = [];
   private allTags: Tag[] = [];
-  private store: any;
+  private store: unknown | null = null;
+  private rootId: string | null = null;
 
   private taskMap: Map<string, Task> = new Map();
   private hookMap: Map<string, Hook> = new Map();
@@ -44,32 +62,38 @@ export class Introspector {
   private middlewareMap: Map<string, Middleware> = new Map();
   private tagMap: Map<string, Tag> = new Map();
 
-  constructor(store: any) {
-    this.store = store;
-    this.initialize();
+  constructor(input: { store: unknown } | { data: SerializedIntrospector }) {
+    if ("store" in input) {
+      this.store = input.store;
+      this.initializeFromStore();
+    } else {
+      this.store = null;
+      this.initializeFromData(input.data);
+    }
   }
 
-  private initialize(): void {
+  private initializeFromStore(): void {
     // Build tasks
     this.tasks = [];
     this.hooks = [];
 
-    for (const t of this.store.tasks.values()) {
+    const s: any = this.store as any;
+    for (const t of s.tasks.values()) {
       this.tasks.push(mapStoreTaskToTaskModel(t.task));
     }
 
-    for (const h of this.store.hooks.values()) {
+    for (const h of s.hooks.values()) {
       this.hooks.push(mapStoreHookToHookModel(h));
     }
 
     // Build resources
-    this.resources = Array.from(this.store.resources.values()).map((r: any) =>
+    this.resources = Array.from(s.resources.values()).map((r: any) =>
       mapStoreResourceToResourceModel(r.resource)
     );
 
     // Build events
     this.events = buildEvents(
-      Array.from(this.store.events.values()).map((v: any) => v.event),
+      Array.from(s.events.values()).map((v: any) => v.event),
       this.tasks,
       this.hooks,
       this.resources
@@ -77,17 +101,13 @@ export class Introspector {
 
     // Build middlewares from both task and resource middleware collections
     this.taskMiddlewares = buildTaskMiddlewares(
-      Array.from(this.store.taskMiddlewares.values()).map(
-        (v: any) => v.middleware
-      ),
+      Array.from(s.taskMiddlewares.values()).map((v: any) => v.middleware),
       this.tasks,
       this.hooks,
       this.resources
     );
     this.resourceMiddlewares = buildResourceMiddlewares(
-      Array.from(this.store.resourceMiddlewares.values()).map(
-        (v: any) => v.middleware
-      ),
+      Array.from(s.resourceMiddlewares.values()).map((v: any) => v.middleware),
       this.tasks,
       this.hooks,
       this.resources
@@ -95,7 +115,7 @@ export class Introspector {
     this.middlewares = [...this.taskMiddlewares, ...this.resourceMiddlewares];
 
     attachOverrides(
-      this.store.overrideRequests,
+      s.overrideRequests,
       this.tasks,
       this.hooks,
       this.middlewares
@@ -109,6 +129,78 @@ export class Introspector {
       this.middlewares,
       this.events
     );
+
+    // Maps
+    this.taskMap = buildIdMap(this.tasks);
+    this.hookMap = buildIdMap(this.hooks);
+    this.resourceMap = buildIdMap(this.resources);
+    this.eventMap = buildIdMap(this.events);
+    this.middlewareMap = buildIdMap(this.middlewares);
+
+    // Tags
+    const getTasksWithTag = (tagId: string) =>
+      this.tasks.filter((t) => ensureStringArray(t.meta?.tags).includes(tagId));
+    const getHooksWithTag = (tagId: string) =>
+      this.hooks.filter((h) => ensureStringArray(h.meta?.tags).includes(tagId));
+    const getResourcesWithTag = (tagId: string) =>
+      this.resources.filter((r) =>
+        ensureStringArray(r.meta?.tags).includes(tagId)
+      );
+    const getMiddlewaresWithTag = (tagId: string) =>
+      this.middlewares.filter((m) =>
+        ensureStringArray(m.meta?.tags).includes(tagId)
+      );
+    const getEventsWithTag = (tagId: string) =>
+      this.events.filter((e) =>
+        ensureStringArray(e.meta?.tags).includes(tagId)
+      );
+
+    const allTagIds = new Set<string>();
+    const collect = (arr: { meta?: { tags?: string[] | null } | null }[]) => {
+      for (const n of arr) {
+        for (const id of ensureStringArray(n.meta?.tags)) allTagIds.add(id);
+      }
+    };
+    collect(this.tasks as any);
+    collect(this.hooks as any);
+    collect(this.resources as any);
+    collect(this.middlewares as any);
+    collect(this.events as any);
+
+    this.allTags = Array.from(allTagIds).map((id) => ({
+      id,
+      get tasks() {
+        return getTasksWithTag(id);
+      },
+      get hooks() {
+        return getHooksWithTag(id);
+      },
+      get resources() {
+        return getResourcesWithTag(id);
+      },
+      get middlewares() {
+        return getMiddlewaresWithTag(id);
+      },
+      get events() {
+        return getEventsWithTag(id);
+      },
+    }));
+    this.tagMap = new Map<string, Tag>(this.allTags.map((t) => [t.id, t]));
+    this.rootId =
+      s?.root?.resource?.id != null
+        ? String(s.root.resource.id)
+        : this.rootId ?? null;
+  }
+
+  private initializeFromData(data: SerializedIntrospector): void {
+    this.tasks = Array.isArray(data.tasks) ? data.tasks : [];
+    this.hooks = Array.isArray(data.hooks) ? data.hooks : [];
+    this.resources = Array.isArray(data.resources) ? data.resources : [];
+    this.events = Array.isArray(data.events) ? data.events : [];
+    this.taskMiddlewares = [];
+    this.resourceMiddlewares = [];
+    this.middlewares = Array.isArray(data.middlewares) ? data.middlewares : [];
+    this.rootId = data.rootId ?? null;
 
     // Maps
     this.taskMap = buildIdMap(this.tasks);
@@ -200,10 +292,12 @@ export class Introspector {
 
   // API Methods
   getRoot(): Resource {
-    return stampElementKind(
-      this.resourceMap.get(this.store.root.resource.id.toString())!,
-      "RESOURCE"
-    );
+    const s: any = this.store as any;
+    const idFromStore = s?.root?.resource?.id
+      ? String(s.root.resource.id)
+      : null;
+    const id = idFromStore ?? this.rootId ?? this.resources[0]?.id;
+    return stampElementKind(this.resourceMap.get(String(id))!, "RESOURCE");
   }
 
   getEvents(): Event[] {
@@ -549,5 +643,31 @@ export class Introspector {
     correlationIds?: string[];
   } {
     return this.buildRunsOptions(hookId, args);
+  }
+
+  // Serialization API
+  serialize(): SerializedIntrospector {
+    return {
+      tasks: this.tasks,
+      hooks: this.hooks,
+      resources: this.resources,
+      events: this.events,
+      middlewares: this.middlewares,
+      tags: this.allTags.map((t) => ({ id: t.id })),
+      diagnostics: this.getDiagnostics(),
+      orphanEvents: this.getOrphanEvents(),
+      unemittedEvents: this.getUnemittedEvents(),
+      unusedMiddleware: this.getUnusedMiddleware(),
+      missingFiles: this.getMissingFiles(),
+      overrideConflicts: this.getOverrideConflicts(),
+      rootId:
+        (this.store as any)?.root?.resource?.id != null
+          ? String((this.store as any).root.resource.id)
+          : this.rootId,
+    };
+  }
+
+  static deserialize(data: SerializedIntrospector): Introspector {
+    return new Introspector({ data });
   }
 }

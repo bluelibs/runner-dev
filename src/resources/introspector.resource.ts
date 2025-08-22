@@ -7,6 +7,6 @@ export const introspector = resource({
     store: globals.resources.store,
   },
   async init(_, { store }) {
-    return new Introspector(store);
+    return new Introspector({ store });
   },
 });

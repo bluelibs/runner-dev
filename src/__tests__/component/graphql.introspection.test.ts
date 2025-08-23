@@ -97,6 +97,7 @@ describe("GraphQL schema (integration)", () => {
         }
         events { 
           id
+          filePath
           payloadSchema
           payloadSchemaReadable
           emittedBy
@@ -166,6 +167,10 @@ describe("GraphQL schema (integration)", () => {
     );
     expect(withHooks).toEqual(expect.arrayContaining(["evt.hello"]));
     expect(withoutHooks).toEqual(expect.arrayContaining(["evt.readme.orphan"]));
+
+    // Explicitly-declared event should have a filePath (comes from store symbol)
+    expect(typeof evt.filePath === "string").toBe(true);
+    expect(evt.filePath).toBeTruthy();
   });
 
   test("deep traversal from task -> middlewareResolved -> dependents", async () => {

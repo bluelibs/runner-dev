@@ -11,6 +11,10 @@ runner-dev CLI
 
 Usage:
   runner-dev mcp        Start the MCP GraphQL server over stdio
+  runner-dev query      Run a GraphQL query against an endpoint
+  runner-dev overview   Print Markdown project overview
+  runner-dev schema     Print SDL or introspection JSON
+  runner-dev ping       Ping GraphQL endpoint
 
 Environment:
   ENDPOINT or GRAPHQL_ENDPOINT   GraphQL endpoint URL
@@ -20,12 +24,38 @@ Environment:
 Examples:
   ENDPOINT=http://localhost:2000/graphql runner-dev mcp
   ALLOW_MUTATIONS=true HEADERS='{"Authorization":"Bearer token"}' runner-dev mcp
+  ENDPOINT=http://localhost:1337/graphql runner-dev query 'query { tasks { id } }'
+  runner-dev schema sdl --endpoint http://localhost:1337/graphql
 `);
     return;
   }
 
   if (subcommand === "mcp") {
     await import("./mcp.js");
+    return;
+  }
+
+  if (subcommand === "query") {
+    const mod = await import("./cli/query.js");
+    await mod.main(process.argv);
+    return;
+  }
+
+  if (subcommand === "overview") {
+    const mod = await import("./cli/overview.js");
+    await mod.main(process.argv);
+    return;
+  }
+
+  if (subcommand === "schema") {
+    const mod = await import("./cli/schema.js");
+    await mod.main(process.argv);
+    return;
+  }
+
+  if (subcommand === "ping") {
+    const mod = await import("./cli/ping.js");
+    await mod.main(process.argv);
     return;
   }
 

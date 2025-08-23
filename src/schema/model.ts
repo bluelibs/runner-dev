@@ -1,17 +1,12 @@
-import { definitions } from "@bluelibs/runner";
-
 export interface TagUsage {
   id: string;
   config?: string | null;
+  configSchema?: string | null;
 }
 
 export interface Meta {
   title?: string | null;
   description?: string | null;
-  // Normalized tag ids
-  tags?: string[] | null;
-  // Detailed tag usages with serialized config when present
-  tagsDetailed?: TagUsage[] | null;
 }
 
 export interface BaseElement {
@@ -21,6 +16,11 @@ export interface BaseElement {
   // Id of the resource that registered this element (if any)
   registeredBy?: string | null;
   overriddenBy?: string | null;
+
+  // Normalized tag ids
+  tags?: string[] | null;
+  // Detailed tag usages with serialized config when present
+  tagsDetailed?: TagUsage[] | null;
 }
 
 export interface All extends BaseElement {
@@ -39,8 +39,14 @@ export interface Event extends Omit<BaseElement, "overriddenBy"> {
   payloadSchema?: string | null;
 }
 
+export interface TagUsage {
+  id: string;
+  configSchema?: string | null;
+}
+
 export interface Tag {
   id: string;
+  configSchema?: string | null;
   tasks: Task[];
   hooks: Hook[];
   resources: Resource[];
@@ -80,6 +86,7 @@ export interface Middleware extends BaseElement {
   meta?: Meta | null;
   filePath?: string | null;
   global?: MiddlewareGlobal | null;
+  type: "task" | "resource";
   usedByTasks: string[];
   usedByResources: string[];
   // Prettified Zod schema for the middleware config if provided
@@ -99,7 +106,7 @@ export interface Task extends BaseElement {
 }
 
 export interface Hook extends BaseElement {
-  event: string;
+  events: string[];
   hookOrder?: number | null;
   dependsOn: string[];
   emits: string[];
@@ -111,7 +118,7 @@ export interface Resource extends BaseElement {
   filePath?: string | null;
   // Events this resource may emit (from deps or lifecycle). For now we only
   // derive from dependencies; lifecycle emissions can be added later.
-  emits?: string[];
+  emits: string[];
   // Resource dependencies (other resources this resource depends on)
   dependsOn: string[];
   config?: string | null;

@@ -1,5 +1,5 @@
 import { resource } from "@bluelibs/runner";
-import type { Introspector } from "./introspector.resource";
+import type { Introspector } from "./models/Introspector";
 import { introspector } from "./introspector.resource";
 import type {
   Resource,
@@ -172,7 +172,7 @@ ${mdFile(h.filePath)}
 ${mdMeta(h.meta)}
 
 **Listens to Event:**
-${mdAnchor(h.event, "event")}
+${mdList(h.events, "event")}
 
 **Hook Order:** ${h.hookOrder ?? "default"}
 

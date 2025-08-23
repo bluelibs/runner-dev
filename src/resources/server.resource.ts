@@ -8,15 +8,13 @@ import { live } from "./live.resource";
 import { swapManager } from "./swap.resource";
 import { expressMiddleware } from "@as-integrations/express5";
 import express, { Request, Response } from "express";
+import path from "node:path";
+import fs from "node:fs";
+import { createUiStaticRouter } from "./ui.static";
 import { express as voyagerMiddleware } from "graphql-voyager/middleware";
 import { printSchema } from "graphql/utilities/printSchema";
-import React from "react";
-import {
-  renderReactToString,
-  renderReactComponentOnly,
-} from "../utils/react-ssr";
-import { ExampleComponent } from "../components/ExampleComponent";
-import { Documentation } from "../components/Documentation";
+import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
+import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
 
 export interface ServerConfig {
   port?: number;
@@ -52,45 +50,62 @@ export const serverResource = resource({
     app.use(
       "/graphql",
       express.json(),
+      (req: Request, res: Response, next: any) => {
+        // logger.debug("GraphQL request", req.body);
+        next();
+      },
       expressMiddleware(server, {
-        context: async () => ({
-          store,
-          logger,
-          introspector,
-          live,
-          swapManager,
-        }),
+        context: async () => {
+          return {
+            store,
+            logger,
+            introspector,
+            live,
+            swapManager,
+          };
+        },
       })
     );
 
     // Voyager UI at /voyager (points to /graphql)
     app.use("/voyager", voyagerMiddleware({ endpointUrl: "/graphql" }));
 
-    // React SSR endpoints
-    app.get("/docs", (req: express.Request, res: express.Response) => {
-      const namespacePrefix = req.query.namespace as string | undefined;
-      const message = namespacePrefix
-        ? ""
-        : ` with namespace: ${namespacePrefix}`;
-      logger.info(
-        `Rendering documentation${message}. Use ?namespace=app to filter elements by id.`
-      );
-      const component = React.createElement(Documentation, {
+    // Static UI (Vite build output) + runtime JS placeholder injection
+    // Vite builds to dist/ui (see src/ui/vite.config.ts)
+    // When used as a dependency, process.cwd() may not point to this package root.
+    // Try multiple candidate locations to find the built UI assets.
+    const candidateUiDirs = [
+      path.resolve(process.cwd(), "./dist/ui"),
+      // Fallback to package-relative path (from compiled JS, __dirname points to dist/resources)
+      path.resolve(__dirname, "../../dist/ui"),
+    ];
+    const uiDir =
+      candidateUiDirs.find((dir) => fs.existsSync(dir)) || candidateUiDirs[0];
+
+    // Compute base URL and expose via token replacement in JS
+    const baseUrl = `http://localhost:${port}`;
+    process.env.API_URL = process.env.API_URL || baseUrl;
+
+    app.use(createUiStaticRouter(uiDir));
+
+    // Optional SPA fallback
+    // app.get(/^(?!\/graphql|\/voyager|\/docs).*/, (_req, res) => {
+    //   res.sendFile(path.join(uiDir, "index.html"));
+    // });
+
+    // Serve docs data as JSON for client-side rendering
+    app.get(
+      "/docs/data",
+      createDocsDataRouteHandler({
+        uiDir,
+        store,
         introspector,
-        namespacePrefix,
-      });
+        logger,
+      })
+    );
 
-      const html = renderReactToString(component, {
-        title: "Runner Dev React SSR",
-        meta: {
-          description: "Server-side rendered React component in Runner Dev",
-          author: "BlueLibs Runner Dev",
-        },
-      });
-
-      res.setHeader("Content-Type", "text/html");
-      res.send(html);
-    });
+    // Serve minimal HTML for /docs that loads the built docs entry from the Vite manifest
+    app.get("/docs", createDocsServeHandler(uiDir, logger));
 
     // Convenience redirect
     app.get("/", (_req: Request, res: Response) => res.redirect("/voyager"));
@@ -108,7 +123,6 @@ export const serverResource = resource({
           source: serverResource.id,
         });
       } else {
-        const baseUrl = `http://localhost:${port}`;
         logger.info(`GraphQL Server ready at ${baseUrl}/graphql`);
         logger.info(`Voyager UI ready at ${baseUrl}/voyager`);
         logger.info(`Project Documentation ready at ${baseUrl}/docs`);
@@ -122,7 +136,7 @@ export const serverResource = resource({
       });
     });
 
-    return { apolloServer: server, httpServer };
+    return { apolloServer: server, httpServer, app };
   },
   async dispose(instance) {
     console.log("Disposing server");

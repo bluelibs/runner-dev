@@ -38,6 +38,9 @@ query Architecture {
       title
       description
     }
+    tags {
+      id
+    }
     dependsOn
     emits
   }
@@ -47,6 +50,9 @@ query Architecture {
       title
       description
     }
+    tags {
+      id
+    }
     dependsOn
     registers
     overrides
@@ -54,6 +60,9 @@ query Architecture {
   }
   events {
     id
+    tags {
+      id
+    }
     emittedBy
     listenedToBy
   }
@@ -63,6 +72,9 @@ query Architecture {
       title
       description
     }
+    tags {
+      id
+    }
     usedByTasks
   }
   hooks {
@@ -70,6 +82,9 @@ query Architecture {
     meta {
       title
       description
+    }
+    tags {
+      id
     }
     event
   }
@@ -222,8 +237,8 @@ mutation EvalCode($code: String!, $inputJson: String, $evalInput: Boolean) {
 
 ### GraphQL Operations
 
-- `graphql_query` - Execute read-only GraphQL queries
-- `graphql_mutation` - Execute GraphQL mutations (if ALLOW_MUTATIONS=true)
+- `graphql.query` - Execute read-only GraphQL queries
+- `graphql.mutation` - Execute GraphQL mutations (if ALLOW_MUTATIONS=true)
 - `graphql.introspect` - Get full schema introspection
 - `graphql.schemaSdl` - Get schema as SDL string
 - `graphql.ping` - Test connectivity
@@ -266,6 +281,61 @@ help.runner_dev({
 // Compare installation methods
 help.read({ headingIncludes: ["installation", "setup", "configuration"] });
 ```
+
+## Direct CLI Usage
+
+Beyond MCP, Runner-Dev offers a powerful standalone CLI for direct interaction from your terminal. This is ideal for scripting, quick checks, or when not operating within an MCP-enabled AI assistant.
+
+### Prerequisites
+
+- Your app must be running with the Dev server enabled.
+- The `@bluelibs/runner-dev` package should be installed.
+
+### Common Commands
+
+All commands can be prefixed with environment variables like `ENDPOINT` and `HEADERS`.
+
+**Ping the server:**
+```bash
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev ping
+```
+
+**Execute a GraphQL query:**
+```bash
+# Simple query
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }'
+
+# Query with variables and pretty formatting
+ENDPOINT=http://localhost:1337/graphql \
+  npx @bluelibs/runner-dev query \
+  'query Q($ns: ID){ tasks(idIncludes: $ns) { id } }' \
+  --variables '{"ns":"task."}' \
+  --format pretty
+```
+
+**Generate a project overview:**
+```bash
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev overview --details 10
+```
+
+**Fetch GraphQL schema:**
+```bash
+# As SDL
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema sdl
+
+# As JSON
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema json
+```
+
+### Key Flags
+
+- `--endpoint <url>`: GraphQL endpoint URL.
+- `--headers '<json>'`: JSON for extra headers.
+- `--variables '<json>'`: JSON variables for a query.
+- `--format data|json|pretty`: Output format.
+- `--namespace <str>`: A filter to inject `idIncludes` on top-level fields.
+
+This direct CLI access provides a powerful way for AI assistants with shell access to script complex interactions, perform detailed introspection, and validate application state without relying on MCP tools.
 
 ## Common Use Cases
 

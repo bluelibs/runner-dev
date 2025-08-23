@@ -1,0 +1,324 @@
+// =============================================================================
+// TAG CARD COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Tag Card Base
+// -----------------------------------------------------------------------------
+.tag-card {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+  width: 100%;
+}
+
+// -----------------------------------------------------------------------------
+// Tag Card Header
+// -----------------------------------------------------------------------------
+.tag-card__header {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  color: white;
+  padding: $spacing-lg $spacing-xl;
+}
+
+.tag-card__header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  .main {
+    flex: 1;
+  }
+}
+
+.tag-card__title {
+  margin: 0 0 10px 0;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.tag-card__id {
+  font-size: $font-size-base;
+  opacity: 0.9;
+  font-family: $font-family-mono;
+  margin-bottom: $spacing-md;
+}
+
+.tag-card__description {
+  margin: 0;
+  font-size: $font-size-md;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
+// -----------------------------------------------------------------------------
+// Tag Card Content
+// -----------------------------------------------------------------------------
+.tag-card__content {
+  padding: $spacing-xl;
+}
+
+.tag-card__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-lg;
+}
+
+// -----------------------------------------------------------------------------
+// Tag Card Sections
+// -----------------------------------------------------------------------------
+.tag-card__section {
+  &__title {
+    margin: 0 0 $spacing-md 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__content {
+    display: grid;
+    gap: $spacing-md;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tag Card Summary
+// -----------------------------------------------------------------------------
+.tag-card__summary {
+  margin-bottom: $spacing-md;
+}
+
+.tag-card__total {
+  text-align: center;
+  padding: $spacing-md $spacing-lg;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  .value {
+    display: block;
+    font-size: $font-size-xxl;
+    font-weight: bold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .label {
+    font-size: $font-size-sm;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tag Card Stats Grid
+// -----------------------------------------------------------------------------
+.tag-card__stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: $spacing-sm;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.tag-card__stat {
+  text-align: center;
+  padding: $spacing-sm;
+  background: $light-gray;
+  border-radius: $border-radius-lg;
+
+  &__value {
+    font-size: $font-size-lg;
+    font-weight: bold;
+    display: block;
+  }
+
+  &__label {
+    font-size: $font-size-xs;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    display: block;
+  }
+
+  &--tasks .tag-card__stat__value {
+    color: $primary-blue;
+  }
+
+  &--resources .tag-card__stat__value {
+    color: $success-green;
+  }
+
+  &--events .tag-card__stat__value {
+    color: $warning-orange;
+  }
+
+  &--middlewares .tag-card__stat__value {
+    color: $purple;
+  }
+
+  &--hooks .tag-card__stat__value {
+    color: $info-teal;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Configuration Section
+// -----------------------------------------------------------------------------
+.tag-card__config {
+  display: grid;
+  gap: $spacing-lg;
+
+  &__block {
+    background: $light-gray;
+    padding: $spacing-md;
+    border-radius: $border-radius-lg;
+    font-size: $font-size-xs;
+    line-height: 1.6;
+    overflow: auto;
+    border: 1px solid $border-gray;
+    margin: 0;
+    font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relations Section
+// -----------------------------------------------------------------------------
+.tag-card__relations {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  &__category {
+    h5 {
+      margin: 0 0 $spacing-md 0;
+      color: $text-dark;
+      font-size: $font-size-md;
+    }
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: $spacing-xs;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: $light-gray;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $border-gray;
+      border-radius: 3px;
+
+      &:hover {
+        background: #999;
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relation Items
+// -----------------------------------------------------------------------------
+.tag-card__relation-item {
+  padding: $spacing-sm $font-size-md;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid;
+
+  &--resource {
+    background: #e8f5e8;
+    border-left-color: #4caf50;
+  }
+
+  &--task {
+    background: #e3f2fd;
+    border-left-color: #2196f3;
+  }
+
+  &--middleware {
+    background: #f3e5f5;
+    border-left-color: $purple-dark;
+  }
+
+  &--event {
+    background: #fff8e1;
+    border-left-color: $warning-orange;
+  }
+
+  &--hook {
+    background: #e0f7fa;
+    border-left-color: $info-teal;
+  }
+
+  .title {
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+
+    &--resource {
+      color: #2e7d32;
+    }
+    &--task {
+      color: #1976d2;
+    }
+    &--middleware {
+      color: #7b1fa2;
+    }
+    &--event {
+      color: #f57c00;
+    }
+    &--hook {
+      color: #00695c;
+    }
+  }
+
+  .id {
+    font-size: $font-size-xs;
+    color: #666;
+    font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relation Links
+// -----------------------------------------------------------------------------
+.tag-card__relation-link {
+  text-decoration: none;
+  color: inherit;
+  transition: $transition-fast;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}

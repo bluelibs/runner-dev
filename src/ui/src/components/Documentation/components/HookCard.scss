@@ -1,0 +1,568 @@
+// =============================================================================
+// HOOK CARD COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Hook Card Base
+// -----------------------------------------------------------------------------
+.hook-card {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+}
+
+// -----------------------------------------------------------------------------
+// Hook Card Header
+// -----------------------------------------------------------------------------
+.hook-card__header {
+  background: $gradient-purple;
+  color: white;
+  padding: $spacing-xl;
+}
+
+.hook-card__header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  .main {
+    flex: 1;
+  }
+}
+
+.hook-card__title {
+  margin: 0 0 10px 0;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.hook-card__id {
+  font-size: $font-size-base;
+  opacity: 0.9;
+  font-family: $font-family-mono;
+  margin-bottom: $spacing-md;
+}
+
+.hook-card__description {
+  margin: 0;
+  font-size: $font-size-md;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
+// -----------------------------------------------------------------------------
+// Hook Stats and Order
+// -----------------------------------------------------------------------------
+.hook-card__stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hook-card__stat-badge {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: rgba(255, 255, 255, 0.2);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-xl;
+
+  .icon {
+    font-size: $font-size-xs;
+  }
+
+  .count {
+    font-size: $font-size-xs;
+    font-weight: 500;
+  }
+}
+
+.hook-card__order-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-xl;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
+.hook-card__tags {
+  display: flex;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.hook-card__tag {
+  background: rgba(255, 255, 255, 0.2);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
+// -----------------------------------------------------------------------------
+// Hook Card Content
+// -----------------------------------------------------------------------------
+.hook-card__content {
+  padding: $spacing-xl;
+}
+
+.hook-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-xl;
+}
+
+// -----------------------------------------------------------------------------
+// Hook Card Sections
+// -----------------------------------------------------------------------------
+.hook-card__section {
+  &__title {
+    margin: 0 0 $spacing-md 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__content {
+    display: grid;
+    gap: $spacing-md;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Info Blocks
+// -----------------------------------------------------------------------------
+.hook-card__info-block {
+  .label {
+    font-weight: bold;
+    color: $text-dark;
+  }
+
+  .value {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    background: $light-gray;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+
+    &--order {
+      color: $purple;
+      font-weight: 500;
+
+      .order-description {
+        font-size: $font-size-xs;
+        color: $text-gray;
+        margin-top: 2px;
+        font-weight: normal;
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Target Event Details
+// -----------------------------------------------------------------------------
+.hook-card__target-event {
+  background: #f3e5f5;
+  border: 1px solid #e1bee7;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: 10px;
+
+    .icon {
+      font-size: $font-size-lg;
+    }
+
+    .title {
+      margin: 0;
+      color: #4a148c;
+      font-size: $font-size-md;
+    }
+  }
+
+  &__id {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: #6a1b9a;
+    margin-bottom: 10px;
+  }
+
+  &__description {
+    font-size: $font-size-sm;
+    color: #6a1b9a;
+    line-height: 1.4;
+  }
+}
+
+.hook-card__schema-block {
+  background: $light-gray;
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+  border: 1px solid $border-gray;
+
+  .title {
+    font-weight: 600;
+    margin-bottom: $spacing-sm;
+    color: $text-dark;
+  }
+
+  .schema {
+    background: $white;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-xs;
+    max-height: 600px;
+    margin: 0;
+    border: 1px solid #dee2e6;
+    overflow: auto;
+    line-height: 1.4;
+    font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Event Statistics
+// -----------------------------------------------------------------------------
+.hook-card__event-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: $spacing-md;
+
+  &__stat {
+    text-align: center;
+
+    .value {
+      font-size: $font-size-lg;
+      font-weight: bold;
+
+      &--emitters {
+        color: $primary-blue;
+      }
+      &--hooks {
+        color: $purple;
+      }
+    }
+
+    .label {
+      font-size: $font-size-xs;
+      color: $text-gray;
+      font-weight: 500;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Alert States
+// -----------------------------------------------------------------------------
+.hook-card__alert {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+
+  &--danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+
+    .title {
+      color: #721c24;
+      font-weight: bold;
+    }
+
+    .content {
+      margin-top: $spacing-sm;
+      font-size: $font-size-sm;
+      color: #721c24;
+    }
+  }
+
+  &--warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+
+    .title {
+      color: #856404;
+      font-weight: bold;
+    }
+
+    .content {
+      font-size: $font-size-sm;
+      color: #856404;
+      margin-top: $spacing-sm;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Event Not Found State
+// -----------------------------------------------------------------------------
+.hook-card__not-found {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: $spacing-xxxl;
+  border-radius: $border-radius-lg;
+  text-align: center;
+
+  .icon {
+    font-size: 48px;
+  }
+
+  .title {
+    color: #721c24;
+    margin: $spacing-md 0 10px 0;
+  }
+
+  .message {
+    color: #721c24;
+    margin: 0;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Dependencies Section
+// -----------------------------------------------------------------------------
+.hook-card__dependencies {
+  margin-top: $spacing-xxxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-xl;
+  }
+
+  &__category {
+    h5 {
+      margin: 0 0 $spacing-md 0;
+      color: $text-dark;
+      font-size: $font-size-md;
+    }
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Dependency Items
+// -----------------------------------------------------------------------------
+.hook-card__dependency-item {
+  padding: $spacing-sm $font-size-md;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid;
+  display: block;
+
+  &--task {
+    background: #e3f2fd;
+    border-left-color: #2196f3;
+  }
+
+  &--resource {
+    background: #e8f5e8;
+    border-left-color: #4caf50;
+  }
+
+  &--event {
+    background: #fff3e0;
+    border-left-color: #ff9800;
+  }
+
+  .title {
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+
+    &--task {
+      color: #1976d2;
+    }
+    &--resource {
+      color: #2e7d32;
+    }
+    &--event {
+      color: #f57c00;
+    }
+  }
+
+  .id {
+    font-size: $font-size-xs;
+    color: #666;
+    font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Global Hook Styles
+// -----------------------------------------------------------------------------
+.hook-card__global-badge {
+  background: linear-gradient(135deg, #ff6b6b, #feca57);
+  color: white;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  margin-left: $spacing-sm;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  }
+  100% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.hook-card__global-event {
+  .global-indicator {
+    color: #ff6b6b;
+    font-weight: 600;
+    font-size: $font-size-sm;
+  }
+
+  .global-description {
+    font-size: $font-size-xs;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    font-style: italic;
+  }
+}
+
+.hook-card__global-info {
+  display: grid;
+  gap: $spacing-lg;
+}
+
+.hook-card__global-message {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+
+    .icon {
+      font-size: $font-size-lg;
+    }
+
+    .title {
+      margin: 0;
+      font-size: $font-size-md;
+      font-weight: 600;
+    }
+  }
+
+  &__content {
+    font-size: $font-size-sm;
+    line-height: 1.5;
+    opacity: 0.95;
+  }
+}
+
+.hook-card__global-benefits {
+  display: grid;
+  gap: $spacing-sm;
+
+  .benefit {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: $border-radius-sm;
+    border-left: 3px solid #667eea;
+
+    .icon {
+      font-size: $font-size-sm;
+    }
+
+    .text {
+      font-size: $font-size-sm;
+      color: $text-dark;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Dependency Link Styles
+// -----------------------------------------------------------------------------
+.hook-card__dependency-link {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+
+    &.hook-card__dependency-item--task {
+      background: #bbdefb;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+    }
+
+    &.hook-card__dependency-item--resource {
+      background: #c8e6c9;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    }
+
+    &.hook-card__dependency-item--event {
+      background: #ffe0b2;
+      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+    }
+  }
+
+  &:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  // Add a subtle click indicator
+  &::after {
+    content: "🔗";
+    position: absolute;
+    top: 50%;
+    right: $spacing-sm;
+    transform: translateY(-50%);
+    opacity: 0;
+    font-size: $font-size-xs;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover::after {
+    opacity: 0.6;
+  }
+}

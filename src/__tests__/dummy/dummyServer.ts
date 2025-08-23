@@ -7,8 +7,9 @@ import { serverResource } from "../../resources/server.resource";
 import { graphql } from "../../resources/graphql-accumulator.resource";
 import { swapManager } from "../../resources/swap.resource";
 import { dev } from "../../resources/dev.resource";
+import { createDummySuperApp } from "./dummySuperApp";
 
-const app = createDummyApp([
+const app = createDummySuperApp([
   dev.with({
     port: 31337,
   }),
@@ -21,6 +22,7 @@ const app = createDummyApp([
 ]);
 
 run(app, {
+  debug: "normal",
   logs: {
     printThreshold: "debug",
   },

@@ -1,11 +1,13 @@
-import React from 'react';
-import { renderToString } from 'react-dom/server';
+import React from "react";
+import { renderToString } from "react-dom/server";
 
 export interface ReactSSROptions {
   title?: string;
   meta?: Record<string, string>;
   stylesheets?: string[];
   scripts?: string[];
+  moduleScripts?: string[];
+  inlineScript?: string;
 }
 
 export function renderReactToString(
@@ -13,25 +15,31 @@ export function renderReactToString(
   options: ReactSSROptions = {}
 ): string {
   const html = renderToString(component);
-  
+
   const {
-    title = 'React App',
+    title = "React App",
     meta = {},
     stylesheets = [],
-    scripts = []
+    scripts = [],
+    moduleScripts = [],
+    inlineScript,
   } = options;
 
   const metaTags = Object.entries(meta)
     .map(([name, content]) => `<meta name="${name}" content="${content}">`)
-    .join('\n    ');
+    .join("\n    ");
 
   const stylesheetLinks = stylesheets
-    .map(href => `<link rel="stylesheet" href="${href}">`)
-    .join('\n    ');
+    .map((href) => `<link rel="stylesheet" href="${href}">`)
+    .join("\n    ");
 
   const scriptTags = scripts
-    .map(src => `<script src="${src}"></script>`)
-    .join('\n    ');
+    .map((src) => `<script src="${src}"></script>`)
+    .join("\n    ");
+
+  const moduleScriptTags = moduleScripts
+    .map((src) => `<script type="module" src="${src}"></script>`)
+    .join("\n    ");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -44,11 +52,15 @@ export function renderReactToString(
   </head>
   <body>
     <div id="root">${html}</div>
+    ${inlineScript ? `<script>${inlineScript}</script>` : ""}
+    ${moduleScriptTags}
     ${scriptTags}
   </body>
 </html>`;
 }
 
-export function renderReactComponentOnly(component: React.ReactElement): string {
+export function renderReactComponentOnly(
+  component: React.ReactElement
+): string {
   return renderToString(component);
 }

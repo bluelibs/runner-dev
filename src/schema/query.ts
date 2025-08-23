@@ -34,7 +34,7 @@ import type {
   QueryTasksArgs,
   QueryHooksArgs,
 } from "../generated/resolvers-types";
-import { isSystemEventId } from "../resources/introspector.tools";
+import { isSystemEventId } from "../resources/models/introspector.tools";
 import { docsGenerator } from "../resources/docs.generator.resource";
 
 export const QueryType = new GraphQLObjectType({
@@ -51,44 +51,7 @@ export const QueryType = new GraphQLObjectType({
     tag: {
       description:
         "Get reverse usage for a tag id. Returns usedBy lists split by kind.",
-      type: new GraphQLNonNull(
-        new GraphQLObjectType({
-          name: "TagUsage",
-          fields: () => ({
-            id: { type: new GraphQLNonNull(GraphQLID) },
-            all: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(BaseElementInterface))
-              ),
-            },
-            tasks: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(TaskType))
-              ),
-            },
-            hooks: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(HookType))
-              ),
-            },
-            resources: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(ResourceType))
-              ),
-            },
-            middlewares: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(MiddlewareType))
-              ),
-            },
-            events: {
-              type: new GraphQLNonNull(
-                new GraphQLList(new GraphQLNonNull(EventType))
-              ),
-            },
-          }),
-        })
-      ),
+      type: TagType,
       args: {
         id: { description: "Tag id", type: new GraphQLNonNull(GraphQLID) },
       },
@@ -186,12 +149,13 @@ export const QueryType = new GraphQLObjectType({
           const sub = String(filter.idIncludes);
           result = result.filter((e) => String(e.id).includes(sub));
         }
-        if (typeof filter.hasNoHooks === "boolean") {
-          result = result.filter((e) =>
-            filter.hasNoHooks
-              ? (e.listenedToBy ?? []).length === 0
-              : (e.listenedToBy ?? []).length > 0
-          );
+        if (args.filter && typeof args.filter.hasNoHooks === "boolean") {
+          result = result.filter((e) => {
+            const specificCount = ctx.introspector.getHooksOfEvent(e.id).length;
+            return args.filter!.hasNoHooks
+              ? specificCount === 0
+              : specificCount > 0;
+          });
         }
         return result;
       },

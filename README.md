@@ -104,6 +104,119 @@ Available tools once connected:
 - `graphql.ping` — reachability check
 - `project.overview` — dynamic Markdown overview aggregated from the API
 
+### CLI usage (direct)
+
+This package also ships a CLI that can query the same GraphQL API or generate an overview directly from your terminal.
+
+Prerequisites:
+
+- Ensure your app registers the Dev GraphQL server (`dev.with({ port: 1337 })`) or otherwise expose a compatible endpoint.
+- Build this package (or install it) so the binary is available.
+
+Help:
+
+```bash
+npx @bluelibs/runner-dev --help
+```
+
+Ping endpoint:
+
+```bash
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev ping
+```
+
+Run a query:
+
+```bash
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }'
+
+# With variables and pretty output
+ENDPOINT=http://localhost:1337/graphql \
+  npx @bluelibs/runner-dev query \
+  'query Q($ns: ID){ tasks(idIncludes: $ns) { id } }' \
+  --variables '{"ns":"task."}' \
+  --format pretty
+
+# Add a namespace sugar to inject idIncludes/filter automatically
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }' --namespace task.
+```
+
+Project overview (Markdown):
+
+```bash
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev overview --details 10 --include-live
+```
+
+Schema tools:
+
+```bash
+# SDL string
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema sdl
+
+# Introspection JSON
+ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema json
+```
+
+Environment variables used by all commands:
+
+- `ENDPOINT` (or `GRAPHQL_ENDPOINT`): GraphQL endpoint URL
+- `HEADERS`: JSON for extra headers, e.g. `{"Authorization":"Bearer ..."}`
+
+Flags:
+
+- `--endpoint <url>`: override endpoint
+- `--headers '<json>'`: override headers
+- `--variables '<json>'`: JSON variables for query
+- `--operation <name>`: operation name for documents with multiple operations
+- `--format data|json|pretty`: output mode (default `data`)
+- `--raw`: print full GraphQL envelope including errors
+- `--namespace <str>`: convenience filter that injects `idIncludes` or `events(filter: { idIncludes })` at the top-level fields when possible
+
+### Local dev playbook
+
+Quickly boot the dummy server and UI, then exercise the CLI against it.
+
+1. Start dev play (UI + Server):
+
+```bash
+npm run play
+```
+
+This starts:
+
+- UI watcher (`vite build --watch`)
+- Dummy GraphQL server with Dev resources on port 31337
+
+2. In another terminal, build the CLI and run demo commands:
+
+```bash
+npm run build
+npm run demo:ping
+npm run demo:query
+npm run demo:overview
+```
+
+Alternatively, you can keep a server-only process:
+
+```bash
+npm run play:cli
+# Then:
+npm run demo:query
+```
+
+### Testing
+
+- Unit/integration tests are executed via Jest: `npm test`.
+- CLI remote tests spin up the dummy app on ephemeral ports and dispose cleanly.
+
+Run only the CLI tests:
+
+```bash
+npm test -- src/__tests__/component/cli.query.remote.test.ts src/__tests__/component/cli.overview.remote.test.ts
+```
+
+CI note: we prebuild before tests via `pretest` so the CLI binary `dist/cli.js` is available.
+
 ## Programmatic Introspection (without GraphQL)
 
 ```ts
@@ -159,19 +272,21 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
   - `swappedTasks: [SwappedTask!]!`
   - `live: Live!`
   - `diagnostics: [Diagnostic!]!`
+  - `tag(id: ID!): TagUsage`
+  - `tags: [Tag!]!`
 
 - All
 
-  - `id`, `meta`, `filePath`, `fileContents`, `markdownDescription`
+  - `id`, `meta`, `filePath`, `fileContents`, `markdownDescription`, `tags: [Tag!]!`
 
 - Tasks/Hooks
 
-  - Shared: `emits: [String!]!`, `emitsResolved: [Event!]!`
+  - Shared: `emits: [String!]!`, `emitsResolved: [Event!]!`, `runs: [RunRecord!]!`, `tags: [Tag!]!`
   - Shared: `dependsOn: [String!]!`
   - Shared: `middleware: [String!]!`, `middlewareResolved: [TaskMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
   - Shared: `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
-  - Task-specific: `inputSchema: String`, `inputSchemaReadable: String`, `dependsOnResolved { tasks { id } resources { id } emitters { id } }`
-  - Hook-specific: `event: String!`, `hookOrder: Int`
+  - Task-specific: `inputSchema: String`, `inputSchemaReadable: String`, `dependsOnResolved { tasks { id } hooks { id } resources { id } emitters { id } }`
+  - Hook-specific: `event: String!`, `hookOrder: Int`, `inputSchema: String`, `inputSchemaReadable: String`
 
 - Resources
 
@@ -183,13 +298,15 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
   - `emits: [Event!]!` (inferred from task/hook emissions)
   - `dependsOn: [String!]!`, `dependsOnResolved: [Resource!]!`
   - `registeredBy: String`, `registeredByResolved: Resource`
+  - `tags: [Tag!]!`
 
 - Events
 
-  - `emittedBy: [String!]!`, `emittedByResolved: [Hook!]!`
+  - `emittedBy: [String!]!`, `emittedByResolved: [BaseElement!]!`
   - `listenedToBy: [String!]!`, `listenedToByResolved: [Hook!]!`
   - `payloadSchema: String`, `payloadSchemaReadable: String`
   - `registeredBy: String`, `registeredByResolved: Resource`
+  - `tags: [Tag!]!`
 
 - TaskMiddleware
 
@@ -197,6 +314,8 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
   - `usedBy: [Task!]!`, `usedByDetailed: [MiddlewareTaskUsage!]!`
   - `emits: [Event!]!`
   - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
+  - `configSchema: String`, `configSchemaReadable: String`
+  - `tags: [Tag!]!`
 
 - ResourceMiddleware
 
@@ -204,6 +323,8 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
   - `usedBy: [Resource!]!`, `usedByDetailed: [MiddlewareResourceUsage!]!`
   - `emits: [Event!]!`
   - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
+  - `configSchema: String`, `configSchemaReadable: String`
+  - `tags: [Tag!]!`
 
 - Live
 
@@ -211,14 +332,14 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
     - `LogEntry { timestampMs, level, message, data, correlationId }`
     - `LogFilterInput { levels: [LogLevelEnum!], messageIncludes: String, correlationIds: [String!] }`
   - `emissions(afterTimestamp: Float, last: Int, filter: EmissionFilterInput): [EmissionEntry!]!`
-    - `EmissionEntry { timestampMs, eventId, emitterId, payload, correlationId }`
-    - `EmissionFilterInput { eventIds: [String!], emitterIds: [String!] }`
+    - `EmissionEntry { timestampMs, eventId, emitterId, payload, correlationId, emitterResolved: BaseElement, eventResolved: Event }`
+    - `EmissionFilterInput { eventIds: [String!], emitterIds: [String!], correlationIds: [String!] }`
   - `errors(afterTimestamp: Float, last: Int, filter: ErrorFilterInput): [ErrorEntry!]!`
-    - `ErrorEntry { timestampMs, sourceId, sourceKind, message, stack, data, correlationId }`
-    - `ErrorFilterInput { sourceKinds: [SourceKindEnum!], sourceIds: [ID!], messageIncludes: String }`
+    - `ErrorEntry { timestampMs, sourceId, sourceKind, message, stack, data, correlationId, sourceResolved: BaseElement }`
+    - `ErrorFilterInput { sourceKinds: [SourceKindEnum!], sourceIds: [ID!], messageIncludes: String, correlationIds: [String!] }`
   - `runs(afterTimestamp: Float, last: Int, filter: RunFilterInput): [RunRecord!]!`
-    - `RunRecord { timestampMs, nodeId, nodeKind, durationMs, ok, error, parentId, rootId, correlationId }`
-    - `RunFilterInput { nodeKinds: [NodeKindEnum!], nodeIds: [String!], ok: Boolean, parentIds: [String!], rootIds: [String!] }`
+    - `RunRecord { timestampMs, nodeId, nodeKind, durationMs, ok, error, parentId, rootId, correlationId, nodeResolved: BaseElement }`
+    - `RunFilterInput { nodeKinds: [NodeKindEnum!], nodeIds: [String!], ok: Boolean, parentIds: [String!], rootIds: [String!], correlationIds: [String!] }`
 
   Enums: `LogLevelEnum` = `trace|debug|info|warn|error|fatal|log`, `SourceKindEnum` = `TASK|HOOK|RESOURCE|MIDDLEWARE|INTERNAL`, `NodeKindEnum` = `TASK|HOOK`.
 

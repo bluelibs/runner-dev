@@ -1,5 +1,6 @@
 .DS_Store
 TODO.md
+/tmp
 coverage
 dist
 node_modules

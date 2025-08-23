@@ -1,0 +1,461 @@
+// =============================================================================
+// EVENT CARD COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Event Card Base
+// -----------------------------------------------------------------------------
+.event-card {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+}
+
+// -----------------------------------------------------------------------------
+// Event Card Header
+// -----------------------------------------------------------------------------
+.event-card__header {
+  background: $gradient-warning;
+  color: white;
+  padding: $spacing-xl;
+}
+
+.event-card__header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  .main {
+    flex: 1;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.event-card__title {
+  margin: 0 0 10px 0;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.event-card__id {
+  font-size: $font-size-base;
+  opacity: 0.9;
+  font-family: $font-family-mono;
+  margin-bottom: $spacing-md;
+}
+
+.event-card__description {
+  margin: 0;
+  font-size: $font-size-md;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
+// -----------------------------------------------------------------------------
+// Event Stats Badges
+// -----------------------------------------------------------------------------
+.event-card__stats {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+}
+
+.event-card__stat-badge {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: rgba(255, 255, 255, 0.2);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-xl;
+
+  .icon {
+    font-size: $font-size-xs;
+  }
+
+  .count {
+    font-size: $font-size-xs;
+    font-weight: 500;
+  }
+}
+
+.event-card__tags {
+  display: flex;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.event-card__tag {
+  background: rgba(255, 255, 255, 0.2);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
+// -----------------------------------------------------------------------------
+// Event Card Content
+// -----------------------------------------------------------------------------
+.event-card__content {
+  padding: $spacing-xl;
+}
+
+.event-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-xl;
+}
+
+// -----------------------------------------------------------------------------
+// Event Card Sections
+// -----------------------------------------------------------------------------
+.event-card__section {
+  &__title {
+    margin: 0 0 $spacing-md 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__content {
+    display: grid;
+    gap: $spacing-md;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Info Blocks
+// -----------------------------------------------------------------------------
+.event-card__info-block {
+  .label {
+    font-weight: bold;
+    color: $text-dark;
+  }
+
+  .value {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    background: $light-gray;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+
+    &--status {
+      font-weight: 500;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Listeners List
+// -----------------------------------------------------------------------------
+.event-card__listeners-list {
+  display: grid;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+.event-card__listener-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-sm;
+  padding: $spacing-sm;
+  border-left: 4px solid #ff9500;
+  transition: $transition-fast;
+
+  &:hover {
+    background: rgba(52, 152, 219, 0.05);
+    border-color: rgba(52, 152, 219, 0.3);
+    text-decoration: none;
+  }
+
+  &:visited {
+    color: inherit;
+  }
+
+  &__content {
+    .title {
+      font-weight: 600;
+      margin-bottom: $spacing-xs;
+      color: $text-darker;
+      font-size: $font-size-sm;
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      color: #666;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Code Block
+// -----------------------------------------------------------------------------
+.event-card__code-block {
+  background: $light-gray;
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  overflow: auto;
+  border: 1px solid $border-gray;
+  margin: 0;
+  font-family: $font-family-mono;
+}
+
+// -----------------------------------------------------------------------------
+// Alert/Warning for missing emitters/listeners
+// -----------------------------------------------------------------------------
+.event-card__alert {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+
+  &--danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+
+    .title {
+      color: #721c24;
+      font-weight: bold;
+    }
+
+    .content {
+      margin-top: $spacing-sm;
+      font-size: $font-size-sm;
+      color: #721c24;
+    }
+  }
+
+  &--warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+
+    .title {
+      color: #856404;
+      font-weight: bold;
+    }
+
+    .content {
+      margin-top: $spacing-sm;
+      font-size: $font-size-sm;
+      color: #856404;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Event Flow Section
+// -----------------------------------------------------------------------------
+.event-card__flow {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Event Metrics
+// -----------------------------------------------------------------------------
+.event-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+}
+
+.event-card__metric {
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  text-align: center;
+  border: 2px solid;
+
+  &--active {
+    background: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+  }
+
+  &--warning {
+    background: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+  }
+
+  &--danger {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+  }
+
+  .value {
+    font-size: $font-size-xl;
+    font-weight: bold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .label {
+    font-size: $font-size-base;
+    font-weight: 500;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Event Participants Grid
+// -----------------------------------------------------------------------------
+.event-card__participants {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-xl;
+}
+
+.event-card__participant-section {
+  a {
+    text-decoration: none;
+  }
+  h5 {
+    margin: 0 0 $spacing-md 0;
+    color: $text-dark;
+    font-size: $font-size-md;
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Event Emitters/Listeners
+// -----------------------------------------------------------------------------
+.event-card__emitter {
+  padding: $spacing-sm $font-size-md;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid;
+
+  &--task {
+    background: #e3f2fd;
+    border-left-color: #2196f3;
+  }
+
+  &--resource {
+    background: #e8f5e8;
+    border-left-color: #4caf50;
+  }
+
+  &--hook {
+    background: #f3e5f5;
+    border-left-color: $purple-dark;
+  }
+
+  &__content {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
+  &__info {
+    .title {
+      font-weight: 600;
+      margin-bottom: $spacing-xs;
+
+      &--task {
+        color: #1976d2;
+      }
+      &--resource {
+        color: #2e7d32;
+      }
+      &--hook {
+        color: #7b1fa2;
+      }
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      color: #666;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+.event-card__listener {
+  padding: $spacing-sm $font-size-md;
+  background: #f3e5f5;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid $purple-dark;
+
+  &__content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .main {
+      flex: 1;
+    }
+  }
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    .details {
+      .title {
+        font-weight: 600;
+        color: #7b1fa2;
+      }
+
+      .id {
+        font-size: $font-size-xs;
+        color: #666;
+        font-family: $font-family-mono;
+      }
+    }
+  }
+
+  &__description {
+    font-size: $font-size-xs;
+    color: #666;
+    margin-top: $spacing-xs;
+    font-style: italic;
+  }
+
+  &__order-badge {
+    background: #e1bee7;
+    color: #4a148c;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-xl;
+    font-size: $font-size-xs;
+    font-weight: 500;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Empty State
+// -----------------------------------------------------------------------------
+.event-card__empty-state {
+  color: $text-gray;
+  font-style: italic;
+  text-align: center;
+  padding: $spacing-xxxl;
+  background: $light-gray;
+  border-radius: $border-radius-lg;
+}

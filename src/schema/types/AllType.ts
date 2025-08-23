@@ -6,11 +6,13 @@ import {
   GraphQLInt,
   GraphQLString,
   type GraphQLFieldConfigMap,
+  GraphQLList,
 } from "graphql";
 import { All, elementKindSymbol, ElementKind } from "../model";
 import { sanitizePath } from "../../utils/path";
 import { MetaType } from "./MetaType";
 import { baseElementCommonFields } from "./BaseElementCommon";
+import { TagType, TagUsageType } from "./TagType";
 
 export const BaseElementInterface: GraphQLInterfaceType =
   new GraphQLInterfaceType({
@@ -48,6 +50,14 @@ export const BaseElementInterface: GraphQLInterfaceType =
         description:
           "Markdown composed from meta.title and meta.description (if present)",
         type: new GraphQLNonNull(GraphQLString),
+      },
+      tags: {
+        description: "Tags associated with this element",
+        type: new GraphQLList(new GraphQLNonNull(TagType)),
+      },
+      tagsDetailed: {
+        description: "Detailed tags associated with this element",
+        type: new GraphQLList(new GraphQLNonNull(TagUsageType)),
       },
     }),
     resolveType: (value: any) => {
@@ -105,7 +115,7 @@ export const BaseElementInterface: GraphQLInterfaceType =
       if (Array.isArray(value?.listenedToBy)) {
         return "Event";
       }
-      if (typeof value?.event === "string") {
+      if (Array.isArray(value?.events)) {
         return "Hook";
       }
       if (Array.isArray(value?.emits) && Array.isArray(value?.dependsOn)) {
@@ -150,7 +160,7 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
     if (Array.isArray(value?.listenedToBy)) {
       return false; // Event
     }
-    if (typeof value?.event === "string") {
+    if (Array.isArray(value?.events)) {
       return false; // Hook
     }
     if (Array.isArray(value?.emits) && Array.isArray(value?.dependsOn)) {

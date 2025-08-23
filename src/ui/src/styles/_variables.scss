@@ -1,0 +1,92 @@
+// =============================================================================
+// SHARED VARIABLES - Common design tokens for all components
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Colors
+// -----------------------------------------------------------------------------
+$primary-blue: #007acc;
+$primary-blue-dark: #0056b3;
+$success-green: #28a745;
+$success-green-dark: #20c997;
+$warning-orange: #ffc107;
+$warning-orange-dark: #ff8f00;
+$danger-red: #dc3545;
+$purple: #6f42c1;
+$purple-dark: #9c27b0;
+$info-blue: #17a2b8;
+$info-teal: #17a2b8;
+$sidebar-dark: #2c3e50;
+
+// Grays
+$white: #fff;
+$light-gray: #f8f9fa;
+$border-gray: #e9ecef;
+$text-gray: #6c757d;
+$text-dark: #495057;
+$text-darker: #2c3e50;
+// Common aliases used in component styles
+$text-muted: $text-gray;
+$error-red: $danger-red;
+
+// -----------------------------------------------------------------------------
+// Spacing
+// -----------------------------------------------------------------------------
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 15px;
+$spacing-lg: 20px;
+$spacing-xl: 25px;
+$spacing-xxl: 30px;
+$spacing-xxxl: 40px;
+
+// -----------------------------------------------------------------------------
+// Typography
+// -----------------------------------------------------------------------------
+$font-size-xs: 11px;
+$font-size-sm: 12px;
+$font-size-base: 14px;
+$font-size-md: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 24px;
+$font-size-xxl: 28px;
+$font-size-xxxl: 36px;
+
+$font-family-base: Arial, sans-serif;
+$font-family-mono: monospace;
+
+// -----------------------------------------------------------------------------
+// Border Radius
+// -----------------------------------------------------------------------------
+$border-radius-sm: 4px;
+$border-radius-md: 6px;
+$border-radius-lg: 8px;
+$border-radius-xl: 12px;
+$border-radius-pill: 16px;
+
+// -----------------------------------------------------------------------------
+// Box Shadows
+// -----------------------------------------------------------------------------
+$shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.2);
+$shadow-md: 0 6px 20px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 8px 32px rgba(0, 122, 204, 0.3);
+
+// -----------------------------------------------------------------------------
+// Gradients
+// -----------------------------------------------------------------------------
+$gradient-primary: linear-gradient(135deg, $primary-blue, $primary-blue-dark);
+$gradient-success: linear-gradient(135deg, $success-green, $success-green-dark);
+$gradient-warning: linear-gradient(
+  135deg,
+  $warning-orange,
+  $warning-orange-dark
+);
+$gradient-purple: linear-gradient(135deg, $purple, #563d7c);
+$gradient-purple-dark: linear-gradient(135deg, $purple-dark, #673ab7);
+$gradient-sidebar: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+
+// -----------------------------------------------------------------------------
+// Transitions
+// -----------------------------------------------------------------------------
+$transition-fast: all 0.2s ease;
+$transition-normal: all 0.3s ease;

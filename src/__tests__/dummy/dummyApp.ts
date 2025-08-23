@@ -147,6 +147,7 @@ export const taggedTask = task({
   async run() {
     return "ok" as const;
   },
+  tags: [areaTag.with({ scope: "tagged" })],
 });
 
 // Helper to build a dummy app resource with optional extra registrations

@@ -1,0 +1,419 @@
+// =============================================================================
+// TASK CARD COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Task Card Base
+// -----------------------------------------------------------------------------
+.task-card {
+  background: $white;
+  border: 1px solid $border-gray;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    transition: $transition-normal;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Header
+// -----------------------------------------------------------------------------
+.task-card__header {
+  background: $gradient-primary;
+  color: white;
+  padding: $spacing-xl;
+}
+
+.task-card__header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  .main {
+    flex: 1;
+  }
+}
+
+.task-card__title {
+  margin: 0 0 10px 0;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.task-card__id {
+  font-size: $font-size-base;
+  opacity: 0.9;
+  font-family: $font-family-mono;
+  margin-bottom: $spacing-md;
+}
+
+.task-card__description {
+  margin: 0;
+  font-size: $font-size-md;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
+.task-card__tags {
+  display: flex;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+  a {
+    color: #fff;
+    text-decoration: none;
+  }
+}
+
+.task-card__tag {
+  background: rgba(255, 255, 255, 0.2);
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 500;
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Content
+// -----------------------------------------------------------------------------
+.task-card__content {
+  padding: $spacing-xl;
+}
+
+.task-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-xl;
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Sections
+// -----------------------------------------------------------------------------
+.task-card__section {
+  &__title {
+    margin: 0 0 $spacing-md 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__content {
+    display: grid;
+    gap: $spacing-md;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Info Blocks
+// -----------------------------------------------------------------------------
+.task-card__info-block {
+  .label {
+    font-weight: bold;
+    color: $text-dark;
+  }
+
+  .value {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $text-gray;
+    margin-top: $spacing-xs;
+    background: $light-gray;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Emits Events Styling
+// -----------------------------------------------------------------------------
+.task-card__emits-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-top: $spacing-xs;
+}
+
+.task-card__emit-event-link {
+  display: inline-block;
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  text-decoration: none;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #bbdefb;
+    color: #0d47a1;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+  }
+
+  &:focus {
+    outline: 2px solid #2196f3;
+    outline-offset: 2px;
+  }
+}
+
+.task-card__emit-event-text {
+  display: inline-block;
+  background: #f5f5f5;
+  color: #666;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  border: 1px solid #e0e0e0;
+}
+
+.task-card__no-events {
+  color: #999;
+  font-style: italic;
+  font-size: $font-size-sm;
+}
+
+// -----------------------------------------------------------------------------
+// Code Block
+// -----------------------------------------------------------------------------
+.task-card__code-block {
+  background: $light-gray;
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  overflow: auto;
+  border: 1px solid $border-gray;
+  margin: 0;
+  font-family: $font-family-mono;
+}
+
+// -----------------------------------------------------------------------------
+// Alert/Override Warning
+// -----------------------------------------------------------------------------
+.task-card__alert {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+
+  &--warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+
+    .title {
+      color: #856404;
+      font-weight: bold;
+    }
+
+    .content {
+      font-size: $font-size-sm;
+      color: #856404;
+      margin-top: $spacing-sm;
+      font-family: $font-family-mono;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relations Section
+// -----------------------------------------------------------------------------
+.task-card__relations {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-xl;
+  }
+
+  &__category {
+    h5 {
+      margin: 0 0 $spacing-md 0;
+      color: $text-dark;
+      font-size: $font-size-md;
+    }
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relation Items
+// -----------------------------------------------------------------------------
+.task-card__relation-item {
+  padding: $spacing-sm $font-size-md;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid;
+  display: block;
+
+  &--task {
+    background: #e3f2fd;
+    border-left-color: #2196f3;
+  }
+
+  &--resource {
+    background: #e8f5e8;
+    border-left-color: #4caf50;
+  }
+
+  &--event {
+    background: #fff3e0;
+    border-left-color: #ff9800;
+  }
+
+  .title {
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+
+    &--task {
+      color: #1976d2;
+    }
+    &--resource {
+      color: #2e7d32;
+    }
+    &--event {
+      color: #f57c00;
+    }
+  }
+
+  .id {
+    font-size: $font-size-xs;
+    color: #666;
+    font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Relation Link Styles
+// -----------------------------------------------------------------------------
+.task-card__relation-link {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+
+    &.task-card__relation-item--task {
+      background: #bbdefb;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+    }
+
+    &.task-card__relation-item--resource {
+      background: #c8e6c9;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    }
+
+    &.task-card__relation-item--event {
+      background: #ffe0b2;
+      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+    }
+  }
+
+  &:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  // Add a subtle click indicator
+  &::after {
+    content: "🔗";
+    position: absolute;
+    top: 50%;
+    right: $spacing-sm;
+    transform: translateY(-50%);
+    opacity: 0;
+    font-size: $font-size-xs;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover::after {
+    opacity: 0.6;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Middleware Configuration
+// -----------------------------------------------------------------------------
+.task-card__middleware {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__items {
+    display: grid;
+    gap: $spacing-md;
+  }
+
+  &__item {
+    background: $light-gray;
+    border: 1px solid $border-gray;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+
+    .title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: $text-darker;
+      font-size: $font-size-md;
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      color: #666;
+      font-family: $font-family-mono;
+      margin-bottom: $spacing-md;
+    }
+
+    .config-title {
+      font-size: $font-size-base;
+      color: $text-dark;
+      margin-bottom: $spacing-sm;
+      font-weight: 600;
+    }
+
+    .config-block {
+      background: $white;
+      padding: $spacing-md;
+      border-radius: $border-radius-md;
+      font-size: $font-size-xs;
+      margin: 0;
+      border: 1px solid #dee2e6;
+      line-height: 1.4;
+      font-family: $font-family-mono;
+    }
+  }
+}

@@ -1,0 +1,137 @@
+@use "../../../../styles/variables" as *;
+
+.relations-section {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: $text-darker;
+    font-size: $font-size-lg;
+    border-bottom: 2px solid $border-gray;
+    padding-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-xl;
+  }
+
+  &__category {
+    h5 {
+      margin: 0 0 $spacing-md 0;
+      color: $text-dark;
+      font-size: $font-size-md;
+    }
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+  }
+
+  &__item {
+    padding: $spacing-sm $font-size-md;
+    border-radius: $border-radius-lg;
+    border-left: 4px solid;
+    display: block;
+
+    &--task {
+      background: #e3f2fd;
+      border-left-color: #2196f3;
+    }
+
+    &--resource {
+      background: #e8f5e8;
+      border-left-color: #4caf50;
+    }
+
+    &--event {
+      background: #fff3e0;
+      border-left-color: #ff9800;
+    }
+    
+    &--hook {
+        background: #f3e5f5;
+        border-left-color: $purple-dark;
+    }
+
+    &--middleware {
+        background: #f3e5f5;
+        border-left-color: $purple-dark;
+    }
+
+    &--default {
+        background: $light-gray;
+        border-left-color: $text-gray;
+    }
+
+    .title {
+      font-weight: 600;
+      margin-bottom: $spacing-xs;
+
+      &--task { color: #1976d2; }
+      &--resource { color: #2e7d32; }
+      &--event { color: #f57c00; }
+      &--hook { color: #7b1fa2; }
+      &--middleware { color: #7b1fa2; }
+      &--default { color: $text-dark; }
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      color: #666;
+      font-family: $font-family-mono;
+    }
+  }
+
+  &__link {
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+    position: relative;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      text-decoration: none;
+
+      &.relations-section__item--task {
+        background: #bbdefb;
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+      }
+      &.relations-section__item--resource {
+        background: #c8e6c9;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+      }
+      &.relations-section__item--event {
+        background: #ffe0b2;
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+      }
+    }
+
+    &:focus {
+      outline: 2px solid #667eea;
+      outline-offset: 2px;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &::after {
+      content: "🔗";
+      position: absolute;
+      top: 50%;
+      right: $spacing-sm;
+      transform: translateY(-50%);
+      opacity: 0;
+      font-size: $font-size-xs;
+      transition: opacity 0.2s ease;
+    }
+
+    &:hover::after {
+      opacity: 0.6;
+    }
+  }
+}

@@ -78,7 +78,7 @@ export function registerProjectOverview(server: McpServer) {
 
       const query = `query Overview($liveLast: Int) {
   tasks { id meta { title description } filePath inputSchemaReadable }
-  hooks { id meta { title description } event filePath inputSchemaReadable }
+  hooks { id meta { title description } events filePath inputSchemaReadable }
   resources { id meta { title description } filePath configSchemaReadable }
   middlewares { id meta { title description } filePath configSchemaReadable }
   events { id meta { title description } filePath payloadSchemaReadable emittedBy listenedToBy }

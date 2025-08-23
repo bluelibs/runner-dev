@@ -47,6 +47,9 @@ describe("introspector (extended)", () => {
           },
           taskHelloEmits: taskHello.emits,
           evtHello_listenedToBy: evt.listenedToBy,
+          evtHello_specificHooks: introspector
+            .getHooksOfEvent("evt.hello")
+            .map((h) => h.id),
           usingRes: usingRes.map((t) => t.id),
           usingMw: usingMw.map((t) => t.id),
           emittersOfEvt: emittersOfEvt.map((t) => t.id),
@@ -109,11 +112,11 @@ describe("introspector (extended)", () => {
     expect(snapshot.hooksOfEvt).toEqual(expect.arrayContaining(["hook.hello"]));
     expect(snapshot.mwEmits).toEqual(expect.arrayContaining(["evt.hello"]));
 
-    // listenedToBy on event: should include specific hook, not global
-    expect(snapshot.evtHello_listenedToBy).toEqual(
+    // listenedToBy may include wildcard hooks, so assert specific via getHooksOfEvent
+    expect(snapshot.evtHello_specificHooks).toEqual(
       expect.arrayContaining(["hook.hello"])
     );
-    expect(snapshot.evtHello_listenedToBy).not.toEqual(
+    expect(snapshot.evtHello_specificHooks).not.toEqual(
       expect.arrayContaining(["hook.all"])
     );
 

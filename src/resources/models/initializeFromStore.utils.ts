@@ -201,13 +201,20 @@ export function buildEvents(store: Store): Event[] {
     const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
       (e as any)?.tags
     );
+    // Keep wildcard hooks in listenedToBy per design, but match specific listeners robustly
     const hooksListeningToEvent = hooks
-      .filter(
-        (h) =>
-          h.on === "*" ||
-          h.on === eventId ||
-          (Array.isArray(h.on) && h.on.includes(eventId))
-      )
+      .filter((h) => {
+        const on: any = h?.on;
+        if (on === "*") return true;
+        if (typeof on === "string") return on === eventId;
+        if (on && typeof on === "object" && !Array.isArray(on))
+          return String(on.id) === eventId;
+        if (Array.isArray(on))
+          return on.some((v: any) =>
+            typeof v === "string" ? v === eventId : String(v?.id) === eventId
+          );
+        return false;
+      })
       .map((h) => h.id);
 
     return stampElementKind(

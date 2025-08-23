@@ -57,10 +57,10 @@ export function stringifyIfObject(input: any): string | null {
 export function computeOrphanEvents(
   introspector: Introspector
 ): { id: string }[] {
-  // Events with no specific hooks (wildcard hooks are ignored by buildEvents)
+  // Events with no specific hooks. Wildcard-only listeners should not count.
   const events = introspector.getEvents();
   return events
-    .filter((e) => (e.listenedToBy ?? []).length === 0)
+    .filter((e) => introspector.getHooksOfEvent(e.id).length === 0)
     .map((e) => ({ id: e.id }));
 }
 

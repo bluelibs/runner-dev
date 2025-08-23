@@ -149,12 +149,13 @@ export const QueryType = new GraphQLObjectType({
           const sub = String(filter.idIncludes);
           result = result.filter((e) => String(e.id).includes(sub));
         }
-        if (typeof filter.hasNoHooks === "boolean") {
-          result = result.filter((e) =>
-            filter.hasNoHooks
-              ? (e.listenedToBy ?? []).length === 0
-              : (e.listenedToBy ?? []).length > 0
-          );
+        if (args.filter && typeof args.filter.hasNoHooks === "boolean") {
+          result = result.filter((e) => {
+            const specificCount = ctx.introspector.getHooksOfEvent(e.id).length;
+            return args.filter!.hasNoHooks
+              ? specificCount === 0
+              : specificCount > 0;
+          });
         }
         return result;
       },

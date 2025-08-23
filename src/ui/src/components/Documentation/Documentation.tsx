@@ -216,6 +216,59 @@ export const Documentation: React.FC<DocumentationProps> = ({
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
+  // Handle hash changes to clear search when navigating to filtered-out elements
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith("#element-") && localNamespaceSearch) {
+        const elementId = hash.substring(9); // Remove '#element-' prefix
+
+        // Get all unfiltered elements
+        const allUnfilteredElements = introspector.getAll();
+
+        // Get all currently filtered (visible) elements
+        const allFilteredElements = [
+          ...tasks,
+          ...resources,
+          ...events,
+          ...hooks,
+          ...middlewares,
+          ...tags,
+        ];
+
+        // Check if the target element exists in unfiltered but not in filtered
+        const elementExistsUnfiltered = allUnfilteredElements.some(
+          (el) => el.id === elementId
+        );
+        const elementExistsFiltered = allFilteredElements.some(
+          (el) => el.id === elementId
+        );
+
+        if (elementExistsUnfiltered && !elementExistsFiltered) {
+          setLocalNamespaceSearch("");
+        }
+      }
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+
+    // Also check on mount in case we're already on a hash
+    handleHashChange();
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, [
+    localNamespaceSearch,
+    tasks,
+    resources,
+    events,
+    hooks,
+    middlewares,
+    tags,
+    introspector,
+  ]);
+
   const sections = [
     {
       id: "overview",

@@ -37,12 +37,7 @@ export function initializeFromStore(
   );
 
   // Build events
-  introspector.events = buildEvents(
-    Array.from(s.events.values()).map((v: any) => v.event),
-    introspector.tasks,
-    introspector.hooks,
-    introspector.resources
-  );
+  introspector.events = buildEvents(store);
 
   // Build middlewares from both task and resource middleware collections
   introspector.taskMiddlewares = buildTaskMiddlewares(

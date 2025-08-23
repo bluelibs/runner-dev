@@ -106,7 +106,7 @@ export interface Task extends BaseElement {
 }
 
 export interface Hook extends BaseElement {
-  event: string;
+  events: string[];
   hookOrder?: number | null;
   dependsOn: string[];
   emits: string[];

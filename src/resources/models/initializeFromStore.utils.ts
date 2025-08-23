@@ -8,7 +8,7 @@ import type {
   WithElementKind,
 } from "../../schema/model";
 import { elementKindSymbol } from "../../schema/model";
-import { definitions } from "@bluelibs/runner";
+import { definitions, Store } from "@bluelibs/runner";
 import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
 import {
@@ -71,6 +71,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
   const depsObj = normalizeDependencies(task?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
+  const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const middlewareDetailed = (task.middleware || []).map((m: any) => ({
     id: String(m.id),
     config: m[definitions.symbolMiddlewareConfigured]
@@ -88,7 +89,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
       tags: tagIds,
       tagsDetailed,
       filePath: sanitizePath(task[definitions.symbolFilePath] ?? null),
-      dependsOn: resourceIdsFromDeps,
+      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
       middleware: task.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
       registeredBy: null,
@@ -114,16 +115,12 @@ export function mapStoreHookToHookModel(
   const depsObj = normalizeDependencies(hk?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
-  const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
-    (hk as any)?.tags
-  );
+  const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
+  const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(hk.tags);
 
-  const eventId =
-    typeof hk?.on === "string"
-      ? (hk.on as string)
-      : hk?.on?.id != null
-      ? String(hk.on.id)
-      : "";
+  const eventIds = Array.isArray(hk.on)
+    ? hk.on.map((e) => String(e.id))
+    : [String(hk.on?.id ?? "*")];
 
   return stampElementKind(
     {
@@ -133,13 +130,13 @@ export function mapStoreHookToHookModel(
       tagsDetailed,
       filePath: sanitizePath(hk?.[definitions.symbolFilePath] ?? null),
       emits: eventIdsFromDeps,
-      dependsOn: resourceIdsFromDeps,
+      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
       middleware: [],
       middlewareDetailed: [],
       overriddenBy: null,
       registeredBy: null,
       kind: "HOOK",
-      event: eventId,
+      events: eventIds,
       hookOrder: typeof hk?.order === "number" ? hk.order : null,
     },
     "HOOK"
@@ -158,6 +155,7 @@ export function mapStoreResourceToResourceModel(
   const depsObj = normalizeDependencies(resource?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
+  const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const middlewareDetailed = (resource.middleware || []).map((m: any) => ({
     id: String(m.id),
     config: m[definitions.symbolMiddlewareConfigured]
@@ -175,7 +173,7 @@ export function mapStoreResourceToResourceModel(
       tags: tagIds,
       tagsDetailed,
       emits: eventIdsFromDeps,
-      dependsOn: resourceIdsFromDeps,
+      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
       filePath: sanitizePath(resource[definitions.symbolFilePath] ?? null),
       middleware: resource.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
@@ -191,31 +189,27 @@ export function mapStoreResourceToResourceModel(
   );
 }
 
-export function buildEvents(
-  eventsCollection: definitions.IEvent[],
-  tasks: Task[],
-  hooks: Hook[],
-  resources: Resource[]
-): Event[] {
-  const eventIdsFromStore: string[] = eventsCollection.map((e) =>
-    e.id.toString()
+export function buildEvents(store: Store): Event[] {
+  const eventsCollection = Array.from(store.events.values()).map(
+    (e: any) => e.event
   );
-  const inferredFromTasks = tasks.flatMap((t) => t.emits || []);
-  const inferredFromHooks = hooks.map((l) => l.event);
-  const inferredFromResources = resources.flatMap((r) => r.emits || []);
-  const allEventIds = Array.from(
-    new Set([
-      ...eventIdsFromStore,
-      ...inferredFromTasks,
-      ...inferredFromHooks,
-      ...inferredFromResources,
-    ])
-  );
+  const allEventIds = eventsCollection.map((e) => e.id.toString());
+  const hooks = Array.from(store.hooks.values()).map((h) => h.hook);
+
   return allEventIds.map((eventId) => {
     const e = findById(eventsCollection, eventId);
     const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
       (e as any)?.tags
     );
+    const hooksListeningToEvent = hooks
+      .filter(
+        (h) =>
+          h.on === "*" ||
+          h.on === eventId ||
+          (Array.isArray(h.on) && h.on.includes(eventId))
+      )
+      .map((h) => h.id);
+
     return stampElementKind(
       {
         id: eventId,
@@ -228,7 +222,7 @@ export function buildEvents(
             e?.path ??
             null
         ),
-        listenedToBy: hooks.filter((l) => l.event === eventId).map((l) => l.id),
+        listenedToBy: hooksListeningToEvent,
         registeredBy: null,
         payloadSchema: formatSchemaIfZod((e as any)?.payloadSchema),
       },
@@ -410,6 +404,16 @@ export function normalizeDependencies(
   return {};
 }
 
+export function extractAllDependenciesFromDependencies(
+  deps: Record<string | symbol, unknown>
+): string[] {
+  return [
+    ...extractEventIdsFromDependencies(deps),
+    ...extractResourceIdsFromDependencies(deps),
+    ...extractTaskIdsFromDependencies(deps),
+  ];
+}
+
 export function extractEventIdsFromDependencies(
   deps: Record<string | symbol, unknown>
 ): string[] {
@@ -435,6 +439,22 @@ export function extractResourceIdsFromDependencies(
       value &&
       typeof value === "object" &&
       Reflect.get(value, definitions.symbolResource) === true
+    ) {
+      result.push(readId(value));
+    }
+  }
+  return Array.from(new Set(result));
+}
+
+export function extractTaskIdsFromDependencies(
+  deps: Record<string | symbol, unknown>
+): string[] {
+  const result: string[] = [];
+  for (const value of Object.values(deps)) {
+    if (
+      value &&
+      typeof value === "object" &&
+      Reflect.get(value, definitions.symbolTask) === true
     ) {
       result.push(readId(value));
     }

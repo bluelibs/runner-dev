@@ -874,6 +874,15 @@ export const onProductOutOfStockEventHook = hook({
   },
 });
 
+export const multiHookEvent = hook({
+  id: "app.notifications.hooks.multiHookEvent",
+  on: [userRegisteredEvent, productOutOfStockEvent],
+  dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
+  async run(event, { sendWelcomeEmail }) {
+    console.log(`Multi-hook event: ${event.id}`);
+  },
+});
+
 export const welcomeEmailOnRegistrationHook = hook({
   id: "app.notifications.hooks.welcomeOnRegistration",
   on: userRegisteredEvent,
@@ -998,6 +1007,7 @@ export function createDummySuperApp(extra: any[] = []) {
       inventoryUpdatedEvent,
       productOutOfStockEvent,
       onProductOutOfStockEventHook,
+      multiHookEvent,
 
       // Order Processing
       orderDatabaseResource,

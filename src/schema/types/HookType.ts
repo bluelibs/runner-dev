@@ -22,7 +22,7 @@ import { RunRecordType, RunFilterInput } from "./RunTypes";
 export const HookType = new GraphQLObjectType({
   name: "Hook",
   interfaces: () => [BaseElementInterface],
-  isTypeOf: (value) => typeof (value as any)?.event === "string",
+  isTypeOf: (value) => Array.isArray((value as any)?.events),
   fields: () => ({
     id: { description: "Hook id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Hook metadata", type: MetaType },
@@ -84,8 +84,19 @@ export const HookType = new GraphQLObjectType({
         ctx.introspector.getEventsByIds(node.emits),
     },
     event: {
-      description: "The event id this hook listens to",
-      type: new GraphQLNonNull(GraphQLString),
+      description:
+        "Deprecated: singular event id this hook listens to. Use 'events' instead.",
+      type: GraphQLString,
+      resolve: (node: Hook) =>
+        Array.isArray((node as any).events)
+          ? (node as any).events[0] ?? null
+          : null,
+    },
+    events: {
+      description: "The event ids this hook listens to",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
     },
     hookOrder: {
       description: "Execution order among hooks for the same event",

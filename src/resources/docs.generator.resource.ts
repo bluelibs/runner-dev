@@ -172,7 +172,7 @@ ${mdFile(h.filePath)}
 ${mdMeta(h.meta)}
 
 **Listens to Event:**
-${mdAnchor(h.event, "event")}
+${mdList(h.events, "event")}
 
 **Hook Order:** ${h.hookOrder ?? "default"}
 

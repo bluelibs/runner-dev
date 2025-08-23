@@ -9,6 +9,7 @@ import { swapManager } from "./swap.resource";
 import { expressMiddleware } from "@as-integrations/express5";
 import express, { Request, Response } from "express";
 import path from "node:path";
+import fs from "node:fs";
 import { createUiStaticRouter } from "./ui.static";
 import { express as voyagerMiddleware } from "graphql-voyager/middleware";
 import { printSchema } from "graphql/utilities/printSchema";
@@ -71,7 +72,15 @@ export const serverResource = resource({
 
     // Static UI (Vite build output) + runtime JS placeholder injection
     // Vite builds to dist/ui (see src/ui/vite.config.ts)
-    const uiDir = path.resolve(process.cwd(), "./dist/ui");
+    // When used as a dependency, process.cwd() may not point to this package root.
+    // Try multiple candidate locations to find the built UI assets.
+    const candidateUiDirs = [
+      path.resolve(process.cwd(), "./dist/ui"),
+      // Fallback to package-relative path (from compiled JS, __dirname points to dist/resources)
+      path.resolve(__dirname, "../../dist/ui"),
+    ];
+    const uiDir =
+      candidateUiDirs.find((dir) => fs.existsSync(dir)) || candidateUiDirs[0];
 
     // Compute base URL and expose via token replacement in JS
     const baseUrl = `http://localhost:${port}`;

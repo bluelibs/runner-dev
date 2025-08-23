@@ -162,6 +162,16 @@ export class Introspector {
     return stampElementKind(this.resourceMap.get(String(id))!, "RESOURCE");
   }
 
+  getAll(): (Task | Hook | Resource | Event | Middleware)[] {
+    return [
+      ...this.tasks,
+      ...this.hooks,
+      ...this.resources,
+      ...this.events,
+      ...this.middlewares,
+    ];
+  }
+
   getEvents(): Event[] {
     return this.events;
   }
@@ -285,7 +295,7 @@ export class Introspector {
   }
 
   getHooksOfEvent(eventId: string): Hook[] {
-    return this.hooks.filter((l) => l.event === eventId);
+    return this.hooks.filter((l) => l.events.includes(eventId));
   }
 
   getMiddlewareEmittedEvents(middlewareId: string): Event[] {

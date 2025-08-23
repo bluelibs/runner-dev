@@ -22,9 +22,7 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
     const message = namespacePrefix
       ? ` with namespace: ${namespacePrefix}`
       : "";
-    logger.info(
-      `Serving documentation data${message}. Use ?namespace=app to filter elements by id.`
-    );
+    logger.info(`Serving documentation data${message}.`);
 
     initializeFromStore(introspector, config.store);
     const data = (introspector as unknown as Introspector).serialize();

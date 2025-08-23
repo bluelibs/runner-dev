@@ -99,8 +99,8 @@
   &__input {
     width: 100%;
     box-sizing: border-box;
-    padding: 10px 12px;
-    border: 1px solid #ced4da;
+    // padding: 10px 12px;
+    // border: 1px solid #ced4da;
     border-radius: 6px;
     font-size: 14px;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
@@ -141,7 +141,6 @@
       color: $text-muted;
     }
   }
-
 
   &__checkbox {
     display: flex;

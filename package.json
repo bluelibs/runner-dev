@@ -47,6 +47,7 @@
     "@types/graphql": "^0.11.3",
     "@types/jest": "^27.0.0",
     "@types/node": "^20.0.0",
+    "@types/prismjs": "^1.26.5",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.7",
     "@types/supertest": "^6.0.3",
@@ -96,6 +97,6 @@
     "zod-to-json-schema": "^3.23.5"
   },
   "peerDependencies": {
-    "@bluelibs/runner": "^4.0.0"
+    "@bluelibs/runner": "^4.1.1"
   }
 }

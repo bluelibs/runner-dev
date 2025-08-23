@@ -230,8 +230,10 @@ export type Hook = BaseElement & {
   emits: Array<Scalars['String']['output']>;
   /** Events emitted by this hook (resolved) */
   emitsResolved: Array<Event>;
-  /** The event id this hook listens to */
-  event: Scalars['String']['output'];
+  /** Deprecated: singular event id this hook listens to. Use 'events' instead. */
+  event: Maybe<Scalars['String']['output']>;
+  /** The event ids this hook listens to */
+  events: Array<Scalars['String']['output']>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
   /** Path to hook file */
@@ -1164,7 +1166,8 @@ export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends
   depenendsOnResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   emitsResolved: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
-  event: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  event: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  events: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, HookFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   hookOrder: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;

@@ -23,7 +23,7 @@
     "coverage": "jest --verbose --coverage",
     "test:clean": "jest --clearCache",
     "testonly": "npm test",
-    "test:ci": "npm run coverage -- --ci --maxWorkers=2  --reporters=default --reporters=jest-junit",
+    "test:ci": "npm run build && npm run test",
     "prepublishOnly": "npm run build",
     "typedoc": "typedoc --options typedoc.json",
     "codegen": "graphql-codegen --config codegen.ts",

@@ -52,37 +52,40 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
     >
       <h3>📝 Recent Logs ({logs.length})</h3>
       <div className="live-entries">
-        {logs.slice(-10).map((log, idx) => (
-          <div
-            key={`${log.timestampMs}-${idx}`}
-            className="live-entry live-entry--log"
-          >
-            <span className="entry-time">
-              {formatTimestamp(log.timestampMs)}
-            </span>
-            <span
-              className="entry-level"
-              style={{ color: getLogLevelColor(log.level) }}
+        {logs
+          .slice(-10)
+          .reverse()
+          .map((log, idx) => (
+            <div
+              key={`${log.timestampMs}-${idx}`}
+              className="live-entry live-entry--log"
             >
-              {log.level.toUpperCase()}
-            </span>
-            <span className="entry-message">{log.message}</span>
-            {log.data &&
-              (() => {
-                const jsonData = tryParseJson(log.data);
-                return (
-                  <details className="entry-data">
-                    <summary>Data</summary>
-                    {jsonData ? (
-                      <JsonViewer data={jsonData} />
-                    ) : (
-                      <pre>{log.data}</pre>
-                    )}
-                  </details>
-                );
-              })()}
-          </div>
-        ))}
+              <span className="entry-time">
+                {formatTimestamp(log.timestampMs)}
+              </span>
+              <span
+                className="entry-level"
+                style={{ color: getLogLevelColor(log.level) }}
+              >
+                {log.level.toUpperCase()}
+              </span>
+              <span className="entry-message">{log.message}</span>
+              {log.data &&
+                (() => {
+                  const jsonData = tryParseJson(log.data);
+                  return (
+                    <details className="entry-data">
+                      <summary>Data</summary>
+                      {jsonData ? (
+                        <JsonViewer data={jsonData} />
+                      ) : (
+                        <pre>{log.data}</pre>
+                      )}
+                    </details>
+                  );
+                })()}
+            </div>
+          ))}
       </div>
     </div>
   );

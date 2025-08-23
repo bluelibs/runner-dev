@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { CodeModal } from "../CodeModal";
 
 interface EmissionEntry {
   timestampMs: number;
@@ -28,6 +29,21 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
   emissions,
   detailed = false,
 }) => {
+  const [selectedPayload, setSelectedPayload] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const openPayloadModal = (payload: string, eventId: string) => {
+    setSelectedPayload(payload);
+    setSelectedEventId(eventId);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedPayload(null);
+    setSelectedEventId(null);
+  };
   const formatTimestamp = (timestampMs: number): string => {
     return new Date(timestampMs).toLocaleTimeString();
   };
@@ -52,15 +68,29 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
             {emission.emitterId && (
               <span className="entry-emitter">from {emission.emitterId}</span>
             )}
-            {emission.payload && detailed && (
-              <details className="entry-payload">
-                <summary>Payload</summary>
-                <pre>{emission.payload}</pre>
-              </details>
+            {emission.payload && (
+              <button
+                className="entry-payload-button"
+                onClick={() =>
+                  openPayloadModal(
+                    JSON.stringify(JSON.parse(emission.payload!), null, 2),
+                    emission.eventId
+                  )
+                }
+              >
+                View Payload
+              </button>
             )}
           </div>
         ))}
       </div>
+      <CodeModal
+        title="Event Payload"
+        subtitle={selectedEventId || undefined}
+        isOpen={showModal}
+        onClose={closeModal}
+        code={selectedPayload}
+      />
     </div>
   );
 };

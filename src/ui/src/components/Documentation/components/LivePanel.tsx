@@ -361,7 +361,7 @@ export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false, introspe
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
+            gap: "16px",
           }}
         >
           <RecentEvents emissions={liveData.emissions} detailed={detailed} />

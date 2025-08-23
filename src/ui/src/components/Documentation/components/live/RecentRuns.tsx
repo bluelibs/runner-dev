@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { CodeModal } from "../CodeModal";
 
 interface RunRecord {
   timestampMs: number;
@@ -37,6 +38,21 @@ interface RecentRunsProps {
 }
 
 export const RecentRuns: React.FC<RecentRunsProps> = ({ runs, errors, detailed = false }) => {
+  const [selectedErrorStack, setSelectedErrorStack] = useState<string | null>(null);
+  const [selectedErrorId, setSelectedErrorId] = useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
+  const openErrorModal = (stack: string, sourceId: string) => {
+    setSelectedErrorStack(stack);
+    setSelectedErrorId(sourceId);
+    setShowErrorModal(true);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setSelectedErrorStack(null);
+    setSelectedErrorId(null);
+  };
   const formatTimestamp = (timestampMs: number): string => {
     return new Date(timestampMs).toLocaleTimeString();
   };
@@ -60,11 +76,13 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({ runs, errors, detailed =
                   {error.sourceKind}:{error.sourceId}
                 </span>
                 <span className="entry-message">{error.message}</span>
-                {error.stack && detailed && (
-                  <details className="entry-stack">
-                    <summary>Stack Trace</summary>
-                    <pre>{error.stack}</pre>
-                  </details>
+                {error.stack && (
+                  <button 
+                    className="entry-payload-button"
+                    onClick={() => openErrorModal(error.stack!, error.sourceId)}
+                  >
+                    View Stack Trace
+                  </button>
                 )}
               </div>
             ))}
@@ -104,6 +122,13 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({ runs, errors, detailed =
           </div>
         </div>
       )}
+      <CodeModal
+        title="Error Stack Trace"
+        subtitle={selectedErrorId || undefined}
+        isOpen={showErrorModal}
+        onClose={closeErrorModal}
+        code={selectedErrorStack}
+      />
     </div>
   );
 };

@@ -770,7 +770,8 @@
   h3 {
     margin: 0 0 $spacing-lg 0;
     font-size: $font-size-lg;
-    color: $text-darker;
+    color: $white;
+    font-weight: bold;
     display: flex;
     align-items: center;
     gap: $spacing-sm;
@@ -790,6 +791,9 @@
 
   &--logs {
     border-left: 4px solid #0000ff;
+    h3 {
+      color: $text-darker;
+    }
   }
 
   &--events {
@@ -972,6 +976,22 @@
       overflow-x: auto;
       white-space: pre-wrap;
       word-break: break-all;
+    }
+  }
+
+  .entry-payload-button {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    color: #1565c0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: $font-size-xs;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #bbdefb;
+      border-color: #90caf9;
     }
   }
 }

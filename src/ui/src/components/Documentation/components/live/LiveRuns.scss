@@ -1,3 +1,5 @@
+@use "../../../../styles/variables" as *;
+
 .live-runs {
   &__title {
     margin: 0 0 20px 0;
@@ -95,6 +97,8 @@
   }
 
   &__input {
+    width: 100%;
+    box-sizing: border-box;
     padding: 10px 12px;
     border: 1px solid #ced4da;
     border-radius: 6px;
@@ -113,25 +117,31 @@
   }
 
   &__textarea {
-    padding: 10px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    width: 100%;
+    box-sizing: border-box;
+    padding: $spacing-sm;
+    border: 1px solid $border-gray;
+    border-radius: $border-radius-md;
+    font-size: $font-size-sm;
+    font-family: $font-family-mono;
     resize: vertical;
     min-height: 80px;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    transition: $transition-fast;
+    position: relative;
+    z-index: 2;
+    background: transparent;
 
     &:focus {
       outline: none;
-      border-color: #80bdff;
-      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      border-color: $primary-blue;
+      box-shadow: 0 0 0 2px rgba($primary-blue, 0.1);
     }
 
     &::placeholder {
-      color: #6c757d;
+      color: $text-muted;
     }
   }
+
 
   &__checkbox {
     display: flex;
@@ -156,45 +166,54 @@
   }
 
   &__button {
-    padding: 10px 16px;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $border-gray;
+    border-radius: $border-radius-md;
+    font-size: $font-size-sm;
+    font-weight: 400;
     cursor: pointer;
-    transition: background-color 0.15s ease-in-out, transform 0.15s ease-in-out;
+    transition: $transition-fast;
+    background: $white;
+    color: $text-dark;
 
     &:hover:not(&--disabled) {
-      transform: translateY(-1px);
+      background: $light-gray;
+      border-color: $text-gray;
     }
 
     &:active:not(&--disabled) {
-      transform: translateY(0);
+      background: $border-gray;
     }
 
     &--primary {
-      background-color: #007bff;
-      color: white;
+      border-color: #e1f5fe;
+      background: #f3f9ff;
+      color: #1976d2;
 
       &:hover:not(.live-runs__button--disabled) {
-        background-color: #0056b3;
+        background: #e3f2fd;
+        border-color: #bbdefb;
+        color: #1565c0;
       }
     }
 
     &--success {
-      background-color: #28a745;
-      color: white;
+      border-color: #e8f5e8;
+      background: #f1f8e9;
+      color: #388e3c;
 
       &:hover:not(.live-runs__button--disabled) {
-        background-color: #1e7e34;
+        background: #e8f5e8;
+        border-color: #c8e6c9;
+        color: #2e7d32;
       }
     }
 
     &--disabled {
-      background-color: #6c757d;
-      color: white;
+      background: $light-gray;
+      border-color: $border-gray;
+      color: $text-muted;
       cursor: not-allowed;
-      transform: none;
     }
   }
 

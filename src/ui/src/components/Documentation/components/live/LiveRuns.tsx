@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { graphqlRequest } from "../../utils/graphqlClient";
 import { Introspector } from "../../../../../../resources/models/Introspector";
+import { CodeModal } from "../CodeModal";
+import { WriteCodeInput, InputRef } from "../common/Input";
 import "./LiveRuns.scss";
 
 interface LiveRunsProps {
@@ -13,20 +15,24 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
   const [taskInput, setTaskInput] = useState("");
   const [taskEvalInput, setTaskEvalInput] = useState(false);
   const [taskRunning, setTaskRunning] = useState(false);
+  const [taskError, setTaskError] = useState<unknown | null>(null);
   const [taskResult, setTaskResult] = useState<string | null>(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskAutocomplete, setTaskAutocomplete] = useState<any[]>([]);
   const [showTaskAutocomplete, setShowTaskAutocomplete] = useState(false);
-  const taskInputRef = useRef<HTMLInputElement>(null);
+  const taskInputRef = useRef<InputRef>(null);
 
   // Event invocation state
   const [eventId, setEventId] = useState("");
   const [eventPayload, setEventPayload] = useState("");
   const [eventEvalInput, setEventEvalInput] = useState(false);
   const [eventInvoking, setEventInvoking] = useState(false);
+  const [eventError, setEventError] = useState<unknown | null>(null);
   const [eventResult, setEventResult] = useState<string | null>(null);
+  const [showEventModal, setShowEventModal] = useState(false);
   const [eventAutocomplete, setEventAutocomplete] = useState<any[]>([]);
   const [showEventAutocomplete, setShowEventAutocomplete] = useState(false);
-  const eventInputRef = useRef<HTMLInputElement>(null);
+  const eventInputRef = useRef<InputRef>(null);
 
   const runTask = async () => {
     if (!taskId.trim()) return;
@@ -35,36 +41,43 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
     setTaskResult(null);
 
     try {
-      const RUN_TASK_MUTATION = `
-        mutation RunTask($id: ID!, $input: String, $evalInput: Boolean) {
-          runTask(id: $id, input: $input, evalInput: $evalInput) {
+      const INVOKE_TASK_MUTATION = `
+        mutation InvokeTask($taskId: ID!, $inputJson: String, $evalInput: Boolean) {
+          invokeTask(taskId: $taskId, inputJson: $inputJson, evalInput: $evalInput) {
             success
-            message
+            error
+            result
+            invocationId
           }
         }
       `;
 
       const result = await graphqlRequest<{
-        runTask: { success: boolean; message?: string };
-      }>(RUN_TASK_MUTATION, {
-        id: taskId,
-        input: taskInput.trim() || undefined,
+        invokeTask: {
+          success: boolean;
+          error?: string | null;
+          result?: string | null;
+          invocationId?: string | null;
+        };
+      }>(INVOKE_TASK_MUTATION, {
+        taskId,
+        inputJson: taskInput.trim() || undefined,
         evalInput: taskEvalInput,
       });
 
-      setTaskResult(
-        result.runTask.success
-          ? `✅ Task executed successfully${
-              result.runTask.message ? `: ${result.runTask.message}` : ""
-            }`
-          : `❌ Task failed${
-              result.runTask.message ? `: ${result.runTask.message}` : ""
-            }`
-      );
-    } catch (err) {
-      setTaskResult(
-        `❌ Error: ${err instanceof Error ? err.message : "Failed to run task"}`
-      );
+      console.log(result.invokeTask);
+
+      const resultMessage = result.invokeTask.success
+        ? `// ✅ Task executed successfully\n${
+            result.invokeTask.result ? `${result.invokeTask.result}` : ""
+          }`
+        : `// ❌ Task failed\n${
+            result.invokeTask.error ? `${result.invokeTask.error}` : ""
+          }`;
+
+      setTaskResult(resultMessage);
+      setTaskError(result.invokeTask.error);
+      setShowTaskModal(true);
     } finally {
       setTaskRunning(false);
     }
@@ -103,11 +116,11 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
     eventInputRef.current?.focus();
   };
 
-  const filteredTasks = taskAutocomplete.filter(task => 
+  const filteredTasks = taskAutocomplete.filter((task) =>
     task.id.toLowerCase().includes(taskId.toLowerCase())
   );
 
-  const filteredEvents = eventAutocomplete.filter(event => 
+  const filteredEvents = eventAutocomplete.filter((event) =>
     event.id.toLowerCase().includes(eventId.toLowerCase())
   );
 
@@ -119,35 +132,35 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
 
     try {
       const INVOKE_EVENT_MUTATION = `
-        mutation InvokeEvent($id: ID!, $payload: String, $evalInput: Boolean) {
-          invokeEvent(id: $id, payload: $payload, evalInput: $evalInput) {
+        mutation InvokeEvent($eventId: ID!, $inputJson: String, $evalInput: Boolean) {
+          invokeEvent(eventId: $eventId, inputJson: $inputJson, evalInput: $evalInput) {
             success
-            message
+            error
+            invocationId
           }
         }
       `;
 
       const result = await graphqlRequest<{
-        invokeEvent: { success: boolean; message?: string };
+        invokeEvent: {
+          success: boolean;
+          error?: string | null;
+          invocationId?: string | null;
+        };
       }>(INVOKE_EVENT_MUTATION, {
-        id: eventId,
-        payload: eventPayload.trim() || undefined,
+        eventId,
+        inputJson: eventPayload.trim() || undefined,
         evalInput: eventEvalInput,
       });
 
-      setEventResult(
-        result.invokeEvent.success
-          ? `✅ Event invoked successfully${
-              result.invokeEvent.message
-                ? `: ${result.invokeEvent.message}`
-                : ""
-            }`
-          : `❌ Event failed${
-              result.invokeEvent.message
-                ? `: ${result.invokeEvent.message}`
-                : ""
-            }`
-      );
+      const resultMessage = result.invokeEvent.success
+        ? `✅ Event invoked successfully`
+        : `❌ Event failed${
+            result.invokeEvent.error ? `: ${result.invokeEvent.error}` : ""
+          }`;
+
+      setEventResult(resultMessage);
+      setShowEventModal(true);
     } catch (err) {
       setEventResult(
         `❌ Error: ${
@@ -167,37 +180,20 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
         <div className="live-runs__panel">
           <h4 className="live-runs__panel-title">🏃 Run a Task</h4>
           <div className="live-runs__form">
-            <div className="live-runs__autocomplete-container">
-              <input
-                ref={taskInputRef}
-                type="text"
-                placeholder="Task ID"
-                value={taskId}
-                onChange={(e) => handleTaskIdChange(e.target.value)}
-                onFocus={() => setShowTaskAutocomplete(taskId.length > 0)}
-                onBlur={() => setTimeout(() => setShowTaskAutocomplete(false), 200)}
-                className="live-runs__input"
-              />
-              {showTaskAutocomplete && filteredTasks.length > 0 && (
-                <div className="live-runs__autocomplete">
-                  {filteredTasks.slice(0, 5).map((task) => (
-                    <div
-                      key={task.id}
-                      className="live-runs__autocomplete-item"
-                      onClick={() => selectTask(task)}
-                    >
-                      <div className="live-runs__autocomplete-id">{task.id}</div>
-                      {task.meta?.title && (
-                        <div className="live-runs__autocomplete-title">{task.meta.title}</div>
-                      )}
-                      {task.meta?.description && (
-                        <div className="live-runs__autocomplete-description">{task.meta.description}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <WriteCodeInput
+              ref={taskInputRef}
+              placeholder="Task ID"
+              value={taskId}
+              onChange={handleTaskIdChange}
+              onFocus={() => setShowTaskAutocomplete(taskId.length > 0)}
+              onBlur={() =>
+                setTimeout(() => setShowTaskAutocomplete(false), 200)
+              }
+              autocompleteItems={filteredTasks}
+              showAutocomplete={showTaskAutocomplete}
+              onSelectItem={selectTask}
+              className="live-runs__input"
+            />
             <textarea
               placeholder="Input (optional)"
               value={taskInput}
@@ -230,7 +226,9 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
                     : "live-runs__result--error"
                 }`}
               >
-                {taskResult}
+                {taskResult.includes("✅")
+                  ? "Last run was successful"
+                  : "Last run failed"}
               </div>
             )}
           </div>
@@ -240,37 +238,20 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
         <div className="live-runs__panel">
           <h4 className="live-runs__panel-title">📡 Invoke Event</h4>
           <div className="live-runs__form">
-            <div className="live-runs__autocomplete-container">
-              <input
-                ref={eventInputRef}
-                type="text"
-                placeholder="Event ID"
-                value={eventId}
-                onChange={(e) => handleEventIdChange(e.target.value)}
-                onFocus={() => setShowEventAutocomplete(eventId.length > 0)}
-                onBlur={() => setTimeout(() => setShowEventAutocomplete(false), 200)}
-                className="live-runs__input"
-              />
-              {showEventAutocomplete && filteredEvents.length > 0 && (
-                <div className="live-runs__autocomplete">
-                  {filteredEvents.slice(0, 5).map((event) => (
-                    <div
-                      key={event.id}
-                      className="live-runs__autocomplete-item"
-                      onClick={() => selectEvent(event)}
-                    >
-                      <div className="live-runs__autocomplete-id">{event.id}</div>
-                      {event.meta?.title && (
-                        <div className="live-runs__autocomplete-title">{event.meta.title}</div>
-                      )}
-                      {event.meta?.description && (
-                        <div className="live-runs__autocomplete-description">{event.meta.description}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <WriteCodeInput
+              ref={eventInputRef}
+              placeholder="Event ID"
+              value={eventId}
+              onChange={handleEventIdChange}
+              onFocus={() => setShowEventAutocomplete(eventId.length > 0)}
+              onBlur={() =>
+                setTimeout(() => setShowEventAutocomplete(false), 200)
+              }
+              autocompleteItems={filteredEvents}
+              showAutocomplete={showEventAutocomplete}
+              onSelectItem={selectEvent}
+              className="live-runs__input"
+            />
             <textarea
               placeholder="Payload (JSON, optional)"
               value={eventPayload}
@@ -295,7 +276,7 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
             >
               {eventInvoking ? "⏳ Invoking..." : "🚀 Invoke Event"}
             </button>
-            {eventResult && (
+            {/* {eventResult && (
               <div
                 className={`live-runs__result ${
                   eventResult.includes("✅")
@@ -305,10 +286,26 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
               >
                 {eventResult}
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
+
+      <CodeModal
+        title="Task Result"
+        subtitle={taskId}
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        code={taskResult}
+      />
+
+      <CodeModal
+        title="Event Result"
+        subtitle={eventId}
+        isOpen={showEventModal}
+        onClose={() => setShowEventModal(false)}
+        code={eventResult}
+      />
     </div>
   );
 };

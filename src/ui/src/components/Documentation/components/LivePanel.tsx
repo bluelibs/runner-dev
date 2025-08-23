@@ -1,8 +1,10 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { graphqlRequest } from "../utils/graphqlClient";
-import JsonViewer from "./JsonViewer";
-
+import { RecentLogs } from "./live/RecentLogs";
+import { RecentEvents } from "./live/RecentEvents";
+import { RecentRuns } from "./live/RecentRuns";
+import { LiveRuns } from "./live/LiveRuns";
+import { Introspector } from "../../../../../resources/models/Introspector";
 
 interface MemoryStats {
   heapUsed: number;
@@ -170,9 +172,10 @@ const LIVE_DATA_QUERY = `
 
 interface LivePanelProps {
   detailed?: boolean;
+  introspector: Introspector;
 }
 
-export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false }) => {
+export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false, introspector }) => {
   const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [isPolling, setIsPolling] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -258,37 +261,6 @@ export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false }) => {
     return `${mb.toFixed(1)} MB`;
   };
 
-  const formatTimestamp = (timestampMs: number): string => {
-    return new Date(timestampMs).toLocaleTimeString();
-  };
-
-  const getLogLevelColor = (level: string): string => {
-    switch (level.toLowerCase()) {
-      case "error":
-      case "fatal":
-        return "#ef4444";
-      case "warn":
-        return "#f59e0b";
-      case "info":
-        return "#3b82f6";
-      case "debug":
-        return "#6b7280";
-      case "trace":
-        return "#9ca3af";
-      default:
-        return "#374151";
-    }
-  };
-
-  const tryParseJson = (jsonString: string): object | null => {
-    try {
-      const json = JSON.parse(jsonString);
-      return typeof json === "object" && json !== null ? json : null;
-    } catch (e) {
-      return null;
-    }
-  };
-
   if (error) {
     return (
       <div className="live-panel live-panel--error">
@@ -322,11 +294,26 @@ export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false }) => {
         </button>
       </div>
 
-      <div className="live-grid">
-        {/* System Health */}
+      {/* Main Grid Layout */}
+      <div
+        className="live-main-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr",
+          gap: "20px",
+        }}
+      >
+        {/* System Health - Full Width */}
         <div className="live-section live-section--health">
           <h3>🖥️ System Health</h3>
-          <div className="health-metrics">
+          <div
+            className="health-metrics"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: "20px",
+            }}
+          >
             <div className="metric">
               <span className="metric-label">Memory</span>
               <span className="metric-value">
@@ -363,135 +350,32 @@ export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false }) => {
           </div>
         </div>
 
-        {/* Recent Logs */}
-        <div className="live-section live-section--logs">
-          <h3>📝 Recent Logs ({liveData.logs.length})</h3>
-          <div className="live-entries">
-            {liveData.logs.slice(-10).map((log, idx) => (
-              <div
-                key={`${log.timestampMs}-${idx}`}
-                className="live-entry live-entry--log"
-              >
-                <span className="entry-time">
-                  {formatTimestamp(log.timestampMs)}
-                </span>
-                <span
-                  className="entry-level"
-                  style={{ color: getLogLevelColor(log.level) }}
-                >
-                  {log.level.toUpperCase()}
-                </span>
-                <span className="entry-message">{log.message}</span>
-                {log.data && (() => {
-                  const jsonData = tryParseJson(log.data);
-                  return (
-                    <details className="entry-data">
-                      <summary>Data</summary>
-                      {jsonData ? (
-                        <JsonViewer data={jsonData} />
-                      ) : (
-                        <pre>{log.data}</pre>
-                      )}
-                    </details>
-                  );
-                })()}
-              </div>
-            ))}
-          </div>
+        {/* Logs - Full Width */}
+        <div className="live-logs-section">
+          <RecentLogs logs={liveData.logs} />
         </div>
 
-        {/* Recent Errors */}
-        {liveData.errors.length > 0 && (
-          <div className="live-section live-section--errors">
-            <h3>❌ Recent Errors ({liveData.errors.length})</h3>
-            <div className="live-entries">
-              {liveData.errors.slice(-5).map((error, idx) => (
-                <div
-                  key={`${error.timestampMs}-${idx}`}
-                  className="live-entry live-entry--error"
-                >
-                  <span className="entry-time">
-                    {formatTimestamp(error.timestampMs)}
-                  </span>
-                  <span className="entry-source">
-                    {error.sourceKind}:{error.sourceId}
-                  </span>
-                  <span className="entry-message">{error.message}</span>
-                  {error.stack && detailed && (
-                    <details className="entry-stack">
-                      <summary>Stack Trace</summary>
-                      <pre>{error.stack}</pre>
-                    </details>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Recent Events and Runs - Side by Side */}
+        <div
+          className="live-events-runs-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "20px",
+          }}
+        >
+          <RecentEvents emissions={liveData.emissions} detailed={detailed} />
+          <RecentRuns
+            runs={liveData.runs}
+            errors={liveData.errors}
+            detailed={detailed}
+          />
+        </div>
 
-        {/* Recent Events */}
-        {liveData.emissions.length > 0 && (
-          <div className="live-section live-section--events">
-            <h3>📡 Recent Events ({liveData.emissions.length})</h3>
-            <div className="live-entries">
-              {liveData.emissions.slice(-10).map((emission, idx) => (
-                <div
-                  key={`${emission.timestampMs}-${idx}`}
-                  className="live-entry live-entry--emission"
-                >
-                  <span className="entry-time">
-                    {formatTimestamp(emission.timestampMs)}
-                  </span>
-                  <span className="entry-event">{emission.eventId}</span>
-                  {emission.emitterId && (
-                    <span className="entry-emitter">
-                      from {emission.emitterId}
-                    </span>
-                  )}
-                  {emission.payload && detailed && (
-                    <details className="entry-payload">
-                      <summary>Payload</summary>
-                      <pre>{emission.payload}</pre>
-                    </details>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Recent Runs */}
-        {liveData.runs.length > 0 && (
-          <div className="live-section live-section--runs">
-            <h3>🏃 Recent Runs ({liveData.runs.length})</h3>
-            <div className="live-entries">
-              {liveData.runs.slice(-10).map((run, idx) => (
-                <div
-                  key={`${run.timestampMs}-${idx}`}
-                  className={`live-entry live-entry--run ${
-                    run.ok ? "live-entry--success" : "live-entry--failure"
-                  }`}
-                >
-                  <span className="entry-time">
-                    {formatTimestamp(run.timestampMs)}
-                  </span>
-                  <span className="entry-status">{run.ok ? "✅" : "❌"}</span>
-                  <span className="entry-node">
-                    {run.nodeKind}:{run.nodeId}
-                  </span>
-                  {run.durationMs && (
-                    <span className="entry-duration">
-                      {run.durationMs.toFixed(1)}ms
-                    </span>
-                  )}
-                  {run.error && (
-                    <span className="entry-error">{run.error}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Live Actions - Full Width */}
+        <div className="live-actions-section">
+          <LiveRuns introspector={introspector} />
+        </div>
       </div>
     </div>
   );

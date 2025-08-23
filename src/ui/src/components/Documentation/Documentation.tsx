@@ -457,7 +457,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
 
           <section id="live" className="docs-section">
             <h2>📡 Live Telemetry</h2>
-            <LivePanel detailed />
+            <LivePanel detailed introspector={introspector} />
           </section>
 
           <section id="diagnostics" className="docs-section">

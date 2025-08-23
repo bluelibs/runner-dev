@@ -39,6 +39,16 @@ export const InvokeResultType = new GraphQLObjectType({
   }),
 });
 
+export const InvokeEventResultType = new GraphQLObjectType({
+  name: "InvokeEventResult",
+  fields: () => ({
+    success: { type: new GraphQLNonNull(GraphQLBoolean) },
+    error: { type: GraphQLString },
+    executionTimeMs: { type: GraphQLFloat },
+    invocationId: { type: GraphQLString },
+  }),
+});
+
 export const EvalResultType = new GraphQLObjectType({
   name: "EvalResult",
   fields: () => ({

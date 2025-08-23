@@ -1,0 +1,232 @@
+.live-runs {
+  &__title {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  &__panel {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+
+    &:hover {
+      border-color: #dee2e6;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  &__panel-title {
+    margin: 0 0 16px 0;
+    color: #495057;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__autocomplete-container {
+    position: relative;
+    input {
+      display: block;
+    }
+  }
+
+  &__autocomplete {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+
+  &__autocomplete-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f3f4;
+    transition: background-color 0.15s ease-in-out;
+
+    &:hover {
+      background-color: #f8f9fa;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__autocomplete-id {
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  &__autocomplete-title {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  &__autocomplete-description {
+    font-size: 11px;
+    color: #868e96;
+    line-height: 1.3;
+  }
+
+  &__input {
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+    &:focus {
+      outline: none;
+      border-color: #80bdff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    &::placeholder {
+      color: #6c757d;
+    }
+  }
+
+  &__textarea {
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+    &:focus {
+      outline: none;
+      border-color: #80bdff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    &::placeholder {
+      color: #6c757d;
+    }
+  }
+
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      cursor: pointer;
+      accent-color: #007bff;
+    }
+  }
+
+  &__checkbox-label {
+    font-size: 14px;
+    color: #495057;
+    font-weight: 500;
+  }
+
+  &__button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, transform 0.15s ease-in-out;
+
+    &:hover:not(&--disabled) {
+      transform: translateY(-1px);
+    }
+
+    &:active:not(&--disabled) {
+      transform: translateY(0);
+    }
+
+    &--primary {
+      background-color: #007bff;
+      color: white;
+
+      &:hover:not(.live-runs__button--disabled) {
+        background-color: #0056b3;
+      }
+    }
+
+    &--success {
+      background-color: #28a745;
+      color: white;
+
+      &:hover:not(.live-runs__button--disabled) {
+        background-color: #1e7e34;
+      }
+    }
+
+    &--disabled {
+      background-color: #6c757d;
+      color: white;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
+  &__result {
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.4;
+
+    &--success {
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+
+    &--error {
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .live-runs {
+    &__grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    &__panel {
+      padding: 16px;
+    }
+  }
+}

@@ -54,32 +54,32 @@
   transition: width 0.2s ease;
   min-width: 200px;
   max-width: 600px;
-  
+
   // Custom scrollbar styling
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
     border-radius: 4px;
     transition: background 0.2s ease;
-    
+
     &:hover {
       background: rgba(255, 255, 255, 0.5);
     }
   }
-  
+
   &::-webkit-scrollbar-corner {
     background: rgba(255, 255, 255, 0.1);
   }
-  
+
   // Firefox scrollbar styling
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
@@ -116,7 +116,7 @@
   display: flex;
   gap: 4px;
   margin-bottom: $spacing-sm;
-  
+
   .docs-view-button {
     flex: 1;
     padding: $spacing-xs $spacing-sm;
@@ -131,12 +131,12 @@
     align-items: center;
     justify-content: center;
     gap: $spacing-xs;
-    
+
     &:hover {
       background: rgba(255, 255, 255, 0.1);
       color: white;
     }
-    
+
     &.active {
       background: $primary-blue;
       border-color: $primary-blue;
@@ -156,13 +156,13 @@
     border-radius: $border-radius-md;
     font-size: $font-size-xs;
     cursor: pointer;
-    
+
     &:focus {
       outline: none;
       border-color: $primary-blue;
       background: rgba(255, 255, 255, 0.12);
     }
-    
+
     option {
       background: #2c3e50;
       color: white;
@@ -175,66 +175,66 @@
   max-height: 60vh;
   overflow-y: auto;
   overflow-x: auto;
-  
+
   // Custom scrollbar styling for tree container
   &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 3px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
-    
+
     &:hover {
       background: rgba(255, 255, 255, 0.4);
     }
   }
-  
+
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
-  
+
   .docs-tree-view {
     // Override tree view colors for dark sidebar
     .tree-node {
       &:hover {
         background-color: rgba(255, 255, 255, 0.1);
       }
-      
+
       &--focused {
         background-color: rgba(59, 130, 246, 0.3);
         outline-color: rgba(59, 130, 246, 0.6);
       }
     }
-    
+
     .tree-node-label {
       color: rgba(255, 255, 255, 0.9);
     }
-    
+
     .tree-node-count {
       background-color: rgba(255, 255, 255, 0.15);
       color: rgba(255, 255, 255, 0.8);
     }
-    
+
     .tree-expander {
       &:hover {
         background-color: rgba(255, 255, 255, 0.15);
       }
     }
-    
+
     .tree-expander-icon {
       color: rgba(255, 255, 255, 0.7);
     }
-    
+
     .tree-children {
       border-left-color: rgba(255, 255, 255, 0.2);
     }
-    
+
     .tree-search-highlight {
       background-color: rgba(251, 191, 36, 0.3);
       color: #fbbf24;
@@ -416,13 +416,7 @@
   box-shadow: $shadow-lg;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    -45deg,
-    #ee7752,
-    #e73c7e,
-    #23a6d5,
-    #23d5ab
-  );
+  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
   background-size: 400% 400%;
   animation: gradient-animation 15s ease infinite;
 
@@ -443,13 +437,17 @@
   }
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(ellipse at center, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0) 70%
+    );
     z-index: 1;
   }
 }
@@ -778,6 +776,10 @@
     gap: $spacing-sm;
   }
 
+  h4 {
+    margin: 0 0 $spacing-lg 0;
+  }
+
   &--health {
     grid-column: 1 / -1;
   }
@@ -841,28 +843,28 @@
   border: 1px solid #dee2e6;
   border-radius: $border-radius-md;
   background: white;
-  
+
   // Custom scrollbar styling for live entries
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: #f8f9fa;
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: #dee2e6;
     border-radius: 4px;
     transition: background 0.2s ease;
-    
+
     &:hover {
       background: #adb5bd;
     }
   }
-  
+
   scrollbar-width: thin;
   scrollbar-color: #dee2e6 #f8f9fa;
 }
@@ -987,18 +989,18 @@
   z-index: 1001;
   transition: background-color 0.2s ease;
   transform: translateX(-4px); // Center the resizer on the sidebar edge
-  
+
   &:hover {
     background: rgba(52, 152, 219, 0.3);
   }
-  
+
   &--active {
     background: rgba(52, 152, 219, 0.5);
   }
-  
+
   // Add a visual indicator on hover
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     left: 50%;
@@ -1010,7 +1012,7 @@
     opacity: 0;
     transition: opacity 0.2s ease;
   }
-  
+
   &:hover::after,
   &--active::after {
     opacity: 1;
@@ -1027,17 +1029,17 @@
       width: 8px;
       height: 8px;
     }
-    
+
     &::-webkit-scrollbar-track {
       background: rgba(0, 0, 0, 0.05);
       border-radius: 4px;
     }
-    
+
     &::-webkit-scrollbar-thumb {
       background: rgba(0, 0, 0, 0.2);
       border-radius: 4px;
       transition: background 0.2s ease;
-      
+
       &:hover {
         background: rgba(0, 0, 0, 0.4);
       }

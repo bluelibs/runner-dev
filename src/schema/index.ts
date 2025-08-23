@@ -1,7 +1,7 @@
 import { GraphQLSchema } from "graphql";
 import { QueryType } from "./query";
 import { MutationType } from "./mutation";
-import type { SwapManager } from "../resources/swap.resource";
+import type { ISwapManager } from "../resources/swap.resource";
 import {
   AllType,
   BaseElementInterface,
@@ -20,7 +20,7 @@ import {
   SwappedTaskType,
 } from "./types/index";
 
-export const createSchema = (swapManager?: SwapManager) => {
+export const createSchema = (swapManager?: ISwapManager) => {
   return new GraphQLSchema({
     query: QueryType,
     mutation: MutationType,

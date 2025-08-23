@@ -10,8 +10,9 @@ import {
   SwapResultType,
   InvokeResultType,
   EvalResultType,
+  InvokeEventResultType,
 } from "./types/SwapType";
-import type { SwapManager } from "../resources/swap.resource";
+import type { ISwapManager } from "../resources/swap.resource";
 import { CustomGraphQLContext } from "./context";
 
 export const MutationType = new GraphQLObjectType({
@@ -62,6 +63,34 @@ export const MutationType = new GraphQLObjectType({
       args: {},
       async resolve(_parent, _args, ctx: CustomGraphQLContext) {
         return await ctx.swapManager.unswapAll();
+      },
+    },
+
+    invokeEvent: {
+      description: "Invokes an event remotely with a given input.",
+      type: new GraphQLNonNull(InvokeEventResultType),
+      args: {
+        eventId: {
+          description: "Id of the event to invoke",
+          type: new GraphQLNonNull(GraphQLID),
+        },
+        inputJson: {
+          description: "The input for the event, as a string.",
+          type: GraphQLString,
+        },
+        evalInput: {
+          description:
+            "When true, `inputJson` is evaluated as a JavaScript expression, allowing for dynamic and complex inputs beyond simple JSON.",
+          type: GraphQLBoolean,
+          defaultValue: false,
+        },
+      },
+      async resolve(
+        _parent,
+        { eventId, inputJson, evalInput },
+        ctx: CustomGraphQLContext
+      ) {
+        return await ctx.swapManager.invokeEvent(eventId, inputJson, evalInput);
       },
     },
 

@@ -26,7 +26,7 @@ export type SerializedIntrospector = {
   resources: Resource[];
   events: Event[];
   middlewares: Middleware[];
-  tags?: Tag[];
+  tags: Tag[];
   diagnostics?: DiagnosticItem[];
   orphanEvents?: { id: string }[];
   unemittedEvents?: { id: string }[];
@@ -94,44 +94,25 @@ export class Introspector {
     const getEventsWithTag = (tagId: string) =>
       this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
 
-    const allTagIds = new Set<string>();
-    const collect = (arr: { tags?: string[] | null }[]) => {
-      for (const n of arr) {
-        for (const id of ensureStringArray(n.tags)) allTagIds.add(id);
-      }
-    };
-    collect(this.tasks as any);
-    collect(this.hooks as any);
-    collect(this.resources as any);
-    collect(this.middlewares as any);
-    collect(this.events as any);
-
-    const incomingTagSchemas = new Map<string, string | null>(
-      (Array.isArray(data.tags) ? data.tags : []).map((t) => [
-        t.id,
-        t.configSchema ?? null,
-      ])
-    );
-
-    this.allTags = Array.from(allTagIds).map((id) => {
-      const configSchema = incomingTagSchemas.get(id) ?? null;
+    this.allTags = Array.from(data.tags).map((tag) => {
+      const configSchema = tag.configSchema;
       return {
-        id,
+        id: tag.id,
         configSchema,
         get tasks() {
-          return getTasksWithTag(id);
+          return getTasksWithTag(tag.id);
         },
         get hooks() {
-          return getHooksWithTag(id);
+          return getHooksWithTag(tag.id);
         },
         get resources() {
-          return getResourcesWithTag(id);
+          return getResourcesWithTag(tag.id);
         },
         get middlewares() {
-          return getMiddlewaresWithTag(id);
+          return getMiddlewaresWithTag(tag.id);
         },
         get events() {
-          return getEventsWithTag(id);
+          return getEventsWithTag(tag.id);
         },
       };
     });

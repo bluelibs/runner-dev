@@ -25,6 +25,13 @@ export interface InvokeResult {
   invocationId?: string; // For correlation
 }
 
+export interface InvokeEventResult {
+  success: boolean;
+  error?: string;
+  executionTimeMs?: number;
+  invocationId?: string; // For correlation
+}
+
 export interface EvalResult {
   success: boolean;
   error?: string;
@@ -39,7 +46,7 @@ export interface SwappedTask {
   originalCode?: string;
 }
 
-export interface SwapManager {
+export interface ISwapManager {
   swap(taskId: string, runCode: string): Promise<SwapResult>;
   unswap(taskId: string): Promise<SwapResult>;
   unswapAll(): Promise<SwapResult[]>;
@@ -51,6 +58,11 @@ export interface SwapManager {
     pure?: boolean,
     evalInput?: boolean
   ): Promise<InvokeResult>;
+  invokeEvent(
+    eventId: string,
+    inputJson?: string,
+    evalInput?: boolean
+  ): Promise<InvokeEventResult>;
   runnerEval(code: string): Promise<EvalResult>;
 }
 
@@ -65,12 +77,12 @@ export const swapManager = resource({
   async init(
     _,
     { store, introspector, taskRunner, eventManager }
-  ): Promise<SwapManager> {
+  ): Promise<ISwapManager> {
     // Track original run functions and swap metadata
     const originalRunFunctions = new Map<string, Function>();
     const swappedTasks = new Map<string, SwappedTask>();
 
-    const api: SwapManager = {
+    const api: ISwapManager = {
       async swap(taskId: string, runCode: string): Promise<SwapResult> {
         try {
           // Validate task exists
@@ -272,6 +284,37 @@ export const swapManager = resource({
             invocationId,
           };
         }
+      },
+
+      async invokeEvent(
+        eventId: string,
+        inputJson?: string,
+        evalInput?: boolean
+      ): Promise<InvokeEventResult> {
+        const invocationId = randomUUID();
+        const eventDefinition = store.events.get(eventId);
+        if (!eventDefinition) {
+          return {
+            success: false,
+            error: `Event '${eventId}' not found`,
+            invocationId,
+          };
+        }
+
+        let input: any = undefined;
+        if (inputJson) {
+          if (evalInput) {
+            input = eval(`(${inputJson})`);
+          } else {
+            input = deserializeInput(inputJson);
+          }
+        }
+
+        const startTime = Date.now();
+        await eventManager.emit(eventDefinition.event, input, swapManager.id);
+        const executionTimeMs = Date.now() - startTime;
+
+        return { success: true, executionTimeMs, invocationId };
       },
 
       async runnerEval(code: string): Promise<EvalResult> {

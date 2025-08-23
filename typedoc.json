@@ -1,0 +1,10 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "exclude": ["**/__tests__/**/*"],
+  "includeVersion": true,
+  "plugin": ["typedoc-material-theme"],
+  "themeColor": "#cb9820",
+  "readme": "README.md",
+  "customCss": "typedoc.custom.css"
+}

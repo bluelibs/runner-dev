@@ -6,6 +6,7 @@ interface LogEntry {
   level: string;
   message: string;
   data?: string;
+  sourceId?: string;
   correlationId?: string;
 }
 
@@ -70,6 +71,11 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                 {log.level.toUpperCase()}
               </span>
               <span className="entry-message">{log.message}</span>
+              {log.sourceId && (
+                <a href={`#element-${log.sourceId}`} className="clean-button">
+                  Source
+                </a>
+              )}
               {log.data &&
                 (() => {
                   const jsonData = tryParseJson(log.data);

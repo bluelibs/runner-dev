@@ -17,6 +17,7 @@ alwaysApply: true
 - Always include tests; run via `npm run test -- {context}`.
 - Add `meta.title`, `meta.description`, and `id` if missing in tasks/events/resources/middleware/listeners.
 - **Never** use `(as any)` to bypass types without approval.
+- Ensure TODOs are up to date always. Expand them if needed, but keep them ultra tidy to help the human.
 
 ## **SHOULD**
 

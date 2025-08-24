@@ -10,14 +10,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 5vh;
+  padding: 5vh 0;
   z-index: 9999;
-  overflow-y: auto;
 }
 
 .code-modal__dialog {
   width: min(1100px, 92vw);
-  max-height: 85vh;
+  max-height: calc(100vh - 10vh);
   background: $white;
   border-radius: $border-radius-xl;
   box-shadow: $shadow-lg;
@@ -38,11 +37,14 @@
 .code-modal__title {
   margin: 0;
   font-size: $font-size-xl;
+  font-family: $font-family-base;
+  font-weight: 600;
 }
 
 .code-modal__subtitle {
   font-size: $font-size-sm;
   opacity: 0.9;
+  font-family: $font-family-base;
 }
 
 .code-modal__header-right {
@@ -77,20 +79,104 @@
 .code-modal__content {
   padding: $spacing-xl;
   background: $light-gray;
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .code-modal__pre {
   margin: 0;
-  padding: $spacing-xl;
+  padding: 0;
   border-radius: $border-radius-lg;
   font-family: $font-family-mono;
   font-size: $font-size-sm;
   line-height: 1.5;
-  max-height: 60vh;
+  flex: 1;
   overflow: auto;
-
-  // Override Prism theme background to match our design
-  background: #0d1117 !important;
+  background: #0d1117;
   border: 1px solid #30363d;
+  position: relative;
+
+  // Custom scrollbar - EXTRA FAT
+  &::-webkit-scrollbar {
+    width: 32px;
+    height: 32px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #0d1117;
+    border-radius: 0;
+    box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.1);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 6px;
+    border: 6px solid #0d1117;
+    min-height: 50px;
+
+    &:hover {
+      background: #484f58;
+    }
+
+    &:active {
+      background: #656c76;
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: #0d1117;
+  }
+
+  // Firefox scrollbar - EXTRA FAT
+  scrollbar-width: thick;
+  scrollbar-color: #30363d #0d1117;
+
+  code {
+    display: block;
+    padding: $spacing-xl;
+    padding-left: 4em;
+    background: #0d1117;
+    color: #e6edf3;
+    overflow: visible;
+  }
+
+  // Line numbers styling (override Prism.js default)
+  &.line-numbers {
+    .line-numbers-rows {
+      position: absolute;
+      pointer-events: none;
+      top: 0;
+      font-size: $font-size-sm;
+      left: -3.8em;
+      width: 3em;
+      letter-spacing: -1px;
+      border-right: 1px solid #30363d;
+      user-select: none;
+
+      > span {
+        pointer-events: none;
+        display: block;
+        counter-increment: linenumber;
+
+        &:before {
+          content: counter(linenumber);
+          color: #6e7681;
+          display: block;
+          padding-right: 0.8em;
+          text-align: right;
+        }
+      }
+    }
+  }
+
+  // Disable whitespace highlighting
+  .token.tab:not(:empty):before,
+  .token.cr:before,
+  .token.lf:before,
+  .token.space:before {
+    display: none !important;
+  }
 }

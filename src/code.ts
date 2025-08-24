@@ -309,7 +309,7 @@ export function createAgentTerminal(
 
 // Small CLI entry if invoked directly: runs the minimal terminal.
 // Check if this file is being run directly (works in both CommonJS and ESM after compilation)
-if (typeof require !== 'undefined' && require.main === module) {
+if (typeof require !== "undefined" && require.main === module) {
   const terminal = createAgentTerminal(undefined, {
     onChunk: (c) => {
       if (c.text) process.stdout.write(c.text + "\n");
@@ -406,7 +406,9 @@ export function buildAsyncCompleter(_state: AgentTerminalState) {
           // Use async search but handle it properly
           searchFilesByPattern(pattern, process.cwd(), 50)
             .then((files) => {
-              const rels = files.map((abs) => path.relative(process.cwd(), abs));
+              const rels = files.map((abs) =>
+                path.relative(process.cwd(), abs)
+              );
               cb(null, [rels, line]);
             })
             .catch(() => {

@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Prism from "prismjs";
 import "prismjs/components/prism-typescript";
+import "prismjs/plugins/line-numbers/prism-line-numbers";
+import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 import "prismjs/themes/prism-tomorrow.css";
 import "./CodeModal.scss";
 
@@ -20,9 +23,20 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   code,
 }) => {
   const codeRef = useRef<HTMLElement>(null);
-  const originalBodyStyle = useRef<{ overflow: string; paddingRight: string }>({
-    overflow: "",
-    paddingRight: "",
+  const originalBodyStyle = useRef<{
+    position: string;
+    top: string;
+    left: string;
+    right: string;
+    width: string;
+    overflowY: string;
+  }>({
+    position: "",
+    top: "",
+    left: "",
+    right: "",
+    width: "",
+    overflowY: "",
   });
 
   useEffect(() => {
@@ -30,39 +44,42 @@ export const CodeModal: React.FC<CodeModalProps> = ({
       if (e.key === "Escape") onClose();
     }
 
-    if (isOpen) {
-      // Store original styles
-      originalBodyStyle.current = {
-        overflow: document.body.style.overflow,
-        paddingRight: document.body.style.paddingRight,
-      };
+    if (!isOpen) return;
 
-      // Calculate scrollbar width only once when opening
-      const scrollbarWidth =
-        window.innerWidth - document.documentElement.clientWidth;
+    const lockedScrollY = window.scrollY || window.pageYOffset || 0;
 
-      document.body.style.overflow = "hidden";
-      if (scrollbarWidth > 0) {
-        document.body.style.paddingRight = `${scrollbarWidth}px`;
-      }
-      window.addEventListener("keydown", onKey);
-    } else {
-      // Restore original styles
-      document.body.style.overflow = originalBodyStyle.current.overflow;
-      document.body.style.paddingRight = originalBodyStyle.current.paddingRight;
-      window.removeEventListener("keydown", onKey);
-    }
+    // Store original styles
+    originalBodyStyle.current = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflowY: document.body.style.overflowY,
+    };
+
+    // Robust scroll lock: prevent layout shift without padding hacks
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    document.body.style.overflowY = "scroll";
+
+    window.addEventListener("keydown", onKey);
 
     return () => {
       window.removeEventListener("keydown", onKey);
-      // Only restore if modal was open
-      if (isOpen) {
-        document.body.style.overflow = originalBodyStyle.current.overflow;
-        document.body.style.paddingRight =
-          originalBodyStyle.current.paddingRight;
-      }
+      // Restore original styles and scroll position
+      document.body.style.position = originalBodyStyle.current.position;
+      document.body.style.top = originalBodyStyle.current.top;
+      document.body.style.left = originalBodyStyle.current.left;
+      document.body.style.right = originalBodyStyle.current.right;
+      document.body.style.width = originalBodyStyle.current.width;
+      document.body.style.overflowY = originalBodyStyle.current.overflowY;
+      window.scrollTo(0, lockedScrollY);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (isOpen && codeRef.current && code) {
@@ -72,7 +89,7 @@ export const CodeModal: React.FC<CodeModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="code-modal__backdrop" onClick={onClose}>
       <div
         className="code-modal__dialog"
@@ -93,13 +110,14 @@ export const CodeModal: React.FC<CodeModalProps> = ({
           </div>
         </div>
         <div className="code-modal__content">
-          <pre className="code-modal__pre">
+          <pre className="code-modal__pre line-numbers">
             <code ref={codeRef} className="language-typescript">
               {code ?? "No content"}
             </code>
           </pre>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -22,6 +22,6 @@
     "noImplicitThis": false
   },
 
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/custom.d.ts"],
   "exclude": ["src/__tests__/**", "src/ui/vite.config.ts"]
 }

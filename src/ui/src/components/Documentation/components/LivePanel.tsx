@@ -119,6 +119,7 @@ const LIVE_DATA_QUERY = `
         message
         data
         correlationId
+        sourceId
       }
       emissions(afterTimestamp: $afterTimestamp, last: $last) {
         timestampMs
@@ -175,7 +176,10 @@ interface LivePanelProps {
   introspector: Introspector;
 }
 
-export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false, introspector }) => {
+export const LivePanel: React.FC<LivePanelProps> = ({
+  detailed = false,
+  introspector,
+}) => {
   const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [isPolling, setIsPolling] = useState(true);
   const [error, setError] = useState<string | null>(null);

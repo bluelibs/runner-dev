@@ -1,6 +1,8 @@
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
+import { spawn } from "child_process";
+import { c, alignRows, divider, indentLines } from "./format";
 
 type ScaffoldOptions = {
   projectName: string;
@@ -9,6 +11,13 @@ type ScaffoldOptions = {
 
 export async function main(argv: string[]): Promise<void> {
   const [, , , rawName] = argv;
+  const flagArgs = argv.slice(4);
+  const flagSet = new Set(
+    flagArgs.filter((a) => a && a.startsWith("--")).map((a) => a.slice(2))
+  );
+  const shouldInstall = flagSet.has("install");
+  const shouldRun = flagSet.has("run");
+  const shouldRunTests = flagSet.has("run-tests") || flagSet.has("runTests");
   const projectName = (rawName || "my-runner-project").trim();
   if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
     // eslint-disable-next-line no-console
@@ -25,15 +34,103 @@ export async function main(argv: string[]): Promise<void> {
   await scaffold(options);
 
   // eslint-disable-next-line no-console
-  console.log(`\nProject created in ${targetDir}.`);
+  console.log(`\n${c.green("Project created in")} ${c.bold(targetDir)}.`);
   // eslint-disable-next-line no-console
-  console.log("\nNext steps:");
+  console.log(
+    `\n${c.bold("Next steps")}\n${alignRows(
+      [
+        [c.cmd(`cd ${projectName}`), "enter project directory"],
+        [c.cmd("npm install"), "install dependencies"],
+        [c.cmd("npm run dev"), "start local dev server"],
+      ],
+      { gap: 4, indent: 2 }
+    )}`
+  );
+
+  // Helpful options & commands
+  const flags = alignRows(
+    [
+      [c.yellow("--install"), "Install dependencies after scaffold"],
+      [c.yellow("--run"), "Run 'npm run dev' after scaffold (keeps running)"],
+      [c.yellow("--run-tests"), "Run 'npm test' after scaffold"],
+    ],
+    { gap: 4, indent: 2 }
+  );
+
+  const quick = indentLines(
+    [
+      `${c.gray("# Query your GraphQL endpoint")}`,
+      `ENDPOINT=http://localhost:1337/graphql ${c.cmd(
+        "npx runner-dev query"
+      )} 'query { tasks { id } }' --format pretty`,
+      `${c.gray("# Print SDL")}`,
+      `${c.cmd(
+        "npx runner-dev schema sdl"
+      )} --endpoint http://localhost:1337/graphql`,
+    ].join("\n"),
+    2
+  );
+
+  const headersExample = 'HEADERS=\'{"Authorization":"Bearer ..."}\'';
+  const env = alignRows(
+    [
+      [c.bold("ENDPOINT / GRAPHQL_ENDPOINT"), "GraphQL endpoint URL"],
+      [c.bold(headersExample), "Add HTTP headers (JSON)"],
+      [c.bold("ALLOW_MUTATIONS=true"), "Enable mutations tool"],
+    ],
+    { gap: 4, indent: 2 }
+  );
+
   // eslint-disable-next-line no-console
-  console.log(`  cd ${projectName}`);
+  console.log(
+    [
+      "",
+      c.title("Helpful options & commands"),
+      divider(),
+      c.bold("Flags for 'runner-dev new'"),
+      flags,
+      "",
+      c.bold("Quick commands"),
+      quick,
+      "",
+      c.bold("Environment"),
+      env,
+      "",
+    ].join("\n")
+  );
+
   // eslint-disable-next-line no-console
-  console.log("  npm install");
-  // eslint-disable-next-line no-console
-  console.log("  npm run dev");
+  console.log(
+    [
+      c.bold("Endpoints"),
+      alignRows(
+        [
+          [c.cyan("GraphQL"), "http://localhost:1337/graphql"],
+          [c.cyan("Voyager"), "http://localhost:1337/voyager"],
+          [c.cyan("Docs"), "http://localhost:1337/docs"],
+        ],
+        { gap: 4, indent: 2 }
+      ),
+    ].join("\n")
+  );
+
+  // Execute optional post-scaffold actions
+  if (shouldInstall) {
+    console.log("\nInstalling dependencies...\n");
+    await runCommand(
+      "npm",
+      ["install", "--prefer-offline", "--no-audit", "--no-fund"],
+      targetDir
+    );
+  }
+  if (shouldRunTests) {
+    console.log("\nRunning tests...\n");
+    await runCommand("npm", ["run", "test", "--", "--runInBand"], targetDir);
+  }
+  if (shouldRun) {
+    console.log("\nStarting dev server... (Ctrl+C to stop)\n");
+    await runCommand("npm", ["run", "dev"], targetDir);
+  }
 }
 
 async function ensureEmptyDir(dir: string): Promise<void> {
@@ -48,9 +145,9 @@ async function ensureEmptyDir(dir: string): Promise<void> {
       );
       process.exit(1);
     }
-  } else {
-    await fsp.mkdir(dir, { recursive: true });
+    return;
   }
+  await fsp.mkdir(dir, { recursive: true });
 }
 
 async function scaffold(opts: ScaffoldOptions): Promise<void> {
@@ -62,7 +159,7 @@ async function scaffold(opts: ScaffoldOptions): Promise<void> {
     private: true,
     type: "module",
     scripts: {
-      dev: "ts-node-dev --respawn --transpile-only src/main.ts",
+      dev: "tsx watch src/main.ts",
       start: "node dist/main.js",
       build: "tsc -p tsconfig.json",
       test: "jest",
@@ -70,13 +167,12 @@ async function scaffold(opts: ScaffoldOptions): Promise<void> {
       "schema:sdl": "runner-dev schema sdl",
     },
     dependencies: {
-      "@bluelibs/runner-dev": "latest",
-      "@bluelibs/runner": "latest",
+      "@bluelibs/runner": "^4.0.0",
     },
     devDependencies: {
+      "@bluelibs/runner-dev": "^4.0.0",
       typescript: "^5.6.3",
-      "ts-node": "^10.9.2",
-      "ts-node-dev": "^2.0.0",
+      tsx: "^4.19.2",
       jest: "^29.7.0",
       "ts-jest": "^29.1.1",
       "@types/jest": "^29.5.12",
@@ -86,9 +182,9 @@ async function scaffold(opts: ScaffoldOptions): Promise<void> {
 
   const tsconfig = {
     compilerOptions: {
-      target: "ES2022",
-      module: "ES2022",
-      moduleResolution: "node",
+      target: "ESNext",
+      module: "Node16",
+      moduleResolution: "node16",
       strict: true,
       esModuleInterop: true,
       forceConsistentCasingInFileNames: true,
@@ -97,30 +193,64 @@ async function scaffold(opts: ScaffoldOptions): Promise<void> {
       rootDir: "src",
       skipLibCheck: true,
       resolveJsonModule: true,
-      lib: ["ES2022"],
+      lib: ["ESNext"],
     },
     include: ["src"],
   } as const;
 
   const jestConfig = `/** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   moduleFileExtensions: ['ts', 'tsx', 'js'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  transform: {
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      {
+        useESM: true,
+        tsconfig: 'tsconfig.jest.json',
+      },
+    ],
+  },
 };
 `;
 
+  const tsconfigJest = {
+    extends: "./tsconfig.json",
+    compilerOptions: {
+      module: "CommonJS",
+      moduleResolution: "node",
+      target: "ES2019",
+      esModuleInterop: true,
+      isolatedModules: false,
+    },
+    include: ["src/**/*.ts", "src/**/*.tsx"],
+  } as const;
+
   const mainTs = `import 'source-map-support/register';
+import { run, resource } from '@bluelibs/runner';
+import { dev } from '@bluelibs/runner-dev';
 
-async function run(): Promise<void> {
-  // TODO: Replace with your own Runner setup. For now, just log.
-  // You can import and use runner resources/tasks here.
-  // eslint-disable-next-line no-console
-  console.log('Hello from ${projectName}!');
-}
+// Minimal Runner app using runner-dev's dev resource
+const app = resource({
+  id: 'app.${projectName}',
+  register: [
+    dev.with({ port: 1337 }),
+  ],
+});
 
-void run();
+run(app)
+  .then(() => {
+    // eslint-disable-next-line no-console
+    console.log('Runner app started on http://localhost:1337');
+  })
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    process.exit(1);
+  });
 `;
 
   const exampleTest = `describe('smoke', () => {
@@ -132,19 +262,43 @@ void run();
 
   const readme = `# ${projectName}
 
-Generated by runner-dev new.\n\n
+Generated by \`runner-dev new\`.
+
+## Quick start
+
+1. Install dependencies:
+   - npm install
+2. Start the dev server:
+   - npm run dev
+
+The server starts on http://localhost:1337
+
+- GraphQL endpoint: http://localhost:1337/graphql (how to query your guts and live telemetry)
+- Voyager UI: http://localhost:1337/voyager (how the guts of your app look like)
+- Project docs: http://localhost:1337/docs (beautiful docs with live telemetry and easy task and event dispatching)
+
 ## Scripts
 
-- dev: Run with ts-node-dev
+- dev: Run with tsx watch (TypeScript ESM)
 - build: Type-check and emit to dist
 - start: Run built app
 - test: Run Jest
+
+## Useful CLI commands
+
+These commands are available from \`@bluelibs/runner-dev\`:
+
+- Query your API:
+  - ENDPOINT=http://localhost:1337/graphql npx runner-dev query 'query { tasks { id } }' --format pretty
+- Print the GraphQL schema SDL:
+  - npx runner-dev schema sdl --endpoint http://localhost:1337/graphql
 
 `;
 
   await writeJson(path.join(targetDir, "package.json"), pkg);
   await writeJson(path.join(targetDir, "tsconfig.json"), tsconfig);
-  await writeFile(path.join(targetDir, "jest.config.js"), jestConfig);
+  await writeFile(path.join(targetDir, "jest.config.cjs"), jestConfig);
+  await writeJson(path.join(targetDir, "tsconfig.jest.json"), tsconfigJest);
 
   await fsp.mkdir(path.join(targetDir, "src"), { recursive: true });
   await writeFile(path.join(targetDir, "src", "main.ts"), mainTs);
@@ -165,4 +319,24 @@ async function writeFile(filePath: string, content: string): Promise<void> {
 async function writeGitignore(targetDir: string): Promise<void> {
   const content = `node_modules\n.dist\ndist\n.env\n\n`;
   await writeFile(path.join(targetDir, ".gitignore"), content);
+}
+
+async function runCommand(
+  cmd: string,
+  args: string[],
+  cwd: string
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(cmd, args, {
+      cwd,
+      stdio: "inherit",
+      env: process.env,
+    });
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else
+        reject(new Error(`${cmd} ${args.join(" ")} exited with code ${code}`));
+    });
+    child.on("error", reject);
+  });
 }

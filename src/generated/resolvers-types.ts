@@ -358,6 +358,8 @@ export type LogEntry = {
   level: LogLevelEnum;
   /** Log message */
   message: Scalars['String']['output'];
+  /** Source id */
+  sourceId: Maybe<Scalars['String']['output']>;
   /** Log creation time (milliseconds since epoch) */
   timestampMs: Scalars['Float']['output'];
 };
@@ -1205,6 +1207,7 @@ export type LogEntryResolvers<ContextType = CustomGraphQLContext, ParentType ext
   data: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   level: Resolver<ResolversTypes['LogLevelEnum'], ParentType, ContextType>;
   message: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sourceId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

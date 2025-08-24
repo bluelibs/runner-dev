@@ -1,5 +1,5 @@
 import { globals, resource, task, hook } from "@bluelibs/runner";
-import { getCorrelationId } from "./telemetry.chain";
+import { deriveParentAndRoot, getCorrelationId } from "./telemetry.chain";
 
 export type LogLevel =
   | "trace"
@@ -14,6 +14,7 @@ export interface LogEntry {
   timestampMs: number;
   level: LogLevel;
   message: string;
+  sourceId?: string | null;
   data?: unknown;
   correlationId?: string | null;
 }
@@ -103,7 +104,8 @@ export interface Live {
     level: LogLevel,
     message: string,
     data?: unknown,
-    correlationId?: string | null
+    correlationId?: string | null,
+    sourceId?: string | null
   ): void;
   recordEmission(
     eventId: string,
@@ -166,12 +168,13 @@ const liveService = resource({
     };
 
     return {
-      recordLog(level, message, data, correlationId) {
+      recordLog(level, message, data, correlationId, sourceId) {
         logs.push({
           timestampMs: Date.now(),
           level,
           message,
           data,
+          sourceId: sourceId,
           correlationId: correlationId ?? getCorrelationId() ?? null,
         });
         trim(logs);
@@ -397,10 +400,13 @@ export const live = resource({
   ],
   async init(_config, { liveService, logger }) {
     logger.onLog((log) => {
+      const correlationId = getCorrelationId();
       liveService.recordLog(
         log.level as LogLevel,
         String(log.message),
-        (log as any).data
+        log.data,
+        correlationId,
+        log.source
       );
     });
 

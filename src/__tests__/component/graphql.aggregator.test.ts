@@ -34,5 +34,10 @@ describe("GraphQL aggregator (registry)", () => {
     expect(res.errors).toBeUndefined();
     const data = (res.data ?? undefined) as Record<string, unknown> | undefined;
     expect(data?.["__typename"]).toBe("Query");
+
+    // Ensure mutations exist and include editFile
+    const mutationFields = schema.getMutationType()?.getFields?.();
+    expect(mutationFields).toBeDefined();
+    expect(Object.keys(mutationFields || {})).toContain("editFile");
   });
 });

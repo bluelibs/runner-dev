@@ -10,7 +10,9 @@
 .docs-app {
   font-family: $font-family-base;
   background: $light-gray;
-  min-height: 100vh;
+  // Constrain the docs UI to the viewport and avoid window/body scrolling
+  height: 100vh;
+  overflow: hidden;
   display: flex;
 }
 
@@ -52,6 +54,19 @@
   }
 }
 
+@keyframes typing-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Sidebar Navigation
 // -----------------------------------------------------------------------------
@@ -65,12 +80,13 @@
   color: white;
   padding: $spacing-xxl $spacing-lg;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden; // prevent accidental horizontal scroll twitch
   z-index: 1000;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
   transition: width 0.2s ease;
   min-width: 200px;
   max-width: 600px;
+  overscroll-behavior: contain; // avoid chaining to the page
 
   // Custom scrollbar styling
   &::-webkit-scrollbar {
@@ -211,7 +227,8 @@
 .docs-nav-container {
   margin-bottom: $spacing-xl;
   overflow-y: auto;
-  overflow-x: none;
+  overflow-x: hidden; // standardize hidden horizontal overflow
+  overscroll-behavior: contain;
 
   // Custom scrollbar styling for navigation container
   &::-webkit-scrollbar {
@@ -465,6 +482,14 @@
   flex: 1;
   padding: $spacing-xxxl;
   transition: margin-left 0.2s ease;
+  // Make the main area a dedicated scroll container to match Chat
+  height: 100vh;
+  // Always render a vertical scrollbar for a stable layout
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 .docs-content-container {
@@ -924,6 +949,7 @@
   border: 1px solid #dee2e6;
   border-radius: $border-radius-md;
   background: white;
+  overscroll-behavior: contain;
 
   // Custom scrollbar styling for live entries
   &::-webkit-scrollbar {

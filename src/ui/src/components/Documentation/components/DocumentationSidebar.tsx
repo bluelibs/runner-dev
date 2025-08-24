@@ -6,6 +6,9 @@ import { ViewMode, TreeType } from "../hooks/useViewMode";
 export interface DocumentationSidebarProps {
   sidebarWidth: number;
   sidebarRef: React.RefObject<HTMLElement>;
+  isChatOpen?: boolean;
+  onToggleChat?: () => void;
+  leftOffset?: number;
   viewMode: ViewMode;
   treeType: TreeType;
   localNamespaceSearch: string;
@@ -31,6 +34,9 @@ export interface DocumentationSidebarProps {
 export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   sidebarWidth,
   sidebarRef,
+  isChatOpen,
+  onToggleChat,
+  leftOffset = 0,
   viewMode,
   treeType,
   localNamespaceSearch,
@@ -50,19 +56,34 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
     <nav
       ref={sidebarRef}
       className="docs-sidebar"
-      style={{ width: `${sidebarWidth}px` }}
+      style={{ width: `${sidebarWidth}px`, left: `${leftOffset}px` }}
     >
       <div className="docs-nav-header">
-        <h2>📚 Documentation</h2>
+        <h2>
+          📚 Documentation
+          <button
+            title={isChatOpen ? "Hide Chat" : "Show Chat"}
+            onClick={onToggleChat}
+            style={{
+              marginLeft: 8,
+              border: "1px solid rgba(255,255,255,0.3)",
+              background: "rgba(255,255,255,0.08)",
+              color: "#fff",
+              borderRadius: 6,
+              padding: "4px 8px",
+              cursor: "pointer",
+            }}
+          >
+            🤖
+          </button>
+        </h2>
         <p>Navigate through your application components</p>
       </div>
 
       {/* Main Filters */}
       <div className="docs-main-filters">
         <div className="docs-namespace-input">
-          <label htmlFor="namespace-input">
-            Filter by ID
-          </label>
+          <label htmlFor="namespace-input">Filter by ID</label>
           <input
             id="namespace-input"
             type="text"

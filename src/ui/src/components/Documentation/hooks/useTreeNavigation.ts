@@ -52,16 +52,20 @@ export const useTreeNavigation = (
     if (window.location.hash === `#${anchorId}`) {
       document
         .getElementById(anchorId)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        ?.scrollIntoView({ behavior: "instant", block: "start" });
     } else {
       window.location.hash = `#${anchorId}`;
     }
 
     const target = document.getElementById(anchorId);
     if (target) {
-      target.classList.add(DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET);
+      target.classList.add(
+        DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
+      );
       setTimeout(() => {
-        target.classList.remove(DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET);
+        target.classList.remove(
+          DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
+        );
       }, DOCUMENTATION_CONSTANTS.CONSTRAINTS.HIGHLIGHT_DURATION);
     }
   };

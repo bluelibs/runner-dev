@@ -14,6 +14,8 @@ import {
 } from "./types/SwapType";
 import type { ISwapManager } from "../resources/swap.resource";
 import { CustomGraphQLContext } from "./context";
+import { resolvePathInput } from "../utils/path";
+import { promises as fs } from "fs";
 
 export const MutationType = new GraphQLObjectType({
   name: "Mutation",
@@ -37,6 +39,45 @@ export const MutationType = new GraphQLObjectType({
       },
       async resolve(_parent, { taskId, runCode }, ctx: CustomGraphQLContext) {
         return await ctx.swapManager.swap(taskId, runCode);
+      },
+    },
+    editFile: {
+      description:
+        "Edits (overwrites) a file on disk. Accepts a structured path (eg. 'workspace:src/index.ts') and UTF-8 content. Returns success/error.",
+      type: new GraphQLNonNull(
+        new GraphQLObjectType({
+          name: "EditFileResult",
+          fields: () => ({
+            success: { type: new GraphQLNonNull(GraphQLBoolean) },
+            error: { type: GraphQLString },
+            path: { type: new GraphQLNonNull(GraphQLString) },
+            resolvedPath: { type: GraphQLString },
+          }),
+        })
+      ),
+      args: {
+        path: {
+          description:
+            "Structured file path (eg. 'workspace:src/file.ts'). Absolute paths are also accepted.",
+          type: new GraphQLNonNull(GraphQLString),
+        },
+        content: {
+          description: "New UTF-8 content to write to the file.",
+          type: new GraphQLNonNull(GraphQLString),
+        },
+      },
+      async resolve(_parent, { path, content }: { path: string; content: string }) {
+        try {
+          const resolved = resolvePathInput(path);
+          if (!resolved) {
+            return { success: false, error: "Unable to resolve path", path, resolvedPath: null };
+          }
+          await fs.writeFile(resolved, content, { encoding: "utf8" });
+          return { success: true, path, resolvedPath: resolved };
+        } catch (e) {
+          const err = e instanceof Error ? e.message : String(e);
+          return { success: false, error: err, path, resolvedPath: null };
+        }
       },
     },
 

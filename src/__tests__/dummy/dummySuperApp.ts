@@ -19,6 +19,8 @@ export const performanceTag = tag<{ warnAboveMs: number }>({
   id: "app.tags.performance",
 });
 
+
+
 export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
   id: "app.tags.security",
 });

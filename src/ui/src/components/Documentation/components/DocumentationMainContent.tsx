@@ -12,6 +12,9 @@ import { LivePanel } from "./LivePanel";
 export interface DocumentationMainContentProps {
   introspector: Introspector;
   sidebarWidth: number;
+  chatWidth?: number;
+  isChatOpen?: boolean;
+  chatPushesLeft?: boolean;
   tasks: any[];
   resources: any[];
   events: any[];
@@ -20,9 +23,14 @@ export interface DocumentationMainContentProps {
   tags: any[];
 }
 
-export const DocumentationMainContent: React.FC<DocumentationMainContentProps> = ({
+export const DocumentationMainContent: React.FC<
+  DocumentationMainContentProps
+> = ({
   introspector,
   sidebarWidth,
+  chatWidth,
+  isChatOpen,
+  chatPushesLeft,
   tasks,
   resources,
   events,
@@ -33,14 +41,20 @@ export const DocumentationMainContent: React.FC<DocumentationMainContentProps> =
   return (
     <div
       className="docs-main-content"
-      style={{ marginLeft: `${sidebarWidth + 40}px` }}
+      style={{
+        marginLeft: `${
+          sidebarWidth +
+          (chatPushesLeft && isChatOpen ? chatWidth || 0 : 0) +
+          40
+        }px`,
+        marginRight: undefined,
+      }}
     >
       <div className="docs-content-container">
         <header id="top" className="docs-header">
           <h1>Runner Application Documentation</h1>
           <p>
-            Complete overview of your application's architecture and
-            components
+            Complete overview of your application's architecture and components
           </p>
         </header>
 

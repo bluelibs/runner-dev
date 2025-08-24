@@ -279,6 +279,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+        enableEdit={Boolean(task.filePath)}
+        saveOnFile={task.filePath || null}
       />
     </div>
   );

@@ -22,6 +22,7 @@ $sidebar-dark: #2c3e50;
 $white: #fff;
 $light-gray: #f8f9fa;
 $border-gray: #e9ecef;
+$border-radius: 4px;
 $text-gray: #6c757d;
 $text-dark: #495057;
 $text-darker: #2c3e50;
@@ -52,8 +53,10 @@ $font-size-xl: 24px;
 $font-size-xxl: 28px;
 $font-size-xxxl: 36px;
 
-$font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
-$font-family-mono: 'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+$font-family-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+  "Roboto", "Helvetica Neue", Arial, sans-serif;
+$font-family-mono: "JetBrains Mono", "SF Mono", Consolas, "Liberation Mono",
+  Menlo, monospace;
 
 // -----------------------------------------------------------------------------
 // Border Radius

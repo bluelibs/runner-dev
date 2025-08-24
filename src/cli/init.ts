@@ -35,17 +35,6 @@ export async function main(argv: string[]): Promise<void> {
 
   // eslint-disable-next-line no-console
   console.log(`\n${c.green("Project created in")} ${c.bold(targetDir)}.`);
-  // eslint-disable-next-line no-console
-  console.log(
-    `\n${c.bold("Next steps")}\n${alignRows(
-      [
-        [c.cmd(`cd ${projectName}`), "enter project directory"],
-        [c.cmd("npm install"), "install dependencies"],
-        [c.cmd("npm run dev"), "start local dev server"],
-      ],
-      { gap: 4, indent: 2 }
-    )}`
-  );
 
   // Helpful options & commands
   const flags = alignRows(
@@ -115,7 +104,7 @@ export async function main(argv: string[]): Promise<void> {
   );
 
   // Execute optional post-scaffold actions
-  if (shouldInstall) {
+  if (shouldInstall || shouldRunTests || shouldRun) {
     console.log("\nInstalling dependencies...\n");
     await runCommand(
       "npm",
@@ -131,6 +120,18 @@ export async function main(argv: string[]): Promise<void> {
     console.log("\nStarting dev server... (Ctrl+C to stop)\n");
     await runCommand("npm", ["run", "dev"], targetDir);
   }
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `\n${c.bold("Next steps")}\n${alignRows(
+      [
+        [c.cmd(`cd ${projectName}`), "enter project directory"],
+        [c.cmd("npm install"), "install dependencies"],
+        [c.cmd("npm run dev"), "start local dev server"],
+      ],
+      { gap: 4, indent: 2 }
+    )}`
+  );
 }
 
 async function ensureEmptyDir(dir: string): Promise<void> {

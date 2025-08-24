@@ -12,6 +12,7 @@ runner-dev CLI
 Usage:
   runner-dev mcp        Start the MCP GraphQL server over stdio
   runner-dev query      Run a GraphQL query against an endpoint
+  runner-dev new        Scaffold a new Runner TypeScript project (or populate existing directory)
   runner-dev overview   Print Markdown project overview
   runner-dev schema     Print SDL or introspection JSON
   runner-dev ping       Ping GraphQL endpoint
@@ -37,6 +38,12 @@ Examples:
 
   if (subcommand === "query") {
     const mod = await import("./cli/query.js");
+    await mod.main(process.argv);
+    return;
+  }
+
+  if (subcommand === "new") {
+    const mod = await import("./cli/init.js");
     await mod.main(process.argv);
     return;
   }

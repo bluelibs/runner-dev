@@ -119,6 +119,34 @@ Help:
 npx @bluelibs/runner-dev --help
 ```
 
+Create new project:
+
+```bash
+# Create a new Runner project
+npx @bluelibs/runner-dev new <project-name>
+
+# Example
+npx @bluelibs/runner-dev new my-awesome-app
+```
+
+This command creates a new Runner project with:
+
+- Complete TypeScript setup with ts-node-dev for development
+- Jest configuration for testing
+- Package.json with all necessary dependencies
+- Basic project structure with main.ts entry point
+- README and .gitignore files
+
+The command can also be used to populate an existing directory. If the directory already exists and is not empty, the command will proceed with a warning that files may be overwritten.
+
+The project name must contain only letters, numbers, dashes, and underscores.
+
+After creation, follow the next steps:
+
+- `cd <project-name>`
+- `npm install`
+- `npm run dev`
+
 Ping endpoint:
 
 ```bash

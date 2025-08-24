@@ -2,6 +2,4 @@
 
 ### Within a Claude Plugins/Editors:
 
-agent(
-
-)
+Set of instructions

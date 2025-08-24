@@ -18,7 +18,6 @@ import {
   ensureStringArray,
   stringifyIfObject,
 } from "./introspector.tools";
-import { formatSchemaIfZod } from "../../utils/zod";
 
 export type SerializedIntrospector = {
   tasks: Task[];

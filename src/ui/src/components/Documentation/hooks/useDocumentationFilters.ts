@@ -10,9 +10,15 @@ export const useDocumentationFilters = (
     namespacePrefix || ""
   );
 
+  const localNamespaceSearchLower = localNamespaceSearch.toLowerCase();
+
   const [showSystem, setShowSystem] = useState<boolean>(() => {
     try {
-      return localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM) === "1";
+      return (
+        localStorage.getItem(
+          DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM
+        ) === "1"
+      );
     } catch {
       return DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_SYSTEM;
     }
@@ -36,7 +42,9 @@ export const useDocumentationFilters = (
       result = result.filter((item) => !isSystemElement(item));
     }
     if (localNamespaceSearch) {
-      result = result.filter((item) => item.id.includes(localNamespaceSearch));
+      result = result.filter((item) =>
+        item.id.toLowerCase().includes(localNamespaceSearchLower)
+      );
     }
     return result;
   };
@@ -56,14 +64,24 @@ export const useDocumentationFilters = (
       hooks,
       middlewares,
       tags,
-      allElements: [...tasks, ...resources, ...events, ...hooks, ...middlewares, ...tags],
+      allElements: [
+        ...tasks,
+        ...resources,
+        ...events,
+        ...hooks,
+        ...middlewares,
+        ...tags,
+      ],
     };
-  }, [introspector, showSystem, localNamespaceSearch]);
+  }, [introspector, showSystem, localNamespaceSearchLower]);
 
   const handleShowSystemChange = (value: boolean) => {
     setShowSystem(value);
     try {
-      localStorage.setItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM, value ? "1" : "0");
+      localStorage.setItem(
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM,
+        value ? "1" : "0"
+      );
     } catch {
       // Ignore localStorage errors
     }

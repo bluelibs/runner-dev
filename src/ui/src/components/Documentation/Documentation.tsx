@@ -67,6 +67,10 @@ export const Documentation: React.FC<DocumentationProps> = ({
     filterHook.hooks.length +
     filterHook.middlewares.length;
 
+  const handleSectionClick = (sectionId: string) => {
+    window.location.hash = `#${sectionId}`;
+  };
+
 
 
 
@@ -135,6 +139,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
         onShowSystemChange={filterHook.handleShowSystemChange}
         onTreeNodeClick={treeHook.handleTreeNodeClick}
         onToggleExpansion={treeHook.handleToggleExpansion}
+        onSectionClick={handleSectionClick}
       />
 
       {/* Sidebar Resizer */}

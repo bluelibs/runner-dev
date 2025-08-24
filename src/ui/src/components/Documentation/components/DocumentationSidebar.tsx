@@ -1,5 +1,5 @@
 import React from "react";
-import { TreeView } from "./TreeView";
+import { NavigationView } from "./NavigationView";
 import { TreeNode } from "../utils/tree-utils";
 import { ViewMode, TreeType } from "../hooks/useViewMode";
 
@@ -25,6 +25,7 @@ export interface DocumentationSidebarProps {
   onShowSystemChange: (value: boolean) => void;
   onTreeNodeClick: (node: TreeNode) => void;
   onToggleExpansion: (nodeId: string, expanded?: boolean) => void;
+  onSectionClick: (sectionId: string) => void;
 }
 
 export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
@@ -43,6 +44,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   onShowSystemChange,
   onTreeNodeClick,
   onToggleExpansion,
+  onSectionClick,
 }) => {
   return (
     <nav
@@ -55,7 +57,49 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
         <p>Navigate through your application components</p>
       </div>
 
-      {/* View Mode Toggle */}
+      {/* Main Filters */}
+      <div className="docs-main-filters">
+        <div className="docs-namespace-input">
+          <label htmlFor="namespace-input">
+            Filter by ID
+          </label>
+          <input
+            id="namespace-input"
+            type="text"
+            placeholder={
+              viewMode === "tree"
+                ? "Search elements..."
+                : "Enter namespace prefix or any key..."
+            }
+            value={localNamespaceSearch}
+            onChange={(e) => onNamespaceSearchChange(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+        </div>
+      </div>
+      <div
+        className="docs-system-toggle-container"
+        title="Toggle visibility of system-tagged elements"
+      >
+        <label className="docs-switch" htmlFor="show-system-toggle">
+          <input
+            id="show-system-toggle"
+            className="docs-switch-input"
+            type="checkbox"
+            checked={showSystem}
+            onChange={(e) => onShowSystemChange(e.target.checked)}
+          />
+          <span className="docs-switch-track">
+            <span className="docs-switch-thumb" />
+          </span>
+          <span className="docs-switch-text">Show System</span>
+        </label>
+      </div>
+
+      {/* View Mode Controls */}
       <div className="docs-view-controls">
         <div className="docs-view-toggle">
           <button
@@ -101,82 +145,19 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
         )}
       </div>
 
-      {/* Namespace Prefix Input */}
-      <div className="docs-namespace-input">
-        <label htmlFor="namespace-input">
-          {viewMode === "tree" ? "Search Tree" : "Filter by Namespace"}
-        </label>
-        <input
-          id="namespace-input"
-          type="text"
-          placeholder={
-            viewMode === "tree"
-              ? "Search elements..."
-              : "Enter namespace prefix or any key..."
-          }
-          value={localNamespaceSearch}
-          onChange={(e) => onNamespaceSearchChange(e.target.value)}
-          onKeyDown={(e) => e.stopPropagation()}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-        />
-        <div
-          className="docs-toggle-row"
-          title="Toggle visibility of system-tagged elements"
-        >
-          <label className="docs-switch" htmlFor="show-system-toggle">
-            <input
-              id="show-system-toggle"
-              className="docs-switch-input"
-              type="checkbox"
-              checked={showSystem}
-              onChange={(e) => onShowSystemChange(e.target.checked)}
-            />
-            <span className="docs-switch-track">
-              <span className="docs-switch-thumb" />
-            </span>
-            <span className="docs-switch-text">Show System</span>
-          </label>
-        </div>
-      </div>
-
       {/* Navigation Content */}
-      {viewMode === "list" ? (
-        <ul className="docs-nav-list">
-          <li>
-            <a href="#top" className="docs-nav-link docs-nav-link--home">
-              <div className="docs-nav-content">
-                <span className="icon">🏠</span>
-                <span className="text">Home</span>
-              </div>
-            </a>
-          </li>
-          {sections.map((section) => (
-            <li key={section.id}>
-              <a href={`#${section.id}`} className="docs-nav-link">
-                <div className="docs-nav-content">
-                  <span className="icon">{section.icon}</span>
-                  <span className="text">{section.label}</span>
-                </div>
-                {section.count !== null && (
-                  <span className="docs-nav-badge">{section.count}</span>
-                )}
-              </a>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="docs-tree-container">
-          <TreeView
-            nodes={treeNodes}
-            onNodeClick={onTreeNodeClick}
-            onToggleExpansion={onToggleExpansion}
-            searchTerm={localNamespaceSearch}
-            className="docs-tree-view"
-          />
-        </div>
-      )}
+      <div className="docs-nav-container">
+        <NavigationView
+          mode={viewMode}
+          nodes={treeNodes}
+          sections={sections}
+          onNodeClick={onTreeNodeClick}
+          onSectionClick={onSectionClick}
+          onToggleExpansion={onToggleExpansion}
+          searchTerm={localNamespaceSearch}
+          className="docs-navigation"
+        />
+      </div>
 
       <div className="docs-nav-stats">
         <div className="label">Quick Stats</div>

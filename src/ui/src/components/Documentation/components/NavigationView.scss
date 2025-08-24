@@ -1,0 +1,231 @@
+.navigation-view {
+  width: 100%;
+  
+  // Common styles for both modes
+  .nav-search-highlight {
+    background-color: #ffeb3b;
+    padding: 0 2px;
+    border-radius: 2px;
+    color: #333;
+  }
+}
+
+// Tree mode styles
+.navigation-view--tree {
+  .nav-tree-container {
+    width: 100%;
+  }
+
+  .nav-node-container {
+    width: 100%;
+  }
+
+  .nav-node {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    margin: 1px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    outline: none;
+    background: transparent;
+    
+    &:hover {
+      background-color: rgba(var(--primary-rgb), 0.1);
+    }
+    
+    &--focused {
+      background-color: rgba(var(--primary-rgb), 0.15);
+      border-color: rgba(var(--primary-rgb), 0.3);
+      box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+    }
+    
+    &--leaf {
+      .nav-node-label {
+        font-weight: 500;
+      }
+    }
+  }
+
+  .nav-expander {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: transform 0.15s ease;
+    
+    &:hover {
+      background-color: rgba(var(--primary-rgb), 0.15);
+    }
+    
+    &--expanded {
+      .nav-expander-icon {
+        transform: rotate(90deg);
+      }
+    }
+    
+    &--placeholder {
+      cursor: default;
+      pointer-events: none;
+    }
+  }
+
+  .nav-expander-icon {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+    color: var(--text-secondary);
+  }
+
+  .nav-node-icon {
+    margin-right: 8px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .nav-node-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    word-break: break-word;
+  }
+
+  .nav-node-count {
+    margin-left: 8px;
+    padding: 2px 6px;
+    background-color: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary);
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .nav-children {
+    margin-left: 0;
+  }
+}
+
+// List mode styles
+.navigation-view--list {
+  .nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    margin: 2px 0;
+    text-decoration: none;
+    color: var(--text-primary);
+    border-radius: 8px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    outline: none;
+    background: transparent;
+    
+    &:hover {
+      background-color: rgba(var(--primary-rgb), 0.1);
+      text-decoration: none;
+    }
+    
+    &--focused {
+      background-color: rgba(var(--primary-rgb), 0.15);
+      border-color: rgba(var(--primary-rgb), 0.3);
+      box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+    }
+    
+    &--home {
+      background-color: rgba(var(--success-rgb), 0.08);
+      
+      &:hover {
+        background-color: rgba(var(--success-rgb), 0.15);
+      }
+      
+      &.nav-link--focused {
+        background-color: rgba(var(--success-rgb), 0.2);
+        border-color: rgba(var(--success-rgb), 0.3);
+        box-shadow: 0 0 0 2px rgba(var(--success-rgb), 0.1);
+      }
+    }
+  }
+
+  .nav-content {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    
+    .icon {
+      margin-right: 12px;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    
+    .text {
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+
+  .nav-badge {
+    padding: 3px 8px;
+    background-color: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .navigation-view {
+    font-size: 12px;
+    
+    &--tree {
+      .nav-node {
+        padding: 4px 6px;
+      }
+      
+      .nav-node-icon {
+        margin-right: 6px;
+        font-size: 12px;
+      }
+      
+      .nav-node-label {
+        font-size: 12px;
+      }
+    }
+    
+    &--list {
+      .nav-link {
+        padding: 10px 12px;
+      }
+      
+      .nav-content {
+        .icon {
+          margin-right: 10px;
+          font-size: 14px;
+        }
+        
+        .text {
+          font-size: 13px;
+        }
+      }
+    }
+  }
+}

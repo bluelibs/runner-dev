@@ -102,6 +102,12 @@
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
 }
 
+.docs-system-toggle-container {
+  margin-bottom: 20px;
+  font-family: $font-family-base;
+  text-transform: uppercase;
+}
+
 .docs-nav-header {
   margin-bottom: $spacing-xxxl;
 
@@ -119,6 +125,44 @@
     font-size: $font-size-base;
     opacity: 0.8;
     line-height: 1.4;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Main Filters (Search + Show System Toggle)
+// -----------------------------------------------------------------------------
+.docs-main-filters {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+
+  .docs-namespace-input {
+    flex: 1;
+    margin-bottom: 0; // Override the default margin
+    min-width: 200px; // Minimum width for input
+    display: flex;
+    flex-direction: column;
+
+    input {
+      min-width: 200px;
+    }
+  }
+  // Stack vertically when sidebar gets narrow
+  @media (max-width: 350px) {
+    flex-direction: column;
+    gap: $spacing-sm;
+    align-items: stretch;
+
+    .docs-system-toggle-container {
+      align-self: flex-start; // Align to left when stacked
+      justify-content: flex-start;
+      padding-top: 0; // Remove offset when stacked
+    }
+
+    .docs-namespace-input {
+      min-width: 200px; // Maintain minimum width when stacked
+    }
   }
 }
 
@@ -148,6 +192,7 @@
     align-items: center;
     justify-content: center;
     gap: $spacing-xs;
+    font-family: $font-family-base;
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
@@ -163,13 +208,12 @@
   }
 }
 
-.docs-tree-container {
+.docs-nav-container {
   margin-bottom: $spacing-xl;
-  max-height: 60vh;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: none;
 
-  // Custom scrollbar styling for tree container
+  // Custom scrollbar styling for navigation container
   &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -190,47 +234,77 @@
   }
 
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+  overflow-x: hidden;
 
-  .docs-tree-view {
-    // Override tree view colors for dark sidebar
-    .tree-node {
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+  .docs-navigation {
+    // Override navigation view colors for dark sidebar
+    &.navigation-view--tree {
+      .nav-node {
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        &--focused {
+          background-color: rgba(59, 130, 246, 0.3);
+          border-color: rgba(59, 130, 246, 0.6);
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
       }
 
-      &--focused {
-        background-color: rgba(59, 130, 246, 0.3);
-        outline-color: rgba(59, 130, 246, 0.6);
+      .nav-node-label {
+        color: rgba(255, 255, 255, 0.9);
       }
-    }
 
-    .tree-node-label {
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .tree-node-count {
-      background-color: rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .tree-expander {
-      &:hover {
+      .nav-node-count {
         background-color: rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .nav-expander {
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      .nav-expander-icon {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .nav-search-highlight {
+        background-color: rgba(251, 191, 36, 0.3);
+        color: #fbbf24;
       }
     }
 
-    .tree-expander-icon {
-      color: rgba(255, 255, 255, 0.7);
-    }
+    &.navigation-view--list {
+      .nav-link {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid transparent;
+        color: white;
 
-    .tree-children {
-      border-left-color: rgba(255, 255, 255, 0.2);
-    }
+        &--home {
+          background: rgba(52, 152, 219, 0.15);
+          border: 1px solid rgba(52, 152, 219, 0.3);
+        }
 
-    .tree-search-highlight {
-      background-color: rgba(251, 191, 36, 0.3);
-      color: #fbbf24;
+        &:hover {
+          background: rgba(52, 152, 219, 0.25);
+          border-color: $primary-blue;
+          transform: translateX(4px);
+        }
+
+        &--focused {
+          background: rgba(59, 130, 246, 0.3);
+          border-color: rgba(59, 130, 246, 0.6);
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+      }
+
+      .nav-badge {
+        background: rgba(52, 152, 219, 0.3);
+        color: $white;
+        border: 1px solid rgba(52, 152, 219, 0.5);
+      }
     }
   }
 }
@@ -284,41 +358,25 @@
 }
 
 // -----------------------------------------------------------------------------
-// Pretty Toggle (Show System)
+// System Toggle Switch
 // -----------------------------------------------------------------------------
-.docs-toggle-row {
-  margin-top: $spacing-xs;
-  margin-bottom: $spacing-sm;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  // padding: $spacing-sm $spacing-sm;
-  // background: rgba(255, 255, 255, 0.06);
-  // border: 1px solid rgba(255, 255, 255, 0.12);
-  // border-radius: $border-radius-md;
-}
-
 .docs-switch {
   display: inline-flex;
   align-items: center;
   gap: $spacing-sm;
   cursor: pointer;
   user-select: none;
-  width: 100%;
-  justify-content: space-between;
   flex-direction: row-reverse; // Put text on the left, control on the right
 
   .docs-switch-text {
     color: rgba(255, 255, 255, 0.9);
     font-size: $font-size-sm;
-    font-weight: 600;
     letter-spacing: 0.3px;
+    font-size: $font-size-xs;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-left: $spacing-sm;
-    position: relative;
-    bottom: 10px;
+    font-family: $font-family-base;
   }
 }
 
@@ -373,72 +431,7 @@
   background: #eaf6ff;
 }
 
-.docs-nav-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-
-  li {
-    margin-bottom: $spacing-sm;
-  }
-}
-
-.docs-nav-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: $font-size-base 18px;
-  border-radius: $border-radius-lg;
-  text-decoration: none;
-  color: white;
-  transition: $transition-normal;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid transparent;
-  white-space: nowrap;
-  overflow: hidden;
-
-  &--home {
-    background: rgba(52, 152, 219, 0.15);
-    border: 1px solid rgba(52, 152, 219, 0.3);
-  }
-
-  &:hover {
-    background: rgba(52, 152, 219, 0.25);
-    border-color: $primary-blue;
-    transform: translateX(4px);
-  }
-}
-
-.docs-nav-content {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-  min-width: 0;
-  flex: 1;
-
-  .icon {
-    font-size: $font-size-md;
-    flex-shrink: 0;
-  }
-
-  .text {
-    font-size: $font-size-base;
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.docs-nav-badge {
-  background: rgba(52, 152, 219, 0.3);
-  color: $white;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $spacing-sm;
-  font-size: $font-size-xs;
-  font-weight: bold;
-  border: 1px solid rgba(52, 152, 219, 0.5);
-}
+// These styles are now handled by NavigationView component and its SCSS
 
 .docs-nav-stats {
   margin-top: $spacing-xxxl;

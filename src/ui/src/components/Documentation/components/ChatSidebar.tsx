@@ -122,10 +122,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     chatState.isTyping
   );
 
-  const { isAtBottom, scrollToBottom } = useAutoScroll(scrollRef, [
-    filteredMessages,
-    chatState.isTyping,
-  ]);
+  const { isAtBottom, scrollToBottom } = useAutoScroll(
+    sidebarRef as unknown as React.RefObject<HTMLDivElement>,
+    [filteredMessages, chatState.isTyping]
+  );
 
   const architectRef = useRef<ArchitectPanelHandle | null>(null);
 
@@ -380,6 +380,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               <ChatMessages
                 messages={filteredMessages}
                 isTyping={chatState.isTyping}
+                thinkingStage={
+                  chatState.thinkingStage !== "none"
+                    ? chatState.thinkingStage
+                    : undefined
+                }
+                toolCalls={chatState.toolCalls}
                 onOpenFile={openFileModal}
                 onOpenDiff={openDiffModal}
               />

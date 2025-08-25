@@ -25,6 +25,13 @@ export interface TextMessage extends BaseChatMessage {
   text: string;
   // Optional: the exact text sent to the model (may include hidden context like docs)
   hiddenText?: string;
+  // Optional: tools used to generate this assistant message
+  toolCalls?: Array<{
+    id: string;
+    name?: string;
+    argsPreview?: string;
+    resultPreview?: string;
+  }>;
 }
 
 export interface FileMessage extends BaseChatMessage {
@@ -65,6 +72,14 @@ export interface ChatState {
   selectedMessageId: string | null;
   settings: ChatSettings;
   canStop: boolean;
+  // Live tool-calls visualization while the assistant is processing
+  toolCalls?: Array<{
+    id: string;
+    name?: string;
+    argsPreview?: string;
+    status: "pending" | "running" | "done" | "error";
+    resultPreview?: string;
+  }>;
   chatContext?: {
     include: {
       runner?: boolean;

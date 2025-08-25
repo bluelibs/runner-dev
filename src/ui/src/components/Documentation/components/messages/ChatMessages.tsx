@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { ChatMessage, TextMessage } from "../ChatTypes";
+import { ChatMessage } from "../ChatTypes";
 import { formatRelativeTime } from "../ChatUtils";
 import { MessageItem } from "./MessageItem";
 import { TypingIndicator } from "./TypingIndicator";
@@ -14,8 +14,26 @@ type Props = {
   onOpenDiff: (diff: any) => void;
 };
 
-export const ChatMessages: React.FC<Props> = React.memo(
-  ({ messages, isTyping, onOpenFile, onOpenDiff }) => {
+export const ChatMessages: React.FC<
+  Props & {
+    thinkingStage?: "thinking" | "processing" | "generating";
+    toolCalls?: Array<{
+      id: string;
+      name?: string;
+      argsPreview?: string;
+      status: "pending" | "running" | "done" | "error";
+      resultPreview?: string;
+    }>;
+  }
+> = React.memo(
+  ({
+    messages,
+    isTyping,
+    onOpenFile,
+    onOpenDiff,
+    thinkingStage,
+    toolCalls,
+  }) => {
     const messagesWithTime = useMemo(
       () =>
         messages.map((m) => ({
@@ -36,7 +54,9 @@ export const ChatMessages: React.FC<Props> = React.memo(
             />
           </div>
         ))}
-        {isTyping && <TypingIndicator />}
+        {isTyping && (
+          <TypingIndicator stage={thinkingStage} toolCalls={toolCalls} />
+        )}
       </>
     );
   }

@@ -57,6 +57,57 @@ export const MessageItem: React.FC<Props> = React.memo(
             </div>
           )}
 
+          {message.author === "bot" &&
+            message.type === "text" &&
+            (() => {
+              const tm = message as TextMessage;
+              const calls = tm.toolCalls || [];
+              if (!calls.length) return null;
+              return (
+                <details
+                  className="message-tool-calls"
+                  style={{ marginTop: 8 }}
+                >
+                  <summary style={{ cursor: "pointer", opacity: 0.85 }}>
+                    Used tools ({calls.length})
+                  </summary>
+                  <div style={{ marginTop: 6 }}>
+                    {calls.map((c, i) => (
+                      <div
+                        key={c.id || i}
+                        style={{
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          border: "1px solid rgba(0,0,0,0.08)",
+                          marginBottom: 6,
+                          background: "#f8f9fb",
+                          fontSize: 12,
+                        }}
+                      >
+                        <code style={{ fontSize: 12 }}>
+                          {c.name || "tool"}
+                          {c.argsPreview ? `(${c.argsPreview})` : "()"}
+                        </code>
+                        {c.resultPreview && (
+                          <pre
+                            style={{
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-word",
+                              background: "transparent",
+                              margin: "6px 0 0 0",
+                              fontSize: 12,
+                            }}
+                          >
+                            {c.resultPreview}
+                          </pre>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              );
+            })()}
+
           {message.type === "file" && (
             <div className="message-file">
               {message.text && (

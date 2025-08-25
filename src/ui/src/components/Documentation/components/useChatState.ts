@@ -167,6 +167,7 @@ export const useChatState = (opts?: {
         ...prev,
         isTyping: true,
         thinkingStage: "thinking",
+        toolCalls: [],
         canStop: true,
         messages: [
           ...prev.messages,
@@ -277,8 +278,9 @@ export const useChatState = (opts?: {
         },
         {
           name: "graphql_query",
-          description:
-            "Execute a GraphQL query against the app's /graphql endpoint. Requires @docs.schema to be present from the user. Use this to interrogate the app's guts. This will show you the current application tasks, resources, etc.",
+          description: [
+            "Execute a GraphQL query against the app's /graphql endpoint.",
+          ].join("\n"),
           parameters: {
             type: "object",
             properties: {
@@ -287,8 +289,6 @@ export const useChatState = (opts?: {
                 oneOf: [{ type: "string" }, { type: "object" }],
               },
               operationName: { type: "string" },
-              format: { enum: ["json", "markdown"], type: "string" },
-              markdownStyle: { enum: ["summary", "story"], type: "string" },
               maxItems: { type: "integer", minimum: 1, maximum: 100 },
               title: { type: "string" },
             },
@@ -330,16 +330,6 @@ export const useChatState = (opts?: {
             }
 
             const data = await graphqlRequest<unknown>(args.query, variables);
-
-            if (args.format === "markdown") {
-              const title = args.title || "GraphQL Query Result";
-              const md = `### ${title}\n\n\`\`\`json\n${JSON.stringify(
-                data,
-                null,
-                2
-              )}\n\`\`\``;
-              return { markdown: md };
-            }
 
             return { data };
           },
@@ -414,6 +404,31 @@ export const useChatState = (opts?: {
             },
             onToolCallDelta: (delta: any) => {
               accumulator.accept(delta);
+              // reflect live tool-call info in UI
+              setChatState((prev) => {
+                const existing = prev.toolCalls || [];
+                const idx = delta.index;
+                const prevItem = existing[idx];
+                const name = delta.function?.name || prevItem?.name;
+                const nextArgs =
+                  (prevItem?.argsPreview || "") +
+                  (delta.function?.arguments || "");
+                const updated = existing.slice();
+                updated[idx] = {
+                  id: delta.id || prevItem?.id || String(idx),
+                  name,
+                  argsPreview:
+                    nextArgs.length > 120
+                      ? nextArgs.slice(0, 117) + "..."
+                      : nextArgs,
+                  status: "running",
+                };
+                return {
+                  ...prev,
+                  thinkingStage: "processing",
+                  toolCalls: updated,
+                };
+              });
             },
             onUsage: (usage: any) => {
               usageTotals = {
@@ -443,15 +458,54 @@ export const useChatState = (opts?: {
                     })),
                   };
 
+                  // Ensure UI shows planned tool calls even if no deltas were streamed
+                  setChatState((prev) => ({
+                    ...prev,
+                    thinkingStage: "processing",
+                    toolCalls: toolCalls.map((c, i) => ({
+                      id: c.id || String(i),
+                      name: c.name,
+                      argsPreview:
+                        (c.argsText || "").length > 120
+                          ? c.argsText.slice(0, 117) + "..."
+                          : c.argsText || "",
+                      status: "pending",
+                    })),
+                  }));
+
                   const toolResults: AiMessage[] = [];
-                  for (const c of toolCalls) {
+                  for (let i = 0; i < toolCalls.length; i++) {
+                    const c = toolCalls[i];
                     const tool = tools.find((t) => t.name === c.name);
                     if (!tool) continue;
                     let argsObj: unknown = {};
                     try {
                       argsObj = c.argsText ? JSON.parse(c.argsText) : {};
                     } catch {}
+                    // mark this call as running
+                    setChatState((prev) => ({
+                      ...prev,
+                      toolCalls: (prev.toolCalls || []).map((t, idx) =>
+                        idx === i ? { ...t, status: "running" } : t
+                      ),
+                    }));
                     const result = await tool.run(argsObj);
+                    // show a small preview of the result
+                    setChatState((prev) => ({
+                      ...prev,
+                      toolCalls: (prev.toolCalls || []).map((t, idx) =>
+                        idx === i
+                          ? {
+                              ...t,
+                              status: "done",
+                              resultPreview: JSON.stringify(result).slice(
+                                0,
+                                200
+                              ),
+                            }
+                          : t
+                      ),
+                    }));
                     toolResults.push({
                       role: "tool",
                       content: JSON.stringify(result),
@@ -537,7 +591,36 @@ export const useChatState = (opts?: {
                           lastUsage: { ...usageTotals },
                         }));
                       },
-                      onFinish: () => {},
+                      onFinish: () => {
+                        // Attach tool calls summary to the last assistant text message
+                        setChatState((prev) => {
+                          const calls = prev.toolCalls || [];
+                          if (!calls.length) return prev;
+                          let lastBotIndex: number | undefined = undefined;
+                          for (let i = prev.messages.length - 1; i >= 0; i--) {
+                            const mm = prev.messages[i];
+                            if (mm.author === "bot" && mm.type === "text") {
+                              lastBotIndex = i;
+                              break;
+                            }
+                          }
+                          if (lastBotIndex === undefined) return prev;
+                          const nextMessages = prev.messages.slice();
+                          const existing = nextMessages[
+                            lastBotIndex
+                          ] as TextMessage;
+                          nextMessages[lastBotIndex] = {
+                            ...(existing as TextMessage),
+                            toolCalls: calls.map((t) => ({
+                              id: t.id,
+                              name: t.name,
+                              argsPreview: t.argsPreview,
+                              resultPreview: t.resultPreview,
+                            })),
+                          } as TextMessage;
+                          return { ...prev, messages: nextMessages };
+                        });
+                      },
                       onError: (e: any) => {
                         throw e;
                       },
@@ -545,17 +628,23 @@ export const useChatState = (opts?: {
                   );
                 } catch (e) {
                   // if tool execution failed, append an error line
-                  const extra = `\n\n(⚠️ tool execution failed) ${String(e)}`;
-                  accumulated += extra;
+                  const extra = `❌ Tool execution failed: ${String(e)}`;
+                  const sep = accumulated.endsWith("\n") ? "" : "\n\n";
+                  const withError = accumulated + sep + extra;
                   setChatState((prev) => ({
                     ...prev,
                     messages: prev.messages.map((m) =>
                       m.id === assistantMessageId
                         ? ({
                             ...(m as TextMessage),
-                            text: accumulated,
+                            text: withError,
                           } as TextMessage)
                         : m
+                    ),
+                    toolCalls: (prev.toolCalls || []).map((t) =>
+                      t.status === "running" || t.status === "pending"
+                        ? { ...t, status: "error" }
+                        : t
                     ),
                   }));
                 }
@@ -572,6 +661,7 @@ export const useChatState = (opts?: {
           ...prev,
           isTyping: false,
           thinkingStage: "none",
+          toolCalls: [],
           canStop: false,
         }));
       } catch (err: any) {
@@ -581,6 +671,7 @@ export const useChatState = (opts?: {
             ...prev,
             isTyping: false,
             thinkingStage: "none",
+            toolCalls: [],
             canStop: false,
             messages: prev.messages.map((m) =>
               m.id === assistantMessageId
@@ -596,6 +687,7 @@ export const useChatState = (opts?: {
             ...prev,
             isTyping: false,
             thinkingStage: "none",
+            toolCalls: [],
             canStop: false,
             messages: prev.messages.map((m) =>
               m.id === assistantMessageId
@@ -666,7 +758,11 @@ export const useChatState = (opts?: {
 
   // Send message with custom text (for context injection)
   const sendMessageWithText = useCallback(
-    (messageText: string, displayText?: string) => {
+    (
+      messageText: string,
+      displayText?: string,
+      overrideInclude?: DocsIncludeFlags
+    ) => {
       if (!messageText.trim()) return;
 
       // Capture preflight estimate based on current input box
@@ -713,7 +809,7 @@ export const useChatState = (opts?: {
       }));
 
       // Send the full context message to OpenAI
-      void sendToOpenAI(messageText.trim());
+      void sendToOpenAI(messageText.trim(), overrideInclude);
     },
     [sendToOpenAI, chatState.messages, chatState.inputValue, opts?.docs]
   );

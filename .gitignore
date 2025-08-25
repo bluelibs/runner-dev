@@ -1,6 +1,7 @@
 .DS_Store
 TODO.md
 /tmp
+/xx
 coverage
 dist
 node_modules

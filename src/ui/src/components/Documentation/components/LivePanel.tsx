@@ -452,21 +452,26 @@ export const LivePanel: React.FC<LivePanelProps> = ({
           <RecentLogs logs={liveData.logs} />
         </div>
 
-        {/* Recent Events and Runs - Side by Side */}
+        {/* Recent Events and Runs - stacked */}
         <div
           className="live-events-runs-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "1fr",
             gap: "16px",
           }}
         >
-          <RecentEvents emissions={liveData.emissions} detailed={detailed} />
-          <RecentRuns
-            runs={liveData.runs}
-            errors={liveData.errors}
-            detailed={detailed}
-          />
+          <div className="live-section">
+            <RecentEvents emissions={liveData.emissions} detailed={detailed} />
+          </div>
+
+          <div className="live-section">
+            <RecentRuns
+              runs={liveData.runs}
+              errors={liveData.errors}
+              detailed={detailed}
+            />
+          </div>
         </div>
 
         {/* Live Actions - Full Width */}

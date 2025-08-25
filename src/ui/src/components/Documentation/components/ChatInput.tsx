@@ -13,7 +13,16 @@ export interface ChatInputProps {
   chatState: ChatState;
   setChatState: React.Dispatch<React.SetStateAction<ChatState>>;
   sendMessage: () => void;
-  sendMessageWithText: (messageText: string, displayText?: string) => void;
+  sendMessageWithText: (
+    messageText: string,
+    displayText?: string,
+    overrideInclude?: {
+      runner?: boolean;
+      runnerDev?: boolean;
+      schema?: boolean;
+      projectOverview?: boolean;
+    }
+  ) => void;
   stopRequest: () => void;
   onTaggedElementSelect?: (elementId: string, elementType: string) => void;
   // Available elements for tagging
@@ -164,13 +173,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }
       // Send cleaned text to the model, display the original text
       // If includeOverride present, set it just for this send
-      if (includeOverride) {
-        setChatState((prev) => ({
-          ...prev,
-          chatContext: { include: includeOverride },
-        }));
-      }
-      sendMessageWithText(cleaned, raw);
+      // Send cleaned text to the model, display raw (with tokens) in UI, and pass includeOverride
+      sendMessageWithText(cleaned, raw, includeOverride);
     } finally {
       setIsProcessingMessage(false);
     }

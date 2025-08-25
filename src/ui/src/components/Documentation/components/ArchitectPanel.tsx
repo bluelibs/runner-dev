@@ -498,15 +498,15 @@ export const ArchitectPanel = React.forwardRef<
         }
       );
 
-      setPlan({
-        version: Number(parsedRaw.version || 1),
-        goal: String(parsedRaw.goal || goal.trim()),
-        changes,
-        notes: parsedRaw.notes ? String(parsedRaw.notes) : undefined,
-        research: Array.isArray(parsedRaw.research)
-          ? parsedRaw.research
-          : undefined,
-      });
+      //   setPlan({
+      //     version: Number(parsedRaw.version || 1),
+      //     goal: String(parsedRaw.goal || goal.trim()),
+      //     changes,
+      //     notes: parsedRaw.notes ? String(parsedRaw.notes) : undefined,
+      //     research: Array.isArray(parsedRaw.research)
+      //       ? parsedRaw.research
+      //       : undefined,
+      //   });
     } catch (e: any) {
       setError(e?.message || "Failed to generate plan");
     } finally {

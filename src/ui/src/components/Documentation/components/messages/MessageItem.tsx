@@ -73,17 +73,7 @@ export const MessageItem: React.FC<Props> = React.memo(
                   </summary>
                   <div style={{ marginTop: 6 }}>
                     {calls.map((c, i) => (
-                      <div
-                        key={c.id || i}
-                        style={{
-                          padding: "6px 8px",
-                          borderRadius: 6,
-                          border: "1px solid rgba(0,0,0,0.08)",
-                          marginBottom: 6,
-                          background: "#f8f9fb",
-                          fontSize: 12,
-                        }}
-                      >
+                      <div key={c.id || i}>
                         <code style={{ fontSize: 12 }}>
                           {c.name || "tool"}
                           {c.argsPreview ? `(${c.argsPreview})` : "()"}

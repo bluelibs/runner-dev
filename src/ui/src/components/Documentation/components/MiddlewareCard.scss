@@ -165,7 +165,8 @@
   }
 
   &__content {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: $spacing-md;
   }
 }

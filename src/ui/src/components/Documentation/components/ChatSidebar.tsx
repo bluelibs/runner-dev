@@ -284,7 +284,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               >
                 ⚙️
               </button>
-              <button
+              {/* <button
                 className={`sidebar-header__action-btn ${
                   mode === "chat" ? "active" : ""
                 }`}
@@ -292,8 +292,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 onClick={() => setMode("chat")}
               >
                 💬
-              </button>
-              <button
+              </button> */}
+              {/* <button
                 className={`sidebar-header__action-btn ${
                   mode === "architect" ? "active" : ""
                 }`}
@@ -301,7 +301,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 onClick={() => setMode("architect")}
               >
                 🏗️
-              </button>
+              </button> */}
               <button
                 className="sidebar-header__action-btn sidebar-header__action-btn--destructive"
                 onClick={() => {
@@ -339,7 +339,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </div>
         )}
 
-        {mode === "architect" && (
+        {/* {mode === "architect" && (
           <>
             <ArchitectPanel
               ref={architectRef}
@@ -372,7 +372,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               docsRunnerDev={runnerDevMd}
             />
           </>
-        )}
+        )} */}
 
         {mode === "chat" && (
           <>

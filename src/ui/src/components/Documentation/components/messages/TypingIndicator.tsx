@@ -12,12 +12,14 @@ export const TypingIndicator: React.FC<{
   stage?: "thinking" | "processing" | "generating";
   toolCalls?: ToolCall[];
 }> = ({ stage = "thinking", toolCalls = [] }) => {
-  const stageLabel =
+  const count = (toolCalls || []).length;
+  const base =
     stage === "processing"
-      ? "Calling tools..."
+      ? "Calling tools"
       : stage === "generating"
-      ? "Generating response..."
-      : "Thinking...";
+      ? "Generating response"
+      : "Thinking";
+  const stageLabel = count > 0 ? `${base} (${count} tools)` : `${base}...`;
   const visibleCalls = (toolCalls || []).filter((t): t is ToolCall =>
     Boolean(t)
   );
@@ -53,6 +55,7 @@ export const TypingIndicator: React.FC<{
                       : t.status === "error"
                       ? "#fff5f5"
                       : "#f8f9fb",
+                  color: "#111",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -68,7 +71,7 @@ export const TypingIndicator: React.FC<{
                       ? "done"
                       : "error"}
                   </span>
-                  <code style={{ fontSize: 12 }}>
+                  <code style={{ fontSize: 12, color: "#111" }}>
                     {t.name || "tool"}
                     {t.argsPreview ? `(${t.argsPreview})` : "()"}
                   </code>
@@ -81,6 +84,7 @@ export const TypingIndicator: React.FC<{
                       background: "transparent",
                       margin: "6px 0 0 0",
                       fontSize: 12,
+                      color: "#111",
                     }}
                   >
                     {t.resultPreview}

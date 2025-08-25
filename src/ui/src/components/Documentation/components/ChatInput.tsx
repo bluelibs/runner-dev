@@ -98,7 +98,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     try {
       const raw = chatState.inputValue;
       const tokenRe =
-        /\s*@docs\.(runnerDev|runner|schema|projectOverview|clear)\b/g;
+        /\s*@docs\.(runnerDev|runner|schema|projectOverview|fullContext|clear)\b/g;
       const found: string[] = [];
       raw.replace(tokenRe, (m) => {
         found.push(m.trim());
@@ -121,6 +121,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             if (t.endsWith("runnerDev")) includes.runnerDev = true;
             if (t.endsWith("schema")) includes.schema = true;
             if (t.endsWith("projectOverview")) includes.projectOverview = true;
+            if (t.endsWith("fullContext")) {
+              includes.runner = true;
+              includes.schema = true;
+              includes.projectOverview = true;
+            }
           }
           return { ...prev, chatContext: { include: includes } };
         });
@@ -149,31 +154,72 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 if (t.endsWith("schema")) includes.schema = true;
                 if (t.endsWith("projectOverview"))
                   includes.projectOverview = true;
+                if (t.endsWith("fullContext")) {
+                  includes.runner = true;
+                  includes.schema = true;
+                  includes.projectOverview = true;
+                }
               }
               return includes;
             })()
           : undefined;
-      if (cleaned.length === 0) {
-        // Show local acknowledgement and do not call the model
-        setChatState((prev) => ({
-          ...prev,
-          messages: [
-            ...prev.messages,
-            {
-              id: `ctx-${Date.now()}`,
-              author: "bot",
-              type: "text",
-              text: "Context updated.",
-              timestamp: Date.now(),
-            },
-          ],
-          inputValue: "",
-        }));
-        return;
+      if (found.length > 0) {
+        // Build a friendly note of which contexts were toggled
+        const ctxNames = found
+          .filter((t) => !t.endsWith("clear"))
+          .map((t) =>
+            t.includes("fullContext")
+              ? "Full Context (Runner + Project Overview + GraphQL Schema)"
+              : t.includes("projectOverview")
+              ? "Project Overview"
+              : t.endsWith("runnerDev")
+              ? "Runner-Dev"
+              : t.endsWith("runner")
+              ? "Runner"
+              : t.endsWith("schema")
+              ? "GraphQL Schema"
+              : t.replace(/^@docs\./, "")
+          );
+
+        if (cleaned.length === 0) {
+          // Show local acknowledgement and do not call the model
+          setChatState((prev) => ({
+            ...prev,
+            messages: [
+              ...prev.messages,
+              {
+                id: `ctx-${Date.now()}`,
+                author: "bot",
+                type: "text",
+                text:
+                  ctxNames.length > 0
+                    ? `Context updated: ${ctxNames.join(", ")}`
+                    : "Context cleared.",
+                timestamp: Date.now(),
+              },
+            ],
+            inputValue: "",
+          }));
+          return;
+        }
+
+        // If the remaining text is just a generic verb like "read" or "summarize",
+        // translate it into a clear instruction for the model.
+        const trimmed = cleaned.trim().toLowerCase();
+        const isJustReadOrSummarize =
+          /^(read|read it|read them|read this|summarize|summary)$/i.test(
+            trimmed
+          );
+        if (isJustReadOrSummarize) {
+          const summaryAsk = `Please read the provided docs context and give a concise, high-signal summary covering the most relevant points for development. Context enabled: ${ctxNames.join(
+            ", "
+          )}.`;
+          sendMessageWithText(summaryAsk, raw, includeOverride);
+          return;
+        }
       }
-      // Send cleaned text to the model, display the original text
-      // If includeOverride present, set it just for this send
-      // Send cleaned text to the model, display raw (with tokens) in UI, and pass includeOverride
+
+      // Default: Send cleaned text to the model, display raw (with tokens) in UI, and pass includeOverride
       sendMessageWithText(cleaned, raw, includeOverride);
     } finally {
       setIsProcessingMessage(false);
@@ -443,6 +489,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // Docs quick-insert options (only include those with available data)
   const docsOptions = [
+    docsRunner && docsProjectOverview && docsSchema && {
+      id: "docs.fullContext",
+      title: "Add Full Context",
+      description: "Runner + Project Overview + GraphQL Schema (complete context)",
+    },
     docsRunner && {
       id: "docs.runner",
       title: "Add Runner Context",

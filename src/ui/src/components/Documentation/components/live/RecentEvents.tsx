@@ -48,44 +48,60 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
     return new Date(timestampMs).toLocaleTimeString();
   };
 
-  if (emissions.length === 0) {
-    return null;
-  }
-
   return (
-    <div className="live-section">
+    <div className="" style={{ marginBottom: "20px" }}>
       <h4>📡 Recent Events ({emissions.length})</h4>
-      <div className="live-entries">
-        {emissions
-          .slice(-10)
-          .reverse()
-          .map((emission, idx) => (
-            <div
-              key={`${emission.timestampMs}-${idx}`}
-              className="live-entry live-entry--emission"
-            >
-              <span className="entry-time">
-                {formatTimestamp(emission.timestampMs)}
-              </span>
-              <span className="entry-event">{emission.eventId}</span>
-              {emission.emitterId && (
-                <span className="entry-emitter">from {emission.emitterId}</span>
-              )}
-              {emission.payload && (
-                <button
-                  className="entry-payload-button"
-                  onClick={() =>
-                    openPayloadModal(
-                      JSON.stringify(JSON.parse(emission.payload!), null, 2),
-                      emission.eventId
-                    )
-                  }
+      <div
+        className="live-entries"
+        style={{
+          maxHeight: "300px",
+          overflowY: "auto",
+        }}
+      >
+        {emissions.length === 0 ? (
+          <div className="live-entry">
+            <span>No recent events</span>
+          </div>
+        ) : (
+          <>
+            {emissions
+              .slice(-10)
+              .reverse()
+              .map((emission, idx) => (
+                <div
+                  key={`${emission.timestampMs}-${idx}`}
+                  className="live-entry live-entry--emission"
                 >
-                  View Payload
-                </button>
-              )}
-            </div>
-          ))}
+                  <span className="entry-time">
+                    {formatTimestamp(emission.timestampMs)}
+                  </span>
+                  <span className="entry-event">{emission.eventId}</span>
+                  {emission.emitterId && (
+                    <span className="entry-emitter">
+                      from {emission.emitterId}
+                    </span>
+                  )}
+                  {emission.payload && (
+                    <button
+                      className="entry-payload-button"
+                      onClick={() =>
+                        openPayloadModal(
+                          JSON.stringify(
+                            JSON.parse(emission.payload!),
+                            null,
+                            2
+                          ),
+                          emission.eventId
+                        )
+                      }
+                    >
+                      View Payload
+                    </button>
+                  )}
+                </div>
+              ))}
+          </>
+        )}
       </div>
       <CodeModal
         title="Event Payload"

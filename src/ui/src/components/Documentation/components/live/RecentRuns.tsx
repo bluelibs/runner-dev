@@ -64,12 +64,18 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
   };
 
   return (
-    <div className="live-section live-section--combined">
+    <div className="" style={{ marginBottom: "20px" }}>
       {/* Recent Errors */}
       {errors.length > 0 && (
         <div style={{ marginBottom: "15px" }}>
           <h4>❌ Recent Errors ({errors.length})</h4>
-          <div className="live-entries">
+          <div
+            className="live-entries"
+            style={{
+              maxHeight: "300px",
+              overflowY: "auto",
+            }}
+          >
             {errors
               .slice(-10)
               .reverse()
@@ -105,7 +111,13 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
       {runs.length > 0 && (
         <div>
           <h4>🏃 Recent Runs ({runs.length})</h4>
-          <div className="live-entries">
+          <div
+            className="live-entries"
+            style={{
+              maxHeight: "300px",
+              overflowY: "auto",
+            }}
+          >
             {runs
               .slice(-10)
               .reverse()

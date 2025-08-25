@@ -141,6 +141,43 @@ export const buildRequestMessages = (
   return msgs;
 };
 
+const parseDocsTokensFromInput = (inputValue: string): DocsIncludeFlags => {
+  const tokenRe = /\s*@docs\.(runnerDev|runner|schema|projectOverview|fullContext|clear)\b/g;
+  const found: string[] = [];
+  (inputValue || "").replace(tokenRe, (m) => {
+    found.push(m.trim());
+    return m;
+  });
+  
+  const includes: DocsIncludeFlags = {
+    runner: false,
+    runnerDev: false,
+    schema: false,
+    projectOverview: false,
+  };
+  
+  for (const t of found) {
+    if (t.endsWith("clear")) {
+      includes.runner = false;
+      includes.runnerDev = false;
+      includes.schema = false;
+      includes.projectOverview = false;
+      continue;
+    }
+    if (t.endsWith("runner")) includes.runner = true;
+    if (t.endsWith("runnerDev")) includes.runnerDev = true;
+    if (t.endsWith("schema")) includes.schema = true;
+    if (t.endsWith("projectOverview")) includes.projectOverview = true;
+    if (t.endsWith("fullContext")) {
+      includes.runner = true;
+      includes.schema = true;
+      includes.projectOverview = true;
+    }
+  }
+  
+  return includes;
+};
+
 export const computeContextEstimateFromContext = (
   systemPrompt: string,
   historyTexts: string[],
@@ -150,7 +187,17 @@ export const computeContextEstimateFromContext = (
 ) => {
   const systemTokens = estimateTokens(systemPrompt);
   const historyTokens = estimateTokens((historyTexts || []).join("\n\n"));
-  const docsBlock = buildDocsBlock(docs, include);
+  
+  // Parse @docs tokens from input and merge with persistent includes
+  const inputDocsFlags = parseDocsTokensFromInput(inputValue || "");
+  const mergedIncludes: DocsIncludeFlags = {
+    runner: include.runner || inputDocsFlags.runner,
+    runnerDev: include.runnerDev || inputDocsFlags.runnerDev,
+    schema: include.schema || inputDocsFlags.schema,
+    projectOverview: include.projectOverview || inputDocsFlags.projectOverview,
+  };
+  
+  const docsBlock = buildDocsBlock(docs, mergedIncludes);
   const docsTokens = estimateTokens(docsBlock);
   const inputTokens = estimateTokens(inputValue || "");
   const total = systemTokens + historyTokens + docsTokens + inputTokens;
@@ -317,4 +364,42 @@ export const loadChatSettings = (): ChatSettings | null => {
     console.warn("Failed to load chat settings:", e);
   }
   return null;
+};
+
+// Persist thread-level docs include context so @docs.* toggles survive refreshes
+export const saveChatContext = (ctx: { include?: DocsIncludeFlags } | null) => {
+  try {
+    if (!ctx || !ctx.include) {
+      localStorage.removeItem("chat-sidebar-context");
+      return;
+    }
+    localStorage.setItem(
+      "chat-sidebar-context",
+      JSON.stringify({ include: ctx.include, timestamp: Date.now() })
+    );
+  } catch (e) {
+    console.warn("Failed to save chat context:", e);
+  }
+};
+
+export const loadChatContext = (): { include: DocsIncludeFlags } | null => {
+  try {
+    const saved = localStorage.getItem("chat-sidebar-context");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const include = (parsed?.include || {}) as DocsIncludeFlags;
+      return { include };
+    }
+  } catch (e) {
+    console.warn("Failed to load chat context:", e);
+  }
+  return null;
+};
+
+export const clearChatContext = () => {
+  try {
+    localStorage.removeItem("chat-sidebar-context");
+  } catch (e) {
+    console.warn("Failed to clear chat context:", e);
+  }
 };

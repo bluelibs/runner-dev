@@ -364,6 +364,38 @@
           }
         }
 
+        // Tool calls summary styling
+        .message-tool-calls {
+          summary {
+            list-style: none;
+            outline: none;
+            user-select: none;
+            font-size: $font-size-xs;
+            // color: rgba(255, 255, 255, 0.9);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+
+            &::marker {
+              content: "";
+            }
+
+            &::before {
+              content: "🔧";
+              opacity: 0.9;
+            }
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+
+          > div {
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+            padding-left: 8px;
+          }
+        }
+
         // File preview styling
         .message-file {
           .file-preview {

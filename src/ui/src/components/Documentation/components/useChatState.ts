@@ -18,6 +18,9 @@ import {
   buildRequestMessages,
   expandDocsInMessage,
   DocsIncludeFlags,
+  saveChatContext,
+  loadChatContext,
+  clearChatContext,
 } from "./ChatUtils";
 import {
   streamChatCompletion,
@@ -87,6 +90,27 @@ export const useChatState = (opts?: {
   const pendingBotTimeout = useRef<number | null>(null);
   const abortController = useRef<AbortController | null>(null);
 
+  const docsRef = useRef<DocsBundle>({
+    runnerAiMd: opts?.docs?.runnerAiMd || null,
+    graphqlSdl: opts?.docs?.graphqlSdl || null,
+    runnerDevMd: opts?.docs?.runnerDevMd || null,
+    projectOverviewMd: opts?.docs?.projectOverviewMd || null,
+  });
+
+  useEffect(() => {
+    docsRef.current = {
+      runnerAiMd: opts?.docs?.runnerAiMd || null,
+      graphqlSdl: opts?.docs?.graphqlSdl || null,
+      runnerDevMd: opts?.docs?.runnerDevMd || null,
+      projectOverviewMd: opts?.docs?.projectOverviewMd || null,
+    };
+  }, [
+    opts?.docs?.runnerAiMd,
+    opts?.docs?.graphqlSdl,
+    opts?.docs?.runnerDevMd,
+    opts?.docs?.projectOverviewMd,
+  ]);
+
   // Load persisted chat history and settings on mount
   useEffect(() => {
     const savedMessages = loadChatHistory();
@@ -100,6 +124,15 @@ export const useChatState = (opts?: {
         settings: { ...defaultSettings, ...savedSettings },
       }));
     }
+    const savedCtx = loadChatContext();
+    if (savedCtx && savedCtx.include) {
+      setChatState((prev) => ({
+        ...prev,
+        chatContext: {
+          include: { ...prev.chatContext?.include, ...savedCtx.include },
+        },
+      }));
+    }
   }, []);
 
   // Persist chat history
@@ -109,6 +142,11 @@ export const useChatState = (opts?: {
     }, 1000);
     return () => clearTimeout(timeoutId);
   }, [chatState.messages]);
+
+  // Persist thread-level docs include context whenever it changes
+  useEffect(() => {
+    saveChatContext(chatState.chatContext || null);
+  }, [chatState.chatContext]);
 
   // Cleanup timeouts and abort controllers
   useEffect(() => {
@@ -532,6 +570,12 @@ export const useChatState = (opts?: {
                           type: "text",
                           text: "",
                           timestamp: Date.now(),
+                          toolCalls: (prev.toolCalls || []).map((t) => ({
+                            id: t.id,
+                            name: t.name,
+                            argsPreview: t.argsPreview,
+                            resultPreview: t.resultPreview,
+                          })),
                         } as TextMessage,
                       ],
                     };
@@ -656,12 +700,12 @@ export const useChatState = (opts?: {
           }
         );
 
-        // Finalize
+        // Finalize: keep toolCalls until the last bot message picks them up
         setChatState((prev) => ({
           ...prev,
           isTyping: false,
           thinkingStage: "none",
-          toolCalls: [],
+          // keep prev.toolCalls; they will be attached to the last message in onFinish
           canStop: false,
         }));
       } catch (err: any) {
@@ -870,6 +914,7 @@ export const useChatState = (opts?: {
 
   const clearChat = useCallback(() => {
     localStorage.removeItem("chat-sidebar-history");
+    clearChatContext();
     setChatState((prev) => ({
       ...prev,
       inputValue: "",
@@ -958,12 +1003,12 @@ export const useChatState = (opts?: {
     const hasHistory = historyForEstimate.length > 0;
 
     // When there's no history (besides the welcome message), no input, and no sticky includes,
-    // show a fully reset counter instead of counting system tokens.
+    // still show the system prompt tokens (never show 0).
     if (!hasHistory && !hasInput && !hasIncludes && !chatState.isTyping) {
       return {
         mode: "context" as const,
-        total: 0,
-        breakdown: { system: 0, history: 0, input: 0 },
+        total: liveEstimate.system,
+        breakdown: { system: liveEstimate.system, history: 0, input: 0 },
       };
     }
 

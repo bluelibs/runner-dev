@@ -48,7 +48,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
 
   return (
     <div
-      className="live-section live-section--logs"
+      className="live-section"
       style={{ marginBottom: "20px" }}
     >
       <h3>📝 Recent Logs ({logs.length})</h3>
@@ -56,8 +56,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
         className="live-entries"
         style={{ 
           maxHeight: "300px",
-          overflowY: "auto",
-          border: "none"
+          overflowY: "auto"
         }}
       >
         {logs
@@ -67,7 +66,6 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
             <div
               key={`${log.timestampMs}-${idx}`}
               className="live-entry live-entry--log"
-              style={{ border: "none", borderLeft: "none" }}
             >
               <span className="entry-time">
                 {formatTimestamp(log.timestampMs)}

@@ -77,7 +77,8 @@
   top: 0;
   width: 280px;
   height: 100vh;
-  background: $gradient-sidebar;
+  background: #212121; // make a nice gradient left to right
+  background: linear-gradient(to right, #212121, #121212);
   color: white;
   padding: $spacing-xxl $spacing-lg;
   padding-top: 0px;
@@ -86,9 +87,10 @@
   z-index: 1000;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
   transition: width 0.2s ease;
-  min-width: 200px;
+  min-width: 80px;
   max-width: 600px;
   overscroll-behavior: contain; // avoid chaining to the page
+  container-type: inline-size; // enable container queries based on width
 
   // Custom scrollbar styling
   &::-webkit-scrollbar {
@@ -118,6 +120,72 @@
   // Firefox scrollbar styling
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+}
+
+// Container-based compact rules when the sidebar is very narrow
+.docs-sidebar {
+  @container (max-width: 160px) {
+    .navigation-view--list .nav-content {
+      display: inline-block;
+      text-align: center;
+    }
+    .docs-nav-stats {
+      display: none;
+    }
+    .navigation-view--list .nav-content .system-label {
+      display: none;
+    }
+
+    .sidebar-header__title,
+    .sidebar-header__description {
+      display: none;
+    }
+
+    .docs-main-filters {
+      .docs-namespace-input {
+        label {
+          display: none;
+        }
+        input {
+          padding-left: 8px;
+          min-width: 0;
+        }
+      }
+    }
+
+    .docs-view-toggle {
+      .docs-view-button {
+        .label {
+          display: none;
+        }
+        .icon {
+          font-size: 18px;
+        }
+      }
+    }
+
+    .navigation-view {
+      .nav-node-label,
+      .nav-badge,
+      .nav-node-count,
+      .nav-content .text {
+        display: none;
+      }
+
+      .nav-node-icon,
+      .nav-content .icon {
+        margin-right: 0;
+        font-size: 18px;
+      }
+
+      .nav-link,
+      .nav-node {
+        justify-content: center;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+    }
+  }
 }
 
 .docs-system-toggle-container {
@@ -158,12 +226,12 @@
   .docs-namespace-input {
     flex: 1;
     margin-bottom: 0; // Override the default margin
-    min-width: 200px; // Minimum width for input
+    min-width: 0; // Allow shrinking when sidebar is narrow
     display: flex;
     flex-direction: column;
 
     input {
-      min-width: 200px;
+      min-width: 0; // Allow shrinking when sidebar is narrow
     }
   }
   // Stack vertically when sidebar gets narrow
@@ -231,6 +299,7 @@
   overflow-y: auto;
   overflow-x: hidden; // standardize hidden horizontal overflow
   overscroll-behavior: contain;
+  padding-right: 5px;
 
   // Custom scrollbar styling for navigation container
   &::-webkit-scrollbar {
@@ -493,6 +562,7 @@
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
   position: relative;
+  padding-right: 0;
 }
 
 .docs-main-content--suspended {

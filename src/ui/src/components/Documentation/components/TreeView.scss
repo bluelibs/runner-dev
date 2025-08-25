@@ -2,6 +2,7 @@
   font-family: inherit;
   font-size: 0.9rem;
   user-select: none;
+  overflow-x: auto;
 
   .tree-node-container {
     .tree-node {
@@ -99,7 +100,7 @@
 
     .tree-children {
       border-left: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.1));
-      margin-left: 10px;
+      margin-left: 5px;
     }
   }
 }

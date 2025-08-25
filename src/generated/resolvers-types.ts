@@ -490,6 +490,8 @@ export type Query = {
   event: Maybe<Event>;
   /** List events with optional filters. */
   events: Array<Event>;
+  /** Get a single hook by its id. */
+  hook: Maybe<Hook>;
   /** Get all hooks (optionally filter by id prefix). */
   hooks: Array<Hook>;
   /** Access live telemetry (logs, emissions, errors, runs, system stats). Always use filters and last to limit payload. */
@@ -536,6 +538,12 @@ export type QueryEventArgs = {
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryEventsArgs = {
   filter: InputMaybe<EventFilterInput>;
+};
+
+
+/** Root queries for introspection, live telemetry, and debugging of Runner apps. */
+export type QueryHookArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -1295,6 +1303,7 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   diagnostics: Resolver<Array<ResolversTypes['Diagnostic']>, ParentType, ContextType>;
   event: Resolver<Maybe<ResolversTypes['Event']>, ParentType, ContextType, RequireFields<QueryEventArgs, 'id'>>;
   events: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType, QueryEventsArgs>;
+  hook: Resolver<Maybe<ResolversTypes['Hook']>, ParentType, ContextType, RequireFields<QueryHookArgs, 'id'>>;
   hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType, QueryHooksArgs>;
   live: Resolver<ResolversTypes['Live'], ParentType, ContextType>;
   middleware: Resolver<Maybe<ResolversTypes['Middleware']>, ParentType, ContextType, RequireFields<QueryMiddlewareArgs, 'id'>>;

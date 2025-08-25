@@ -142,20 +142,21 @@ export const buildRequestMessages = (
 };
 
 const parseDocsTokensFromInput = (inputValue: string): DocsIncludeFlags => {
-  const tokenRe = /\s*@docs\.(runnerDev|runner|schema|projectOverview|fullContext|clear)\b/g;
+  const tokenRe =
+    /\s*@docs\.(runnerDev|runner|schema|projectOverview|fullContext|clear)\b/g;
   const found: string[] = [];
   (inputValue || "").replace(tokenRe, (m) => {
     found.push(m.trim());
     return m;
   });
-  
+
   const includes: DocsIncludeFlags = {
     runner: false,
     runnerDev: false,
     schema: false,
     projectOverview: false,
   };
-  
+
   for (const t of found) {
     if (t.endsWith("clear")) {
       includes.runner = false;
@@ -174,7 +175,7 @@ const parseDocsTokensFromInput = (inputValue: string): DocsIncludeFlags => {
       includes.projectOverview = true;
     }
   }
-  
+
   return includes;
 };
 
@@ -187,7 +188,7 @@ export const computeContextEstimateFromContext = (
 ) => {
   const systemTokens = estimateTokens(systemPrompt);
   const historyTokens = estimateTokens((historyTexts || []).join("\n\n"));
-  
+
   // Parse @docs tokens from input and merge with persistent includes
   const inputDocsFlags = parseDocsTokensFromInput(inputValue || "");
   const mergedIncludes: DocsIncludeFlags = {
@@ -196,7 +197,7 @@ export const computeContextEstimateFromContext = (
     schema: include.schema || inputDocsFlags.schema,
     projectOverview: include.projectOverview || inputDocsFlags.projectOverview,
   };
-  
+
   const docsBlock = buildDocsBlock(docs, mergedIncludes);
   const docsTokens = estimateTokens(docsBlock);
   const inputTokens = estimateTokens(inputValue || "");
@@ -354,7 +355,7 @@ export const loadChatSettings = (): ChatSettings | null => {
       const parsed = JSON.parse(saved);
       return {
         openaiApiKey: parsed.openaiApiKey ?? null,
-        model: parsed.model ?? "gpt-4o-mini",
+        model: parsed.model ?? "gpt-5-mini",
         stream: parsed.stream ?? true,
         responseMode: parsed.responseMode === "json" ? "json" : "text",
         baseUrl: parsed.baseUrl ?? "https://api.openai.com",

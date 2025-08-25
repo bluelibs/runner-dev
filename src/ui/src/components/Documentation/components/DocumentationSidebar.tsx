@@ -83,11 +83,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
           <input
             id="namespace-input"
             type="text"
-            placeholder={
-              viewMode === "tree"
-                ? "Search elements..."
-                : "Enter namespace prefix or any key..."
-            }
+            placeholder={"Filter by ID..."}
             value={localNamespaceSearch}
             onChange={(e) => onNamespaceSearchChange(e.target.value)}
             onKeyDown={(e) => e.stopPropagation()}
@@ -112,7 +108,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
           <span className="docs-switch-track">
             <span className="docs-switch-thumb" />
           </span>
-          <span className="docs-switch-text">Show System</span>
+          <span className="docs-switch-text">SYSTEM </span>
         </label>
       </div>
 
@@ -126,7 +122,8 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
             onClick={() => onViewModeChange("list")}
             title="List View"
           >
-            📄 List
+            <span className="icon">📄</span>
+            <span className="label">List</span>
           </button>
           <button
             className={`docs-view-button ${
@@ -135,7 +132,8 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
             onClick={() => onViewModeChange("tree")}
             title="Tree View"
           >
-            🌳 Tree
+            <span className="icon">🌳</span>
+            <span className="label">Tree</span>
           </button>
         </div>
         {viewMode === "tree" && (
@@ -147,7 +145,8 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
               onClick={() => onTreeTypeChange("namespace")}
               title="By Namespace"
             >
-              📁 Namespace
+              <span className="icon">📁</span>
+              <span className="label">Namespace</span>
             </button>
             <button
               className={`docs-view-button ${
@@ -156,7 +155,8 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
               onClick={() => onTreeTypeChange("type")}
               title="By Type"
             >
-              🏷️ Type
+              <span className="icon">🏷️</span>
+              <span className="label">Type</span>
             </button>
           </div>
         )}

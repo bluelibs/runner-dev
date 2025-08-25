@@ -97,19 +97,6 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <span className="count">Hooks: {hooks.length}</span>
               </div>
             </div>
-            {event.tags && event.tags.length > 0 && (
-              <div className="event-card__tags">
-                {introspector.getTagsByIds(event.tags).map((tag) => (
-                  <a
-                    href={`#element-${tag.id}`}
-                    key={tag.id}
-                    className="clean-button"
-                  >
-                    {formatId(tag.id)}
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -199,6 +186,25 @@ export const EventCard: React.FC<EventCardProps> = ({
                           </div>
                         </a>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {event.tags && event.tags.length > 0 && (
+                  <div className="event-card__info-block">
+                    <div className="label">Tags:</div>
+                    <div className="value">
+                      <div className="event-card__tags">
+                        {introspector.getTagsByIds(event.tags).map((tag) => (
+                          <a
+                            href={`#element-${tag.id}`}
+                            key={tag.id}
+                            className="clean-button"
+                          >
+                            {formatId(tag.id)}
+                          </a>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

@@ -25,7 +25,7 @@ export const TagsSection: React.FC<TagsSectionProps> = ({
     <div className={`tags-section ${className}`}>
       <h4 className="tags-section__title">🏷️ Tags</h4>
       <div className="tags-section__content">
-        <div className="tags-section__items">
+        {/* <div className="tags-section__items">
           {tags.map((tag) => (
             <a
               key={tag.id}
@@ -46,13 +46,10 @@ export const TagsSection: React.FC<TagsSectionProps> = ({
               </div>
             </a>
           ))}
-        </div>
+        </div> */}
 
         {element.tagsDetailed && element.tagsDetailed.length > 0 && (
           <div className="tags-section__detailed">
-            <h5 className="tags-section__detailed__title">
-              Tag Configurations
-            </h5>
             <div className="tags-section__detailed__items">
               {element.tagsDetailed.map((tagUsage) => {
                 const tag = tags.find((t) => t.id === tagUsage.id);

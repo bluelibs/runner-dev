@@ -8,7 +8,7 @@
   left: 0;
   top: 0;
   height: 100vh;
-  background: #111827;
+  background: #111827; // make a nice gradient left to right
   color: white;
   padding: $spacing-xl $spacing-lg;
   padding-top: 0;
@@ -25,8 +25,6 @@
     position: sticky;
     top: 0;
     background: rgba(17, 24, 39, 0.25);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
     z-index: 10;
     padding: $spacing-md $spacing-lg;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -100,8 +98,6 @@
         cursor: pointer;
         font-size: $font-size-sm;
         transition: all 0.2s ease;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
         box-shadow: 0 1px 4px rgba(239, 68, 68, 0.08);
 
         &:hover {
@@ -156,9 +152,7 @@
       margin: 0;
       list-style: none;
 
-      &:hover {
-        // background: rgba(255, 255, 255, 0.03);
-      }
+      // hover background intentionally disabled
 
       &--selected {
         background: rgba(59, 130, 246, 0.08);
@@ -189,18 +183,47 @@
         }
 
         .chat-message-copy {
-          background: none;
-          border: none;
-          color: white;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.9);
           cursor: pointer;
-          padding: $spacing-xs;
-          border-radius: $border-radius-sm;
-          opacity: 0.7;
+          padding: 0;
+          width: 28px;
+          height: 28px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          opacity: 0.6; // translucent by default
           transition: all 0.2s ease;
+          position: relative;
+
+          &::before {
+            content: "";
+            width: 16px;
+            height: 16px;
+            display: block;
+            background-color: rgba(255, 255, 255, 0.9);
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-size: contain;
+            mask-size: contain;
+            -webkit-mask-position: center;
+            mask-position: center;
+          }
 
           &:hover {
             opacity: 1;
             background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+          }
+
+          &:focus-visible {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.24);
           }
         }
       }
@@ -396,6 +419,57 @@
           }
         }
 
+        // Copy button (subtle, bottom-right)
+        .chat-copy-btn {
+          position: absolute;
+          right: 6px;
+          bottom: 6px;
+          width: 24px;
+          height: 24px;
+          border-radius: 6px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          cursor: pointer;
+          opacity: 0.5;
+          transition: all 0.15s ease;
+          padding: 0;
+
+          &::before {
+            content: "";
+            width: 14px;
+            height: 14px;
+            display: block;
+            background-color: rgba(255, 255, 255, 0.9);
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-size: contain;
+            mask-size: contain;
+            -webkit-mask-position: center;
+            mask-position: center;
+            margin: auto;
+          }
+
+          &:hover,
+          &:focus-visible {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+          }
+
+          &.chat-copy-btn--copied {
+            opacity: 1;
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.3);
+
+            &::before {
+              -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>');
+              mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>');
+            }
+          }
+        }
+
         // File preview styling
         .message-file {
           .file-preview {
@@ -532,8 +606,6 @@
     left: 20px;
     right: 20px;
     background: rgba(17, 24, 39, 0.95) !important;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
     z-index: 1001 !important;
     border-radius: $border-radius-lg;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -637,8 +709,6 @@
         min-width: 260px;
         max-width: 320px;
         background: rgba(17, 24, 39, 0.98);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 10px;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
@@ -761,8 +831,6 @@
         left: 0;
         right: 0;
         background: rgba(17, 24, 39, 0.95);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: $border-radius-lg;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);

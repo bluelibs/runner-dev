@@ -143,6 +143,11 @@
     color: $text-dark;
   }
 
+  .value a {
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
   .value {
     font-family: $font-family-mono;
     font-size: $font-size-sm;

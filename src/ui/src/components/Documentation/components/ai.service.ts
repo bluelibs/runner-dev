@@ -73,7 +73,8 @@ export async function streamChatCompletion(
     model: settings.model,
     messages,
     stream: settings.stream,
-    temperature: temperature ?? 0.2,
+    max_output_tokens: 16000,
+    // temperature: temperature ?? 0.2,
   };
 
   if (response_format) body.response_format = response_format;

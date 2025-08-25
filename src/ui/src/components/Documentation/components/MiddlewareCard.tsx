@@ -99,19 +99,6 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             >
               {middleware.type === "task" ? "⚙️ Task" : "🔧 Resource"}
             </div>
-            {middleware.tags && middleware.tags.length > 0 && (
-              <div className="middleware-card__tags">
-                {introspector.getTagsByIds(middleware.tags).map((tag) => (
-                  <a
-                    href={`#element-${tag.id}`}
-                    key={tag.id}
-                    className="middleware-card__tag"
-                  >
-                    {formatId(tag.id)}
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -199,6 +186,25 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                     <div className="config-item">
                       <strong>Resources:</strong>{" "}
                       {middleware.global.resources ? "Enabled" : "Disabled"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {middleware.tags && middleware.tags.length > 0 && (
+                <div className="middleware-card__info-block">
+                  <div className="label">Tags:</div>
+                  <div className="value">
+                    <div className="middleware-card__tags">
+                      {introspector.getTagsByIds(middleware.tags).map((tag) => (
+                        <a
+                          href={`#element-${tag.id}`}
+                          key={tag.id}
+                          className="clean-button"
+                        >
+                          {formatId(tag.id)}
+                        </a>
+                      ))}
                     </div>
                   </div>
                 </div>

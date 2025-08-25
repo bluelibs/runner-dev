@@ -106,7 +106,7 @@ export const ChatSettingsForm: React.FC<ChatSettingsFormProps> = ({
         <FormGroup
           label="Model"
           htmlFor="openai-model"
-          hint="Example: gpt-4o-mini"
+          hint="Example: gpt-5-mini"
         >
           <TextInput id="openai-model" {...register("model")} />
         </FormGroup>

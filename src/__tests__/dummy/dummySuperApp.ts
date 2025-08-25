@@ -18,10 +18,19 @@ import { z } from "zod";
 export const performanceTag = tag<{ warnAboveMs: number }>({
   id: "app.tags.performance",
   meta: { title: "xxx yyy" },
+  configSchema: z.object({
+    warnAboveMs: z.number().int().positive(),
+  }),
 });
 
 export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
   id: "app.tags.security",
+  configSchema: z
+    .object({
+      requiresAuth: z.boolean(),
+      roles: z.array(z.string()).optional(),
+    })
+    .strict(),
 });
 
 export const domainTag = tag<{ domain: string }>({
@@ -31,29 +40,58 @@ export const domainTag = tag<{ domain: string }>({
 
 export const apiTag = tag<{ method: string; path: string }>({
   id: "app.tags.api",
+  configSchema: z
+    .object({
+      method: z.enum([
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS",
+        "HEAD",
+      ]),
+      path: z.string(),
+    })
+    .strict(),
 });
 
 // Global middleware
-export const validationMiddleware = taskMiddleware({
+export const validationMiddleware = taskMiddleware<{
+  enabled?: boolean;
+  mode?: "loose" | "strict";
+}>({
   id: "app.middleware.validation",
   meta: {
     title: "Input Validation Middleware",
     description: "Validates task inputs and results using schemas",
   },
-  async run({ task, next }) {
+  configSchema: z
+    .object({
+      enabled: z.boolean().optional(),
+      mode: z.enum(["loose", "strict"]).optional(),
+    })
+    .strict(),
+  async run({ task, next }, _evt, _config) {
     // In a real app, you'd validate against task.inputSchema
     return next(task.input);
   },
 });
 
-
-export const loggingMiddleware = taskMiddleware({
+export const loggingMiddleware = taskMiddleware<{
+  logLevel?: "debug" | "info" | "warn" | "error";
+}>({
   id: "app.middleware.logging",
   meta: {
     title: "Activity Logging Middleware",
     description: "Logs all task executions with performance metrics",
   },
-  async run({ task, next }) {
+  configSchema: z
+    .object({
+      logLevel: z.enum(["debug", "info", "warn", "error"]).optional(),
+    })
+    .strict(),
+  async run({ task, next }, _evt, _config) {
     const start = Date.now();
     const result = await next(task.input);
     const duration = Date.now() - start;

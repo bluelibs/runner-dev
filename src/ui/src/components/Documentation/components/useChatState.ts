@@ -35,7 +35,7 @@ import { SYSTEM_PROMPT } from "./ai.systemPrompt";
 
 const defaultSettings: ChatSettings = {
   openaiApiKey: null,
-  model: "gpt-4o-mini",
+  model: "gpt-5-mini",
   stream: true,
   responseMode: "text",
   baseUrl: "https://api.openai.com",
@@ -881,7 +881,7 @@ export const useChatState = (opts?: {
           body: JSON.stringify({
             model: chatState.settings.model,
             messages: [{ role: "user", content: "ping" }],
-            max_tokens: 1,
+            max_tokens: 16,
             stream: false,
           }),
         });

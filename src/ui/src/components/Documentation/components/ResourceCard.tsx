@@ -77,19 +77,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               </p>
             )}
           </div>
-          {resource.tags && resource.tags.length > 0 && (
-            <div className="resource-card__tags">
-              {introspector.getTagsByIds(resource.tags).map((tag) => (
-                <a
-                  href={`#element-${tag.id}`}
-                  key={tag.id}
-                  className="clean-button"
-                >
-                  {formatId(tag.id)}
-                </a>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -151,6 +138,25 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   <div className="label">Used By Tasks:</div>
                   <div className="value">{dependentTasks.length} task(s)</div>
                 </div>
+
+                {resource.tags && resource.tags.length > 0 && (
+                  <div className="resource-card__info-block">
+                    <div className="label">Tags:</div>
+                    <div className="value">
+                      <div className="resource-card__tags">
+                        {introspector.getTagsByIds(resource.tags).map((tag) => (
+                          <a
+                            href={`#element-${tag.id}`}
+                            key={tag.id}
+                            className="clean-button"
+                          >
+                            {formatId(tag.id)}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {resource.overriddenBy && (
                   <div className="resource-card__alert resource-card__alert--warning">

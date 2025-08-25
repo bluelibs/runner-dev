@@ -17,6 +17,7 @@ import { ChatSettingsForm } from "./ChatSettingsForm";
 import { ChatInput } from "./ChatInput";
 import { generateUnifiedDiff } from "./ChatUtils";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
+import { ClickOutside } from "./common/ClickOutside";
 import "./ChatSidebar.scss";
 import { useFilteredMessages } from "../hooks/useFilteredMessages";
 import { useAutoScroll } from "../hooks/useAutoScroll";
@@ -230,6 +231,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     [setChatState]
   );
 
+  // Close settings on ESC when panel is open
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setIsSettingsOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isSettingsOpen]);
+
   return (
     <>
       <aside
@@ -322,21 +336,25 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         />
 
         {isSettingsOpen && (
-          <div
+          <ClickOutside
             className="docs-chat-settings"
             style={{
               padding: "12px",
               borderTop: "1px solid #eee",
               borderBottom: "1px solid #eee",
             }}
+            onClickOutside={() => setIsSettingsOpen(false)}
           >
             <ChatSettingsForm
               settings={chatState.settings}
-              onSave={(values) => updateSettings(values)}
+              onSave={(values) => {
+                updateSettings(values);
+                setIsSettingsOpen(false);
+              }}
               onTest={(key, baseUrl) => testOpenAIConnection(key, baseUrl)}
               onClearKey={() => updateSettings({ openaiApiKey: null })}
             />
-          </div>
+          </ClickOutside>
         )}
 
         {/* {mode === "architect" && (

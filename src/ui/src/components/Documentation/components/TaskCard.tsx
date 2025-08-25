@@ -57,19 +57,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
               <p className="task-card__description">{task.meta.description}</p>
             )}
           </div>
-          {task.tags && task.tags.length > 0 && (
-            <div className="task-card__tags">
-              {introspector.getTagsByIds(task.tags).map((tag) => (
-                <a
-                  href={`#element-${tag.id}`}
-                  key={tag.id}
-                  className="clean-button"
-                >
-                  {formatId(tag.id)}
-                </a>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -150,6 +137,25 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                     )}
                   </div>
                 </div>
+
+                {task.tags && task.tags.length > 0 && (
+                  <div className="task-card__info-block">
+                    <div className="label">Tags:</div>
+                    <div className="value">
+                      <div className="task-card__tags">
+                        {introspector.getTagsByIds(task.tags).map((tag) => (
+                          <a
+                            href={`#element-${tag.id}`}
+                            key={tag.id}
+                            className="clean-button"
+                          >
+                            {formatId(tag.id)}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {task.overriddenBy && (
                   <div className="task-card__alert task-card__alert--warning">

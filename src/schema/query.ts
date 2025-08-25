@@ -33,6 +33,7 @@ import type {
   QueryTaskArgs,
   QueryTasksArgs,
   QueryHooksArgs,
+  QueryHookArgs,
 } from "../generated/resolvers-types";
 import { isSystemEventId } from "../resources/models/introspector.tools";
 import { docsGenerator } from "../resources/docs.generator.resource";
@@ -57,20 +58,9 @@ export const QueryType = new GraphQLObjectType({
       },
       resolve: (_root, args: any, ctx: CustomGraphQLContext) => {
         const id = String(args.id);
-        const tasks = ctx.introspector.getTasksWithTag(id);
-        const hooks = ctx.introspector.getHooksWithTag(id);
-        const resources = ctx.introspector.getResourcesWithTag(id);
-        const middlewares = ctx.introspector.getMiddlewaresWithTag(id);
-        const events = ctx.introspector.getEventsWithTag(id);
-        return {
-          id,
-          all: [...tasks, ...hooks, ...resources, ...middlewares, ...events],
-          tasks,
-          hooks,
-          resources,
-          middlewares,
-          events,
-        };
+        // Return the real Tag node so baseElementCommonFields (filePath, fileContents, meta) work.
+        // Per-type usage fields (tasks/hooks/resources/middlewares/events) are resolved by TagType.
+        return ctx.introspector.getTag(id);
       },
     },
     root: {
@@ -189,6 +179,18 @@ export const QueryType = new GraphQLObjectType({
         }
         return result;
       },
+    },
+    hook: {
+      description: "Get a single hook by its id.",
+      type: HookType,
+      args: {
+        id: {
+          description: "Hook id",
+          type: new GraphQLNonNull(GraphQLID),
+        },
+      },
+      resolve: (_root, args: QueryHookArgs, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getHook(args.id),
     },
     hooks: {
       description: "Get all hooks (optionally filter by id prefix).",

@@ -11,6 +11,33 @@ type Props = {
 
 export const MessageItem: React.FC<Props> = React.memo(
   ({ message, onOpenFile, onOpenDiff }) => {
+    const [copied, setCopied] = React.useState(false);
+
+    const isBotText = message.author === "bot" && message.type === "text";
+    const copyValue = isBotText ? (message as TextMessage).text : "";
+
+    const handleCopy = React.useCallback(async (text: string) => {
+      if (!text) return;
+      try {
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+        }
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch (_) {
+        // noop – keep it silent
+      }
+    }, []);
     return (
       <div className={`chat-message chat-message--${message.author}`}>
         <div className="chat-message-header">
@@ -162,6 +189,20 @@ export const MessageItem: React.FC<Props> = React.memo(
                 </div>
               </div>
             </div>
+          )}
+
+          {isBotText && copyValue && (
+            <button
+              className={`chat-copy-btn${
+                copied ? " chat-copy-btn--copied" : ""
+              }`}
+              aria-label={copied ? "Copied" : "Copy message"}
+              title={copied ? "Copied!" : "Copy"}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy(copyValue);
+              }}
+            />
           )}
         </div>
       </div>

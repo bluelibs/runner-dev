@@ -22,9 +22,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
     <div className={`sidebar-header ${className}`}>
       <div className="sidebar-header__content">
         <div className="sidebar-header__title-section">
-          <h2 className="sidebar-header__title">
-            {icon} {title}
-          </h2>
+          <h2 className="sidebar-header__title">{title}</h2>
           {status && <div className="sidebar-header__status">{status}</div>}
         </div>
         {actions && <div className="sidebar-header__actions">{actions}</div>}

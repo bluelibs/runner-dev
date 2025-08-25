@@ -122,9 +122,16 @@
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
 }
 
+div {
+  font-family: $font-family-base;
+}
+
 // Container-based compact rules when the sidebar is very narrow
 .docs-sidebar {
   @container (max-width: 160px) {
+    .docs-switch .docs-switch-text .system-label {
+      display: none;
+    }
     .navigation-view--list .nav-content {
       display: inline-block;
       text-align: center;

@@ -1,4 +1,4 @@
-import { resource, run, globals } from "@bluelibs/runner";
+import { resource, run, globals, definitions } from "@bluelibs/runner";
 import { graphql } from "graphql";
 import { schema } from "../../schema";
 import { introspector } from "../../resources/introspector.resource";
@@ -34,7 +34,7 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
         id: "root.app",
         register: [introspector, taggedRes, probe],
         dependencies: {},
-      })
+      }) as definitions.IResource<void, any>
     );
 
     const q = `

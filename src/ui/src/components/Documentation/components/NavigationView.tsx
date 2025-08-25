@@ -98,7 +98,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     };
 
     const handleListKeyDown = (e: KeyboardEvent) => {
-      const allSections = ["home", ...sections.map(s => s.id)];
+      const allSections = ["home", ...sections.map((s) => s.id)];
       const currentIndex = allSections.findIndex(
         (sectionId) => sectionId === focusedNodeId
       );
@@ -128,7 +128,15 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [focusedNodeId, nodes, sections, mode, onToggleExpansion, onNodeClick, onSectionClick]);
+  }, [
+    focusedNodeId,
+    nodes,
+    sections,
+    mode,
+    onToggleExpansion,
+    onNodeClick,
+    onSectionClick,
+  ]);
 
   const renderTreeMode = () => {
     const renderNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
@@ -185,6 +193,9 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
 
             <span className="nav-node-label">
               {highlightSearchTerm(node.label, searchTerm)}
+              {node.element?.tags?.includes("globals.tags.system") && (
+                <span className="system-label">SYS</span>
+              )}
             </span>
 
             {node.count !== undefined && (
@@ -202,7 +213,11 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     };
 
     return (
-      <div className="nav-tree-container" role="tree" aria-label="Documentation tree">
+      <div
+        className="nav-tree-container"
+        role="tree"
+        aria-label="Documentation tree"
+      >
         {nodes.map((node) => renderNode(node))}
       </div>
     );

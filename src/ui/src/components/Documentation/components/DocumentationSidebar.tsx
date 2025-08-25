@@ -108,7 +108,9 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
           <span className="docs-switch-track">
             <span className="docs-switch-thumb" />
           </span>
-          <span className="docs-switch-text">SYSTEM </span>
+          <span className="docs-switch-text">
+            <span className="system-label">SYSTEM</span>
+          </span>
         </label>
       </div>
 

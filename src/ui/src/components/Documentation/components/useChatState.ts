@@ -593,10 +593,13 @@ export const useChatState = (opts?: {
                     assistantToolMsg,
                     ...toolResults,
                   ];
+                  const secondAccumulator = createToolCallAccumulator();
                   await streamChatCompletion(
                     {
                       settings,
                       messages: secondMessages,
+                      tools: openAiTools,
+                      tool_choice: "auto",
                       temperature: 0.2,
                       response_format:
                         settings.responseMode === "json"
@@ -619,6 +622,33 @@ export const useChatState = (opts?: {
                           ),
                         }));
                       },
+                      onToolCallDelta: (delta2: any) => {
+                        secondAccumulator.accept(delta2);
+                        setChatState((prev) => {
+                          const existing = prev.toolCalls || [];
+                          const idx = delta2.index;
+                          const prevItem = existing[idx];
+                          const name = delta2.function?.name || prevItem?.name;
+                          const nextArgs =
+                            (prevItem?.argsPreview || "") +
+                            (delta2.function?.arguments || "");
+                          const updated = existing.slice();
+                          updated[idx] = {
+                            id: delta2.id || prevItem?.id || String(idx),
+                            name,
+                            argsPreview:
+                              nextArgs.length > 120
+                                ? nextArgs.slice(0, 117) + "..."
+                                : nextArgs,
+                            status: "running",
+                          };
+                          return {
+                            ...prev,
+                            thinkingStage: "processing",
+                            toolCalls: updated,
+                          };
+                        });
+                      },
                       onUsage: (usage: any) => {
                         usageTotals = {
                           promptTokens:
@@ -635,7 +665,7 @@ export const useChatState = (opts?: {
                           lastUsage: { ...usageTotals },
                         }));
                       },
-                      onFinish: () => {
+                      onFinish: async () => {
                         // Attach tool calls summary to the last assistant text message
                         setChatState((prev) => {
                           const calls = prev.toolCalls || [];
@@ -664,6 +694,230 @@ export const useChatState = (opts?: {
                           } as TextMessage;
                           return { ...prev, messages: nextMessages };
                         });
+
+                        // If second turn requested tools, execute them and follow-up once more
+                        const toolCalls2 = secondAccumulator.list();
+                        if (toolCalls2.length > 0) {
+                          try {
+                            const assistantToolMsg2: AiMessage = {
+                              role: "assistant",
+                              tool_calls: toolCalls2.map(
+                                (c: any, i: number) => ({
+                                  id: c.id || `call2_${i}`,
+                                  type: "function",
+                                  function: {
+                                    name: c.name,
+                                    arguments: c.argsText,
+                                  },
+                                })
+                              ),
+                            };
+
+                            setChatState((prev) => ({
+                              ...prev,
+                              thinkingStage: "processing",
+                              toolCalls: toolCalls2.map(
+                                (c: any, i: number) => ({
+                                  id: c.id || String(i),
+                                  name: c.name,
+                                  argsPreview:
+                                    (c.argsText || "").length > 120
+                                      ? c.argsText.slice(0, 117) + "..."
+                                      : c.argsText || "",
+                                  status: "pending",
+                                })
+                              ),
+                            }));
+
+                            const toolResults2: AiMessage[] = [];
+                            for (let i = 0; i < toolCalls2.length; i++) {
+                              const c = toolCalls2[i];
+                              const tool = tools.find((t) => t.name === c.name);
+                              if (!tool) continue;
+                              let argsObj: unknown = {};
+                              try {
+                                argsObj = c.argsText
+                                  ? JSON.parse(c.argsText)
+                                  : {};
+                              } catch {}
+                              setChatState((prev) => ({
+                                ...prev,
+                                toolCalls: (prev.toolCalls || []).map(
+                                  (t, idx) =>
+                                    idx === i ? { ...t, status: "running" } : t
+                                ),
+                              }));
+                              const result = await tool.run(argsObj);
+                              setChatState((prev) => ({
+                                ...prev,
+                                toolCalls: (prev.toolCalls || []).map(
+                                  (t, idx) =>
+                                    idx === i
+                                      ? {
+                                          ...t,
+                                          status: "done",
+                                          resultPreview: JSON.stringify(
+                                            result
+                                          ).slice(0, 200),
+                                        }
+                                      : t
+                                ),
+                              }));
+                              toolResults2.push({
+                                role: "tool",
+                                content: JSON.stringify(result),
+                                tool_call_id: c.id,
+                                name: c.name,
+                              });
+                            }
+
+                            const assistantMessageId3 = `b-${Date.now()}-3`;
+                            setChatState((prev) => ({
+                              ...prev,
+                              messages: [
+                                ...prev.messages,
+                                {
+                                  id: assistantMessageId3,
+                                  author: "bot",
+                                  type: "text",
+                                  text: "",
+                                  timestamp: Date.now(),
+                                  toolCalls: (prev.toolCalls || []).map(
+                                    (t) => ({
+                                      id: t.id,
+                                      name: t.name,
+                                      argsPreview: t.argsPreview,
+                                      resultPreview: t.resultPreview,
+                                    })
+                                  ),
+                                } as TextMessage,
+                              ],
+                            }));
+
+                            let thirdAccumulated = "";
+                            const thirdMessages = [
+                              ...buildRequestMessages(
+                                SYSTEM_PROMPT,
+                                overrideInclude ??
+                                  (chatState.chatContext?.include || {}),
+                                prior,
+                                expanded.modelText,
+                                docsBundle
+                              ),
+                              assistantToolMsg2,
+                              ...toolResults2,
+                            ];
+                            await streamChatCompletion(
+                              {
+                                settings,
+                                messages: thirdMessages,
+                                temperature: 0.2,
+                                response_format:
+                                  settings.responseMode === "json"
+                                    ? { type: "json_object" }
+                                    : undefined,
+                                signal: abortController.current?.signal!,
+                              },
+                              {
+                                onTextDelta: (d3: any) => {
+                                  thirdAccumulated += d3;
+                                  setChatState((prev) => ({
+                                    ...prev,
+                                    messages: prev.messages.map((m) =>
+                                      m.id === assistantMessageId3
+                                        ? ({
+                                            ...(m as TextMessage),
+                                            text: thirdAccumulated,
+                                          } as TextMessage)
+                                        : m
+                                    ),
+                                  }));
+                                },
+                                onUsage: (usage: any) => {
+                                  usageTotals = {
+                                    promptTokens:
+                                      usageTotals.promptTokens +
+                                      (usage.prompt_tokens || 0),
+                                    completionTokens:
+                                      usageTotals.completionTokens +
+                                      (usage.completion_tokens || 0),
+                                    totalTokens:
+                                      usageTotals.totalTokens +
+                                      (usage.total_tokens || 0),
+                                  };
+                                  setChatState((prev) => ({
+                                    ...prev,
+                                    lastUsage: { ...usageTotals },
+                                  }));
+                                },
+                                onFinish: () => {
+                                  setChatState((prev) => {
+                                    const calls = prev.toolCalls || [];
+                                    if (!calls.length) return prev;
+                                    let lastBotIndex: number | undefined =
+                                      undefined;
+                                    for (
+                                      let i = prev.messages.length - 1;
+                                      i >= 0;
+                                      i--
+                                    ) {
+                                      const mm = prev.messages[i];
+                                      if (
+                                        mm.author === "bot" &&
+                                        mm.type === "text"
+                                      ) {
+                                        lastBotIndex = i;
+                                        break;
+                                      }
+                                    }
+                                    if (lastBotIndex === undefined) return prev;
+                                    const nextMessages = prev.messages.slice();
+                                    const existing = nextMessages[
+                                      lastBotIndex
+                                    ] as TextMessage;
+                                    nextMessages[lastBotIndex] = {
+                                      ...(existing as TextMessage),
+                                      toolCalls: calls.map((t) => ({
+                                        id: t.id,
+                                        name: t.name,
+                                        argsPreview: t.argsPreview,
+                                        resultPreview: t.resultPreview,
+                                      })),
+                                    } as TextMessage;
+                                    return { ...prev, messages: nextMessages };
+                                  });
+                                },
+                                onError: (e: any) => {
+                                  throw e;
+                                },
+                              }
+                            );
+                          } catch (e) {
+                            const extra = `❌ Tool execution failed: ${String(
+                              e
+                            )}`;
+                            const sep = secondAccumulated.endsWith("\n")
+                              ? ""
+                              : "\n\n";
+                            const withError = secondAccumulated + sep + extra;
+                            setChatState((prev) => ({
+                              ...prev,
+                              messages: prev.messages.map((m) =>
+                                m.id === assistantMessageId2
+                                  ? ({
+                                      ...(m as TextMessage),
+                                      text: withError,
+                                    } as TextMessage)
+                                  : m
+                              ),
+                              toolCalls: (prev.toolCalls || []).map((t) =>
+                                t.status === "running" || t.status === "pending"
+                                  ? { ...t, status: "error" }
+                                  : t
+                              ),
+                            }));
+                          }
+                        }
                       },
                       onError: (e: any) => {
                         throw e;

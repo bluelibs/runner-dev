@@ -124,7 +124,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   );
 
   const { isAtBottom, scrollToBottom } = useAutoScroll(
-    sidebarRef as unknown as React.RefObject<HTMLDivElement>,
+    scrollRef,
     [filteredMessages, chatState.isTyping]
   );
 

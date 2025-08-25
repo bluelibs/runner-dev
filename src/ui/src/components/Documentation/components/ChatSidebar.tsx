@@ -1,47 +1,133 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { CodeModal } from "./CodeModal";
-import { ChatState, CodeModalState, FileReference, FileDiff } from "./ChatTypes";
+import {
+  CodeModalState,
+  FileReference,
+  FileDiff,
+  TextMessage,
+} from "./ChatTypes";
 import { useChatState } from "./useChatState";
-import { 
-  formatRelativeTime, 
-  copyToClipboard, 
-  parseMessageForFiles, 
-  getThinkingText,
-  generateUnifiedDiff 
-} from "./ChatUtils";
+import { ChatSettingsForm } from "./ChatSettingsForm";
+import { ChatInput } from "./ChatInput";
+import { generateUnifiedDiff } from "./ChatUtils";
+import { SidebarHeader } from "./sidebar/SidebarHeader";
 import "./ChatSidebar.scss";
+import { useFilteredMessages } from "../hooks/useFilteredMessages";
+import { useAutoScroll } from "../hooks/useAutoScroll";
+import { ChatMessages } from "./messages/ChatMessages";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { ArchitectPanel } from "./ArchitectPanel";
+import type { ArchitectPanelHandle } from "./ArchitectPanel";
 
 export interface ChatSidebarProps {
   width: number;
   sidebarRef: React.RefObject<HTMLElement>;
+  isChatOpen: boolean;
+  onToggleChat: () => void;
+  runnerAiMd?: string;
+  runnerDevMd?: string;
+  projectOverviewMd?: string;
+  graphqlSdl?: string;
+  // Available elements for tagging
+  availableElements?: {
+    tasks: Array<{
+      id: string;
+      name: string;
+      title?: string;
+      description?: string;
+    }>;
+    resources: Array<{
+      id: string;
+      name: string;
+      title?: string;
+      description?: string;
+    }>;
+    events: Array<{
+      id: string;
+      name: string;
+      title?: string;
+      description?: string;
+    }>;
+    hooks: Array<{
+      id: string;
+      name: string;
+      title?: string;
+      description?: string;
+    }>;
+    middlewares: Array<{
+      id: string;
+      name: string;
+      title?: string;
+      description?: string;
+    }>;
+    tags: Array<{
+      id: string;
+      name: string;
+      title?: string;
+      description?: string;
+    }>;
+  };
 }
-
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   width,
   sidebarRef,
+  isChatOpen,
+  onToggleChat,
+  runnerAiMd,
+  runnerDevMd,
+  projectOverviewMd,
+  graphqlSdl,
+  availableElements,
 }) => {
-  const { chatState, setChatState, sendMessage, clearChat } = useChatState();
-  
+  const {
+    chatState,
+    setChatState,
+    sendMessage,
+    sendMessageWithText,
+    clearChat,
+    updateSettings,
+    testOpenAIConnection,
+    stopRequest,
+    retryLastResponse,
+    tokenStatus,
+  } = useChatState({
+    availableElements,
+    docs: {
+      runnerAiMd,
+      graphqlSdl,
+      runnerDevMd,
+      projectOverviewMd,
+    },
+  });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [mode, setMode] = useState<"chat" | "architect">("chat");
+
   const [codeModal, setCodeModal] = useState<CodeModalState>({
     isOpen: false,
     title: "",
-    content: ""
+    content: "",
   });
-  
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: "smooth",
-        block: "end"
-      });
-    }
-  }, [chatState.messages.length]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const filteredMessages = useFilteredMessages(
+    chatState.messages,
+    chatState.isTyping
+  );
+
+  const { isAtBottom, scrollToBottom } = useAutoScroll(scrollRef, [
+    filteredMessages,
+    chatState.isTyping,
+  ]);
+
+  const architectRef = useRef<ArchitectPanelHandle | null>(null);
 
   // Modal handlers
   const openFileModal = useCallback((file: FileReference, title: string) => {
@@ -50,7 +136,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       title,
       subtitle: file.fileName,
       content: file.content,
-      language: file.language
+      language: file.language,
     });
   }, []);
 
@@ -59,274 +145,265 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       isOpen: true,
       title: `Diff: ${diff.fileName}`,
       subtitle: "Unified diff format",
-      content: diff.diffText || generateUnifiedDiff(diff.previousVersion, diff.newVersion, diff.fileName),
-      language: "diff"
+      content:
+        diff.diffText ||
+        generateUnifiedDiff(
+          diff.previousVersion,
+          diff.newVersion,
+          diff.fileName
+        ),
+      language: "diff",
     });
   }, []);
 
   const closeModal = useCallback(() => {
-    setCodeModal(prev => ({ ...prev, isOpen: false }));
+    setCodeModal((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = useCallback((e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    } else if (e.key === "Escape") {
-      setChatState(prev => ({ ...prev, searchQuery: "", isSearching: false }));
-    } else if (e.key === "ArrowUp" && chatState.inputValue === "") {
-      // Edit last user message
-      const lastUserMessage = [...chatState.messages].reverse().find(m => m.author === "user" && m.type === "text");
-      if (lastUserMessage && lastUserMessage.type === "text") {
-        setChatState(prev => ({ ...prev, inputValue: lastUserMessage.text }));
-      }
-    }
-  }, [sendMessage, chatState.inputValue, chatState.messages, setChatState]);
+  // Handle tagged element selection
+  const handleTaggedElementSelect = useCallback(
+    (elementId: string, elementType: string) => {
+      console.log(`Tagged element: ${elementType}:${elementId}`);
+    },
+    []
+  );
 
-  // Filtered messages for search functionality
-  const filteredMessages = useMemo(() => {
-    if (!chatState.searchQuery) return chatState.messages;
-    
-    return chatState.messages.filter(message => {
-      if (message.type === "text") {
-        return message.text.toLowerCase().includes(chatState.searchQuery.toLowerCase());
-      } else if (message.type === "file") {
-        return message.file.fileName.toLowerCase().includes(chatState.searchQuery.toLowerCase()) ||
-               message.file.content.toLowerCase().includes(chatState.searchQuery.toLowerCase()) ||
-               (message.text && message.text.toLowerCase().includes(chatState.searchQuery.toLowerCase()));
-      } else if (message.type === "diff") {
-        return message.diff.fileName.toLowerCase().includes(chatState.searchQuery.toLowerCase()) ||
-               (message.text && message.text.toLowerCase().includes(chatState.searchQuery.toLowerCase()));
+  // Check if there's a last user message that can be retried
+  const canRetry = useMemo(() => {
+    const messages = chatState.messages;
+    const lastUserMessageIndex = messages
+      .map((m) => m.author)
+      .lastIndexOf("user");
+    return lastUserMessageIndex !== -1 && !chatState.isTyping;
+  }, [chatState.messages, chatState.isTyping]);
+
+  useKeyboardShortcuts({
+    enabled: true,
+    onToggleChat,
+    onFocusInput: () => {
+      const el = document.querySelector(
+        ".docs-chat-input .chat-main-input"
+      ) as HTMLTextAreaElement | null;
+      el?.focus();
+    },
+    onSend: () => {
+      if (mode === "chat") {
+        if (!chatState.isTyping && (chatState.inputValue || "").trim()) {
+          sendMessage();
+        }
+      } else {
+        const text = (chatState.inputValue || "").trim();
+        if (text && architectRef.current) {
+          architectRef.current.plan(text);
+          setChatState((prev) => ({ ...prev, inputValue: "" }));
+        }
       }
-      return false;
-    });
-  }, [chatState.messages, chatState.searchQuery]);
+    },
+    onStop: () => {
+      if (chatState.canStop) stopRequest();
+    },
+    onClear: () => {
+      if (
+        window.confirm(
+          "Are you sure you want to clear all chat history? This action cannot be undone."
+        )
+      ) {
+        clearChat();
+      }
+    },
+  });
+
+  // Architect-mode send handlers that reuse ChatInput UI
+  const architectSend = useCallback(() => {
+    const text = (chatState.inputValue || "").trim();
+    if (!text || !architectRef.current) return;
+    architectRef.current.plan(text);
+    setChatState((prev) => ({ ...prev, inputValue: "" }));
+  }, [chatState.inputValue, setChatState]);
+
+  const architectSendWithText = useCallback(
+    (messageText: string) => {
+      if (!messageText.trim() || !architectRef.current) return;
+      architectRef.current.plan(messageText.trim());
+      setChatState((prev) => ({ ...prev, inputValue: "" }));
+    },
+    [setChatState]
+  );
 
   return (
     <>
       <aside
-      ref={sidebarRef}
-      className="docs-chat-sidebar"
-      style={{ width: `${width}px` }}
-    >
-        <div className="docs-chat-header">
-          <div className="docs-chat-title">
-            <h2>🤖 AI Assistant</h2>
-            <div className="docs-chat-status">
+        ref={sidebarRef}
+        className="docs-chat-sidebar"
+        style={{ width: `${width}px` }}
+        role="complementary"
+        aria-label="AI chat"
+      >
+        <SidebarHeader
+          icon="😼" // cat icon: 🐱 // cat icon: whiskers:
+          title="Runtime AI"
+          className="sidebar-header--chat"
+          status={
+            <>
               {chatState.isTyping ? (
-                <span className="status-thinking">
-                  {getThinkingText(chatState.thinkingStage)}...
-                </span>
+                <span className="status-thinking">Thinking...</span>
               ) : (
                 <span className="status-ready">Ready</span>
               )}
-            </div>
-          </div>
-          <div className="docs-chat-controls">
-            <button
-              className="chat-control-btn"
-              onClick={() => setChatState(prev => ({ ...prev, isSearching: !prev.isSearching }))}
-              title="Search messages"
-            >
-              🔍
-            </button>
-            <button
-              className="chat-control-btn"
-              onClick={() => {
-                if (window.confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
-                  clearChat();
-                }
-              }}
-              title="Clear chat"
-            >
-              🗑️
-            </button>
-          </div>
-        </div>
-        
-        {chatState.isSearching && (
-          <div className="docs-chat-search">
-            <input
-              type="text"
-              placeholder="Search messages..."
-              value={chatState.searchQuery}
-              onChange={(e) => setChatState(prev => ({ ...prev, searchQuery: e.target.value }))}
-              className="chat-search-input"
-              autoFocus
+              <span
+                className="status-sep"
+                style={{ margin: "0 8px", opacity: 0.5 }}
+              >
+                |
+              </span>
+              {(() => {
+                const title =
+                  tokenStatus.mode === "context"
+                    ? `System: ${tokenStatus.breakdown.system} • History: ${tokenStatus.breakdown.history} • Input: ${tokenStatus.breakdown.input}`
+                    : chatState.lastUsage
+                    ? `Prompt: ${chatState.lastUsage.promptTokens} • Completion: ${chatState.lastUsage.completionTokens} • Total: ${chatState.lastUsage.totalTokens}`
+                    : "";
+                return (
+                  <span className="status-context" title={title}>
+                    {tokenStatus.mode === "context" ? (
+                      <>Context: {tokenStatus.total}</>
+                    ) : (
+                      <>Tokens: {tokenStatus.total}</>
+                    )}
+                  </span>
+                );
+              })()}
+            </>
+          }
+          actions={
+            <>
+              <button
+                className="sidebar-header__action-btn"
+                onClick={() => setIsSettingsOpen((v) => !v)}
+                title="Settings"
+              >
+                ⚙️
+              </button>
+              <button
+                className={`sidebar-header__action-btn ${
+                  mode === "chat" ? "active" : ""
+                }`}
+                title="Chat Mode"
+                onClick={() => setMode("chat")}
+              >
+                💬
+              </button>
+              <button
+                className={`sidebar-header__action-btn ${
+                  mode === "architect" ? "active" : ""
+                }`}
+                title="Architect Mode"
+                onClick={() => setMode("architect")}
+              >
+                🏗️
+              </button>
+              <button
+                className="sidebar-header__action-btn sidebar-header__action-btn--destructive"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to clear all chat history? This action cannot be undone."
+                    )
+                  ) {
+                    clearChat();
+                  }
+                }}
+                title="Clear chat"
+              >
+                🗑️
+              </button>
+            </>
+          }
+        />
+
+        {isSettingsOpen && (
+          <div
+            className="docs-chat-settings"
+            style={{
+              padding: "12px",
+              borderTop: "1px solid #eee",
+              borderBottom: "1px solid #eee",
+            }}
+          >
+            <ChatSettingsForm
+              settings={chatState.settings}
+              onSave={(values) => updateSettings(values)}
+              onTest={(key, baseUrl) => testOpenAIConnection(key, baseUrl)}
+              onClearKey={() => updateSettings({ openaiApiKey: null })}
             />
           </div>
         )}
-        <div ref={scrollRef} className="docs-chat-messages">
-          {filteredMessages.map((message) => {
-            const isSelected = chatState.selectedMessageId === message.id;
-            
-            return (
-              <div 
-                key={message.id} 
-                className={`chat-message chat-message--${message.author} ${isSelected ? 'chat-message--selected' : ''}`}
-                onClick={() => setChatState(prev => ({
-                  ...prev,
-                  selectedMessageId: prev.selectedMessageId === message.id ? null : message.id
-                }))}
-              >
-                <div className="chat-message-header">
-                  <span className="chat-message-author">
-                    {message.author === "user" ? "You" : "AI"}
-                  </span>
-                  <span className="chat-message-time">
-                    {formatRelativeTime(message.timestamp)}
-                  </span>
-                  {isSelected && (
-                    <button
-                      className="chat-message-copy"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (message.type === "text") {
-                          copyToClipboard(message.text);
-                        } else if (message.type === "file") {
-                          copyToClipboard(message.file.content);
-                        } else if (message.type === "diff") {
-                          copyToClipboard(message.diff.diffText || 
-                            generateUnifiedDiff(message.diff.previousVersion, message.diff.newVersion, message.diff.fileName)
-                          );
-                        }
-                      }}
-                      title="Copy to clipboard"
-                    >
-                      📋
-                    </button>
-                  )}
-                </div>
-                
-                <div className="chat-bubble">
-                  {message.type === "text" && (
-                    <div className="message-text">
-                      {parseMessageForFiles(message.text).map((part, idx) => (
-                        <span key={idx}>
-                          {part.type === "text" ? (
-                            part.content
-                          ) : (
-                            <button
-                              className="file-reference-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // This would open the actual file - for demo, we'll simulate
-                                openFileModal(
-                                  {
-                                    fileName: part.content,
-                                    content: `// File: ${part.content}\n// This is a simulated file view\n// In production, this would load the actual file content`,
-                                    language: "typescript"
-                                  },
-                                  `File: ${part.content}`
-                                );
-                              }}
-                            >
-                              [{part.content}]
-                            </button>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {message.type === "file" && (
-                    <div className="message-file">
-                      {message.text && <div className="message-text">{message.text}</div>}
-                      <div 
-                        className="file-preview"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openFileModal(message.file, `File: ${message.file.fileName}`);
-                        }}
-                      >
-                        <div className="file-header">
-                          <span className="file-icon">📄</span>
-                          <span className="file-name">{message.file.fileName}</span>
-                        </div>
-                        <div className="file-snippet">
-                          {message.file.content.split('\n').slice(0, 3).join('\n')}
-                          {message.file.content.split('\n').length > 3 && '\n...'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {message.type === "diff" && (
-                    <div className="message-diff">
-                      {message.text && <div className="message-text">{message.text}</div>}
-                      <div 
-                        className="diff-preview"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDiffModal(message.diff);
-                        }}
-                      >
-                        <div className="diff-header">
-                          <span className="diff-icon">🔄</span>
-                          <span className="diff-file">{message.diff.fileName}</span>
-                        </div>
-                        <div className="diff-stats">
-                          <span className="diff-additions">+{message.diff.newVersion.split('\n').length}</span>
-                          <span className="diff-deletions">-{message.diff.previousVersion.split('\n').length}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          
-          {chatState.isTyping && (
-            <div className="chat-message chat-message--bot">
-              <div className="chat-message-header">
-                <span className="chat-message-author">AI</span>
-                <span className="chat-message-time">Now</span>
-              </div>
-              <div className="chat-bubble">
-                <div className="thinking-animation">
-                  <div className="thinking-stage">{getThinkingText(chatState.thinkingStage)}</div>
-                  <div className="thinking-dots">
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-        <div className="docs-chat-input">
-          <div className="chat-input-container">
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Ask about code, request files, or get help..."
-              value={chatState.inputValue}
-              onChange={(e) => setChatState(prev => ({ ...prev, inputValue: e.target.value }))}
-              onKeyDown={handleKeyDown}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              className="chat-main-input"
+
+        {mode === "architect" && (
+          <>
+            <ArchitectPanel
+              ref={architectRef}
+              settings={{
+                openaiApiKey: chatState.settings.openaiApiKey,
+                model: chatState.settings.model,
+                baseUrl: chatState.settings.baseUrl,
+              }}
+              availableElements={availableElements}
+              docs={{
+                runnerAiMd,
+                graphqlSdl,
+                runnerDevMd,
+                projectOverviewMd,
+              }}
             />
-            <button 
-              onClick={sendMessage} 
-              className="chat-send-btn"
-              disabled={!chatState.inputValue.trim() || chatState.isTyping}
-              title="Send message (Enter)"
-            >
-              {chatState.isTyping ? "⏳" : "🚀"}
-            </button>
-          </div>
-          <div className="chat-input-hints">
-            <span className="hint">💡 Try: "Show me [filename]", "What changed in [file]?", or "Help with code"</span>
-          </div>
-        </div>
+            <ChatInput
+              chatState={chatState}
+              setChatState={setChatState}
+              sendMessage={architectSend}
+              sendMessageWithText={architectSendWithText}
+              stopRequest={() => {}}
+              onTaggedElementSelect={handleTaggedElementSelect}
+              availableElements={availableElements}
+              retryLastResponse={() => {}}
+              canRetry={false}
+              docsRunner={runnerAiMd}
+              docsSchema={graphqlSdl}
+              docsProjectOverview={projectOverviewMd}
+              docsRunnerDev={runnerDevMd}
+            />
+          </>
+        )}
+
+        {mode === "chat" && (
+          <>
+            <div ref={scrollRef} className="docs-chat-messages">
+              <ChatMessages
+                messages={filteredMessages}
+                isTyping={chatState.isTyping}
+                onOpenFile={openFileModal}
+                onOpenDiff={openDiffModal}
+              />
+              <div ref={messagesEndRef} style={{ height: "20px" }} />
+            </div>
+            <ChatInput
+              chatState={chatState}
+              setChatState={setChatState}
+              sendMessage={sendMessage}
+              sendMessageWithText={sendMessageWithText}
+              stopRequest={stopRequest}
+              onTaggedElementSelect={handleTaggedElementSelect}
+              availableElements={availableElements}
+              retryLastResponse={retryLastResponse}
+              canRetry={canRetry}
+              docsRunner={runnerAiMd}
+              docsSchema={graphqlSdl}
+              docsProjectOverview={projectOverviewMd}
+              docsRunnerDev={runnerDevMd}
+            />
+          </>
+        )}
       </aside>
-      
+
       <CodeModal
         title={codeModal.title}
         subtitle={codeModal.subtitle}

@@ -43,7 +43,7 @@ export class Introspector {
   public taskMiddlewares: Middleware[] = [];
   public resourceMiddlewares: Middleware[] = [];
   public middlewares: Middleware[] = [];
-  public allTags: Tag[] = [];
+  public tags: Tag[] = [];
   public store: unknown | null = null;
   public rootId: string | null = null;
 
@@ -93,30 +93,9 @@ export class Introspector {
     const getEventsWithTag = (tagId: string) =>
       this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
 
-    this.allTags = Array.from(data.tags).map((tag) => {
-      const configSchema = tag.configSchema;
-      return {
-        id: tag.id,
-        configSchema,
-        get tasks() {
-          return getTasksWithTag(tag.id);
-        },
-        get hooks() {
-          return getHooksWithTag(tag.id);
-        },
-        get resources() {
-          return getResourcesWithTag(tag.id);
-        },
-        get middlewares() {
-          return getMiddlewaresWithTag(tag.id);
-        },
-        get events() {
-          return getEventsWithTag(tag.id);
-        },
-      };
-    });
+    this.tags = data.tags;
     this.tagMap = new Map<string, Tag>();
-    for (const tag of this.allTags) {
+    for (const tag of this.tags) {
       this.tagMap.set(tag.id, tag);
     }
   }
@@ -420,7 +399,7 @@ export class Introspector {
   }
 
   getAllTags(): Tag[] {
-    return this.allTags;
+    return this.tags;
   }
 
   getTag(id: string): Tag | null {
@@ -520,15 +499,7 @@ export class Introspector {
       resources: this.resources,
       events: this.events,
       middlewares: this.middlewares,
-      tags: this.allTags.map((t) => ({
-        id: t.id,
-        configSchema: t.configSchema,
-        tasks: [],
-        hooks: [],
-        resources: [],
-        middlewares: [],
-        events: [],
-      })),
+      tags: this.tags,
       diagnostics: this.getDiagnostics(),
       orphanEvents: this.getOrphanEvents(),
       unemittedEvents: this.getUnemittedEvents(),

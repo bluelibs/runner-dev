@@ -11,6 +11,7 @@ import { CodeModal } from "./CodeModal";
 import { graphqlRequest, SAMPLE_TASK_FILE_QUERY } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./TaskCard.scss";
+import { SchemaRenderer } from "./SchemaRenderer";
 export interface TaskCardProps {
   task: Task;
   introspector: Introspector;
@@ -58,9 +59,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           </div>
           {task.tags && task.tags.length > 0 && (
             <div className="task-card__tags">
-              {task.tags.map((tag) => (
-                <a href={`#element-${tag}`} key={tag}>
-                  <span className="task-card__tag">{tag}</span>
+              {introspector.getTagsByIds(task.tags).map((tag) => (
+                <a
+                  href={`#element-${tag.id}`}
+                  key={tag.id}
+                  className="clean-button"
+                >
+                  {formatId(tag.id)}
                 </a>
               ))}
             </div>
@@ -158,10 +163,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
           <div>
             <div className="task-card__section">
-              <h4 className="task-card__section__title">📝 Schema</h4>
-              <pre className="task-card__code-block">
-                {formatSchema(task.inputSchema)}
-              </pre>
+              <h4 className="task-card__section__title">📝 Input Schema</h4>
+              <div className="task-card__config">
+                <SchemaRenderer schemaString={task.inputSchema} />
+              </div>
             </div>
           </div>
         </div>

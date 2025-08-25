@@ -1,4 +1,4 @@
-import { Store } from "@bluelibs/runner";
+import { definitions, Store } from "@bluelibs/runner";
 import { Tag } from "../../schema";
 import {
   attachOverrides,
@@ -13,6 +13,7 @@ import {
 import { Introspector } from "./Introspector";
 import { buildIdMap, ensureStringArray } from "./introspector.tools";
 import { formatSchemaIfZod, isZodSchema } from "../../utils/zod";
+import { sanitizePath } from "../../utils/path";
 
 export function initializeFromStore(
   introspector: Introspector,
@@ -98,41 +99,31 @@ export function initializeFromStore(
       ensureStringArray(e.tags).includes(tagId)
     );
 
-  const allTagIds = new Set<string>();
-  const collect = (arr: { tags?: string[] | null }[]) => {
-    for (const n of arr) {
-      for (const id of ensureStringArray(n.tags)) allTagIds.add(id);
-    }
-  };
-  collect(introspector.tasks as any);
-  collect(introspector.hooks as any);
-  collect(introspector.resources as any);
-  collect(introspector.middlewares as any);
-  collect(introspector.events as any);
-
-  introspector.allTags = Array.from(store.tags.values()).map((tag) => ({
-    id: tag.id,
-    configSchema: isZodSchema(tag.configSchema)
-      ? formatSchemaIfZod(tag.configSchema)
-      : null,
-    get tasks() {
-      return getTasksWithTag(tag.id);
-    },
-    get hooks() {
-      return getHooksWithTag(tag.id);
-    },
-    get resources() {
-      return getResourcesWithTag(tag.id);
-    },
-    get middlewares() {
-      return getMiddlewaresWithTag(tag.id);
-    },
-    get events() {
-      return getEventsWithTag(tag.id);
-    },
-  }));
+  introspector.tags = Array.from(store.tags.values()).map((tag) => {
+    return {
+      id: tag.id,
+      meta: tag.meta,
+      filePath: sanitizePath(tag[definitions.symbolFilePath]),
+      configSchema: formatSchemaIfZod(tag.configSchema),
+      get tasks() {
+        return getTasksWithTag(tag.id);
+      },
+      get hooks() {
+        return getHooksWithTag(tag.id);
+      },
+      get resources() {
+        return getResourcesWithTag(tag.id);
+      },
+      get middlewares() {
+        return getMiddlewaresWithTag(tag.id);
+      },
+      get events() {
+        return getEventsWithTag(tag.id);
+      },
+    };
+  });
   introspector.tagMap = new Map<string, Tag>();
-  for (const tag of introspector.allTags) {
+  for (const tag of introspector.tags) {
     introspector.tagMap.set(tag.id, tag);
   }
   introspector.rootId =

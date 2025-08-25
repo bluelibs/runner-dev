@@ -9,6 +9,7 @@ import {
   graphqlRequest,
   SAMPLE_EVENT_FILE_QUERY,
 } from "../utils/graphqlClient";
+import SchemaRenderer from "./SchemaRenderer";
 
 export interface EventCardProps {
   event: Event;
@@ -98,10 +99,14 @@ export const EventCard: React.FC<EventCardProps> = ({
             </div>
             {event.tags && event.tags.length > 0 && (
               <div className="event-card__tags">
-                {event.tags.map((tag) => (
-                  <span key={tag} className="event-card__tag">
-                    {tag}
-                  </span>
+                {introspector.getTagsByIds(event.tags).map((tag) => (
+                  <a
+                    href={`#element-${tag.id}`}
+                    key={tag.id}
+                    className="clean-button"
+                  >
+                    {formatId(tag.id)}
+                  </a>
                 ))}
               </div>
             )}
@@ -226,9 +231,9 @@ export const EventCard: React.FC<EventCardProps> = ({
           <div>
             <div className="event-card__section">
               <h4 className="event-card__section__title">📝 Payload Schema</h4>
-              <pre className="event-card__code-block">
-                {formatSchema(event.payloadSchema)}
-              </pre>
+              <div className="event-card__config">
+                <SchemaRenderer schemaString={event.payloadSchema} />
+              </div>
             </div>
           </div>
         </div>
@@ -381,6 +386,8 @@ export const EventCard: React.FC<EventCardProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+        enableEdit={Boolean(event.filePath)}
+        saveOnFile={event.filePath || null}
       />
     </div>
   );

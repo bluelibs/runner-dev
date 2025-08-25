@@ -32,29 +32,40 @@ export const TagsSection: React.FC<TagsSectionProps> = ({
               href={`#element-${tag.id}`}
               className="tags-section__tag tags-section__tag-link"
             >
-              <div className="tags-section__tag__title">
-                {formatId(tag.id)}
-              </div>
+              <div className="tags-section__tag__title">{formatId(tag.id)}</div>
               <div className="tags-section__tag__id">{tag.id}</div>
               <div className="tags-section__tag__stats">
                 <span className="stat">
-                  {tag.tasks.length + tag.resources.length + tag.middlewares.length + tag.events.length + tag.hooks.length} elements
+                  {tag.tasks.length +
+                    tag.resources.length +
+                    tag.middlewares.length +
+                    tag.events.length +
+                    tag.hooks.length}{" "}
+                  elements
                 </span>
               </div>
             </a>
           ))}
         </div>
-        
+
         {element.tagsDetailed && element.tagsDetailed.length > 0 && (
           <div className="tags-section__detailed">
-            <h5 className="tags-section__detailed__title">Tag Configurations</h5>
+            <h5 className="tags-section__detailed__title">
+              Tag Configurations
+            </h5>
             <div className="tags-section__detailed__items">
               {element.tagsDetailed.map((tagUsage) => {
-                const tag = tags.find(t => t.id === tagUsage.id);
+                const tag = tags.find((t) => t.id === tagUsage.id);
                 return (
-                  <div key={tagUsage.id} className="tags-section__detailed__item">
+                  <div
+                    key={tagUsage.id}
+                    className="tags-section__detailed__item"
+                  >
                     <div className="tag-name">
-                      <a href={`#element-${tagUsage.id}`} className="tags-section__tag-link">
+                      <a
+                        href={`#element-${tagUsage.id}`}
+                        className="tags-section__tag-link"
+                      >
                         {tag ? formatId(tag.id) : tagUsage.id}
                       </a>
                     </div>

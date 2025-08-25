@@ -2,6 +2,7 @@ import React from "react";
 import { NavigationView } from "./NavigationView";
 import { TreeNode } from "../utils/tree-utils";
 import { ViewMode, TreeType } from "../hooks/useViewMode";
+import { SidebarHeader } from "./sidebar/SidebarHeader";
 
 export interface DocumentationSidebarProps {
   sidebarWidth: number;
@@ -58,27 +59,22 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       className="docs-sidebar"
       style={{ width: `${sidebarWidth}px`, left: `${leftOffset}px` }}
     >
-      <div className="docs-nav-header">
-        <h2>
-          📚 Documentation
+      <SidebarHeader
+        icon="📚"
+        title="Documentation"
+        className="sidebar-header--docs"
+        actions={
           <button
+            className={`sidebar-header__action-btn ${
+              isChatOpen ? "active" : ""
+            }`}
             title={isChatOpen ? "Hide Chat" : "Show Chat"}
             onClick={onToggleChat}
-            style={{
-              marginLeft: 8,
-              border: "1px solid rgba(255,255,255,0.3)",
-              background: "rgba(255,255,255,0.08)",
-              color: "#fff",
-              borderRadius: 6,
-              padding: "4px 8px",
-              cursor: "pointer",
-            }}
           >
-            🤖
+            AI
           </button>
-        </h2>
-        <p>Navigate through your application components</p>
-      </div>
+        }
+      />
 
       {/* Main Filters */}
       <div className="docs-main-filters">

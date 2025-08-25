@@ -52,7 +52,14 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
       style={{ marginBottom: "20px" }}
     >
       <h3>📝 Recent Logs ({logs.length})</h3>
-      <div className="live-entries">
+      <div 
+        className="live-entries"
+        style={{ 
+          maxHeight: "300px",
+          overflowY: "auto",
+          border: "none"
+        }}
+      >
         {logs
           .slice(-10)
           .reverse()
@@ -60,6 +67,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
             <div
               key={`${log.timestampMs}-${idx}`}
               className="live-entry live-entry--log"
+              style={{ border: "none", borderLeft: "none" }}
             >
               <span className="entry-time">
                 {formatTimestamp(log.timestampMs)}
@@ -70,7 +78,15 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
               >
                 {log.level.toUpperCase()}
               </span>
-              <span className="entry-message">{log.message}</span>
+              <span 
+                className="entry-message"
+                style={{ 
+                  wordBreak: "break-word",
+                  whiteSpace: "pre-wrap"
+                }}
+              >
+                {log.message}
+              </span>
               {log.sourceId && (
                 <a href={`#element-${log.sourceId}`} className="clean-button">
                   Source
@@ -85,7 +101,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                       {jsonData ? (
                         <JsonViewer data={jsonData} />
                       ) : (
-                        <pre>{log.data}</pre>
+                        <pre style={{ 
+                          wordBreak: "break-word",
+                          whiteSpace: "pre-wrap"
+                        }}>{log.data}</pre>
                       )}
                     </details>
                   );

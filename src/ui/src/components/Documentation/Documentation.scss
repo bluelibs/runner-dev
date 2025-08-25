@@ -23,6 +23,7 @@
 }
 
 .clean-button {
+  display: inline-block;
   background: #e3f2fd;
   border: 1px solid #bbdefb;
   color: #1565c0;
@@ -79,6 +80,7 @@
   background: $gradient-sidebar;
   color: white;
   padding: $spacing-xxl $spacing-lg;
+  padding-top: 0px;
   overflow-y: auto;
   overflow-x: hidden; // prevent accidental horizontal scroll twitch
   z-index: 1000;
@@ -490,6 +492,24 @@
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
+  position: relative;
+}
+
+.docs-main-content--suspended {
+  pointer-events: none;
+}
+
+.docs-main-content--suspended .docs-content-container {
+  filter: grayscale(0.2) blur(2px);
+  transition: filter 0.15s ease;
+}
+
+.docs-main-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(245, 247, 250, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 1;
 }
 
 .docs-content-container {
@@ -754,7 +774,7 @@
   grid-template-columns: 1fr;
 
   @media (min-width: 768px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   @media (max-width: 767px) {
@@ -872,7 +892,6 @@
   h3 {
     margin: 0 0 $spacing-lg 0;
     font-size: $font-size-lg;
-    color: $white;
     font-weight: bold;
     display: flex;
     align-items: center;

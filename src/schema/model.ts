@@ -44,7 +44,7 @@ export interface TagUsage {
   configSchema?: string | null;
 }
 
-export interface Tag {
+export interface Tag extends BaseElement {
   id: string;
   configSchema?: string | null;
   tasks: Task[];

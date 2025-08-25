@@ -15,6 +15,7 @@ import {
 } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./ResourceCard.scss";
+import { SchemaRenderer } from "./SchemaRenderer";
 export interface ResourceCardProps {
   resource: Resource;
   introspector: Introspector;
@@ -78,10 +79,14 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
           </div>
           {resource.tags && resource.tags.length > 0 && (
             <div className="resource-card__tags">
-              {resource.tags.map((tag) => (
-                <span key={tag} className="resource-card__tag">
-                  {tag}
-                </span>
+              {introspector.getTagsByIds(resource.tags).map((tag) => (
+                <a
+                  href={`#element-${tag.id}`}
+                  key={tag.id}
+                  className="clean-button"
+                >
+                  {formatId(tag.id)}
+                </a>
               ))}
             </div>
           )}
@@ -172,9 +177,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
                 <div className="resource-card__config__subsection">
                   <h5>Configuration Schema</h5>
-                  <pre className="resource-card__config__block">
-                    {formatSchema(resource.configSchema)}
-                  </pre>
+                  <SchemaRenderer schemaString={resource.configSchema} />
                 </div>
               </div>
             </div>
@@ -293,6 +296,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+        enableEdit={Boolean(resource.filePath)}
+        saveOnFile={resource.filePath || null}
       />
     </div>
   );

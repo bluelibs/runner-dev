@@ -14,6 +14,7 @@ import {
   graphqlRequest,
   SAMPLE_MIDDLEWARE_FILE_QUERY,
 } from "../utils/graphqlClient";
+import SchemaRenderer from "./SchemaRenderer";
 
 export interface MiddlewareCardProps {
   middleware: Middleware;
@@ -100,10 +101,14 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             </div>
             {middleware.tags && middleware.tags.length > 0 && (
               <div className="middleware-card__tags">
-                {middleware.tags.map((tag) => (
-                  <span key={tag} className="middleware-card__tag">
-                    {tag}
-                  </span>
+                {introspector.getTagsByIds(middleware.tags).map((tag) => (
+                  <a
+                    href={`#element-${tag.id}`}
+                    key={tag.id}
+                    className="middleware-card__tag"
+                  >
+                    {formatId(tag.id)}
+                  </a>
                 ))}
               </div>
             )}
@@ -212,9 +217,9 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             <h4 className="middleware-card__section__title">
               📝 Configuration Schema
             </h4>
-            <pre className="middleware-card__code-block">
-              {formatSchema(middleware.configSchema)}
-            </pre>
+            <div className="middleware-card__config">
+              <SchemaRenderer schemaString={middleware.configSchema} />
+            </div>
           </div>
 
           {(taskUsages.length > 0 || resourceUsages.length > 0) && (
@@ -338,6 +343,8 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+        enableEdit={Boolean(middleware.filePath)}
+        saveOnFile={middleware.filePath || null}
       />
     </div>
   );

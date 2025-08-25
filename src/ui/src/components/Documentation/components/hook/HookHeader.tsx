@@ -1,17 +1,20 @@
 import React from "react";
 import { Hook } from "../../../../../../schema/model";
 import { formatId } from "../../utils/formatting";
+import { Introspector } from "../../../../../../resources/models/Introspector";
 
 export interface HookHeaderProps {
   hook: Hook;
   emittedEventsCount: number;
   isGlobal: boolean;
+  introspector: Introspector;
 }
 
 export const HookHeader: React.FC<HookHeaderProps> = ({
   hook,
   emittedEventsCount,
   isGlobal,
+  introspector,
 }) => {
   return (
     <div className="hook-card__header">
@@ -38,10 +41,14 @@ export const HookHeader: React.FC<HookHeaderProps> = ({
           </div>
           {hook.tags && hook.tags.length > 0 && (
             <div className="hook-card__tags">
-              {hook.tags.map((tag) => (
-                <span key={tag} className="hook-card__tag">
-                  {tag}
-                </span>
+              {introspector.getTagsByIds(hook.tags).map((tag) => (
+                <a
+                  href={`#element-${tag.id}`}
+                  key={tag.id}
+                  className="clean-button"
+                >
+                  {formatId(tag.id)}
+                </a>
               ))}
             </div>
           )}

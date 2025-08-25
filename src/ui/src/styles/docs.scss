@@ -11,7 +11,7 @@
 // Import component-specific styles
 @use "../components/Documentation/components/HookCard.scss";
 @use "../components/Documentation/components/TagCard.scss";
-@use "../components/Documentation/components/Sidebar";
+@use "../components/Documentation/components/sidebar/Sidebar";
 @use "../components/Documentation/components/DiagnosticsPanel";
 @use "../components/Documentation/Documentation";
 @use "../components/Documentation/components/EventCard";

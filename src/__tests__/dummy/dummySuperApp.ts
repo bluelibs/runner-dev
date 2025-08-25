@@ -17,9 +17,8 @@ import { z } from "zod";
 // Tags for categorization
 export const performanceTag = tag<{ warnAboveMs: number }>({
   id: "app.tags.performance",
+  meta: { title: "xxx yyy" },
 });
-
-
 
 export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
   id: "app.tags.security",
@@ -27,7 +26,7 @@ export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
 
 export const domainTag = tag<{ domain: string }>({
   id: "app.tags.domain",
-  configSchema: z.object({ domain: z.string() }).strict(),
+  configSchema: z.object({ domain: z.string() }),
 });
 
 export const apiTag = tag<{ method: string; path: string }>({
@@ -46,6 +45,7 @@ export const validationMiddleware = taskMiddleware({
     return next(task.input);
   },
 });
+
 
 export const loggingMiddleware = taskMiddleware({
   id: "app.middleware.logging",

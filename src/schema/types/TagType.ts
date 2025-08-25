@@ -12,6 +12,7 @@ import { MiddlewareType } from "./MiddlewareType";
 import { EventType } from "./EventType";
 import type { Introspector } from "../../resources/models/Introspector";
 import { BaseElementInterface } from "./AllType";
+import { baseElementCommonFields } from "./BaseElementCommon";
 
 export const TagUsageType: GraphQLObjectType<
   TagUsage,
@@ -28,11 +29,11 @@ export const TagUsageType: GraphQLObjectType<
 export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
   new GraphQLObjectType({
     name: "Tag",
+    interfaces: () => [BaseElementInterface],
     fields: () => ({
-      id: {
-        type: new GraphQLNonNull(GraphQLString),
-      },
+      ...baseElementCommonFields(),
       configSchema: { type: GraphQLString },
+      config: { type: GraphQLString },
       tasks: {
         type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
         resolve: (tag, _, { introspector }) => {

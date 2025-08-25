@@ -8,6 +8,7 @@ import { useViewMode } from "./hooks/useViewMode";
 import { useSidebarResize } from "./hooks/useSidebarResize";
 import { useChatSidebarResize } from "./hooks/useChatSidebarResize";
 import { useTreeNavigation } from "./hooks/useTreeNavigation";
+import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { createSections } from "./config/documentationSections";
 import { DOCUMENTATION_CONSTANTS } from "./config/documentationConstants";
 import { ChatSidebar } from "./components/ChatSidebar";
@@ -26,17 +27,20 @@ export type Section =
 export interface DocumentationProps {
   introspector: Introspector;
   namespacePrefix?: string;
+  runnerFrameworkMd?: string;
+  runnerDevMd?: string;
+  projectOverviewMd?: string;
+  graphqlSdl?: string;
 }
 
 export const Documentation: React.FC<DocumentationProps> = ({
   introspector,
   namespacePrefix,
+  runnerFrameworkMd,
+  runnerDevMd,
+  projectOverviewMd,
+  graphqlSdl,
 }) => {
-  // Custom hooks for state management
-  const filterHook = useDocumentationFilters(introspector, namespacePrefix);
-  const viewModeHook = useViewMode();
-  const sidebarHook = useSidebarResize();
-  const chatHook = useChatSidebarResize(40);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(() => {
     try {
       return (
@@ -48,6 +52,20 @@ export const Documentation: React.FC<DocumentationProps> = ({
     }
   });
 
+  // Custom hooks for state management
+  const filterHook = useDocumentationFilters(introspector, namespacePrefix);
+  const viewModeHook = useViewMode();
+  const chatHook = useChatSidebarResize(40);
+  const sidebarHook = useSidebarResize(
+    isChatOpen ? chatHook.chatWidth + 40 : 0
+  );
+  const debouncedSidebarWidth = useDebouncedValue(
+    sidebarHook.sidebarWidth,
+    180
+  );
+  const debouncedChatWidth = useDebouncedValue(chatHook.chatWidth, 180);
+  const [isChatTransitioning, setIsChatTransitioning] = useState(false);
+
   const handleToggleChat = () => {
     setIsChatOpen((prev) => {
       const next = !prev;
@@ -57,6 +75,9 @@ export const Documentation: React.FC<DocumentationProps> = ({
           String(next)
         );
       } catch {}
+      // Mark a brief transition window for overlay while chat opens/closes
+      setIsChatTransitioning(true);
+      window.setTimeout(() => setIsChatTransitioning(false), 260);
       return next;
     });
   };
@@ -151,6 +172,14 @@ export const Documentation: React.FC<DocumentationProps> = ({
     console.log(introspector.serialize());
   }
 
+  // Consider layout busy whenever dragging resizers or debounced widths are catching up
+  const isLayoutBusy =
+    sidebarHook.isResizing ||
+    chatHook.isResizing ||
+    isChatTransitioning ||
+    debouncedSidebarWidth !== sidebarHook.sidebarWidth ||
+    debouncedChatWidth !== chatHook.chatWidth;
+
   return (
     <div className="docs-app">
       {/* Fixed Navigation Sidebar */}
@@ -183,7 +212,11 @@ export const Documentation: React.FC<DocumentationProps> = ({
           sidebarHook.isResizing ? "docs-sidebar-resizer--active" : ""
         }`}
         style={{
-          left: `${(isChatOpen ? chatHook.chatWidth + 40 : 0) + sidebarHook.sidebarWidth + 40}px`,
+          left: `${
+            (isChatOpen ? chatHook.chatWidth + 40 : 0) +
+            sidebarHook.sidebarWidth +
+            40
+          }px`,
         }}
         onMouseDown={sidebarHook.handleMouseDown}
       />
@@ -191,10 +224,11 @@ export const Documentation: React.FC<DocumentationProps> = ({
       {/* Main Content */}
       <DocumentationMainContent
         introspector={introspector}
-        sidebarWidth={sidebarHook.sidebarWidth}
-        chatWidth={chatHook.chatWidth}
+        sidebarWidth={debouncedSidebarWidth}
+        chatWidth={debouncedChatWidth}
         isChatOpen={isChatOpen}
         chatPushesLeft
+        suspendRendering={isLayoutBusy}
         tasks={filterHook.tasks}
         resources={filterHook.resources}
         events={filterHook.events}
@@ -216,6 +250,50 @@ export const Documentation: React.FC<DocumentationProps> = ({
           <ChatSidebar
             width={chatHook.chatWidth}
             sidebarRef={chatHook.sidebarRef}
+            onToggleChat={handleToggleChat}
+            isChatOpen={isChatOpen}
+            runnerAiMd={runnerFrameworkMd}
+            runnerDevMd={runnerDevMd}
+            projectOverviewMd={projectOverviewMd}
+            graphqlSdl={graphqlSdl}
+            availableElements={{
+              tasks: filterHook.tasks.map((task) => ({
+                id: task.id,
+                name: task.id,
+                title: task.meta?.title || undefined,
+                description: task.meta?.description || undefined,
+              })),
+              resources: filterHook.resources.map((resource) => ({
+                id: resource.id,
+                name: resource.id,
+                title: resource.meta?.title || undefined,
+                description: resource.meta?.description || undefined,
+              })),
+              events: filterHook.events.map((event) => ({
+                id: event.id,
+                name: event.id,
+                title: event.meta?.title || undefined,
+                description: event.meta?.description || undefined,
+              })),
+              hooks: filterHook.hooks.map((hook) => ({
+                id: hook.id,
+                name: hook.id,
+                title: hook.meta?.title || undefined,
+                description: hook.meta?.description || undefined,
+              })),
+              middlewares: filterHook.middlewares.map((middleware) => ({
+                id: middleware.id,
+                name: middleware.id,
+                title: middleware.meta?.title || undefined,
+                description: middleware.meta?.description || undefined,
+              })),
+              tags: filterHook.tags.map((tag) => ({
+                id: tag.id,
+                name: tag.id,
+                title: tag.meta?.title || undefined,
+                description: tag.meta?.description || undefined,
+              })),
+            }}
           />
         </>
       )}

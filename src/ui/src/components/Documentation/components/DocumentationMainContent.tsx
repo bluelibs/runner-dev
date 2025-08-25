@@ -15,6 +15,7 @@ export interface DocumentationMainContentProps {
   chatWidth?: number;
   isChatOpen?: boolean;
   chatPushesLeft?: boolean;
+  suspendRendering?: boolean;
   tasks: any[];
   resources: any[];
   events: any[];
@@ -31,6 +32,7 @@ export const DocumentationMainContent: React.FC<
   chatWidth,
   isChatOpen,
   chatPushesLeft,
+  suspendRendering = false,
   tasks,
   resources,
   events,
@@ -38,9 +40,15 @@ export const DocumentationMainContent: React.FC<
   middlewares,
   tags,
 }) => {
+  const rootResource = introspector.getRoot();
+  const rootTitle = rootResource?.meta?.title || "Runner Application Documentation";
+  const rootDescription = rootResource?.meta?.description || "Complete overview of your application's architecture and components";
+
   return (
     <div
-      className="docs-main-content"
+      className={`docs-main-content ${
+        suspendRendering ? "docs-main-content--suspended" : ""
+      }`}
       style={{
         marginLeft: `${
           sidebarWidth +
@@ -50,12 +58,11 @@ export const DocumentationMainContent: React.FC<
         marginRight: undefined,
       }}
     >
+      {suspendRendering && <div className="docs-main-overlay" />}
       <div className="docs-content-container">
         <header id="top" className="docs-header">
-          <h1>Runner Application Documentation</h1>
-          <p>
-            Complete overview of your application's architecture and components
-          </p>
+          <h1>{rootTitle}</h1>
+          <p>{rootDescription}</p>
         </header>
 
         <section id="overview" className="docs-section">

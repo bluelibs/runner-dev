@@ -20,7 +20,8 @@
   background: $white;
   border-radius: $border-radius-xl;
   box-shadow: $shadow-lg;
-  overflow: hidden;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
 }
@@ -82,36 +83,36 @@
   background: $light-gray;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  // Let the content area scroll; editor itself shouldn't manage internal scroll
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }
 
+.code-modal__editor-wrap {
+  position: relative;
+  // Don't flex; allow content to control height so parent scrolls
+  min-height: 400px;
+}
+
 .code-modal__editor {
-  flex: 1;
   width: 100%;
   min-height: 400px;
-  resize: vertical;
-  font-family: $font-family-mono;
-  font-size: $font-size-sm;
-  line-height: 1.5;
-  background: #0d1117;
-  color: #e6edf3;
-  border: 1px solid #30363d;
   border-radius: $border-radius-lg;
-  overflow: auto;
-
-  // react-simple-code-editor specifics
-  .code-modal__editor-textarea {
-    outline: none;
-  }
-
-  .code-modal__editor-pre {
-    margin: 0;
-    background: #0d1117;
-    color: #e6edf3;
+  overflow: hidden;
+  
+  .cm-editor {
+    font-family: $font-family-mono;
     border-radius: $border-radius-lg;
-    padding: $spacing-lg;
+    
+    &.cm-focused {
+      outline: none;
+    }
+  }
+  
+  .cm-scroller {
+    font-family: $font-family-mono;
+    line-height: 1.5;
   }
 }
 
@@ -171,97 +172,3 @@
   font-size: $font-size-sm;
 }
 
-.code-modal__pre {
-  margin: 0;
-  padding: 0;
-  border-radius: $border-radius-lg;
-  font-family: $font-family-mono;
-  font-size: $font-size-sm;
-  line-height: 1.5;
-  flex: 1;
-  overflow: auto;
-  background: #0d1117;
-  border: 1px solid #30363d;
-  position: relative;
-
-  // Custom scrollbar - EXTRA FAT
-  &::-webkit-scrollbar {
-    width: 32px;
-    height: 32px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #0d1117;
-    border-radius: 0;
-    box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.1);
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 6px;
-    border: 6px solid #0d1117;
-    min-height: 50px;
-
-    &:hover {
-      background: #484f58;
-    }
-
-    &:active {
-      background: #656c76;
-    }
-  }
-
-  &::-webkit-scrollbar-corner {
-    background: #0d1117;
-  }
-
-  // Firefox scrollbar - EXTRA FAT
-  scrollbar-width: thick;
-  scrollbar-color: #30363d #0d1117;
-
-  code {
-    display: block;
-    padding: $spacing-xl;
-    padding-left: 4em;
-    background: #0d1117;
-    color: #e6edf3;
-    overflow: visible;
-  }
-
-  // Line numbers styling (override Prism.js default)
-  &.line-numbers {
-    .line-numbers-rows {
-      position: absolute;
-      pointer-events: none;
-      top: 0;
-      font-size: $font-size-sm;
-      left: -3.8em;
-      width: 3em;
-      letter-spacing: -1px;
-      border-right: 1px solid #30363d;
-      user-select: none;
-
-      > span {
-        pointer-events: none;
-        display: block;
-        counter-increment: linenumber;
-
-        &:before {
-          content: counter(linenumber);
-          color: #6e7681;
-          display: block;
-          padding-right: 0.8em;
-          text-align: right;
-        }
-      }
-    }
-  }
-
-  // Disable whitespace highlighting
-  .token.tab:not(:empty):before,
-  .token.cr:before,
-  .token.lf:before,
-  .token.space:before {
-    display: none !important;
-  }
-}

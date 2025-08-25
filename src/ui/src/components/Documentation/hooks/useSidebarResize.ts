@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { DOCUMENTATION_CONSTANTS } from "../config/documentationConstants";
 
-export const useSidebarResize = () => {
+export const useSidebarResize = (leftOffset: number = 0) => {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     try {
       return parseInt(localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SIDEBAR_WIDTH) || DOCUMENTATION_CONSTANTS.DEFAULTS.SIDEBAR_WIDTH.toString(), 10);
@@ -24,10 +24,11 @@ export const useSidebarResize = () => {
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isResizing) return;
-      const newWidth = Math.min(Math.max(e.clientX, DOCUMENTATION_CONSTANTS.CONSTRAINTS.MIN_SIDEBAR_WIDTH), DOCUMENTATION_CONSTANTS.CONSTRAINTS.MAX_SIDEBAR_WIDTH);
+      const newWidthRaw = e.clientX - leftOffset;
+      const newWidth = Math.min(Math.max(newWidthRaw, DOCUMENTATION_CONSTANTS.CONSTRAINTS.MIN_SIDEBAR_WIDTH), DOCUMENTATION_CONSTANTS.CONSTRAINTS.MAX_SIDEBAR_WIDTH);
       setSidebarWidth(newWidth);
     },
-    [isResizing]
+    [isResizing, leftOffset]
   );
 
   const handleMouseUp = useCallback(() => {

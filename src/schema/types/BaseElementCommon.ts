@@ -1,4 +1,5 @@
 import {
+  GraphQLID,
   GraphQLInt,
   GraphQLList,
   GraphQLNonNull,
@@ -10,6 +11,7 @@ import { sanitizePath, resolvePathInput } from "../../utils/path";
 import type { BaseElement } from "../model";
 import type { Introspector } from "../../resources/models/Introspector";
 import { TagType, TagUsageType } from "./TagType";
+import { MetaType } from "./MetaType";
 
 /**
  * Shared fields that we want available on all concrete element types.
@@ -21,6 +23,19 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
   { introspector: Introspector }
 > {
   return {
+    id: {
+      description: "Unique identifier for the element",
+      type: new GraphQLNonNull(GraphQLID),
+    },
+    meta: {
+      description: "Metadata for the element",
+      type: MetaType,
+    },
+    filePath: {
+      description: "Path to task file",
+      type: GraphQLString,
+      resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
     fileContents: {
       description:
         "Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time.",

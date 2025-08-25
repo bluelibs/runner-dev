@@ -235,52 +235,11 @@ mutation EvalCode($code: String!, $inputJson: String, $evalInput: Boolean) {
 
 ## MCP Tools Available
 
-### GraphQL Operations
-
 - `graphql.query` - Execute read-only GraphQL queries
 - `graphql.mutation` - Execute GraphQL mutations (if ALLOW_MUTATIONS=true)
 - `graphql.introspect` - Get full schema introspection
-- `graphql.schemaSdl` - Get schema as SDL string
 - `graphql.ping` - Test connectivity
-
-### Documentation
-
-- `help.read` - Read local docs (README.md, AI.md) or package docs
-- `help.runner` - Read @bluelibs/runner framework documentation
-- `help.runnerDev` - Read Runner-Dev application documentation (README + AI guide)
-- `project.overview` - Generate dynamic project overview
-
-**🎯 Pro Tip: Array-Based Heading Filtering**
-All documentation tools support powerful array-based heading filtering:
-
-```typescript
-// Single heading (traditional)
-headingIncludes: "installation";
-
-// Multiple headings (NEW!) - Get comprehensive context in one call
-headingIncludes: ["installation", "configuration", "troubleshooting"];
-headingIncludes: ["tasks", "resources", "events", "middleware"];
-headingIncludes: ["hot-swapping", "live telemetry", "debugging"];
-```
-
-This enables gathering related information efficiently instead of making multiple sequential requests. The output shows exactly what sections were found and combines them with clear separators.
-
-**Example Usage:**
-
-```typescript
-// Get comprehensive Runner framework understanding
-help.runner({
-  headingIncludes: ["tasks", "resources", "events", "middleware"],
-});
-
-// Understand development workflow
-help.runner_dev({
-  headingIncludes: ["hot-swapping", "live telemetry", "debugging"],
-});
-
-// Compare installation methods
-help.read({ headingIncludes: ["installation", "setup", "configuration"] });
-```
+- `project.overview` - Generate dynamic project overview aggregated from the API
 
 ## Direct CLI Usage
 
@@ -288,8 +247,26 @@ Beyond MCP, Runner-Dev offers a powerful standalone CLI for direct interaction f
 
 ### Prerequisites
 
-- Your app must be running with the Dev server enabled.
+- Your app must be running with the Dev server enabled (for remote mode).
 - The `@bluelibs/runner-dev` package should be installed.
+
+### Create a New Project
+
+You can scaffold a new Runner project directly from the CLI.
+
+```bash
+# Create a new Runner project
+npx @bluelibs/runner-dev new <project-name>
+
+# Example
+npx @bluelibs/runner-dev new my-awesome-app
+```
+This command creates a new Runner project with a complete TypeScript setup, Jest for testing, and all necessary dependencies.
+
+Key flags for `new`:
+- `--install`: Install dependencies after scaffolding.
+- `--run-tests`: Run the generated test suite after installation.
+- `--run`: Start the dev server after installation.
 
 ### Common Commands
 
@@ -300,7 +277,7 @@ All commands can be prefixed with environment variables like `ENDPOINT` and `HEA
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev ping
 ```
 
-**Execute a GraphQL query:**
+**Execute a GraphQL query (Remote Mode):**
 ```bash
 # Simple query
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }'
@@ -313,12 +290,27 @@ ENDPOINT=http://localhost:1337/graphql \
   --format pretty
 ```
 
+**Execute a GraphQL query (Dry-Run Mode):**
+
+Run queries against a TypeScript entry file without needing a running server.
+
+```bash
+# Using a TS entry file default export
+npx @bluelibs/runner-dev query 'query { tasks { id } }' \
+  --entry-file ./src/main.ts
+
+# Using a named export (e.g., exported as `app`)
+npx @bluelibs/runner-dev query 'query { tasks { id } }' \
+  --entry-file ./src/main.ts --export app
+```
+
 **Generate a project overview:**
 ```bash
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev overview --details 10
 ```
 
 **Fetch GraphQL schema:**
+
 ```bash
 # As SDL
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema sdl
@@ -329,13 +321,18 @@ ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema json
 
 ### Key Flags
 
-- `--endpoint <url>`: GraphQL endpoint URL.
+- `--endpoint <url>`: GraphQL endpoint URL for remote mode.
 - `--headers '<json>'`: JSON for extra headers.
 - `--variables '<json>'`: JSON variables for a query.
 - `--format data|json|pretty`: Output format.
 - `--namespace <str>`: A filter to inject `idIncludes` on top-level fields.
+- `--entry-file <path>`: TypeScript entry file for dry-run mode (no server).
+- `--export <name>`: Named export to use from the entry file (default export is preferred).
+- `--operation <name>`: Operation name for documents with multiple operations.
+- `--raw`: Print the full GraphQL envelope including errors.
 
 This direct CLI access provides a powerful way for AI assistants with shell access to script complex interactions, perform detailed introspection, and validate application state without relying on MCP tools.
+
 
 ## Common Use Cases
 

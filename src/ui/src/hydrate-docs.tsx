@@ -13,6 +13,10 @@ declare global {
     __DOCS_PROPS__?: {
       namespacePrefix?: string;
       introspectorData: any;
+      runnerFrameworkMd?: string;
+      runnerDevMd?: string;
+      projectOverviewMd?: string;
+      graphqlSdl?: string;
     };
   }
 }
@@ -58,6 +62,10 @@ async function bootstrap() {
       React.createElement(Documentation as any, {
         introspector,
         namespacePrefix: props.namespacePrefix,
+        runnerFrameworkMd: props.runnerFrameworkMd,
+        runnerDevMd: props.runnerDevMd,
+        projectOverviewMd: props.projectOverviewMd,
+        graphqlSdl: props.graphqlSdl,
       })
     );
     scrollToHashElement();
@@ -75,6 +83,10 @@ async function bootstrap() {
     React.createElement(Documentation as any, {
       introspector,
       namespacePrefix: json.namespacePrefix,
+      runnerFrameworkMd: json.runnerFrameworkMd,
+      runnerDevMd: json.runnerDevMd,
+      projectOverviewMd: json.projectOverviewMd,
+      graphqlSdl: json.graphqlSdl,
     })
   );
   scrollToHashElement();

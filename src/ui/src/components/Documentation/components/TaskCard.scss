@@ -65,9 +65,12 @@
   display: flex;
   gap: $spacing-xs;
   flex-wrap: wrap;
-  a {
-    color: #fff;
-    text-decoration: none;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-xs;
+    max-width: 120px;
   }
 }
 

@@ -78,3 +78,23 @@ export const SAMPLE_EVENT_FILE_QUERY = `
     }
   }
 `;
+
+export const SAMPLE_HOOK_FILE_QUERY = `
+  query HookFile($id: ID!, $startLine: Int, $endLine: Int) {
+    hook(id: $id) {
+      id
+      filePath
+      fileContents(startLine: $startLine, endLine: $endLine)
+    }
+  }
+`;
+
+export const SAMPLE_TAG_FILE_QUERY = `
+  query TagFile($id: ID!, $startLine: Int, $endLine: Int) {
+    tag(id: $id) {
+      id
+      filePath
+      fileContents(startLine: $startLine, endLine: $endLine)
+    }
+  }
+`;

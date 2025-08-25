@@ -1,17 +1,8 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import Editor from "react-simple-code-editor";
-import Prism from "prismjs";
-import "prismjs/components/prism-typescript";
-import "prismjs/plugins/line-numbers/prism-line-numbers";
-import "prismjs/plugins/line-numbers/prism-line-numbers.css";
-import "prismjs/themes/prism-tomorrow.css";
+import CodeMirror from "@uiw/react-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
+import { oneDark } from "@codemirror/theme-one-dark";
 import "./CodeModal.scss";
 import { graphqlRequest } from "../utils/graphqlClient";
 
@@ -34,9 +25,9 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   enableEdit = false,
   saveOnFile,
 }) => {
-  const codeRef = useRef<HTMLElement>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  // Always render the editor; track draft and last-saved baseline
   const [draft, setDraft] = useState<string>(code ?? "");
+  const [baseline, setBaseline] = useState<string>(code ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const originalBodyStyle = useRef<{
@@ -98,29 +89,15 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   }, [isOpen, onClose]);
 
   useEffect(() => {
-    if (isOpen && codeRef.current && code && !isEditing) {
-      Prism.highlightElement(codeRef.current);
-    }
-  }, [isOpen, code, isEditing]);
-
-  useEffect(() => {
-    setDraft(code ?? "");
+    // When opening or when upstream code changes, reset draft and baseline
+    const next = code ?? "";
+    setDraft(next);
+    setBaseline(next);
   }, [code, isOpen]);
+
 
   const canEdit =
     enableEdit && typeof saveOnFile === "string" && saveOnFile.length > 0;
-
-  const onStartEdit = useCallback(() => {
-    if (!canEdit) return;
-    setIsEditing(true);
-    setError(null);
-  }, [canEdit]);
-
-  const onCancelEdit = useCallback(() => {
-    setIsEditing(false);
-    setDraft(code ?? "");
-    setError(null);
-  }, [code]);
 
   const onSave = useCallback(async () => {
     if (!canEdit || !saveOnFile) return;
@@ -143,7 +120,8 @@ export const CodeModal: React.FC<CodeModalProps> = ({
       if (!result.editFile?.success) {
         throw new Error(result.editFile?.error || "Unknown error while saving");
       }
-      setIsEditing(false);
+      // Update baseline so Save hides until further edits
+      setBaseline(draft);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
@@ -152,11 +130,6 @@ export const CodeModal: React.FC<CodeModalProps> = ({
     }
   }, [canEdit, saveOnFile, draft]);
 
-  const highlight = useCallback(
-    (src: string) =>
-      Prism.highlight(src, Prism.languages.typescript, "typescript"),
-    []
-  );
 
   if (!isOpen) return null;
 
@@ -175,31 +148,14 @@ export const CodeModal: React.FC<CodeModalProps> = ({
           </div>
           <div className="code-modal__header-right">
             <div className="code-modal__esc-hint">Press ESC to Close</div>
-            {canEdit && !isEditing && (
+            {canEdit && draft !== baseline && (
               <button
-                className="code-modal__btn code-modal__btn--glass"
-                onClick={onStartEdit}
+                className="code-modal__btn code-modal__btn--glass-primary"
+                onClick={onSave}
+                disabled={isSaving}
               >
-                EDIT
+                {isSaving ? "SAVING..." : "SAVE"}
               </button>
-            )}
-            {isEditing && (
-              <>
-                <button
-                  className="code-modal__btn code-modal__btn--glass-primary"
-                  onClick={onSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? "SAVING..." : "SAVE"}
-                </button>
-                <button
-                  className="code-modal__btn code-modal__btn--glass"
-                  onClick={onCancelEdit}
-                  disabled={isSaving}
-                >
-                  CANCEL
-                </button>
-              </>
             )}
             <button className="code-modal__close" onClick={onClose}>
               ×
@@ -207,24 +163,39 @@ export const CodeModal: React.FC<CodeModalProps> = ({
           </div>
         </div>
         <div className="code-modal__content">
-          {!enableEdit || !isEditing ? (
-            <pre className="code-modal__pre line-numbers">
-              <code ref={codeRef} className="language-typescript">
-                {code ?? "No content"}
-              </code>
-            </pre>
-          ) : (
-            <Editor
+          <div
+            className="code-modal__editor-wrap"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDownCapture={(e) => {
+              // Cmd/Ctrl+S to save when dirty
+              const k = e.key;
+              if ((e.metaKey || e.ctrlKey) && (k === "s" || k === "S")) {
+                e.preventDefault();
+                if (canEdit && draft !== baseline && !isSaving) onSave();
+              }
+            }}
+          >
+            <CodeMirror
               value={draft}
-              onValueChange={setDraft}
-              highlight={highlight}
-              padding={16}
+              onChange={(val) => {
+                if (canEdit) {
+                  setDraft(val);
+                }
+              }}
+              extensions={[javascript({ typescript: true })]}
+              theme={oneDark}
+              editable={canEdit}
+              basicSetup={{
+                lineNumbers: true,
+                foldGutter: true,
+                dropCursor: false,
+                allowMultipleSelections: false,
+              }}
               className="code-modal__editor"
-              preClassName="code-modal__editor-pre language-typescript"
-              textareaClassName="code-modal__editor-textarea"
-              style={{ overflow: "auto", minHeight: 400 }}
+              style={{ fontSize: "14px" }}
             />
-          )}
+          </div>
           {error && <div className="code-modal__error">{error}</div>}
         </div>
       </div>

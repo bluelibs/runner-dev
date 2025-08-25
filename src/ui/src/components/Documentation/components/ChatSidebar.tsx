@@ -98,6 +98,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     stopRequest,
     retryLastResponse,
     tokenStatus,
+    toggleDeepImpl,
+    startDeepImplementation,
+    answerDeepQuestion,
+    pauseDeepImplementation,
+    resumeDeepImplementation,
   } = useChatState({
     availableElements,
     docs: {
@@ -123,10 +128,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     chatState.isTyping
   );
 
-  const { isAtBottom, scrollToBottom } = useAutoScroll(
-    scrollRef,
-    [filteredMessages, chatState.isTyping]
-  );
+  const { isAtBottom, scrollToBottom } = useAutoScroll(scrollRef, [
+    filteredMessages,
+    chatState.isTyping,
+  ]);
 
   const architectRef = useRef<ArchitectPanelHandle | null>(null);
 
@@ -409,6 +414,90 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               />
               <div ref={messagesEndRef} style={{ height: "20px" }} />
             </div>
+            {/* DeepImpl TODO panel below chat messages */}
+            {chatState.deepImpl?.enabled && (
+              <div
+                className="deepimpl-panel"
+                style={{ padding: 8, borderTop: "1px solid #eee" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 6,
+                  }}
+                >
+                  <strong>Deep Implementation</strong>
+                  <span style={{ opacity: 0.7 }}>
+                    Stage: {chatState.deepImpl?.flowStage}
+                  </span>
+                  {chatState.deepImpl?.auto?.running && (
+                    <span style={{ opacity: 0.7 }}>(auto)</span>
+                  )}
+                </div>
+                <div
+                  className="deepimpl-todos"
+                  style={{ maxHeight: 160, overflow: "auto" }}
+                >
+                  {(() => {
+                    const renderTodo = (item: any) => (
+                      <li key={item.id} style={{ margin: "4px 0" }}>
+                        <span
+                          className={`todo-status todo-status--${item.status}`}
+                          style={{ marginRight: 6 }}
+                        >
+                          {item.status === "done"
+                            ? "✔"
+                            : item.status === "running"
+                            ? "…"
+                            : item.status === "error"
+                            ? "✖"
+                            : "•"}
+                        </span>
+                        <span>{item.title}</span>
+                        {item.detail && (
+                          <span style={{ opacity: 0.7 }}> — {item.detail}</span>
+                        )}
+                        {Array.isArray(item.children) &&
+                          item.children.length > 0 && (
+                            <ul style={{ marginTop: 4, marginLeft: 18 }}>
+                              {item.children.map((c: any) => renderTodo(c))}
+                            </ul>
+                          )}
+                      </li>
+                    );
+                    const todos = chatState.deepImpl?.todo || [];
+                    return todos.length ? (
+                      <ul style={{ paddingLeft: 16 }}>
+                        {todos.map((t: any) => renderTodo(t))}
+                      </ul>
+                    ) : (
+                      <div style={{ opacity: 0.6 }}>No TODOs yet.</div>
+                    );
+                  })()}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  {chatState.deepImpl?.auto?.running ? (
+                    <button
+                      className="chat-send-btn"
+                      onClick={() => pauseDeepImplementation()}
+                      title="Pause auto-run"
+                    >
+                      Pause
+                    </button>
+                  ) : (
+                    <button
+                      className="chat-send-btn"
+                      onClick={() => resumeDeepImplementation()}
+                      title="Resume auto-run"
+                    >
+                      Resume
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
             <ChatInput
               chatState={chatState}
               setChatState={setChatState}
@@ -423,6 +512,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               docsSchema={graphqlSdl}
               docsProjectOverview={projectOverviewMd}
               docsRunnerDev={runnerDevMd}
+              onToggleDeepImpl={toggleDeepImpl}
+              onStartDeepImpl={startDeepImplementation}
+              onAnswerDeepImpl={answerDeepQuestion}
             />
           </>
         )}

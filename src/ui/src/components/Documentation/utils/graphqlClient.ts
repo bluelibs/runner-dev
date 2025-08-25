@@ -59,6 +59,52 @@ export const SAMPLE_RESOURCE_FILE_QUERY = `
   }
 `;
 
+export const TASK_COVERAGE_QUERY = `
+  query TaskCoverage($id: ID!) {
+    task(id: $id) {
+      id
+      coverage { percentage }
+    }
+  }
+`;
+
+export const TASK_COVERAGE_DETAILS_QUERY = `
+  query TaskCoverageDetails($id: ID!) {
+    task(id: $id) {
+      id
+      coverage {
+        percentage
+        totalStatements
+        coveredStatements
+        details
+      }
+    }
+  }
+`;
+
+export const RESOURCE_COVERAGE_QUERY = `
+  query ResourceCoverage($id: ID!) {
+    resource(id: $id) {
+      id
+      coverage { percentage }
+    }
+  }
+`;
+
+export const RESOURCE_COVERAGE_DETAILS_QUERY = `
+  query ResourceCoverageDetails($id: ID!) {
+    resource(id: $id) {
+      id
+      coverage {
+        percentage
+        totalStatements
+        coveredStatements
+        details
+      }
+    }
+  }
+`;
+
 export const SAMPLE_MIDDLEWARE_FILE_QUERY = `
   query MiddlewareFile($id: ID!, $startLine: Int, $endLine: Int) {
     middleware(id: $id) {

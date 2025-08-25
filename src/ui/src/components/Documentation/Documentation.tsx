@@ -12,6 +12,7 @@ import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { createSections } from "./config/documentationSections";
 import { DOCUMENTATION_CONSTANTS } from "./config/documentationConstants";
 import { ChatSidebar } from "./components/ChatSidebar";
+import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
 
 export type Section =
   | "overview"
@@ -80,6 +81,53 @@ export const Documentation: React.FC<DocumentationProps> = ({
       window.setTimeout(() => setIsChatTransitioning(false), 260);
       return next;
     });
+  };
+
+  // Hash-driven toggle for stats overlay; reacts to address bar changes
+  const [isStatsOpen, setIsStatsOpen] = useState<boolean>(() => {
+    try {
+      return window.location.hash === "#overview-stats";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      try {
+        setIsStatsOpen(window.location.hash === "#overview-stats");
+      } catch {}
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    handleHashChange();
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const key = e.key?.toLowerCase();
+      if ((e.metaKey || e.ctrlKey) && key === "s") {
+        e.preventDefault();
+        try {
+          window.location.hash = isStatsOpen ? "#overview" : "#overview-stats";
+        } catch {}
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isStatsOpen]);
+
+  const openStats = () => {
+    try {
+      window.location.hash = "#overview-stats";
+    } catch {}
+  };
+  const closeStats = () => {
+    try {
+      if (window.location.hash === "#overview-stats") {
+        window.location.hash = "#overview";
+      }
+    } catch {}
   };
 
   const treeHook = useTreeNavigation(
@@ -237,6 +285,31 @@ export const Documentation: React.FC<DocumentationProps> = ({
         tags={filterHook.tags}
       />
 
+      {/* Non-intrusive: floating button to open stats overlay */}
+      {!isStatsOpen && (
+        <button
+          onClick={openStats}
+          aria-label="Open Stats"
+          title="Open Stats (Ctrl/Cmd+S)"
+          className="docs-open-stats"
+          style={{
+            position: "fixed",
+            left: 16,
+            bottom: 16,
+            zIndex: 1200,
+            appearance: "none",
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "#0f1115",
+            color: "#fff",
+            padding: "8px 10px",
+            borderRadius: 8,
+            cursor: "pointer",
+          }}
+        >
+          Stats
+        </button>
+      )}
+
       {isChatOpen && (
         <>
           <div
@@ -297,6 +370,9 @@ export const Documentation: React.FC<DocumentationProps> = ({
           />
         </>
       )}
+
+      {/* Stats overlay, opened via #overview-stats */}
+      {isStatsOpen && <OverviewStatsPanel onClose={closeStats} />}
     </div>
   );
 };

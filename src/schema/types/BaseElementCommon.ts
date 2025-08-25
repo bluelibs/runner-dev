@@ -12,6 +12,8 @@ import type { BaseElement } from "../model";
 import type { Introspector } from "../../resources/models/Introspector";
 import { TagType, TagUsageType } from "./TagType";
 import { MetaType } from "./MetaType";
+import { CoverageInfoType } from "./CoverageType";
+import { CustomGraphQLContext } from "../context";
 
 /**
  * Shared fields that we want available on all concrete element types.
@@ -20,7 +22,7 @@ import { MetaType } from "./MetaType";
  */
 export function baseElementCommonFields(): GraphQLFieldConfigMap<
   BaseElement,
-  { introspector: Introspector }
+  CustomGraphQLContext
 > {
   return {
     id: {
@@ -54,6 +56,25 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
         if (!node?.filePath) return null;
         const abs = resolvePathInput(node.filePath) ?? node.filePath;
         return await readFile(abs, args);
+      },
+    },
+    coverage: {
+      description:
+        "Coverage summary for this element's file (percentage is always resolvable if coverage report is present).",
+      type: CoverageInfoType,
+      resolve: (node: BaseElement) => ({ filePath: node.filePath || null }),
+    },
+    coverageContents: {
+      description:
+        "Raw coverage report contents from the project (entire file), or null if not available.",
+      type: GraphQLString,
+      resolve: async (
+        _node: BaseElement,
+        _args: any,
+        ctx: CustomGraphQLContext
+      ) => {
+        const raw = await ctx.coverage?.getRawCoverageContents();
+        return raw ?? null;
       },
     },
     markdownDescription: {

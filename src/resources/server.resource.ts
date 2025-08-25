@@ -7,6 +7,7 @@ import { introspector } from "./introspector.resource";
 import { live } from "./live.resource";
 import { swapManager } from "./swap.resource";
 import { expressMiddleware } from "@as-integrations/express5";
+import { coverage } from "./coverage.resource";
 import express, { Request, Response } from "express";
 import path from "node:path";
 import fs from "node:fs";
@@ -23,6 +24,7 @@ export interface ServerConfig {
 
 export const serverResource = resource({
   id: "runner-dev.resources.server",
+  register: [coverage],
   dependencies: {
     store: globals.resources.store,
     logger: globals.resources.logger,
@@ -30,10 +32,11 @@ export const serverResource = resource({
     live,
     swapManager,
     graphql: graphqlResource,
+    coverage,
   },
   async init(
     config: ServerConfig,
-    { store, logger, introspector, live, swapManager, graphql }
+    { store, logger, introspector, live, swapManager, graphql, coverage }
   ) {
     logger = logger.with({
       source: serverResource.id,
@@ -62,6 +65,7 @@ export const serverResource = resource({
             introspector,
             live,
             swapManager,
+            coverage,
           };
         },
       })

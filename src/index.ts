@@ -7,6 +7,7 @@ import { telemetry } from "./resources/telemetry.resource";
 import { swapManager } from "./resources/swap.resource";
 import { graphql } from "./resources/graphql-accumulator.resource";
 import { dev } from "./resources/dev.resource";
+import { coverage } from "./resources/coverage.resource";
 
 Error.stackTraceLimit = Infinity;
 
@@ -18,6 +19,7 @@ export const resources = {
   swapManager,
   graphql,
   dev,
+  coverage,
 };
 
 export { dev };

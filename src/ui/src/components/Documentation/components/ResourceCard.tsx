@@ -12,6 +12,8 @@ import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
   SAMPLE_RESOURCE_FILE_QUERY,
+  RESOURCE_COVERAGE_QUERY,
+  RESOURCE_COVERAGE_DETAILS_QUERY,
 } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./ResourceCard.scss";
@@ -43,6 +45,11 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [coveragePct, setCoveragePct] = React.useState<number | null>(null);
+  const [coverageDetailsOpen, setCoverageDetailsOpen] = React.useState(false);
+  const [coverageDetailsText, setCoverageDetailsText] = React.useState<
+    string | null
+  >(null);
 
   async function openFileModal() {
     if (!resource?.id) return;
@@ -59,6 +66,56 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       setFileContent(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await graphqlRequest<{
+          resource: {
+            id: string;
+            coverage?: { percentage?: number | null } | null;
+          };
+        }>(RESOURCE_COVERAGE_QUERY, { id: resource.id });
+        if (!cancelled)
+          setCoveragePct(data?.resource?.coverage?.percentage ?? null);
+      } catch {
+        if (!cancelled) setCoveragePct(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [resource.id]);
+
+  async function openCoverageDetails() {
+    try {
+      const data = await graphqlRequest<{
+        resource: {
+          id: string;
+          coverage?: {
+            percentage?: number | null;
+            totalStatements?: number | null;
+            coveredStatements?: number | null;
+            details?: string | null;
+          } | null;
+        };
+      }>(RESOURCE_COVERAGE_DETAILS_QUERY, { id: resource.id });
+      const c = data?.resource?.coverage;
+      const text = c
+        ? `Percentage: ${c.percentage ?? 0}%\nStatements: ${
+            c.coveredStatements ?? 0
+          }/${c.totalStatements ?? 0}\n\nDetails (raw):\n${c.details ?? "N/A"}`
+        : "No coverage details.";
+      setCoverageDetailsText(text);
+      setCoverageDetailsOpen(true);
+    } catch (e: any) {
+      setCoverageDetailsText(
+        `Error loading coverage: ${e?.message ?? String(e)}`
+      );
+      setCoverageDetailsOpen(true);
     }
   }
 
@@ -112,6 +169,44 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                     )}
                   </div>
                 </div>
+
+                {typeof coveragePct === "number" && (
+                  <div className="resource-card__info-block">
+                    <div className="label">Coverage:</div>
+                    <div className="value">
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color:
+                            coveragePct >= 100
+                              ? "#2e7d32"
+                              : coveragePct >= 80
+                              ? "#ef6c00"
+                              : "#c62828",
+                        }}
+                      >
+                        {coveragePct}%
+                      </span>{" "}
+                      <button
+                        type="button"
+                        onClick={openCoverageDetails}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#2e7d32",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          padding: 0,
+                          fontFamily: "inherit",
+                          fontSize: "inherit",
+                        }}
+                        title="View coverage details"
+                      >
+                        (View Coverage)
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {resource.registeredBy && (
                   <div className="resource-card__info-block">
@@ -304,6 +399,18 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
         enableEdit={Boolean(resource.filePath)}
         saveOnFile={resource.filePath || null}
+      />
+
+      <CodeModal
+        title={`${
+          resource.meta?.title || formatId(resource.id)
+        } — Coverage Details`}
+        subtitle={resource.filePath || undefined}
+        isOpen={coverageDetailsOpen}
+        onClose={() => setCoverageDetailsOpen(false)}
+        code={coverageDetailsText}
+        enableEdit={false}
+        saveOnFile={null}
       />
     </div>
   );

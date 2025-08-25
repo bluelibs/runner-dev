@@ -108,6 +108,8 @@ export interface ChatState {
     runnerDev?: boolean;
     projectOverview?: boolean;
   };
+  // Deep Implementation agentic flow state
+  deepImpl?: DeepImplState;
 }
 
 export interface CodeModalState {
@@ -116,4 +118,79 @@ export interface CodeModalState {
   subtitle?: string;
   content: string;
   language?: string;
+}
+
+// Deep Implementation types
+export type PatchOp =
+  | {
+      kind: "file.update";
+      path: string; // supports structured paths like workspace:src/...
+      newContent: string;
+      rationale?: string;
+    }
+  | {
+      kind: "element.create";
+      elementKind: "task" | "resource" | "hook" | "middleware" | "event";
+      id: string;
+      filePath: string;
+      content: string;
+      rationale?: string;
+    }
+  | {
+      kind: "element.update";
+      elementKind: "task" | "resource" | "hook" | "middleware" | "event";
+      id: string;
+      filePath: string;
+      newContent: string;
+      rationale?: string;
+    }
+  | {
+      kind: "element.remove";
+      elementKind: "task" | "resource" | "hook" | "middleware" | "event";
+      id: string;
+      filePath: string;
+      rationale?: string;
+    };
+
+export interface DeepImplPatch {
+  flowId: string;
+  summary: string;
+  questions: { purpose: string; constraints: string; success: string };
+  ops: PatchOp[];
+}
+
+export interface DeepImplTodoItem {
+  id: string;
+  title: string;
+  status: "pending" | "running" | "done" | "error";
+  detail?: string;
+  children?: DeepImplTodoItem[];
+}
+
+export interface DeepImplBudget {
+  totalTokens: number; // overall cap for DeepResearch (eg. 65500)
+  reserveOutput: number; // reserved tokens for final synthesis
+  reserveSafety: number; // additional headroom
+  perTurnMax?: number; // optional per-turn limit
+  usedApprox?: number; // running estimate
+}
+
+export interface DeepImplState {
+  enabled: boolean;
+  flowId: string | null;
+  flowStage:
+    | "idle"
+    | "questions"
+    | "plan"
+    | "explore"
+    | "implement"
+    | "patch.ready"
+    | "applying"
+    | "done";
+  answers: { purpose?: string; constraints?: string; success?: string };
+  todo: DeepImplTodoItem[];
+  logs: Array<{ ts: number; text: string }>;
+  patch?: DeepImplPatch | null;
+  budget: DeepImplBudget;
+  auto?: { running: boolean };
 }

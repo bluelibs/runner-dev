@@ -8,7 +8,12 @@ import {
   formatId,
 } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
-import { graphqlRequest, SAMPLE_TASK_FILE_QUERY } from "../utils/graphqlClient";
+import {
+  graphqlRequest,
+  SAMPLE_TASK_FILE_QUERY,
+  TASK_COVERAGE_QUERY,
+  TASK_COVERAGE_DETAILS_QUERY,
+} from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./TaskCard.scss";
 import { SchemaRenderer } from "./SchemaRenderer";
@@ -25,6 +30,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [coveragePct, setCoveragePct] = React.useState<number | null>(null);
+  const [coverageDetailsOpen, setCoverageDetailsOpen] = React.useState(false);
+  const [coverageDetailsText, setCoverageDetailsText] = React.useState<
+    string | null
+  >(null);
 
   async function openFileModal() {
     if (!task?.id) return;
@@ -41,6 +51,56 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       setFileContent(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await graphqlRequest<{
+          task: {
+            id: string;
+            coverage?: { percentage?: number | null } | null;
+          };
+        }>(TASK_COVERAGE_QUERY, { id: task.id });
+        if (!cancelled)
+          setCoveragePct(data?.task?.coverage?.percentage ?? null);
+      } catch {
+        if (!cancelled) setCoveragePct(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [task.id]);
+
+  async function openCoverageDetails() {
+    try {
+      const data = await graphqlRequest<{
+        task: {
+          id: string;
+          coverage?: {
+            percentage?: number | null;
+            totalStatements?: number | null;
+            coveredStatements?: number | null;
+            details?: string | null;
+          } | null;
+        };
+      }>(TASK_COVERAGE_DETAILS_QUERY, { id: task.id });
+      const c = data?.task?.coverage;
+      const text = c
+        ? `Percentage: ${c.percentage ?? 0}%\nStatements: ${
+            c.coveredStatements ?? 0
+          }/${c.totalStatements ?? 0}\n\nDetails (raw):\n${c.details ?? "N/A"}`
+        : "No coverage details.";
+      setCoverageDetailsText(text);
+      setCoverageDetailsOpen(true);
+    } catch (e: any) {
+      setCoverageDetailsText(
+        `Error loading coverage: ${e?.message ?? String(e)}`
+      );
+      setCoverageDetailsOpen(true);
     }
   }
 
@@ -92,6 +152,44 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                     )}
                   </div>
                 </div>
+
+                {typeof coveragePct === "number" && (
+                  <div className="task-card__info-block">
+                    <div className="label">Coverage:</div>
+                    <div className="value">
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color:
+                            coveragePct >= 100
+                              ? "#2e7d32"
+                              : coveragePct >= 80
+                              ? "#ef6c00"
+                              : "#c62828",
+                        }}
+                      >
+                        {coveragePct}%
+                      </span>{" "}
+                      <button
+                        type="button"
+                        onClick={openCoverageDetails}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#0056b3",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          padding: 0,
+                          fontFamily: "inherit",
+                          fontSize: "inherit",
+                        }}
+                        title="View coverage details"
+                      >
+                        (View Coverage)
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {task.registeredBy && (
                   <div className="task-card__info-block">
@@ -292,6 +390,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
         enableEdit={Boolean(task.filePath)}
         saveOnFile={task.filePath || null}
+      />
+
+      <CodeModal
+        title={`${task.meta?.title || formatId(task.id)} — Coverage Details`}
+        subtitle={task.filePath || undefined}
+        isOpen={coverageDetailsOpen}
+        onClose={() => setCoverageDetailsOpen(false)}
+        code={coverageDetailsText}
+        enableEdit={false}
+        saveOnFile={null}
       />
     </div>
   );

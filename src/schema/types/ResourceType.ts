@@ -20,6 +20,7 @@ import { Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { CoverageInfoType } from "./CoverageType";
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
@@ -149,6 +150,12 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     context: {
       description: "Serialized context (if any)",
       type: GraphQLString,
+    },
+    coverage: {
+      description:
+        "Coverage summary for this resource's file (percentage is always resolvable if coverage report is present).",
+      type: CoverageInfoType,
+      resolve: (node: Resource) => ({ filePath: node.filePath || null }),
     },
     registeredBy: {
       description: "Id of the resource that registered this resource (if any)",

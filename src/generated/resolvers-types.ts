@@ -21,6 +21,10 @@ export type Scalars = {
 /** Minimal, generic element used for root and as a fallback when a specific concrete type cannot be resolved. */
 export type All = BaseElement & {
   __typename?: 'All';
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
   /** Path to task file */
@@ -67,6 +71,19 @@ export type BaseElement = {
 export type BaseElementFileContentsArgs = {
   endLine: InputMaybe<Scalars['Int']['input']>;
   startLine: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** Test coverage information for a specific element file. Details are computed on demand. */
+export type CoverageInfo = {
+  __typename?: 'CoverageInfo';
+  /** Number of statements covered for this file (if known). */
+  coveredStatements: Maybe<Scalars['Int']['output']>;
+  /** Raw coverage details serialized as JSON string (for this file only). */
+  details: Maybe<Scalars['String']['output']>;
+  /** Statement coverage percentage (0-100, rounded). */
+  percentage: Maybe<Scalars['Int']['output']>;
+  /** Total statements counted for this file (if known). */
+  totalStatements: Maybe<Scalars['Int']['output']>;
 };
 
 export type CpuStats = {
@@ -148,6 +165,10 @@ export type ErrorFilterInput = {
 
 export type Event = BaseElement & {
   __typename?: 'Event';
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   /** Ids of task/hook/resource nodes that emit this event */
   emittedBy: Array<Scalars['String']['output']>;
   /** Nodes that emit this event (resolved). Can be Task, Hook or Resource. */
@@ -222,6 +243,10 @@ export type GlobalMiddleware = {
 
 export type Hook = BaseElement & {
   __typename?: 'Hook';
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   /** Ids of resources/tasks this hook depends on */
   dependsOn: Array<Scalars['String']['output']>;
   /** Flattened dependencies resolved to All (tasks, hooks, resources) */
@@ -416,6 +441,10 @@ export type Middleware = BaseElement & {
   configSchema: Maybe<Scalars['String']['output']>;
   /** Readable text representation of the middleware config schema, if provided */
   configSchemaReadable: Maybe<Scalars['String']['output']>;
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   /** Events emitted by task/hook nodes that use this middleware */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
@@ -616,6 +645,10 @@ export type Resource = BaseElement & {
   configSchemaReadable: Maybe<Scalars['String']['output']>;
   /** Serialized context (if any) */
   context: Maybe<Scalars['String']['output']>;
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   /** Ids of resources this resource depends on */
   dependsOn: Array<Scalars['String']['output']>;
   /** Resources this resource depends on (resolved) */
@@ -670,6 +703,10 @@ export type ResourceMiddleware = BaseElement & {
   configSchema: Maybe<Scalars['String']['output']>;
   /** Readable text representation of the middleware config schema, if provided */
   configSchemaReadable: Maybe<Scalars['String']['output']>;
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   /** Events emitted by task/hook nodes that use this middleware */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
@@ -773,6 +810,10 @@ export type Tag = BaseElement & {
   all: Array<BaseElement>;
   config: Maybe<Scalars['String']['output']>;
   configSchema: Maybe<Scalars['String']['output']>;
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   events: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
@@ -809,6 +850,10 @@ export type TagUsage = {
 
 export type Task = BaseElement & {
   __typename?: 'Task';
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   /** Ids of resources/tasks this task depends on */
   dependsOn: Array<Scalars['String']['output']>;
   /** Resolved dependencies and emitted events for this task */
@@ -868,6 +913,8 @@ export type TaskRunsArgs = {
 
 export type TaskDependsOn = {
   __typename?: 'TaskDependsOn';
+  /** Coverage summary for this task's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
   /** Events this task emits */
   emitters: Array<Event>;
   /** Hooks this task depends on */
@@ -884,6 +931,10 @@ export type TaskMiddleware = BaseElement & {
   configSchema: Maybe<Scalars['String']['output']>;
   /** Readable text representation of the middleware config schema, if provided */
   configSchemaReadable: Maybe<Scalars['String']['output']>;
+  /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
+  coverage: Maybe<CoverageInfo>;
+  /** Raw coverage report contents from the project (entire file), or null if not available. */
+  coverageContents: Maybe<Scalars['String']['output']>;
   /** Events emitted by task/hook nodes that use this middleware */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
@@ -1006,6 +1057,7 @@ export type ResolversTypes = ResolversObject<{
   All: ResolverTypeWrapper<Omit<All, 'tags'> & { tags: Maybe<Array<ResolversTypes['Tag']>> }>;
   BaseElement: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['BaseElement']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CoverageInfo: ResolverTypeWrapper<CoverageInfo>;
   CpuStats: ResolverTypeWrapper<CpuStats>;
   Diagnostic: ResolverTypeWrapper<Diagnostic>;
   EmissionEntry: ResolverTypeWrapper<Omit<EmissionEntry, 'emitterResolved' | 'eventResolved'> & { emitterResolved: Maybe<ResolversTypes['BaseElement']>, eventResolved: Maybe<ResolversTypes['Event']> }>;
@@ -1054,6 +1106,7 @@ export type ResolversParentTypes = ResolversObject<{
   All: Omit<All, 'tags'> & { tags: Maybe<Array<ResolversParentTypes['Tag']>> };
   BaseElement: ResolversInterfaceTypes<ResolversParentTypes>['BaseElement'];
   Boolean: Scalars['Boolean']['output'];
+  CoverageInfo: CoverageInfo;
   CpuStats: CpuStats;
   Diagnostic: Diagnostic;
   EmissionEntry: Omit<EmissionEntry, 'emitterResolved' | 'eventResolved'> & { emitterResolved: Maybe<ResolversParentTypes['BaseElement']>, eventResolved: Maybe<ResolversParentTypes['Event']> };
@@ -1095,6 +1148,8 @@ export type ResolversParentTypes = ResolversObject<{
 }>;
 
 export type AllResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['All'] = ResolversParentTypes['All']> = ResolversObject<{
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, AllFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -1114,6 +1169,14 @@ export type BaseElementResolvers<ContextType = CustomGraphQLContext, ParentType 
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
+}>;
+
+export type CoverageInfoResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['CoverageInfo'] = ResolversParentTypes['CoverageInfo']> = ResolversObject<{
+  coveredStatements: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  details: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  percentage: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  totalStatements: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type CpuStatsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['CpuStats'] = ResolversParentTypes['CpuStats']> = ResolversObject<{
@@ -1155,6 +1218,8 @@ export type ErrorEntryResolvers<ContextType = CustomGraphQLContext, ParentType e
 }>;
 
 export type EventResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Event'] = ResolversParentTypes['Event']> = ResolversObject<{
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   emittedBy: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   emittedByResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, EventFileContentsArgs>;
@@ -1192,6 +1257,8 @@ export type GlobalMiddlewareResolvers<ContextType = CustomGraphQLContext, Parent
 }>;
 
 export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Hook'] = ResolversParentTypes['Hook']> = ResolversObject<{
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOn: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   depenendsOnResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1263,6 +1330,8 @@ export type MetaTagUsageResolvers<ContextType = CustomGraphQLContext, ParentType
 export type MiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Middleware'] = ResolversParentTypes['Middleware']> = ResolversObject<{
   configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, MiddlewareFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1325,6 +1394,8 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   context: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOn: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOnResolved: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
@@ -1351,6 +1422,8 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
 export type ResourceMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceMiddleware'] = ResolversParentTypes['ResourceMiddleware']> = ResolversObject<{
   configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, ResourceMiddlewareFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1400,6 +1473,8 @@ export type TagResolvers<ContextType = CustomGraphQLContext, ParentType extends 
   all: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   events: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, TagFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1423,6 +1498,8 @@ export type TagUsageResolvers<ContextType = CustomGraphQLContext, ParentType ext
 }>;
 
 export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Task'] = ResolversParentTypes['Task']> = ResolversObject<{
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOn: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOnResolved: Resolver<ResolversTypes['TaskDependsOn'], ParentType, ContextType>;
   depenendsOnResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
@@ -1448,6 +1525,7 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
 }>;
 
 export type TaskDependsOnResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskDependsOn'] = ResolversParentTypes['TaskDependsOn']> = ResolversObject<{
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
   emitters: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
@@ -1458,6 +1536,8 @@ export type TaskDependsOnResolvers<ContextType = CustomGraphQLContext, ParentTyp
 export type TaskMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskMiddleware'] = ResolversParentTypes['TaskMiddleware']> = ResolversObject<{
   configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
+  coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, TaskMiddlewareFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1485,6 +1565,7 @@ export type TaskMiddlewareUsageResolvers<ContextType = CustomGraphQLContext, Par
 export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   All: AllResolvers<ContextType>;
   BaseElement: BaseElementResolvers<ContextType>;
+  CoverageInfo: CoverageInfoResolvers<ContextType>;
   CpuStats: CpuStatsResolvers<ContextType>;
   Diagnostic: DiagnosticResolvers<ContextType>;
   EmissionEntry: EmissionEntryResolvers<ContextType>;

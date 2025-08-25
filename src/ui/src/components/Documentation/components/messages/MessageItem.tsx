@@ -100,12 +100,12 @@ export const MessageItem: React.FC<Props> = React.memo(
                   </summary>
                   <div style={{ marginTop: 6 }}>
                     {calls.map((c, i) => (
-                      <div key={c.id || i}>
+                      <div key={c?.id || i}>
                         <code style={{ fontSize: 12 }}>
-                          {c.name || "tool"}
-                          {c.argsPreview ? `(${c.argsPreview})` : "()"}
+                          {c?.name || "tool"}
+                          {c?.argsPreview ? `(${c.argsPreview})` : "()"}
                         </code>
-                        {c.resultPreview && (
+                        {c?.resultPreview && (
                           <pre
                             style={{
                               whiteSpace: "pre-wrap",

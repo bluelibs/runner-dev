@@ -6,6 +6,9 @@ import {
   FileMessage,
   DiffMessage,
   ChatSettings,
+  DeepImplState,
+  DeepImplTodoItem,
+  DeepImplPatch,
 } from "./ChatTypes";
 import {
   generateUnifiedDiff,
@@ -32,6 +35,7 @@ import {
 import { fetchElementFileContentsBySearch } from "../utils/fileContentUtils";
 import { graphqlRequest } from "../utils/graphqlClient";
 import { SYSTEM_PROMPT } from "./ai.systemPrompt";
+import { createDeepImplActions, DEFAULT_DEEPIMPL_STATE } from "./deepImpl";
 
 const defaultSettings: ChatSettings = {
   openaiApiKey: null,
@@ -70,6 +74,9 @@ const initialChatState: ChatState = {
       schema: false,
       projectOverview: false,
     },
+  },
+  deepImpl: {
+    ...DEFAULT_DEEPIMPL_STATE,
   },
 };
 
@@ -160,6 +167,68 @@ export const useChatState = (opts?: {
     };
   }, []);
 
+  // Auto-run loop: when deepImpl.auto.running is true, keep sending continue prompts
+  useEffect(() => {
+    const di = chatState.deepImpl;
+    if (!di?.enabled || !di.auto?.running) return;
+    if (chatState.isTyping || chatState.canStop) return; // wait until idle
+
+    const allDone = (di.todo || []).every((t) => {
+      const doneOrError = (node: any): boolean => {
+        const ok = node.status === "done" || node.status === "error";
+        const children = Array.isArray(node.children) ? node.children : [];
+        return ok && children.every(doneOrError);
+      };
+      return doneOrError(t);
+    });
+    if (allDone || di.flowStage === "done" || di.flowStage === "patch.ready") {
+      // stop auto when work is finished or patch ready
+      setChatState((p) => ({
+        ...p,
+        deepImpl: {
+          ...(p.deepImpl || (initialChatState.deepImpl as any)),
+          auto: { running: false },
+        },
+      }));
+      return;
+    }
+
+    // Respect budget: if remaining is 0, stop
+    const total = di.budget?.totalTokens ?? 65500;
+    const used = di.budget?.usedApprox ?? 0;
+    const reserveOutput = di.budget?.reserveOutput ?? 2000;
+    const reserveSafety = di.budget?.reserveSafety ?? 1500;
+    const remaining = Math.max(0, total - used - reserveOutput - reserveSafety);
+    if (remaining <= 0) {
+      setChatState((p) => ({
+        ...p,
+        deepImpl: {
+          ...(p.deepImpl || (initialChatState.deepImpl as any)),
+          auto: { running: false },
+        },
+        messages: [
+          ...p.messages,
+          {
+            id: `b-${Date.now()}-deepimpl-budget-stop`,
+            author: "bot",
+            type: "text",
+            text: "Stopping Deep Implementation: token budget reached.",
+            timestamp: Date.now(),
+          } as TextMessage,
+        ],
+      }));
+      return;
+    }
+
+    // Trigger a follow-up agentic step
+    const continuePrompt = [
+      "DEEPIMPL_CONTINUE",
+      "Proceed with the next actionable step.",
+      "If TODOs are complete, move to implement or finalize patch.",
+    ].join("\n");
+    void sendToOpenAI(continuePrompt);
+  }, [chatState.deepImpl, chatState.isTyping, chatState.canStop]);
+
   const updateSettings = useCallback((partial: Partial<ChatSettings>) => {
     setChatState((prev) => {
       const next = { ...prev, settings: { ...prev.settings, ...partial } };
@@ -167,6 +236,29 @@ export const useChatState = (opts?: {
       return next;
     });
   }, []);
+
+  // Recursively update todo tree by id
+  const updateTodoById = useCallback(
+    (
+      list: DeepImplTodoItem[],
+      id: string,
+      patch: Partial<DeepImplTodoItem>
+    ): DeepImplTodoItem[] => {
+      return list.map((item) => {
+        if (item.id === id) {
+          return { ...item, ...patch };
+        }
+        if (item.children && item.children.length) {
+          return {
+            ...item,
+            children: updateTodoById(item.children, id, patch),
+          };
+        }
+        return item;
+      });
+    },
+    []
+  );
 
   const addErrorMessage = useCallback((errorMessage: string) => {
     const errorResponse: TextMessage = {
@@ -372,6 +464,196 @@ export const useChatState = (opts?: {
             return { data };
           },
         },
+        {
+          name: "deepimpl_todo_init",
+          description:
+            "Initialize the Deep Implementation TODO list. Use this once to set the baseline plan.",
+          parameters: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    title: { type: "string" },
+                    status: {
+                      type: "string",
+                      enum: ["pending", "running", "done", "error"],
+                    },
+                    detail: { type: "string" },
+                    children: { type: "array", items: { type: "object" } },
+                  },
+                  required: ["id", "title"],
+                  additionalProperties: true,
+                },
+              },
+            },
+            required: ["items"],
+            additionalProperties: false,
+          },
+          run: async (rawArgs: unknown) => {
+            const args = (rawArgs || {}) as {
+              items: Array<{
+                id: string;
+                title: string;
+                status?: "pending" | "running" | "done" | "error";
+                detail?: string;
+                children?: any[];
+              }>;
+            };
+            const mapItems = (arr: any[]): DeepImplTodoItem[] =>
+              (Array.isArray(arr) ? arr : []).map((x) => ({
+                id: String(x?.id ?? Date.now() + Math.random()),
+                title: String(x?.title ?? "Untitled"),
+                status:
+                  x?.status === "running" ||
+                  x?.status === "done" ||
+                  x?.status === "error"
+                    ? x.status
+                    : "pending",
+                detail: typeof x?.detail === "string" ? x.detail : undefined,
+                children: x?.children ? mapItems(x.children) : [],
+              }));
+            const todo = mapItems(args.items || []);
+            setChatState((prev) => ({
+              ...prev,
+              deepImpl: {
+                ...(prev.deepImpl || (initialChatState.deepImpl as any)),
+                todo,
+              },
+            }));
+            return { ok: true, count: todo.length };
+          },
+        },
+        {
+          name: "deepimpl_todo_update",
+          description:
+            "Update a single TODO item by id with status and optional detail.",
+          parameters: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              status: {
+                type: "string",
+                enum: ["pending", "running", "done", "error"],
+              },
+              detail: { type: "string" },
+            },
+            required: ["id", "status"],
+            additionalProperties: false,
+          },
+          run: async (rawArgs: unknown) => {
+            const args = (rawArgs || {}) as {
+              id: string;
+              status: "pending" | "running" | "done" | "error";
+              detail?: string;
+            };
+            setChatState((prev) => ({
+              ...prev,
+              deepImpl: {
+                ...(prev.deepImpl || (initialChatState.deepImpl as any)),
+                todo: updateTodoById(prev.deepImpl?.todo || [], args.id, {
+                  status: args.status,
+                  detail: args.detail,
+                }),
+              },
+            }));
+            return { ok: true };
+          },
+        },
+        {
+          name: "deepimpl_set_stage",
+          description: "Update the Deep Implementation stage.",
+          parameters: {
+            type: "object",
+            properties: {
+              stage: {
+                type: "string",
+                enum: [
+                  "idle",
+                  "questions",
+                  "plan",
+                  "explore",
+                  "implement",
+                  "patch.ready",
+                  "applying",
+                  "done",
+                ],
+              },
+            },
+            required: ["stage"],
+            additionalProperties: false,
+          },
+          run: async (rawArgs: unknown) => {
+            const args = (rawArgs || {}) as {
+              stage: DeepImplState["flowStage"];
+            };
+            setChatState((prev) => ({
+              ...prev,
+              deepImpl: {
+                ...(prev.deepImpl || (initialChatState.deepImpl as any)),
+                flowStage: args.stage,
+              },
+            }));
+            return { ok: true };
+          },
+        },
+        {
+          name: "deepimpl_log",
+          description:
+            "Append a short log line to the Deep Implementation status panel.",
+          parameters: {
+            type: "object",
+            properties: { text: { type: "string" } },
+            required: ["text"],
+            additionalProperties: false,
+          },
+          run: async (rawArgs: unknown) => {
+            const args = (rawArgs || {}) as { text: string };
+            setChatState((prev) => ({
+              ...prev,
+              deepImpl: {
+                ...(prev.deepImpl || (initialChatState.deepImpl as any)),
+                logs: [
+                  ...((prev.deepImpl?.logs as any[]) || []),
+                  { ts: Date.now(), text: String(args.text || "") },
+                ],
+              },
+            }));
+            return { ok: true };
+          },
+        },
+        {
+          name: "deepimpl_budget_get",
+          description:
+            "Return current DeepImpl token budget and remaining capacity.",
+          parameters: {
+            type: "object",
+            properties: {},
+            additionalProperties: false,
+          },
+          run: async () => {
+            const di = chatState.deepImpl || (initialChatState.deepImpl as any);
+            const total = di.budget?.totalTokens ?? 65500;
+            const used = di.budget?.usedApprox ?? 0;
+            const reserveOutput = di.budget?.reserveOutput ?? 2000;
+            const reserveSafety = di.budget?.reserveSafety ?? 1500;
+            const remaining = Math.max(
+              0,
+              total - used - reserveOutput - reserveSafety
+            );
+            return {
+              total,
+              used,
+              reserveOutput,
+              reserveSafety,
+              remaining,
+              perTurnMax: di.budget?.perTurnMax ?? 16000,
+            };
+          },
+        },
       ];
       const openAiTools = buildOpenAiTools(tools);
       const accumulator = createToolCallAccumulator();
@@ -554,12 +836,21 @@ export const useChatState = (opts?: {
 
                   // If the first streamed message is empty (tool-only turn), remove it to avoid empty bubble
                   const assistantMessageId2 = `b-${Date.now()}-2`;
+                  let secondCreated = false;
                   setChatState((prev) => {
-                    const keep = prev.messages.filter((m) => {
-                      if (m.id !== assistantMessageId) return true;
-                      const txt = (m as TextMessage).text || "";
-                      return txt.trim().length > 0;
-                    });
+                    const txt =
+                      (
+                        prev.messages.find(
+                          (m) => m.id === assistantMessageId
+                        ) as TextMessage | undefined
+                      )?.text || "";
+                    const keep =
+                      txt.trim().length > 0
+                        ? prev.messages
+                        : prev.messages.filter(
+                            (m) => m.id !== assistantMessageId
+                          );
+                    secondCreated = true;
                     return {
                       ...prev,
                       messages: [
@@ -772,27 +1063,31 @@ export const useChatState = (opts?: {
                             }
 
                             const assistantMessageId3 = `b-${Date.now()}-3`;
-                            setChatState((prev) => ({
-                              ...prev,
-                              messages: [
-                                ...prev.messages,
-                                {
-                                  id: assistantMessageId3,
-                                  author: "bot",
-                                  type: "text",
-                                  text: "",
-                                  timestamp: Date.now(),
-                                  toolCalls: (prev.toolCalls || []).map(
-                                    (t) => ({
-                                      id: t.id,
-                                      name: t.name,
-                                      argsPreview: t.argsPreview,
-                                      resultPreview: t.resultPreview,
-                                    })
-                                  ),
-                                } as TextMessage,
-                              ],
-                            }));
+                            let thirdCreated = false;
+                            setChatState((prev) => {
+                              thirdCreated = true;
+                              return {
+                                ...prev,
+                                messages: [
+                                  ...prev.messages,
+                                  {
+                                    id: assistantMessageId3,
+                                    author: "bot",
+                                    type: "text",
+                                    text: "",
+                                    timestamp: Date.now(),
+                                    toolCalls: (prev.toolCalls || []).map(
+                                      (t) => ({
+                                        id: t.id,
+                                        name: t.name,
+                                        argsPreview: t.argsPreview,
+                                        resultPreview: t.resultPreview,
+                                      })
+                                    ),
+                                  } as TextMessage,
+                                ],
+                              };
+                            });
 
                             let thirdAccumulated = "";
                             const thirdMessages = [
@@ -886,6 +1181,25 @@ export const useChatState = (opts?: {
                                     } as TextMessage;
                                     return { ...prev, messages: nextMessages };
                                   });
+
+                                  // If the full 2- or 3-turn flow produced no assistant text, trigger a fallback inference
+                                  setTimeout(() => {
+                                    const state = chatState;
+                                    const lastBot = [...state.messages]
+                                      .reverse()
+                                      .find(
+                                        (m) =>
+                                          m.author === "bot" &&
+                                          m.type === "text"
+                                      ) as TextMessage | undefined;
+                                    const empty =
+                                      !lastBot || !(lastBot.text || "").trim();
+                                    if (empty) {
+                                      const retryPrompt =
+                                        "Re-evaluate the provided context and produce a concise answer, as the prior step only used tool calls without output.";
+                                      void sendToOpenAI(retryPrompt);
+                                    }
+                                  }, 0);
                                 },
                                 onError: (e: any) => {
                                   throw e;
@@ -1313,5 +1627,10 @@ export const useChatState = (opts?: {
     stopRequest,
     retryLastResponse,
     tokenStatus,
+    ...createDeepImplActions({
+      getState: () => chatState,
+      setState: setChatState,
+      sendToOpenAI: (txt: string) => sendToOpenAI(txt),
+    }),
   };
 };

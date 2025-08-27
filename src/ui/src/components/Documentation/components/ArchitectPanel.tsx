@@ -6,7 +6,7 @@ import React, {
   useImperativeHandle,
 } from "react";
 import { CodeModal } from "./CodeModal";
-import { FileDiff } from "./ChatTypes";
+import { FileDiff } from "./chat/ChatTypes";
 import {
   parseElementReferences,
   fetchElementFileContentsBySearch,

@@ -16,6 +16,12 @@ export interface DocsRouteConfig {
   };
   // Optional provider to obtain GraphQL SDL string
   getGraphqlSdl?: () => string;
+  // Optional coverage service to pre-populate element coverage percentage
+  coverage?: {
+    getSummaryForPath: (
+      p: string | null | undefined
+    ) => Promise<{ percentage?: number | null } | null>;
+  };
 }
 
 // Serve JSON data for docs UI to fetch client-side
@@ -31,6 +37,32 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
 
     initializeFromStore(introspector, config.store);
     const data = (introspector as unknown as Introspector).serialize();
+
+    // Attach pre-fetched coverage percentages when coverage is available.
+    if (config.coverage) {
+      const attach = async (
+        arr: Array<{ filePath?: string | null; coverage?: any }>
+      ) => {
+        for (const el of arr) {
+          try {
+            const s = await config.coverage!.getSummaryForPath(
+              el.filePath || null
+            );
+            if (s && typeof s.percentage === "number") {
+              (el as any).coverage = { percentage: s.percentage };
+            }
+          } catch {}
+        }
+      };
+
+      try {
+        await attach((data as any).tasks || []);
+        await attach((data as any).resources || []);
+        await attach((data as any).hooks || []);
+        await attach((data as any).middlewares || []);
+        await attach((data as any).events || []);
+      } catch {}
+    }
 
     // Try to read framework and runner-dev AI.md from node_modules
     const runnerFrameworkDoc = await readPackageDoc(

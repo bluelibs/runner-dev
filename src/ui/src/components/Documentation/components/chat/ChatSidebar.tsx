@@ -5,26 +5,19 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { CodeModal } from "./CodeModal";
-import {
-  CodeModalState,
-  FileReference,
-  FileDiff,
-  TextMessage,
-} from "./ChatTypes";
+import { CodeModal } from "../CodeModal";
+import { CodeModalState, FileReference, FileDiff } from "./ChatTypes";
 import { useChatState } from "./useChatState";
-import { ChatSettingsForm } from "./ChatSettingsForm";
-import { ChatInput } from "./ChatInput";
+import { ChatSettingsForm } from "../ChatSettingsForm";
+import { ChatInput } from "../ChatInput";
 import { generateUnifiedDiff } from "./ChatUtils";
-import { SidebarHeader } from "./sidebar/SidebarHeader";
-import { ClickOutside } from "./common/ClickOutside";
+import { SidebarHeader } from "../sidebar/SidebarHeader";
+import { ClickOutside } from "../common/ClickOutside";
 import "./ChatSidebar.scss";
-import { useFilteredMessages } from "../hooks/useFilteredMessages";
-import { useAutoScroll } from "../hooks/useAutoScroll";
-import { ChatMessages } from "./messages/ChatMessages";
-import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
-import { ArchitectPanel } from "./ArchitectPanel";
-import type { ArchitectPanelHandle } from "./ArchitectPanel";
+import { useFilteredMessages } from "../../hooks/useFilteredMessages";
+import { useAutoScroll } from "../../hooks/useAutoScroll";
+import { ChatMessages } from "../messages/ChatMessages";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 
 export interface ChatSidebarProps {
   width: number;
@@ -98,22 +91,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     stopRequest,
     retryLastResponse,
     tokenStatus,
-    toggleDeepImpl,
-    startDeepImplementation,
-    answerDeepQuestion,
-    pauseDeepImplementation,
-    resumeDeepImplementation,
   } = useChatState({
     availableElements,
-    docs: {
-      runnerAiMd,
-      graphqlSdl,
-      runnerDevMd,
-      projectOverviewMd,
-    },
+    // docs functionality disabled for now
+    // docs: {
+    //   runnerAiMd,
+    //   graphqlSdl,
+    //   runnerDevMd,
+    //   projectOverviewMd,
+    // },
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [mode, setMode] = useState<"chat" | "architect">("chat");
 
   const [codeModal, setCodeModal] = useState<CodeModalState>({
     isOpen: false,
@@ -132,8 +120,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     filteredMessages,
     chatState.isTyping,
   ]);
-
-  const architectRef = useRef<ArchitectPanelHandle | null>(null);
 
   // Modal handlers
   const openFileModal = useCallback((file: FileReference, title: string) => {
@@ -193,16 +179,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       el?.focus();
     },
     onSend: () => {
-      if (mode === "chat") {
-        if (!chatState.isTyping && (chatState.inputValue || "").trim()) {
-          sendMessage();
-        }
-      } else {
-        const text = (chatState.inputValue || "").trim();
-        if (text && architectRef.current) {
-          architectRef.current.plan(text);
-          setChatState((prev) => ({ ...prev, inputValue: "" }));
-        }
+      if (!chatState.isTyping && (chatState.inputValue || "").trim()) {
+        sendMessage();
       }
     },
     onStop: () => {
@@ -219,22 +197,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     },
   });
 
-  // Architect-mode send handlers that reuse ChatInput UI
-  const architectSend = useCallback(() => {
-    const text = (chatState.inputValue || "").trim();
-    if (!text || !architectRef.current) return;
-    architectRef.current.plan(text);
-    setChatState((prev) => ({ ...prev, inputValue: "" }));
-  }, [chatState.inputValue, setChatState]);
-
-  const architectSendWithText = useCallback(
-    (messageText: string) => {
-      if (!messageText.trim() || !architectRef.current) return;
-      architectRef.current.plan(messageText.trim());
-      setChatState((prev) => ({ ...prev, inputValue: "" }));
-    },
-    [setChatState]
-  );
+  // Architect mode removed
 
   // Close settings on ESC when panel is open
   useEffect(() => {
@@ -362,162 +325,34 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </ClickOutside>
         )}
 
-        {/* {mode === "architect" && (
-          <>
-            <ArchitectPanel
-              ref={architectRef}
-              settings={{
-                openaiApiKey: chatState.settings.openaiApiKey,
-                model: chatState.settings.model,
-                baseUrl: chatState.settings.baseUrl,
-              }}
-              availableElements={availableElements}
-              docs={{
-                runnerAiMd,
-                graphqlSdl,
-                runnerDevMd,
-                projectOverviewMd,
-              }}
+        <>
+          <div ref={scrollRef} className="docs-chat-messages">
+            <ChatMessages
+              messages={filteredMessages}
+              isTyping={chatState.isTyping}
+              thinkingStage={
+                chatState.thinkingStage !== "none"
+                  ? chatState.thinkingStage
+                  : undefined
+              }
+              toolCalls={chatState.toolCalls}
+              onOpenFile={openFileModal}
+              onOpenDiff={openDiffModal}
             />
-            <ChatInput
-              chatState={chatState}
-              setChatState={setChatState}
-              sendMessage={architectSend}
-              sendMessageWithText={architectSendWithText}
-              stopRequest={() => {}}
-              onTaggedElementSelect={handleTaggedElementSelect}
-              availableElements={availableElements}
-              retryLastResponse={() => {}}
-              canRetry={false}
-              docsRunner={runnerAiMd}
-              docsSchema={graphqlSdl}
-              docsProjectOverview={projectOverviewMd}
-              docsRunnerDev={runnerDevMd}
-            />
-          </>
-        )} */}
-
-        {mode === "chat" && (
-          <>
-            <div ref={scrollRef} className="docs-chat-messages">
-              <ChatMessages
-                messages={filteredMessages}
-                isTyping={chatState.isTyping}
-                thinkingStage={
-                  chatState.thinkingStage !== "none"
-                    ? chatState.thinkingStage
-                    : undefined
-                }
-                toolCalls={chatState.toolCalls}
-                onOpenFile={openFileModal}
-                onOpenDiff={openDiffModal}
-              />
-              <div ref={messagesEndRef} style={{ height: "20px" }} />
-            </div>
-            {/* DeepImpl TODO panel below chat messages */}
-            {chatState.deepImpl?.enabled && (
-              <div
-                className="deepimpl-panel"
-                style={{ padding: 8, borderTop: "1px solid #eee" }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 6,
-                  }}
-                >
-                  <strong>Deep Implementation</strong>
-                  <span style={{ opacity: 0.7 }}>
-                    Stage: {chatState.deepImpl?.flowStage}
-                  </span>
-                  {chatState.deepImpl?.auto?.running && (
-                    <span style={{ opacity: 0.7 }}>(auto)</span>
-                  )}
-                </div>
-                <div
-                  className="deepimpl-todos"
-                  style={{ maxHeight: 160, overflow: "auto" }}
-                >
-                  {(() => {
-                    const renderTodo = (item: any) => (
-                      <li key={item.id} style={{ margin: "4px 0" }}>
-                        <span
-                          className={`todo-status todo-status--${item.status}`}
-                          style={{ marginRight: 6 }}
-                        >
-                          {item.status === "done"
-                            ? "✔"
-                            : item.status === "running"
-                            ? "…"
-                            : item.status === "error"
-                            ? "✖"
-                            : "•"}
-                        </span>
-                        <span>{item.title}</span>
-                        {item.detail && (
-                          <span style={{ opacity: 0.7 }}> — {item.detail}</span>
-                        )}
-                        {Array.isArray(item.children) &&
-                          item.children.length > 0 && (
-                            <ul style={{ marginTop: 4, marginLeft: 18 }}>
-                              {item.children.map((c: any) => renderTodo(c))}
-                            </ul>
-                          )}
-                      </li>
-                    );
-                    const todos = chatState.deepImpl?.todo || [];
-                    return todos.length ? (
-                      <ul style={{ paddingLeft: 16 }}>
-                        {todos.map((t: any) => renderTodo(t))}
-                      </ul>
-                    ) : (
-                      <div style={{ opacity: 0.6 }}>No TODOs yet.</div>
-                    );
-                  })()}
-                </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  {chatState.deepImpl?.auto?.running ? (
-                    <button
-                      className="chat-send-btn"
-                      onClick={() => pauseDeepImplementation()}
-                      title="Pause auto-run"
-                    >
-                      Pause
-                    </button>
-                  ) : (
-                    <button
-                      className="chat-send-btn"
-                      onClick={() => resumeDeepImplementation()}
-                      title="Resume auto-run"
-                    >
-                      Resume
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-            <ChatInput
-              chatState={chatState}
-              setChatState={setChatState}
-              sendMessage={sendMessage}
-              sendMessageWithText={sendMessageWithText}
-              stopRequest={stopRequest}
-              onTaggedElementSelect={handleTaggedElementSelect}
-              availableElements={availableElements}
-              retryLastResponse={retryLastResponse}
-              canRetry={canRetry}
-              docsRunner={runnerAiMd}
-              docsSchema={graphqlSdl}
-              docsProjectOverview={projectOverviewMd}
-              docsRunnerDev={runnerDevMd}
-              onToggleDeepImpl={toggleDeepImpl}
-              onStartDeepImpl={startDeepImplementation}
-              onAnswerDeepImpl={answerDeepQuestion}
-            />
-          </>
-        )}
+            <div ref={messagesEndRef} style={{ height: "20px" }} />
+          </div>
+          <ChatInput
+            chatState={chatState}
+            setChatState={setChatState}
+            sendMessage={sendMessage}
+            sendMessageWithText={sendMessageWithText}
+            stopRequest={stopRequest}
+            onTaggedElementSelect={handleTaggedElementSelect}
+            availableElements={availableElements}
+            retryLastResponse={retryLastResponse}
+            canRetry={canRetry}
+          />
+        </>
       </aside>
 
       <CodeModal

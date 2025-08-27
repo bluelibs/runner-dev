@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { ChatMessage } from "../ChatTypes";
-import { formatRelativeTime } from "../ChatUtils";
+import { ChatMessage } from "../chat/ChatTypes";
+import { formatRelativeTime } from "../chat/ChatUtils";
 import { MessageItem } from "./MessageItem";
 import { TypingIndicator } from "./TypingIndicator";
 

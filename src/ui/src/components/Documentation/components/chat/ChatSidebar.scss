@@ -1,4 +1,4 @@
-@use "../../../styles/variables" as *;
+@use "../../../../styles/variables" as *;
 
 // -----------------------------------------------------------------------------
 // Enhanced Chat Sidebar with Ultra Quality UX
@@ -427,10 +427,10 @@
         // Copy button (subtle, bottom-right)
         .chat-copy-btn {
           position: absolute;
-          right: 6px;
-          bottom: 6px;
-          width: 24px;
-          height: 24px;
+          right: 2px;
+          bottom: 2px;
+          width: 18px;
+          height: 18px;
           border-radius: 6px;
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.12);
@@ -441,8 +441,8 @@
 
           &::before {
             content: "";
-            width: 14px;
-            height: 14px;
+            width: 10px;
+            height: 10px;
             display: block;
             background-color: rgba(255, 255, 255, 0.9);
             -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
@@ -600,6 +600,65 @@
           &:nth-child(3) {
             animation-delay: 0.6s;
           }
+        }
+      }
+    }
+  }
+
+  // Deep Implementation panel styles
+  .deepimpl-panel {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: $spacing-sm;
+
+    .deepimpl-todos {
+      .todo-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+        &--done {
+          background: #10b981;
+        }
+        &--running {
+          background: #3b82f6;
+        }
+        &--error {
+          background: #ef4444;
+        }
+        &--pending {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      }
+      ul {
+        list-style: none;
+        padding-left: 0;
+      }
+      li {
+        line-height: 1.4;
+      }
+    }
+
+    .deepimpl-docs {
+      margin-top: $spacing-xs;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      .doc-pill {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 9999px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        &:hover {
+          background: rgba(255, 255, 255, 0.12);
         }
       }
     }

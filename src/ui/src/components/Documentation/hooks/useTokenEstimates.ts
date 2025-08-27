@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { TextMessage } from "../components/ChatTypes";
+import { TextMessage } from "../components/chat/ChatTypes";
 
 export type TokenDocs = {
   runnerAiMd?: string | null;

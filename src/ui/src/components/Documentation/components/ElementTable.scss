@@ -1,0 +1,248 @@
+@use "../../../styles/variables" as *;
+
+.element-table {
+  margin-bottom: $spacing-xxxl;
+  background: white;
+  border-radius: $border-radius-lg;
+  border: 1px solid #dee2e6;
+  padding: $spacing-md $spacing-lg;
+  overflow: hidden;
+
+  &__title {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: $text-darker;
+    margin-bottom: $spacing-md;
+    span {
+      margin-right: $spacing-md;
+    }
+  }
+
+  &__icon {
+    font-size: $font-size-xl;
+  }
+
+  &__container {
+    overflow-x: auto;
+
+    // Custom scrollbar styling
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f8f9fa;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #dee2e6;
+      border-radius: 4px;
+
+      &:hover {
+        background: #adb5bd;
+      }
+    }
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: $font-family-base;
+    min-width: 800px; // Ensure table doesn't get too cramped
+    table-layout: fixed; // Enable ellipsis in cells based on set widths
+  }
+
+  &__header {
+    padding: $spacing-sm $spacing-md;
+    background: #e9ecef;
+    color: $text-darker;
+    font-weight: 600;
+    font-size: $font-size-sm;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+
+    &--description {
+      // Let the description column size to its minimum content size
+      width: 50%;
+    }
+  }
+
+  &__row {
+    border-bottom: 1px solid #f1f3f4;
+
+    &:hover {
+      background: #f8f9fa;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__cell {
+    padding: $spacing-lg $spacing-xl;
+    vertical-align: top;
+    line-height: 1.5;
+
+    &--domain {
+      font-family: $font-family-mono;
+      color: $text-dark;
+      background: #f8f9fa;
+      border-right: 1px solid #dee2e6;
+    }
+
+    &--id {
+      font-family: $font-family-mono;
+      background: #f8f9fa;
+      border-right: 1px solid #dee2e6;
+    }
+
+    &--title {
+      font-weight: 500;
+      color: $text-darker;
+    }
+
+    &--description {
+      color: $text-muted;
+      line-height: 1.6;
+      // Let the cell shrink to the minimum necessary width
+      width: min-content;
+    }
+  }
+
+  &__link {
+    color: $primary-blue;
+    text-decoration: none;
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      color: $primary-blue-dark;
+      text-decoration: underline;
+    }
+  }
+
+  &__code {
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    font-family: $font-family-mono;
+    color: $text-darker;
+    border: 1px solid #dee2e6;
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__code--inline {
+    display: inline-block;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  &__description {
+    // Style markdown content in descriptions
+    p {
+      margin: 0 0 $spacing-xs 0;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    code {
+      background: #f1f3f4;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: $font-size-xs;
+      font-family: $font-family-mono;
+      color: #6c757d;
+    }
+
+    strong {
+      font-weight: 600;
+      color: $text-darker;
+    }
+
+    em {
+      font-style: italic;
+      color: $text-dark;
+    }
+  }
+
+  &__empty {
+    color: #adb5bd;
+    font-style: italic;
+    opacity: 0.7;
+  }
+
+  &__full-id {
+    margin-top: $spacing-xs;
+    font-size: $font-size-xs;
+    color: $text-muted;
+  }
+
+  &__full-id-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1200px) {
+  .element-table {
+    &__container {
+      // Enable horizontal scrolling on smaller screens
+      overflow-x: auto;
+    }
+
+    &__title {
+      font-size: $font-size-base;
+    }
+
+    &__header,
+    &__cell {
+      padding: $spacing-md $spacing-lg;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .element-table {
+    margin-bottom: $spacing-xxl;
+    border-radius: $border-radius-lg;
+
+    &__title {
+      padding: $spacing-md $spacing-lg;
+      font-size: $font-size-base;
+    }
+
+    &__table {
+      min-width: 600px; // Ensure readability on mobile
+    }
+
+    &__header,
+    &__cell {
+      padding: $spacing-sm $spacing-md;
+      font-size: $font-size-sm;
+    }
+  }
+}

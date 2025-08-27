@@ -11,7 +11,6 @@ import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
   SAMPLE_TASK_FILE_QUERY,
-  TASK_COVERAGE_QUERY,
   TASK_COVERAGE_DETAILS_QUERY,
 } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
@@ -30,7 +29,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [coveragePct, setCoveragePct] = React.useState<number | null>(null);
   const [coverageDetailsOpen, setCoverageDetailsOpen] = React.useState(false);
   const [coverageDetailsText, setCoverageDetailsText] = React.useState<
     string | null
@@ -53,27 +51,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       setLoading(false);
     }
   }
-
-  React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await graphqlRequest<{
-          task: {
-            id: string;
-            coverage?: { percentage?: number | null } | null;
-          };
-        }>(TASK_COVERAGE_QUERY, { id: task.id });
-        if (!cancelled)
-          setCoveragePct(data?.task?.coverage?.percentage ?? null);
-      } catch {
-        if (!cancelled) setCoveragePct(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [task.id]);
 
   async function openCoverageDetails() {
     try {
@@ -153,7 +130,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   </div>
                 </div>
 
-                {typeof coveragePct === "number" && (
+                {task.coverage?.percentage !== undefined && (
                   <div className="task-card__info-block">
                     <div className="label">Coverage:</div>
                     <div className="value">
@@ -161,14 +138,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                         style={{
                           fontWeight: 600,
                           color:
-                            coveragePct >= 100
+                            task.coverage.percentage >= 100
                               ? "#2e7d32"
-                              : coveragePct >= 80
+                              : task.coverage.percentage >= 80
                               ? "#ef6c00"
                               : "#c62828",
                         }}
                       >
-                        {coveragePct}%
+                        {task.coverage.percentage}%
                       </span>{" "}
                       <button
                         type="button"

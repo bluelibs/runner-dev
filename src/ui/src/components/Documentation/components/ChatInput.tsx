@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useState, useEffect } from "react";
-import { ChatState } from "./ChatTypes";
+import { ChatState } from "./chat/ChatTypes";
 // docs toggling handled at thread level via chatContext in useChatState
 
 type ChatElement = {

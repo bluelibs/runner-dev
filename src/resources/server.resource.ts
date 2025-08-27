@@ -105,6 +105,7 @@ export const serverResource = resource({
         store,
         introspector,
         logger,
+        coverage,
         getGraphqlSdl: () => printSchema(graphql.getSchema()),
       })
     );

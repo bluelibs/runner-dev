@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { FileDiff, FileReference } from "../../components/ChatTypes";
+import { FileDiff, FileReference } from "../chat/ChatTypes";
 
 export type CodeModalState =
   | { isOpen: false; kind: "none" }

@@ -1,4 +1,4 @@
-import { createToolCallAccumulator } from "../../ui/src/components/Documentation/components/ai.service";
+import { createToolCallAccumulator } from "../../ui/src/components/Documentation/components/chat/ai.service";
 
 describe("createToolCallAccumulator", () => {
   it("accumulates tool call chunks in order", () => {

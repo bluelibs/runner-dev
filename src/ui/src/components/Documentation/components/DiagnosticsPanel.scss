@@ -71,10 +71,12 @@
 // -----------------------------------------------------------------------------
 .diagnostics-panel__tabs {
   display: flex;
-  border-bottom: 1px solid $border-gray;
-  margin-bottom: $spacing-lg;
+  flex-direction: column;
+  border-right: 1px solid $border-gray;
+  margin-right: $spacing-lg;
+  margin-bottom: 0;
   gap: 0;
-  flex-wrap: wrap;
+  min-width: 200px;
 }
 
 .diagnostics-panel__tab {
@@ -83,12 +85,14 @@
   background: transparent;
   color: $text-gray;
   cursor: pointer;
-  border-radius: 4px 4px 0 0;
+  border-radius: 4px 0 0 4px;
   font-weight: 400;
   transition: $transition-fast;
   display: flex;
   align-items: center;
   gap: $spacing-sm;
+  text-align: left;
+  justify-content: flex-start;
 
   &--active {
     background: $primary-blue;

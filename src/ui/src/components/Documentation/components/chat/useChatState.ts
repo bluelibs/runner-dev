@@ -32,10 +32,9 @@ import {
   RegisteredTool,
   AiMessage,
 } from "./ai.service";
-import { fetchElementFileContentsBySearch } from "../utils/fileContentUtils";
-import { graphqlRequest } from "../utils/graphqlClient";
+import { fetchElementFileContentsBySearch } from "../../utils/fileContentUtils";
+import { graphqlRequest } from "../../utils/graphqlClient";
 import { SYSTEM_PROMPT } from "./ai.systemPrompt";
-import { createDeepImplActions, DEFAULT_DEEPIMPL_STATE } from "./deepImpl";
 
 const defaultSettings: ChatSettings = {
   openaiApiKey: null,
@@ -74,9 +73,6 @@ const initialChatState: ChatState = {
       schema: false,
       projectOverview: false,
     },
-  },
-  deepImpl: {
-    ...DEFAULT_DEEPIMPL_STATE,
   },
 };
 
@@ -212,7 +208,7 @@ export const useChatState = (opts?: {
             id: `b-${Date.now()}-deepimpl-budget-stop`,
             author: "bot",
             type: "text",
-            text: "Stopping Deep Implementation: token budget reached.",
+            text: "Stopping Deep Implementation: token budget reached. Click Resume to continue with additional budget, or type 'continue' to proceed.",
             timestamp: Date.now(),
           } as TextMessage,
         ],
@@ -762,6 +758,14 @@ export const useChatState = (opts?: {
               setChatState((prev) => ({
                 ...prev,
                 lastUsage: { ...usageTotals },
+                deepImpl: {
+                  ...(prev.deepImpl || (initialChatState.deepImpl as any)),
+                  budget: {
+                    ...((prev.deepImpl?.budget ||
+                      (initialChatState.deepImpl as any).budget) as any),
+                    usedApprox: usageTotals.totalTokens,
+                  },
+                },
               }));
             },
             onFinish: async (_final: any, _finishReason: any) => {
@@ -954,6 +958,16 @@ export const useChatState = (opts?: {
                         setChatState((prev) => ({
                           ...prev,
                           lastUsage: { ...usageTotals },
+                          deepImpl: {
+                            ...(prev.deepImpl ||
+                              (initialChatState.deepImpl as any)),
+                            budget: {
+                              ...((prev.deepImpl?.budget ||
+                                (initialChatState.deepImpl as any)
+                                  .budget) as any),
+                              usedApprox: usageTotals.totalTokens,
+                            },
+                          },
                         }));
                       },
                       onFinish: async () => {
@@ -1143,6 +1157,16 @@ export const useChatState = (opts?: {
                                   setChatState((prev) => ({
                                     ...prev,
                                     lastUsage: { ...usageTotals },
+                                    deepImpl: {
+                                      ...(prev.deepImpl ||
+                                        (initialChatState.deepImpl as any)),
+                                      budget: {
+                                        ...((prev.deepImpl?.budget ||
+                                          (initialChatState.deepImpl as any)
+                                            .budget) as any),
+                                        usedApprox: usageTotals.totalTokens,
+                                      },
+                                    },
                                   }));
                                 },
                                 onFinish: () => {
@@ -1627,10 +1651,5 @@ export const useChatState = (opts?: {
     stopRequest,
     retryLastResponse,
     tokenStatus,
-    ...createDeepImplActions({
-      getState: () => chatState,
-      setState: setChatState,
-      sendToOpenAI: (txt: string) => sendToOpenAI(txt),
-    }),
   };
 };

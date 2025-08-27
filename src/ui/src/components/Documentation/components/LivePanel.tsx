@@ -382,12 +382,12 @@ export const LivePanel: React.FC<LivePanelProps> = ({
       <div className="live-controls">
         <button
           onClick={() => setIsPolling(!isPolling)}
-          className={`live-toggle ${isPolling ? "live-toggle--active" : ""}`}
+          className={`clean-button ${isPolling ? "live-toggle--active" : ""}`}
         >
-          {isPolling ? "⏸️ Pause" : "▶️ Resume"} Live Updates
+          {isPolling ? "⏸ Pause" : "▶ Resume"} Live Updates
         </button>
-        <button onClick={() => fetchLiveData()} className="live-refresh">
-          🔄 Refresh
+        <button onClick={() => fetchLiveData()} className="clean-button">
+          Refresh
         </button>
       </div>
 

@@ -100,16 +100,16 @@
   min-height: 400px;
   border-radius: $border-radius-lg;
   overflow: hidden;
-  
+
   .cm-editor {
     font-family: $font-family-mono;
     border-radius: $border-radius-lg;
-    
+
     &.cm-focused {
       outline: none;
     }
   }
-  
+
   .cm-scroller {
     font-family: $font-family-mono;
     line-height: 1.5;
@@ -171,4 +171,3 @@
   color: #ff6b6b;
   font-size: $font-size-sm;
 }
-

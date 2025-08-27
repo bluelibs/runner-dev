@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ChatSettings } from "./ChatTypes";
+import { ChatSettings } from "./chat/ChatTypes";
 import {
   Form,
   FormActions,

@@ -224,7 +224,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   }
 
   return (
-    <div>
+    <div style={{ display: 'flex', gap: '20px' }}>
       <div className="diagnostics-panel__tabs">
         {categories.map((category) => (
           <button
@@ -245,6 +245,8 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           </button>
         ))}
       </div>
+
+      <div style={{ flex: 1 }}>
 
       {activeCategory === "summary" && (
         <div>
@@ -415,6 +417,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };

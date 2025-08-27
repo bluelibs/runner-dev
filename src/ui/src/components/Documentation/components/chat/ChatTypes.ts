@@ -193,4 +193,9 @@ export interface DeepImplState {
   patch?: DeepImplPatch | null;
   budget: DeepImplBudget;
   auto?: { running: boolean };
+  // Planning documentation artifacts produced by DeepImpl
+  docs?: {
+    analysisMd?: string | null;
+    tasks?: Array<{ id: string; title: string; md: string }>;
+  };
 }

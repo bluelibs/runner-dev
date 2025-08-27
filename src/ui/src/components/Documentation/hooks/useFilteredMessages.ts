@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ChatMessage, TextMessage } from "../components/ChatTypes";
+import { ChatMessage, TextMessage } from "../components/chat/ChatTypes";
 
 export function useFilteredMessages(
   messages: ChatMessage[],

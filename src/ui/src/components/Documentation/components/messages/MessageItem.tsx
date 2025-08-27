@@ -1,6 +1,6 @@
 import React from "react";
-import { ChatMessage, FileMessage, TextMessage } from "../ChatTypes";
-import { parseMessageForFiles } from "../ChatUtils";
+import { ChatMessage, FileMessage, TextMessage } from "../chat/ChatTypes";
+import { parseMessageForFiles } from "../chat/ChatUtils";
 import { MarkdownRenderer } from "../../utils/markdownUtils";
 
 type Props = {

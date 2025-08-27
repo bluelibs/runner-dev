@@ -16,13 +16,6 @@ export const createSections = (counts: {
 }): SectionConfig[] => {
   const sections = [
     {
-      id: "overview",
-      label: "Overview",
-      icon: "📋",
-      count: null,
-      hasContent: true,
-    },
-    {
       id: "live",
       label: "Live",
       icon: "📡",
@@ -33,6 +26,13 @@ export const createSections = (counts: {
       id: "diagnostics",
       label: "Diagnostics",
       icon: "🔍",
+      count: null,
+      hasContent: true,
+    },
+    {
+      id: "overview",
+      label: "Overview",
+      icon: "📋",
       count: null,
       hasContent: true,
     },

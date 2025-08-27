@@ -11,7 +11,7 @@ import { useTreeNavigation } from "./hooks/useTreeNavigation";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { createSections } from "./config/documentationSections";
 import { DOCUMENTATION_CONSTANTS } from "./config/documentationConstants";
-import { ChatSidebar } from "./components/ChatSidebar";
+import { ChatSidebar } from "./components/chat/ChatSidebar";
 import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
 
 export type Section =

@@ -50,7 +50,7 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.48)",
+        background: "rgba(0,0,0,0.6)",
         zIndex: 1000,
         display: "flex",
         alignItems: "center",
@@ -65,11 +65,11 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
         style={{
           width: "min(1100px, 92vw)",
           maxHeight: "86vh",
-          background: "#0f1115",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 8,
-          padding: 16,
-          boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
+          background: "#ffffff",
+          border: "1px solid rgba(0,0,0,0.12)",
+          borderRadius: 12,
+          padding: 24,
+          boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
           overflow: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -82,17 +82,20 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
             justifyContent: "space-between",
           }}
         >
-          <h3 style={{ margin: 0 }}>Stats</h3>
+          <h3 style={{ margin: 0, color: "#1f2937", fontSize: 18, fontWeight: 600 }}>Performance Stats</h3>
           <button
             onClick={onClose}
             style={{
               appearance: "none",
-              border: "1px solid rgba(255,255,255,0.14)",
-              background: "transparent",
-              color: "#fff",
-              padding: "6px 10px",
-              borderRadius: 6,
+              border: "1px solid rgba(0,0,0,0.12)",
+              background: "#f9fafb",
+              color: "#374151",
+              padding: "8px 16px",
+              borderRadius: 8,
               cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 500,
+              transition: "all 0.15s ease",
             }}
           >
             Close
@@ -111,22 +114,24 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
           <section
             className="overview-stats-panel__section"
             style={{
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 8,
-              padding: 12,
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 12,
+              padding: 20,
+              background: "rgba(249,250,251,0.5)",
             }}
           >
-            <h4 style={{ marginTop: 0 }}>Throughput over time</h4>
+            <h4 style={{ marginTop: 0, color: "#374151", fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Throughput over time</h4>
             <div
               style={{
                 height: 180,
-                background: "#141821",
-                borderRadius: 6,
-                padding: 8,
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.06)",
+                borderRadius: 8,
+                padding: 12,
               }}
             >
               {isLoading ? (
-                <div style={{ color: "#94a3b8", fontSize: 12 }}>Loading…</div>
+                <div style={{ color: "#6b7280", fontSize: 12 }}>Loading…</div>
               ) : (
                 <svg width={"100%"} height={160} viewBox={`0 0 800 160`}>
                   <defs>
@@ -152,22 +157,24 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
           <section
             className="overview-stats-panel__section"
             style={{
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 8,
-              padding: 12,
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 12,
+              padding: 20,
+              background: "rgba(249,250,251,0.5)",
             }}
           >
-            <h4 style={{ marginTop: 0 }}>Latency percentiles</h4>
+            <h4 style={{ marginTop: 0, color: "#374151", fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Latency percentiles</h4>
             <div
               style={{
                 height: 180,
-                background: "#141821",
-                borderRadius: 6,
-                padding: 8,
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.06)",
+                borderRadius: 8,
+                padding: 12,
               }}
             >
               {isLoading ? (
-                <div style={{ color: "#94a3b8", fontSize: 12 }}>Loading…</div>
+                <div style={{ color: "#6b7280", fontSize: 12 }}>Loading…</div>
               ) : (
                 <svg width={"100%"} height={160} viewBox={`0 0 800 160`}>
                   <path
@@ -195,26 +202,28 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
           <section
             className="overview-stats-panel__section"
             style={{
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 8,
-              padding: 12,
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 12,
+              padding: 20,
+              background: "rgba(249,250,251,0.5)",
             }}
           >
-            <h4 style={{ marginTop: 0 }}>Error rate</h4>
+            <h4 style={{ marginTop: 0, color: "#374151", fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Error rate</h4>
             <div
               style={{
                 height: 180,
-                background: "#141821",
-                borderRadius: 6,
-                padding: 8,
-                color: "#e5e7eb",
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.06)",
+                borderRadius: 8,
+                padding: 12,
+                color: "#374151",
                 fontSize: 12,
               }}
             >
               {isLoading ? (
-                <div style={{ color: "#94a3b8" }}>Loading…</div>
+                <div style={{ color: "#6b7280" }}>Loading…</div>
               ) : errorByTask.length === 0 ? (
-                <div style={{ color: "#94a3b8" }}>No errors</div>
+                <div style={{ color: "#6b7280" }}>No errors</div>
               ) : (
                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                   {errorByTask.map((e) => (
@@ -229,18 +238,20 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
           <section
             className="overview-stats-panel__section"
             style={{
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 8,
-              padding: 12,
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 12,
+              padding: 20,
+              background: "rgba(249,250,251,0.5)",
             }}
           >
-            <h4 style={{ marginTop: 0 }}>Activity heatmap</h4>
+            <h4 style={{ marginTop: 0, color: "#374151", fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Activity heatmap</h4>
             <div
               style={{
                 height: 180,
-                background: "#141821",
-                borderRadius: 6,
-                padding: 8,
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.06)",
+                borderRadius: 8,
+                padding: 12,
               }}
             >
               {!isLoading && (

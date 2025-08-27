@@ -8,6 +8,7 @@ import { HookCard } from "./HookCard";
 import { TagCard } from "./TagCard";
 import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { LivePanel } from "./LivePanel";
+import { ElementTable } from "./ElementTable";
 
 export interface DocumentationMainContentProps {
   introspector: Introspector;
@@ -41,8 +42,11 @@ export const DocumentationMainContent: React.FC<
   tags,
 }) => {
   const rootResource = introspector.getRoot();
-  const rootTitle = rootResource?.meta?.title || "Runner Application Documentation";
-  const rootDescription = rootResource?.meta?.description || "Complete overview of your application's architecture and components";
+  const rootTitle =
+    rootResource?.meta?.title || "Runner Application Documentation";
+  const rootDescription =
+    rootResource?.meta?.description ||
+    "Complete overview of your application's architecture and components";
 
   return (
     <div
@@ -64,6 +68,16 @@ export const DocumentationMainContent: React.FC<
           <h1>{rootTitle}</h1>
           <p>{rootDescription}</p>
         </header>
+
+        <section id="live" className="docs-section">
+          <h2>📡 Live Telemetry</h2>
+          <LivePanel detailed introspector={introspector} />
+        </section>
+
+        <section id="diagnostics" className="docs-section">
+          <h2>🔍 Diagnostics</h2>
+          <DiagnosticsPanel introspector={introspector} detailed />
+        </section>
 
         <section id="overview" className="docs-section">
           <h2>📋 Overview</h2>
@@ -91,18 +105,16 @@ export const DocumentationMainContent: React.FC<
           </div>
         </section>
 
-        <section id="live" className="docs-section">
-          <h2>📡 Live Telemetry</h2>
-          <LivePanel detailed introspector={introspector} />
-        </section>
-
-        <section id="diagnostics" className="docs-section">
-          <h2>🔍 Diagnostics</h2>
-          <DiagnosticsPanel introspector={introspector} detailed />
-        </section>
-
         {tasks.length > 0 && (
-          <section id="tasks" className="docs-section">
+          <ElementTable
+            elements={tasks}
+            title="Tasks Overview"
+            icon="⚙️"
+            id="tasks"
+          />
+        )}
+        {tasks.length > 0 && (
+          <section className="docs-section">
             <h2>⚙️ Tasks ({tasks.length})</h2>
             <div className="docs-component-grid">
               {tasks.map((task) => (
@@ -117,7 +129,15 @@ export const DocumentationMainContent: React.FC<
         )}
 
         {resources.length > 0 && (
-          <section id="resources" className="docs-section">
+          <ElementTable
+            elements={resources}
+            title="Resources"
+            icon="🔧"
+            id="resources"
+          />
+        )}
+        {resources.length > 0 && (
+          <section className="docs-section">
             <h2>🔧 Resources ({resources.length})</h2>
             <div className="docs-component-grid">
               {resources.map((resource) => (
@@ -132,7 +152,15 @@ export const DocumentationMainContent: React.FC<
         )}
 
         {events.length > 0 && (
-          <section id="events" className="docs-section">
+          <ElementTable
+            elements={events}
+            title="Events"
+            icon="📡"
+            id="events"
+          />
+        )}
+        {events.length > 0 && (
+          <section className="docs-section">
             <h2>📡 Events ({events.length})</h2>
             <div className="docs-component-grid">
               {events.map((event) => (
@@ -147,7 +175,10 @@ export const DocumentationMainContent: React.FC<
         )}
 
         {hooks.length > 0 && (
-          <section id="hooks" className="docs-section">
+          <ElementTable elements={hooks} title="Hooks" icon="🪝" id="hooks" />
+        )}
+        {hooks.length > 0 && (
+          <section className="docs-section">
             <h2>🪝 Hooks ({hooks.length})</h2>
             <div className="docs-component-grid">
               {hooks.map((hook) => (
@@ -162,7 +193,15 @@ export const DocumentationMainContent: React.FC<
         )}
 
         {middlewares.length > 0 && (
-          <section id="middlewares" className="docs-section">
+          <ElementTable
+            elements={middlewares}
+            title="Middlewares"
+            icon="🔗"
+            id="middlewares"
+          />
+        )}
+        {middlewares.length > 0 && (
+          <section className="docs-section">
             <h2>🔗 Middlewares ({middlewares.length})</h2>
             <div className="docs-component-grid">
               {middlewares.map((middleware) => (
@@ -177,7 +216,10 @@ export const DocumentationMainContent: React.FC<
         )}
 
         {tags.length > 0 && (
-          <section id="tags" className="docs-section">
+          <ElementTable elements={tags} title="Tags" icon="🏷️" id="tags" />
+        )}
+        {tags.length > 0 && (
+          <section className="docs-section">
             <h2>🏷️ Tags ({tags.length})</h2>
             <div className="docs-tags-grid">
               {tags.map((tag) => (

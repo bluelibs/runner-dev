@@ -89,6 +89,7 @@ export const QueryType = new GraphQLObjectType({
           ...ctx.introspector.getResources(),
           ...ctx.introspector.getMiddlewares(),
           ...ctx.introspector.getEvents(),
+          ...ctx.introspector.getAllTags(),
         ];
         if (args?.idIncludes) {
           const sub = String(args.idIncludes);

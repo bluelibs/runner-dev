@@ -1,4 +1,11 @@
 import { ChatSettings } from "./ChatTypes";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionChunk,
+  ChatCompletion,
+  ChatCompletionTool,
+} from "openai/resources/chat/completions";
+import type { FunctionParameters } from "openai/resources/shared";
 
 export interface AiMessage {
   role: "user" | "assistant" | "system" | "tool";
@@ -18,7 +25,7 @@ export interface AiToolDefinition {
   function: {
     name: string;
     description?: string;
-    parameters?: unknown; // keep generic for now to avoid any
+    parameters?: FunctionParameters;
   };
 }
 
@@ -47,8 +54,8 @@ export interface CreateChatRequest {
   messages: AiMessage[];
   tools?: AiToolDefinition[];
   tool_choice?: "auto" | { type: "function"; function: { name: string } };
-  temperature?: number;
   response_format?: { type: "json_object" } | undefined;
+  temperature?: number;
   signal?: AbortSignal;
 }
 
@@ -61,25 +68,68 @@ export async function streamChatCompletion(
     messages,
     tools,
     tool_choice,
-    temperature,
     response_format,
+    temperature,
   } = req;
   if (!settings.openaiApiKey) {
     handlers.onError?.(new Error("Missing API key"));
     return;
   }
+  // Using official OpenAI types (ChatCompletionMessageParam, ChatCompletionChunk)
 
-  const body: any = {
-    model: settings.model,
-    messages,
-    stream: settings.stream,
-    max_completion_tokens: 16000,
-    // temperature: temperature ?? 0.2,
+  const mapMessages = (msgs: AiMessage[]): ChatCompletionMessageParam[] => {
+    const out: ChatCompletionMessageParam[] = [];
+    for (const m of msgs) {
+      if (m.role === "system" || m.role === "user") {
+        const text = m.content ?? "";
+        out.push({ role: m.role, content: text });
+        continue;
+      }
+      if (m.role === "assistant") {
+        const text = m.content ?? undefined;
+        if (Array.isArray(m.tool_calls) && m.tool_calls.length) {
+          out.push({
+            role: "assistant",
+            content: text ?? null,
+            tool_calls: m.tool_calls.map((tc) => ({
+              id: tc.id,
+              type: "function",
+              function: {
+                name: tc.function.name,
+                arguments: tc.function.arguments,
+              },
+            })),
+          });
+        } else {
+          out.push({ role: "assistant", content: text ?? null });
+        }
+        continue;
+      }
+      if (m.role === "tool") {
+        const text = m.content ?? "";
+        const tool_call_id = m.tool_call_id ?? "";
+        out.push({ role: "tool", content: text, tool_call_id });
+        continue;
+      }
+    }
+    return out;
   };
 
-  if (response_format) body.response_format = response_format;
-  if (tools && tools.length) body.tools = tools;
-  if (tool_choice) body.tool_choice = tool_choice;
+  const mappedMessages = mapMessages(messages);
+  const mappedTools: ChatCompletionTool[] | undefined = Array.isArray(tools)
+    ? tools.map((t) => ({ type: "function", function: { ...t.function } }))
+    : undefined;
+  const mappedToolChoice =
+    tool_choice === "auto"
+      ? "auto"
+      : tool_choice &&
+        typeof tool_choice === "object" &&
+        "function" in tool_choice
+      ? {
+          type: "function" as const,
+          function: { name: tool_choice.function.name },
+        }
+      : undefined;
 
   const base = (settings.baseUrl || "https://api.openai.com").replace(
     /\/$/,
@@ -87,18 +137,23 @@ export async function streamChatCompletion(
   );
   const url = `${base}/v1/chat/completions`;
 
+  const body = {
+    model: settings.model,
+    messages: mappedMessages,
+    stream: settings.stream,
+    stream_options: { include_usage: true },
+    ...(response_format ? { response_format } : {}),
+    ...(mappedTools && mappedTools.length ? { tools: mappedTools } : {}),
+    ...(mappedToolChoice ? { tool_choice: mappedToolChoice } : {}),
+  };
+
   const resp = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${settings.openaiApiKey}`,
     },
-    // Ask OpenAI to include usage in streamed responses when streaming
-    body: JSON.stringify(
-      settings.stream
-        ? { ...body, stream_options: { include_usage: true } }
-        : body
-    ),
+    body: JSON.stringify(body),
     signal: req.signal,
   });
 
@@ -109,18 +164,18 @@ export async function streamChatCompletion(
   }
 
   if (!settings.stream) {
-    const data = await resp.json();
-    const txt: string = data?.choices?.[0]?.message?.content || "";
-    const fr: string | undefined = data?.choices?.[0]?.finish_reason;
-    // Non-stream responses include usage directly
-    if (data?.usage) {
+    const data: ChatCompletion = (await resp.json()) as ChatCompletion;
+    const first = data.choices?.[0];
+    const txt = (first?.message?.content ?? "") || "";
+    if (data.usage)
       handlers.onUsage?.({
         prompt_tokens: data.usage.prompt_tokens,
         completion_tokens: data.usage.completion_tokens,
         total_tokens: data.usage.total_tokens,
       });
-    }
-    handlers.onFinish?.(txt, fr);
+    await Promise.resolve(
+      handlers.onFinish?.(txt, first?.finish_reason ?? undefined)
+    );
     return;
   }
 
@@ -143,42 +198,40 @@ export async function streamChatCompletion(
       const payload = line.replace("data: ", "");
       if (payload === "[DONE]") continue;
       try {
-        const json = JSON.parse(payload);
-        const choice = json?.choices?.[0];
-        const delta = choice?.delta;
-        const finishReason: string | undefined = choice?.finish_reason;
-
-        // Streamed usage (when stream_options.include_usage is true)
-        if (json?.usage) {
-          handlers.onUsage?.({
-            prompt_tokens: json.usage.prompt_tokens,
-            completion_tokens: json.usage.completion_tokens,
-            total_tokens: json.usage.total_tokens,
-          });
-        }
-
-        if (delta?.content) {
-          full += delta.content;
-          handlers.onTextDelta?.(delta.content);
-        }
-
-        if (Array.isArray(delta?.tool_calls)) {
-          for (const tc of delta.tool_calls) {
-            handlers.onToolCallDelta?.({
-              id: tc.id,
-              index: tc.index,
-              type: tc.type,
-              function: tc.function,
-            });
+        const json: ChatCompletionChunk = JSON.parse(payload);
+        const choice = json.choices?.[0];
+        if (choice) {
+          const delta = choice.delta;
+          if (typeof delta.content === "string" && delta.content.length > 0) {
+            full += delta.content;
+            handlers.onTextDelta?.(delta.content);
+          }
+          if (Array.isArray(delta.tool_calls)) {
+            for (const tc of delta.tool_calls) {
+              handlers.onToolCallDelta?.({
+                id: tc.id,
+                index: tc.index,
+                type: tc.type,
+                function: {
+                  name: tc.function?.name,
+                  arguments: tc.function?.arguments,
+                },
+              });
+            }
+          }
+          if (choice.finish_reason) {
+            if (json.usage) handlers.onUsage?.(json.usage);
+            await Promise.resolve(
+              handlers.onFinish?.(full, choice.finish_reason)
+            );
+            return;
           }
         }
-
-        if (finishReason) {
-          handlers.onFinish?.(full, finishReason);
-          return; // stop reading further once we received a finish
+        if (json.usage) {
+          handlers.onUsage?.(json.usage);
         }
       } catch {
-        // ignore partial lines
+        // ignore partial JSON lines
       }
     }
   }
@@ -221,7 +274,7 @@ export type RegisteredTool = {
   name: string;
   run: (args: unknown) => Promise<unknown>;
   description?: string;
-  parameters?: unknown;
+  parameters?: FunctionParameters;
 };
 
 export function buildOpenAiTools(defs: RegisteredTool[]): AiToolDefinition[] {
@@ -233,4 +286,41 @@ export function buildOpenAiTools(defs: RegisteredTool[]): AiToolDefinition[] {
       parameters: t.parameters,
     },
   }));
+}
+
+// Lightweight connectivity test to the Chat Completions endpoint
+export async function testOpenAIConnection(params: {
+  apiKey: string;
+  model: string;
+  baseUrl?: string;
+  signal?: AbortSignal;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { apiKey, model, baseUrl, signal } = params;
+  if (!apiKey) return { ok: false, error: "Missing API key" };
+
+  try {
+    const base = (baseUrl || "https://api.openai.com").replace(/\/$/, "");
+    const url = `${base}/v1/chat/completions`;
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: "ping" }],
+        max_completion_tokens: 16,
+        stream: false,
+      }),
+      signal,
+    });
+    if (!resp.ok) {
+      const t = await resp.text();
+      return { ok: false, error: t || `HTTP ${resp.status}` };
+    }
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "Network error" };
+  }
 }

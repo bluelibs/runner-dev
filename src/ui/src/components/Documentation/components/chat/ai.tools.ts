@@ -5,12 +5,7 @@ import { DeepImplTodoItem, DeepImplState, ChatState } from "./ChatTypes";
 
 export const createTools = (
   getChatState: () => ChatState,
-  setChatState: React.Dispatch<React.SetStateAction<ChatState>>,
-  updateTodoById: (
-    list: DeepImplTodoItem[],
-    id: string,
-    patch: Partial<DeepImplTodoItem>
-  ) => DeepImplTodoItem[]
+  setChatState: React.Dispatch<React.SetStateAction<ChatState>>
 ): RegisteredTool[] => [
   {
     name: "get_current_time",

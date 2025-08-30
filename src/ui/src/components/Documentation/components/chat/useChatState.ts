@@ -6,9 +6,6 @@ import {
   FileMessage,
   DiffMessage,
   ChatSettings,
-  DeepImplState,
-  DeepImplTodoItem,
-  DeepImplPatch,
 } from "./ChatTypes";
 import {
   generateUnifiedDiff,
@@ -31,10 +28,12 @@ import {
   buildOpenAiTools,
   RegisteredTool,
   AiMessage,
+  testOpenAIConnection as testOpenAIConnectionApi,
 } from "./ai.service";
 import { fetchElementFileContentsBySearch } from "../../utils/fileContentUtils";
 import { graphqlRequest } from "../../utils/graphqlClient";
 import { SYSTEM_PROMPT } from "./ai.systemPrompt";
+import { createTools } from "./ai.tools";
 
 const defaultSettings: ChatSettings = {
   openaiApiKey: null,
@@ -233,29 +232,6 @@ export const useChatState = (opts?: {
     });
   }, []);
 
-  // Recursively update todo tree by id
-  const updateTodoById = useCallback(
-    (
-      list: DeepImplTodoItem[],
-      id: string,
-      patch: Partial<DeepImplTodoItem>
-    ): DeepImplTodoItem[] => {
-      return list.map((item) => {
-        if (item.id === id) {
-          return { ...item, ...patch };
-        }
-        if (item.children && item.children.length) {
-          return {
-            ...item,
-            children: updateTodoById(item.children, id, patch),
-          };
-        }
-        return item;
-      });
-    },
-    []
-  );
-
   const addErrorMessage = useCallback((errorMessage: string) => {
     const errorResponse: TextMessage = {
       id: `error-${Date.now()}`,
@@ -345,311 +321,9 @@ export const useChatState = (opts?: {
         return found?.id;
       };
 
-      // Sample decoupled tool registry (UI-only safe tools)
+      // Tool registry: import common tools and append DeepImpl tools below
       const tools: RegisteredTool[] = [
-        {
-          name: "get_current_time",
-          description: "Returns the current ISO timestamp.",
-          parameters: {
-            type: "object",
-            properties: {},
-            additionalProperties: false,
-          },
-          run: async () => ({ now: new Date().toISOString() }),
-        },
-        {
-          name: "get_file_contents_by_element_ids",
-          description:
-            "Fetch file contents for multiple elements using an array of element ids. Uses universal search to find elements reliably. Returns array in the same order.",
-          parameters: {
-            type: "object",
-            properties: {
-              items: {
-                type: "array",
-                items: { type: "string" },
-              },
-            },
-            required: ["items"],
-            additionalProperties: false,
-          },
-          run: async (args: any) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const a = args as { items: string[] };
-
-            const sanitize = (s: string) =>
-              s.startsWith("@") ? s.slice(1) : s;
-
-            const fetchBySearch = async (
-              raw: string
-            ): Promise<{
-              id: string;
-              filePath: string | null;
-              fileContents: string | null;
-            } | null> => {
-              const elementId = sanitize(raw);
-
-              // Use universal search - much more reliable!
-              const result = await fetchElementFileContentsBySearch(elementId);
-              return result;
-            };
-
-            const results = await Promise.all(
-              a.items.map((s) => fetchBySearch(s))
-            );
-            return results.map(
-              (r, idx) =>
-                r ?? { id: a.items[idx], filePath: null, fileContents: null }
-            );
-          },
-        },
-        {
-          name: "graphql_query",
-          description: [
-            "Execute a GraphQL query against the app's /graphql endpoint.",
-          ].join("\n"),
-          parameters: {
-            type: "object",
-            properties: {
-              query: { type: "string" },
-              variables: {
-                oneOf: [{ type: "string" }, { type: "object" }],
-              },
-              operationName: { type: "string" },
-              maxItems: { type: "integer", minimum: 1, maximum: 100 },
-              title: { type: "string" },
-            },
-            required: ["query"],
-            additionalProperties: false,
-          },
-          run: async (rawArgs: unknown) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const args = (rawArgs || {}) as {
-              query: string;
-              variables?: unknown;
-              operationName?: string;
-              format?: "json" | "markdown";
-              markdownStyle?: "summary" | "story";
-              maxItems?: number;
-              title?: string;
-            };
-
-            if (!args.query || typeof args.query !== "string") {
-              return { error: "Missing 'query' string" };
-            }
-
-            let variables: Record<string, unknown> | undefined = undefined;
-            if (typeof args.variables === "string") {
-              try {
-                variables = JSON.parse(args.variables) as Record<
-                  string,
-                  unknown
-                >;
-              } catch {
-                return { error: "Invalid JSON in 'variables'" };
-              }
-            } else if (
-              args.variables &&
-              typeof args.variables === "object" &&
-              !Array.isArray(args.variables)
-            ) {
-              variables = args.variables as Record<string, unknown>;
-            }
-
-            const data = await graphqlRequest<unknown>(args.query, variables);
-
-            return { data };
-          },
-        },
-        {
-          name: "deepimpl_todo_init",
-          description:
-            "Initialize the Deep Implementation TODO list. Use this once to set the baseline plan.",
-          parameters: {
-            type: "object",
-            properties: {
-              items: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "string" },
-                    title: { type: "string" },
-                    status: {
-                      type: "string",
-                      enum: ["pending", "running", "done", "error"],
-                    },
-                    detail: { type: "string" },
-                    children: { type: "array", items: { type: "object" } },
-                  },
-                  required: ["id", "title"],
-                  additionalProperties: true,
-                },
-              },
-            },
-            required: ["items"],
-            additionalProperties: false,
-          },
-          run: async (rawArgs: unknown) => {
-            const args = (rawArgs || {}) as {
-              items: Array<{
-                id: string;
-                title: string;
-                status?: "pending" | "running" | "done" | "error";
-                detail?: string;
-                children?: any[];
-              }>;
-            };
-            const mapItems = (arr: any[]): DeepImplTodoItem[] =>
-              (Array.isArray(arr) ? arr : []).map((x) => ({
-                id: String(x?.id ?? Date.now() + Math.random()),
-                title: String(x?.title ?? "Untitled"),
-                status:
-                  x?.status === "running" ||
-                  x?.status === "done" ||
-                  x?.status === "error"
-                    ? x.status
-                    : "pending",
-                detail: typeof x?.detail === "string" ? x.detail : undefined,
-                children: x?.children ? mapItems(x.children) : [],
-              }));
-            const todo = mapItems(args.items || []);
-            setChatState((prev) => ({
-              ...prev,
-              deepImpl: {
-                ...(prev.deepImpl || (initialChatState.deepImpl as any)),
-                todo,
-              },
-            }));
-            return { ok: true, count: todo.length };
-          },
-        },
-        {
-          name: "deepimpl_todo_update",
-          description:
-            "Update a single TODO item by id with status and optional detail.",
-          parameters: {
-            type: "object",
-            properties: {
-              id: { type: "string" },
-              status: {
-                type: "string",
-                enum: ["pending", "running", "done", "error"],
-              },
-              detail: { type: "string" },
-            },
-            required: ["id", "status"],
-            additionalProperties: false,
-          },
-          run: async (rawArgs: unknown) => {
-            const args = (rawArgs || {}) as {
-              id: string;
-              status: "pending" | "running" | "done" | "error";
-              detail?: string;
-            };
-            setChatState((prev) => ({
-              ...prev,
-              deepImpl: {
-                ...(prev.deepImpl || (initialChatState.deepImpl as any)),
-                todo: updateTodoById(prev.deepImpl?.todo || [], args.id, {
-                  status: args.status,
-                  detail: args.detail,
-                }),
-              },
-            }));
-            return { ok: true };
-          },
-        },
-        {
-          name: "deepimpl_set_stage",
-          description: "Update the Deep Implementation stage.",
-          parameters: {
-            type: "object",
-            properties: {
-              stage: {
-                type: "string",
-                enum: [
-                  "idle",
-                  "questions",
-                  "plan",
-                  "explore",
-                  "implement",
-                  "patch.ready",
-                  "applying",
-                  "done",
-                ],
-              },
-            },
-            required: ["stage"],
-            additionalProperties: false,
-          },
-          run: async (rawArgs: unknown) => {
-            const args = (rawArgs || {}) as {
-              stage: DeepImplState["flowStage"];
-            };
-            setChatState((prev) => ({
-              ...prev,
-              deepImpl: {
-                ...(prev.deepImpl || (initialChatState.deepImpl as any)),
-                flowStage: args.stage,
-              },
-            }));
-            return { ok: true };
-          },
-        },
-        {
-          name: "deepimpl_log",
-          description:
-            "Append a short log line to the Deep Implementation status panel.",
-          parameters: {
-            type: "object",
-            properties: { text: { type: "string" } },
-            required: ["text"],
-            additionalProperties: false,
-          },
-          run: async (rawArgs: unknown) => {
-            const args = (rawArgs || {}) as { text: string };
-            setChatState((prev) => ({
-              ...prev,
-              deepImpl: {
-                ...(prev.deepImpl || (initialChatState.deepImpl as any)),
-                logs: [
-                  ...((prev.deepImpl?.logs as any[]) || []),
-                  { ts: Date.now(), text: String(args.text || "") },
-                ],
-              },
-            }));
-            return { ok: true };
-          },
-        },
-        {
-          name: "deepimpl_budget_get",
-          description:
-            "Return current DeepImpl token budget and remaining capacity.",
-          parameters: {
-            type: "object",
-            properties: {},
-            additionalProperties: false,
-          },
-          run: async () => {
-            const di = chatState.deepImpl || (initialChatState.deepImpl as any);
-            const total = di.budget?.totalTokens ?? 65500;
-            const used = di.budget?.usedApprox ?? 0;
-            const reserveOutput = di.budget?.reserveOutput ?? 2000;
-            const reserveSafety = di.budget?.reserveSafety ?? 1500;
-            const remaining = Math.max(
-              0,
-              total - used - reserveOutput - reserveSafety
-            );
-            return {
-              total,
-              used,
-              reserveOutput,
-              reserveSafety,
-              remaining,
-              perTurnMax: di.budget?.perTurnMax ?? 16000,
-            };
-          },
-        },
+        ...createTools(() => chatState, setChatState),
       ];
       const openAiTools = buildOpenAiTools(tools);
       const accumulator = createToolCallAccumulator();
@@ -695,7 +369,6 @@ export const useChatState = (opts?: {
             messages: firstMessages,
             tools: openAiTools,
             tool_choice: "auto",
-            temperature: 0.2,
             response_format:
               settings.responseMode === "json"
                 ? { type: "json_object" }
@@ -1226,7 +899,25 @@ export const useChatState = (opts?: {
                                   }, 0);
                                 },
                                 onError: (e: any) => {
-                                  throw e;
+                                  const msg = e?.message || String(e);
+                                  setChatState((prev) => ({
+                                    ...prev,
+                                    isTyping: false,
+                                    thinkingStage: "none",
+                                    canStop: false,
+                                    messages: prev.messages.map((m) =>
+                                      m.id === assistantMessageId2
+                                        ? ({
+                                            ...(m as TextMessage),
+                                            text:
+                                              ((m as TextMessage).text || "") +
+                                              (msg
+                                                ? `\n\n❌ Error: ${msg}`
+                                                : ""),
+                                          } as TextMessage)
+                                        : m
+                                    ),
+                                  }));
                                 },
                               }
                             );
@@ -1258,7 +949,23 @@ export const useChatState = (opts?: {
                         }
                       },
                       onError: (e: any) => {
-                        throw e;
+                        const msg = e?.message || String(e);
+                        setChatState((prev) => ({
+                          ...prev,
+                          isTyping: false,
+                          thinkingStage: "none",
+                          canStop: false,
+                          messages: prev.messages.map((m) =>
+                            m.id === assistantMessageId2
+                              ? ({
+                                  ...(m as TextMessage),
+                                  text:
+                                    ((m as TextMessage).text || "") +
+                                    (msg ? `\n\n❌ Error: ${msg}` : ""),
+                                } as TextMessage)
+                              : m
+                          ),
+                        }));
                       },
                     }
                   );
@@ -1287,7 +994,23 @@ export const useChatState = (opts?: {
               }
             },
             onError: (e: any) => {
-              throw e;
+              const msg = e?.message || String(e);
+              setChatState((prev) => ({
+                ...prev,
+                isTyping: false,
+                thinkingStage: "none",
+                canStop: false,
+                messages: prev.messages.map((m) =>
+                  m.id === assistantMessageId
+                    ? ({
+                        ...(m as TextMessage),
+                        text:
+                          ((m as TextMessage).text || "") +
+                          (msg ? `\n\n❌ Error: ${msg}` : ""),
+                      } as TextMessage)
+                    : m
+                ),
+              }));
             },
           }
         );
@@ -1457,34 +1180,14 @@ export const useChatState = (opts?: {
     ): Promise<{ ok: boolean; error?: string }> => {
       const key = overrideKey ?? chatState.settings.openaiApiKey;
       if (!key) return { ok: false, error: "Missing API key" };
-      try {
-        const base = (
+      return testOpenAIConnectionApi({
+        apiKey: key,
+        model: chatState.settings.model,
+        baseUrl:
           overrideBaseUrl ??
           chatState.settings.baseUrl ??
-          "https://api.openai.com"
-        ).replace(/\/$/, "");
-        const url = `${base}/v1/chat/completions`;
-        const resp = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${key}`,
-          },
-          body: JSON.stringify({
-            model: chatState.settings.model,
-            messages: [{ role: "user", content: "ping" }],
-            max_completion_tokens: 16,
-            stream: false,
-          }),
-        });
-        if (!resp.ok) {
-          const t = await resp.text();
-          return { ok: false, error: t || `HTTP ${resp.status}` };
-        }
-        return { ok: true };
-      } catch (e: any) {
-        return { ok: false, error: e?.message || "Network error" };
-      }
+          "https://api.openai.com",
+      });
     },
     [
       chatState.settings.model,

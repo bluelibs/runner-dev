@@ -383,7 +383,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }, 0);
 
       // Notify parent about tagged element selection
-      onTaggedElementSelect?.(suggestion.id, suggestion.type);
+      // (Parent may handle external inserts; avoid mutating input here to prevent duplicates)
     },
     [
       chatState.inputValue,

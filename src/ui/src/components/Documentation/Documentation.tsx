@@ -103,19 +103,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const key = e.key?.toLowerCase();
-      if ((e.metaKey || e.ctrlKey) && key === "s") {
-        e.preventDefault();
-        try {
-          window.location.hash = isStatsOpen ? "#overview" : "#overview-stats";
-        } catch {}
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isStatsOpen]);
+  // Removed global Cmd/Ctrl+S shortcut for opening stats per UX request
 
   const openStats = () => {
     try {
@@ -275,6 +263,9 @@ export const Documentation: React.FC<DocumentationProps> = ({
         sidebarWidth={debouncedSidebarWidth}
         chatWidth={debouncedChatWidth}
         isChatOpen={isChatOpen}
+        openStats={openStats}
+        isStatsOpen={isStatsOpen}
+        closeStats={closeStats}
         chatPushesLeft
         suspendRendering={isLayoutBusy}
         tasks={filterHook.tasks}
@@ -285,30 +276,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
         tags={filterHook.tags}
       />
 
-      {/* Non-intrusive: floating button to open stats overlay */}
-      {!isStatsOpen && (
-        <button
-          onClick={openStats}
-          aria-label="Open Stats"
-          title="Open Stats (Ctrl/Cmd+S)"
-          className="docs-open-stats"
-          style={{
-            position: "fixed",
-            left: 16,
-            bottom: 16,
-            zIndex: 1200,
-            appearance: "none",
-            border: "1px solid rgba(255,255,255,0.14)",
-            background: "#0f1115",
-            color: "#fff",
-            padding: "8px 10px",
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
-          Stats
-        </button>
-      )}
+      {/* "Open Stats" button moved next to the Overview header inside main content */}
 
       {isChatOpen && (
         <>
@@ -371,8 +339,8 @@ export const Documentation: React.FC<DocumentationProps> = ({
         </>
       )}
 
-      {/* Stats overlay, opened via #overview-stats */}
-      {isStatsOpen && <OverviewStatsPanel onClose={closeStats} />}
+      {/* Render overlayed stats panel when hash requests it */}
+      {isStatsOpen && <OverviewStatsPanel overlay onClose={closeStats} />}
     </div>
   );
 };

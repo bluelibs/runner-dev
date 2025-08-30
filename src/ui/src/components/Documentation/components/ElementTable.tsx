@@ -24,32 +24,55 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   icon,
   id,
 }) => {
-  const splitId = (fullId: string) => {
-    const patterns = [
-      ".tasks.",
-      ".tags.",
-      ".events.",
-      ".hooks.",
-      ".resources.",
-      ".middleware.task.",
-      ".middleware.resource.",
-    ];
-    for (const pattern of patterns) {
-      const idx = fullId.indexOf(pattern);
-      if (idx !== -1) {
-        const domain = fullId.slice(0, idx);
-        const leaf = fullId.slice(idx + pattern.length);
-        return { domain, leaf };
+  const [expandedMap, setExpandedMap] = React.useState<Record<string, boolean>>(
+    {}
+  );
+  const [clampedMap, setClampedMap] = React.useState<Record<string, boolean>>(
+    {}
+  );
+  const descriptionRefs = React.useRef<Record<string, HTMLElement | null>>({});
+
+  const toggleExpanded = (elementId: string) => {
+    setExpandedMap((prev) => ({ ...prev, [elementId]: !prev[elementId] }));
+  };
+
+  React.useEffect(() => {
+    const checkAllClamped = () => {
+      const newClampedMap: Record<string, boolean> = {};
+
+      Object.entries(descriptionRefs.current).forEach(
+        ([elementId, element]) => {
+          if (element) {
+            const firstChild = element.firstElementChild;
+            if (firstChild) {
+              const isClamped =
+                firstChild.scrollHeight > firstChild.clientHeight;
+              newClampedMap[elementId] = isClamped;
+            }
+          }
+        }
+      );
+
+      setClampedMap(newClampedMap);
+    };
+
+    // Small delay to ensure DOM is fully rendered
+    const timer = setTimeout(checkAllClamped, 0);
+    return () => clearTimeout(timer);
+  }, [elements]);
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        navigator.clipboard.writeText
+      ) {
+        await navigator.clipboard.writeText(text);
       }
+    } catch (e) {
+      // ignore
     }
-    const lastDot = fullId.lastIndexOf(".");
-    if (lastDot !== -1) {
-      return {
-        domain: fullId.slice(0, lastDot),
-        leaf: fullId.slice(lastDot + 1),
-      };
-    }
-    return { domain: "", leaf: fullId };
   };
 
   if (elements.length === 0) return null;
@@ -64,15 +87,12 @@ export const ElementTable: React.FC<ElementTableProps> = ({
         <table className="element-table__table">
           <thead>
             <tr>
-              <th className="element-table__header element-table__header">
-                Domain
-              </th>
               <th className="element-table__header element-table__header--id">
-                ID & Title
+                ID
               </th>
-              {/* <th className="element-table__header element-table__header--title">
+              <th className="element-table__header element-table__header--title">
                 Title
-              </th> */}
+              </th>
               <th className="element-table__header element-table__header--description">
                 Description
               </th>
@@ -80,44 +100,65 @@ export const ElementTable: React.FC<ElementTableProps> = ({
           </thead>
           <tbody>
             {elements.map((element) => {
-              const { domain, leaf } = splitId(element.id);
+              const isExpanded = !!expandedMap[element.id];
+
               return (
                 <tr key={element.id} className="element-table__row">
-                  <td
-                    className="element-table__cell element-table__cell"
-                    title={domain || element.id}
-                  >
-                    {domain || "—"}
-                  </td>
-                  <td className="element-table__cell element-table__cell">
-                    <a
-                      href={`#element-${element.id}`}
-                      className="element-table__link"
-                      title={element.id}
-                    >
-                      <code className="element-table__code">{leaf}</code>
-                    </a>
-                  </td>
-                  <td className="element-table__cell element-table__cell--description">
-                    <div className="element-table__full-id">
+                  <td className="element-table__cell element-table__cell--id">
+                    <div className="element-table__id-container">
                       <a
                         href={`#element-${element.id}`}
-                        className="element-table__full-id-link"
+                        className="element-table__id-link"
                         title={element.id}
                       >
-                        <code className="element-table__code element-table__code--inline">
+                        <code className="element-table__id-code">
                           {element.id}
                         </code>
                       </a>
                     </div>
-                    <div className="element-table__title">
-                      {element.meta?.title}
-                    </div>
+                  </td>
+
+                  <td className="element-table__cell element-table__cell--title">
+                    <a
+                      href={`#element-${element.id}`}
+                      className="element-table__title-link"
+                      title={element.meta?.title || element.id}
+                    >
+                      {element.meta?.title || (
+                        <span className="element-table__empty">Untitled</span>
+                      )}
+                    </a>
+                  </td>
+
+                  <td className="element-table__cell element-table__cell--description">
                     {element.meta?.description ? (
-                      <MarkdownRenderer
-                        content={element.meta.description}
-                        className="element-table__description"
-                      />
+                      <div className="element-table__description-container">
+                        <div
+                          ref={(el) => {
+                            descriptionRefs.current[element.id] = el;
+                          }}
+                          className={`element-table__description ${
+                            isExpanded ? "expanded" : ""
+                          }`}
+                        >
+                          <MarkdownRenderer
+                            content={element.meta.description}
+                          />
+                        </div>
+                        {clampedMap[element.id] && (
+                          <button
+                            className="element-table__expand-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExpanded(element.id);
+                            }}
+                            aria-expanded={isExpanded}
+                            title={isExpanded ? "Show less" : "Show more"}
+                          >
+                            {isExpanded ? "Less" : "More"}
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <span className="element-table__empty">—</span>
                     )}

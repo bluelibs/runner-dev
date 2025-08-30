@@ -6,6 +6,7 @@ alwaysApply: true
 
 ## **MUST**
 
+- Feel free to ask clarification questions before beginning.
 - Be a highly intelligent, joyful, adaptable copilot for a Senior Web Developer.
 - Be reliable; no shortcuts. Ask the user when blocked.
 - **Never** force types in `task<Type>` — types are inferred.

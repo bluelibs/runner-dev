@@ -49,8 +49,8 @@
     width: 100%;
     border-collapse: collapse;
     font-family: $font-family-base;
-    min-width: 800px; // Ensure table doesn't get too cramped
-    table-layout: fixed; // Enable ellipsis in cells based on set widths
+    min-width: 600px;
+    table-layout: fixed;
   }
 
   &__header {
@@ -64,9 +64,19 @@
     text-align: left;
     border-bottom: 1px solid #dee2e6;
 
+    &--id {
+      width: 40%;
+      min-width: 200px;
+    }
+
+    &--title {
+      width: 25%;
+      min-width: 150px;
+    }
+
     &--description {
-      // Let the description column size to its minimum content size
-      width: 50%;
+      width: 35%;
+      min-width: 250px;
     }
   }
 
@@ -83,16 +93,9 @@
   }
 
   &__cell {
-    padding: $spacing-lg $spacing-xl;
+    padding: $spacing-md;
     vertical-align: top;
     line-height: 1.5;
-
-    &--domain {
-      font-family: $font-family-mono;
-      color: $text-dark;
-      background: #f8f9fa;
-      border-right: 1px solid #dee2e6;
-    }
 
     &--id {
       font-family: $font-family-mono;
@@ -103,21 +106,53 @@
     &--title {
       font-weight: 500;
       color: $text-darker;
+      border-right: 1px solid #dee2e6;
     }
 
     &--description {
       color: $text-muted;
       line-height: 1.6;
-      // Let the cell shrink to the minimum necessary width
-      width: min-content;
     }
   }
 
-  &__link {
+  &__id-container {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    min-width: 0; // Allow flex child to shrink
+  }
+
+  &__id-link {
     color: $primary-blue;
     text-decoration: none;
     display: block;
-    max-width: 100%;
+    min-width: 0; // Allow flex child to shrink
+    flex: 1;
+
+    &:hover {
+      color: $primary-blue-dark;
+      text-decoration: underline;
+    }
+  }
+
+  &__id-code {
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    font-family: $font-family-mono;
+    color: $text-darker;
+    border: 1px solid #dee2e6;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__title-link {
+    color: $primary-blue;
+    text-decoration: none;
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -128,25 +163,10 @@
     }
   }
 
-  &__code {
-    background: #e9ecef;
-    padding: 4px 8px;
-    border-radius: $border-radius-sm;
-    font-size: $font-size-sm;
-    font-family: $font-family-mono;
-    color: $text-darker;
-    border: 1px solid #dee2e6;
-    display: block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__code--inline {
-    display: inline-block;
-    white-space: nowrap;
-    max-width: 100%;
+  &__description-container {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
   }
 
   &__description {
@@ -177,6 +197,65 @@
       font-style: italic;
       color: $text-dark;
     }
+
+    // Clamp markdown-rendered descriptions by default
+    > * {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+
+    &.expanded > * {
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+    }
+  }
+
+  &__expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: $font-size-xs;
+    color: $primary-blue;
+    padding: 2px 4px;
+    border-radius: 3px;
+    align-self: flex-start;
+    text-decoration: underline;
+
+    &:hover {
+      color: $primary-blue-dark;
+      background: #f8f9fa;
+    }
+
+    &:focus {
+      outline: 2px solid $primary-blue;
+      border-radius: 3px;
+    }
+  }
+
+  &__copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: $font-size-sm;
+    color: $text-muted;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 3px;
+    flex-shrink: 0;
+
+    &:hover {
+      color: $text-darker;
+      background: #f8f9fa;
+    }
+
+    &:focus {
+      outline: 2px solid $primary-blue;
+    }
   }
 
   &__empty {
@@ -184,65 +263,80 @@
     font-style: italic;
     opacity: 0.7;
   }
-
-  &__full-id {
-    margin-top: $spacing-xs;
-    font-size: $font-size-xs;
-    color: $text-muted;
-  }
-
-  &__full-id-link {
-    color: inherit;
-    text-decoration: none;
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
 }
 
 // Responsive adjustments
-@media (max-width: 1200px) {
+@media (max-width: 1024px) {
   .element-table {
-    &__container {
-      // Enable horizontal scrolling on smaller screens
-      overflow-x: auto;
+    &__table {
+      min-width: 500px;
     }
 
-    &__title {
-      font-size: $font-size-base;
-    }
+    &__header {
+      &--id {
+        width: 35%;
+        min-width: 180px;
+      }
 
-    &__header,
-    &__cell {
-      padding: $spacing-md $spacing-lg;
+      &--title {
+        width: 25%;
+        min-width: 120px;
+      }
+
+      &--description {
+        width: 40%;
+        min-width: 200px;
+      }
     }
   }
 }
 
 @media (max-width: 768px) {
   .element-table {
+    padding: $spacing-sm $spacing-md;
     margin-bottom: $spacing-xxl;
-    border-radius: $border-radius-lg;
 
     &__title {
-      padding: $spacing-md $spacing-lg;
       font-size: $font-size-base;
     }
 
     &__table {
-      min-width: 600px; // Ensure readability on mobile
+      min-width: 450px;
     }
 
     &__header,
     &__cell {
-      padding: $spacing-sm $spacing-md;
+      padding: $spacing-sm;
       font-size: $font-size-sm;
+    }
+
+    &__header {
+      &--id {
+        width: 40%;
+        min-width: 150px;
+      }
+
+      &--title {
+        width: 25%;
+        min-width: 100px;
+      }
+
+      &--description {
+        width: 35%;
+        min-width: 150px;
+      }
+    }
+
+    &__description {
+      > * {
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+      }
+    }
+
+    &__id-code {
+      font-size: $font-size-xs;
+      padding: 3px 6px;
     }
   }
 }

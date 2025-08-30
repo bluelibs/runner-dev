@@ -1473,7 +1473,7 @@ export const useChatState = (opts?: {
           body: JSON.stringify({
             model: chatState.settings.model,
             messages: [{ role: "user", content: "ping" }],
-            max_tokens: 16,
+            max_completion_tokens: 16,
             stream: false,
           }),
         });

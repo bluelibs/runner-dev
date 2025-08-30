@@ -1,12 +1,16 @@
 .overview-stats-panel {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  animation: fadeIn 120ms ease-out;
+  /* Base container; default is inline flow. Use the --overlay modifier for full-screen overlay */
+
+  &--overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1400; // high z-index to appear above chat sidebar
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    animation: fadeIn 120ms ease-out;
+  }
 
   &__content {
     width: min(1100px, 92vw);
@@ -117,7 +121,7 @@
         padding: 4px 0;
         color: #4b5563;
         border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-        
+
         &:last-child {
           border-bottom: none;
         }
@@ -134,4 +138,3 @@
     opacity: 1;
   }
 }
-

@@ -41,10 +41,7 @@ export interface ChatInputProps {
   docsSchema?: string;
   docsProjectOverview?: string;
   docsRunnerDev?: string;
-  // Deep Implementation controls
-  onToggleDeepImpl?: () => void;
-  onStartDeepImpl?: (initialGoal: string) => void;
-  onAnswerDeepImpl?: (answer: string) => void;
+  // Deep Implementation controls removed
 }
 
 interface TagSuggestion {
@@ -69,9 +66,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   docsSchema,
   docsProjectOverview,
   docsRunnerDev,
-  onToggleDeepImpl,
-  onStartDeepImpl,
-  onAnswerDeepImpl,
 }) => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [suggestions, setSuggestions] = useState<TagSuggestion[]>([]);
@@ -93,24 +87,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // Handle message sending with context toggles
   const handleSendMessage = useCallback(async () => {
-    // DeepImpl stage-aware send behavior
-    const di = chatState.deepImpl;
-    if (di?.enabled) {
-      if (di.flowStage === "idle") {
-        const goal = (chatState.inputValue || "").trim();
-        if (goal && onStartDeepImpl) {
-          onStartDeepImpl(goal);
-          return;
-        }
-      }
-      if (di.flowStage === "questions") {
-        const answer = (chatState.inputValue || "").trim();
-        if (answer && onAnswerDeepImpl) {
-          onAnswerDeepImpl(answer);
-          return;
-        }
-      }
-    }
     if (
       !chatState.inputValue.trim() ||
       chatState.isTyping ||
@@ -259,9 +235,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     isProcessingMessage,
     sendMessageWithText,
     setChatState,
-    chatState.deepImpl,
-    onStartDeepImpl,
-    onAnswerDeepImpl,
   ]);
 
   // Generate suggestions based on query
@@ -650,17 +623,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             >
               <span className="insert-icon">＋</span>
             </button>
-            {/* DeepImpl toggle next to plus */}
-            <button
-              onClick={() => onToggleDeepImpl?.()}
-              className={`chat-insert-btn docs-insert-btn ${
-                chatState.deepImpl?.enabled ? "active" : ""
-              }`}
-              title="Toggle Deep Implementation mode"
-              style={{ marginLeft: 6 }}
-            >
-              <span className="insert-icon">DEEPIMPL</span>
-            </button>
+            {/* DeepImpl removed */}
             {showDocsMenu && docsOptions.length > 0 && (
               <div className="chat-docs-menu">
                 {docsOptions.map((opt) => (
@@ -717,15 +680,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 title="Send message (Enter or Ctrl+Enter)"
               >
                 <span className="send-text">
-                  {isProcessingMessage
-                    ? "Processing..."
-                    : chatState.deepImpl?.enabled &&
-                      chatState.deepImpl.flowStage === "idle"
-                    ? "Start DeepImpl"
-                    : chatState.deepImpl?.enabled &&
-                      chatState.deepImpl.flowStage === "questions"
-                    ? "Answer"
-                    : "Send"}
+                  {isProcessingMessage ? "Processing..." : "Send"}
                 </span>
               </button>
             </>

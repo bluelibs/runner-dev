@@ -16,6 +16,10 @@ export interface DocumentationMainContentProps {
   chatWidth?: number;
   isChatOpen?: boolean;
   chatPushesLeft?: boolean;
+  // Control for the inline stats panel
+  openStats?: () => void;
+  isStatsOpen?: boolean;
+  closeStats?: () => void;
   suspendRendering?: boolean;
   tasks: any[];
   resources: any[];
@@ -33,6 +37,9 @@ export const DocumentationMainContent: React.FC<
   chatWidth,
   isChatOpen,
   chatPushesLeft,
+  openStats,
+  isStatsOpen,
+  closeStats,
   suspendRendering = false,
   tasks,
   resources,
@@ -80,7 +87,19 @@ export const DocumentationMainContent: React.FC<
         </section>
 
         <section id="overview" className="docs-section">
-          <h2>📋 Overview</h2>
+          <div className="overview-header">
+            <h2>📋 Overview</h2>
+            <div>
+              <button
+                onClick={openStats}
+                aria-label="Open Stats"
+                title="Open Stats"
+                className="clean-button"
+              >
+                📊
+              </button>
+            </div>
+          </div>
           <div className="overview-grid">
             <a href="#tasks" className="card card--tasks">
               <h3>Tasks</h3>
@@ -104,6 +123,8 @@ export const DocumentationMainContent: React.FC<
             </a>
           </div>
         </section>
+
+        {/* Inline stats panel is no longer rendered here; overlay is handled by parent */}
 
         {tasks.length > 0 && (
           <ElementTable

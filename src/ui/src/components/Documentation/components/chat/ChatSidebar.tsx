@@ -93,13 +93,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     tokenStatus,
   } = useChatState({
     availableElements,
-    // docs functionality disabled for now
-    // docs: {
-    //   runnerAiMd,
-    //   graphqlSdl,
-    //   runnerDevMd,
-    //   projectOverviewMd,
-    // },
+    docs: {
+      runnerAiMd,
+      graphqlSdl,
+      runnerDevMd,
+      projectOverviewMd,
+    },
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -155,9 +154,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Handle tagged element selection
   const handleTaggedElementSelect = useCallback(
     (elementId: string, elementType: string) => {
-      console.log(`Tagged element: ${elementType}:${elementId}`);
+      // Clicks from external UI may want to insert a tag token into the input.
+      // We'll append a simple @<id> token so ChatInput will pick it up consistently.
+      setChatState((prev) => {
+        const current = prev.inputValue || "";
+        const token = `@${elementId}`;
+        const next = current ? `${current} ${token} ` : `${token} `;
+        return { ...prev, inputValue: next };
+      });
     },
-    []
+    [setChatState]
   );
 
   // Check if there's a last user message that can be retried
@@ -351,6 +357,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             availableElements={availableElements}
             retryLastResponse={retryLastResponse}
             canRetry={canRetry}
+            docsRunner={runnerAiMd}
+            docsSchema={graphqlSdl}
+            docsProjectOverview={projectOverviewMd}
+            docsRunnerDev={runnerDevMd}
           />
         </>
       </aside>

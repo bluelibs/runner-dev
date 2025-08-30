@@ -14,10 +14,6 @@ export interface ChatSettingsFormValues {
   openaiApiKey: string;
   baseUrl: string;
   model: string;
-  stream: boolean;
-  enableShortcuts: boolean;
-  showTokenMeter: boolean;
-  virtualizeMessages: boolean;
 }
 
 export interface ChatSettingsFormProps {
@@ -41,10 +37,6 @@ export const ChatSettingsForm: React.FC<ChatSettingsFormProps> = ({
       openaiApiKey: settings.openaiApiKey || "",
       baseUrl: settings.baseUrl || "https://api.openai.com",
       model: settings.model,
-      stream: settings.stream,
-      enableShortcuts: settings.enableShortcuts ?? true,
-      showTokenMeter: settings.showTokenMeter ?? true,
-      virtualizeMessages: settings.virtualizeMessages ?? false,
     }),
     [settings]
   );
@@ -53,10 +45,19 @@ export const ChatSettingsForm: React.FC<ChatSettingsFormProps> = ({
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { isDirty },
   } = useForm<ChatSettingsFormValues>({
     defaultValues: defaults,
   });
+
+  // Ensure the form reflects the latest incoming settings. If `settings` changes
+  // (for example when persisted settings are loaded or updated elsewhere), reset
+  // the form values to the computed defaults so the Reset button and form state
+  // stay in sync with the source of truth.
+  React.useEffect(() => {
+    reset(defaults);
+  }, [defaults, reset]);
 
   const [connState, setConnState] = useState<
     "idle" | "testing" | "ok" | "error"
@@ -68,19 +69,19 @@ export const ChatSettingsForm: React.FC<ChatSettingsFormProps> = ({
       openaiApiKey: values.openaiApiKey || null,
       baseUrl: values.baseUrl || "https://api.openai.com",
       model: values.model,
-      stream: values.stream,
-      // Keep existing responseMode unchanged; it's removed from UI
+      // Keep existing values for fields removed from the UI
+      stream: settings.stream,
       responseMode: settings.responseMode,
-      enableShortcuts: values.enableShortcuts,
-      showTokenMeter: values.showTokenMeter,
-      virtualizeMessages: values.virtualizeMessages,
+      enableShortcuts: settings.enableShortcuts,
+      showTokenMeter: settings.showTokenMeter,
+      virtualizeMessages: settings.virtualizeMessages,
     };
     onSave(next);
   };
 
   return (
     <Form className="dark-mode" onSubmit={handleSubmit(onSubmit)}>
-      <FormRow>
+      <>
         <FormGroup
           label="OpenAI API Key"
           htmlFor="openai-key"
@@ -110,47 +111,7 @@ export const ChatSettingsForm: React.FC<ChatSettingsFormProps> = ({
         >
           <TextInput id="openai-model" {...register("model")} />
         </FormGroup>
-        <FormGroup label="Streaming">
-          <label className="form__checkbox">
-            <input id="openai-stream" type="checkbox" {...register("stream")} />
-            <span className="form__checkbox-label">Enable token streaming</span>
-          </label>
-        </FormGroup>
-        <FormGroup label="Shortcuts">
-          <label className="form__checkbox">
-            <input
-              id="enable-shortcuts"
-              type="checkbox"
-              {...register("enableShortcuts")}
-            />
-            <span className="form__checkbox-label">
-              Enable keyboard shortcuts
-            </span>
-          </label>
-        </FormGroup>
-        <FormGroup label="Token meter">
-          <label className="form__checkbox">
-            <input
-              id="show-token-meter"
-              type="checkbox"
-              {...register("showTokenMeter")}
-            />
-            <span className="form__checkbox-label">
-              Show context token meter
-            </span>
-          </label>
-        </FormGroup>
-        <FormGroup label="Virtualize messages">
-          <label className="form__checkbox">
-            <input
-              id="virtualize-messages"
-              type="checkbox"
-              {...register("virtualizeMessages")}
-            />
-            <span className="form__checkbox-label">High-performance mode</span>
-          </label>
-        </FormGroup>
-      </FormRow>
+      </>
 
       <FormActions>
         <button
@@ -163,7 +124,12 @@ export const ChatSettingsForm: React.FC<ChatSettingsFormProps> = ({
         <button
           type="button"
           onClick={() => {
+            // Call reset to update RHF internal state, and also explicitly set
+            // each field so forwarded/custom inputs are updated reliably.
             reset(defaults);
+            setValue("openaiApiKey", defaults.openaiApiKey);
+            setValue("baseUrl", defaults.baseUrl);
+            setValue("model", defaults.model);
           }}
           className="btn"
           title="Reset"
@@ -197,7 +163,9 @@ export const ChatSettingsForm: React.FC<ChatSettingsFormProps> = ({
           type="button"
           onClick={() => {
             onClearKey();
-            reset({ ...defaults, openaiApiKey: "" });
+            const next = { ...defaults, openaiApiKey: "" };
+            reset(next);
+            setValue("openaiApiKey", "");
             setConnState("idle");
             setConnError(undefined);
           }}

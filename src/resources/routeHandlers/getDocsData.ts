@@ -5,6 +5,7 @@ import { initializeFromStore } from "../models/initializeFromStore";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { readDocContent, readPackageDoc } from "../../mcp/help";
+import { parse, print } from "graphql";
 
 export interface DocsRouteConfig {
   uiDir: string;

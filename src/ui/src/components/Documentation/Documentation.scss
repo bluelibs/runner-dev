@@ -7,8 +7,10 @@
 // -----------------------------------------------------------------------------
 // Main Documentation Layout
 // -----------------------------------------------------------------------------
-.docs-app {
+body {
   font-family: $font-family-base;
+}
+.docs-app {
   background: $light-gray;
   // Constrain the docs UI to the viewport and avoid window/body scrolling
   height: 100vh;

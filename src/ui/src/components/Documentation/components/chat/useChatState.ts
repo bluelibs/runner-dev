@@ -406,10 +406,7 @@ export const useChatState = (opts?: {
                 updated[idx] = {
                   id: delta.id || prevItem?.id || String(idx),
                   name,
-                  argsPreview:
-                    nextArgs.length > 120
-                      ? nextArgs.slice(0, 117) + "..."
-                      : nextArgs,
+                  argsPreview: nextArgs,
                   status: "running",
                 };
                 return {
@@ -462,10 +459,7 @@ export const useChatState = (opts?: {
                     toolCalls: toolCalls.map((c, i) => ({
                       id: c.id || String(i),
                       name: c.name,
-                      argsPreview:
-                        (c.argsText || "").length > 120
-                          ? c.argsText.slice(0, 117) + "..."
-                          : c.argsText || "",
+                      argsPreview: c.argsText || "",
                       status: "pending",
                     })),
                   }));
@@ -495,10 +489,7 @@ export const useChatState = (opts?: {
                           ? {
                               ...t,
                               status: "done",
-                              resultPreview: JSON.stringify(result).slice(
-                                0,
-                                200
-                              ),
+                              resultPreview: JSON.stringify(result, null, 2),
                             }
                           : t
                       ),
@@ -604,10 +595,7 @@ export const useChatState = (opts?: {
                           updated[idx] = {
                             id: delta2.id || prevItem?.id || String(idx),
                             name,
-                            argsPreview:
-                              nextArgs.length > 120
-                                ? nextArgs.slice(0, 117) + "..."
-                                : nextArgs,
+                            argsPreview: nextArgs,
                             status: "running",
                           };
                           return {
@@ -698,10 +686,7 @@ export const useChatState = (opts?: {
                                 (c: any, i: number) => ({
                                   id: c.id || String(i),
                                   name: c.name,
-                                  argsPreview:
-                                    (c.argsText || "").length > 120
-                                      ? c.argsText.slice(0, 117) + "..."
-                                      : c.argsText || "",
+                                  argsPreview: c.argsText || "",
                                   status: "pending",
                                 })
                               ),
@@ -735,8 +720,10 @@ export const useChatState = (opts?: {
                                           ...t,
                                           status: "done",
                                           resultPreview: JSON.stringify(
-                                            result
-                                          ).slice(0, 200),
+                                            result,
+                                            null,
+                                            2
+                                          ),
                                         }
                                       : t
                                 ),

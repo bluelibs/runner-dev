@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import "./TypingIndicator.scss";
+import { CodeModal } from "../CodeModal";
+import { ToolCallsList } from "./ToolCallsList";
 
 type ToolCall = {
   id: string;
@@ -12,6 +15,10 @@ export const TypingIndicator: React.FC<{
   stage?: "thinking" | "processing" | "generating";
   toolCalls?: ToolCall[];
 }> = ({ stage = "thinking", toolCalls = [] }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState<string>("");
+  const [modalContent, setModalContent] = useState<string | null>(null);
+
   const count = (toolCalls || []).length;
   const base =
     stage === "processing"
@@ -23,6 +30,13 @@ export const TypingIndicator: React.FC<{
   const visibleCalls = (toolCalls || []).filter((t): t is ToolCall =>
     Boolean(t)
   );
+
+  function openModal(title: string, content: string | null) {
+    setModalTitle(title);
+    setModalContent(content ?? "");
+    setModalOpen(true);
+  }
+
   return (
     <div className="chat-message chat-message--bot" aria-live="polite">
       <div className="chat-message-header">
@@ -38,63 +52,24 @@ export const TypingIndicator: React.FC<{
             <span className="dot"></span>
           </div>
         </div>
+
         {visibleCalls.length > 0 && (
-          <div className="tool-calls-list" style={{ marginTop: 8 }}>
-            {visibleCalls.map((t, i) => (
-              <div
-                key={t.id || i}
-                className={`tool-call tool-call--${t.status}`}
-                style={{
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  marginBottom: 6,
-                  background:
-                    t.status === "done"
-                      ? "#f4fdf7"
-                      : t.status === "error"
-                      ? "#fff5f5"
-                      : "#f8f9fb",
-                  color: "#111",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
-                    className="tool-call-status"
-                    style={{ fontSize: 12, opacity: 0.8 }}
-                  >
-                    {t.status === "pending"
-                      ? "pending"
-                      : t.status === "running"
-                      ? "running"
-                      : t.status === "done"
-                      ? "done"
-                      : "error"}
-                  </span>
-                  <code style={{ fontSize: 12, color: "#111" }}>
-                    {t.name || "tool"}
-                    {t.argsPreview ? `(${t.argsPreview})` : "()"}
-                  </code>
-                </div>
-                {t.resultPreview && (
-                  <pre
-                    style={{
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      background: "transparent",
-                      margin: "6px 0 0 0",
-                      fontSize: 12,
-                      color: "#111",
-                    }}
-                  >
-                    {t.resultPreview}
-                  </pre>
-                )}
-              </div>
-            ))}
-          </div>
+          <ToolCallsList
+            calls={visibleCalls}
+            showStatus={true}
+            onOpenArguments={(title, content) => openModal(title, content)}
+            onOpenResponse={(title, content) => openModal(title, content)}
+          />
         )}
       </div>
+
+      <CodeModal
+        title={modalTitle}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        code={modalContent ?? ""}
+        enableEdit={false}
+      />
     </div>
   );
 };

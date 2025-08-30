@@ -2,6 +2,8 @@ import React from "react";
 import { ChatMessage, FileMessage, TextMessage } from "../chat/ChatTypes";
 import { parseMessageForFiles } from "../chat/ChatUtils";
 import { MarkdownRenderer } from "../../utils/markdownUtils";
+import { ToolCallsList } from "./ToolCallsList";
+import { CodeModal } from "../CodeModal";
 
 type Props = {
   message: ChatMessage;
@@ -12,6 +14,9 @@ type Props = {
 export const MessageItem: React.FC<Props> = React.memo(
   ({ message, onOpenFile, onOpenDiff }) => {
     const [copied, setCopied] = React.useState(false);
+    const [modalOpen, setModalOpen] = React.useState(false);
+    const [modalTitle, setModalTitle] = React.useState("");
+    const [modalContent, setModalContent] = React.useState<string>("");
 
     const isBotText = message.author === "bot" && message.type === "text";
     const copyValue = isBotText ? (message as TextMessage).text : "";
@@ -99,27 +104,20 @@ export const MessageItem: React.FC<Props> = React.memo(
                     Used tools ({calls.length})
                   </summary>
                   <div style={{ marginTop: 6 }}>
-                    {calls.map((c, i) => (
-                      <div key={c?.id || i}>
-                        <code style={{ fontSize: 12 }}>
-                          {c?.name || "tool"}
-                          {c?.argsPreview ? `(${c.argsPreview})` : "()"}
-                        </code>
-                        {c?.resultPreview && (
-                          <pre
-                            style={{
-                              whiteSpace: "pre-wrap",
-                              wordBreak: "break-word",
-                              background: "transparent",
-                              margin: "6px 0 0 0",
-                              fontSize: 12,
-                            }}
-                          >
-                            {c.resultPreview}
-                          </pre>
-                        )}
-                      </div>
-                    ))}
+                    <ToolCallsList
+                      calls={calls}
+                      showStatus={false}
+                      onOpenArguments={(title, content) => {
+                        setModalTitle(title);
+                        setModalContent(content);
+                        setModalOpen(true);
+                      }}
+                      onOpenResponse={(title, content) => {
+                        setModalTitle(title);
+                        setModalContent(content);
+                        setModalOpen(true);
+                      }}
+                    />
                   </div>
                 </details>
               );
@@ -205,6 +203,13 @@ export const MessageItem: React.FC<Props> = React.memo(
             />
           )}
         </div>
+        <CodeModal
+          title={modalTitle}
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          code={modalContent}
+          enableEdit={false}
+        />
       </div>
     );
   }

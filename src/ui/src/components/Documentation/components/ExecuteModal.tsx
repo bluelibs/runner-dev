@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import "./ExecuteModal.scss";
 
 export interface ExecuteModalProps {
@@ -313,9 +314,40 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     }
   };
 
+  // Lock background scroll and preserve position while modal is open
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const lockedScrollY = window.scrollY || window.pageYOffset || 0;
+    const original = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflowY: document.body.style.overflowY,
+    };
+
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    document.body.style.overflowY = "scroll";
+
+    return () => {
+      document.body.style.position = original.position;
+      document.body.style.top = original.top;
+      document.body.style.left = original.left;
+      document.body.style.right = original.right;
+      document.body.style.width = original.width;
+      document.body.style.overflowY = original.overflowY;
+      window.scrollTo(0, lockedScrollY);
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div
       className="execute-modal__overlay"
       role="dialog"
@@ -457,6 +489,10 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
       </div>
     </div>
   );
+
+  // Render the overlay at the document.body level to avoid being constrained
+  // by any parent stacking/transform contexts inside cards.
+  return createPortal(modalContent, document.body);
 };
 
 export default ExecuteModal;

@@ -7,11 +7,10 @@
 // Middleware Card Base
 // -----------------------------------------------------------------------------
 .middleware-card {
-  background: $white;
-  border: 1px solid $border-gray;
+  background: var(--docs-bg-primary);
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-xl;
   overflow: hidden;
-  box-shadow: $shadow-md;
   margin-bottom: $spacing-lg;
 }
 
@@ -20,7 +19,7 @@
 // -----------------------------------------------------------------------------
 .middleware-card__header {
   background: linear-gradient(135deg, $purple, #5a2b99);
-  color: white;
+  color: var(--docs-text-primary);
   padding: $spacing-xl;
 }
 
@@ -158,14 +157,15 @@
 .middleware-card__section {
   &__title {
     margin: 0 0 $spacing-md 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 
   &__content {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: $spacing-md;
   }
 }
@@ -176,17 +176,18 @@
 .middleware-card__info-block {
   .label {
     font-weight: bold;
-    color: $text-dark;
+    color: var(--docs-text-secondary);
   }
 
   .value {
     font-family: $font-family-mono;
     font-size: $font-size-sm;
-    color: $text-gray;
+    color: var(--docs-text-muted);
     margin-top: $spacing-xs;
-    background: $light-gray;
+    background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
+    text-overflow: ellipsis;
   }
 }
 
@@ -207,18 +208,18 @@
   border: 2px solid;
 
   &--tasks {
-    background: #e3f2fd;
-    border-color: #2196f3;
+    background: var(--docs-primary-bg);
+    border-color: var(--docs-primary);
   }
 
   &--resources {
-    background: #e8f5e8;
-    border-color: #4caf50;
+    background: var(--docs-success-bg);
+    border-color: var(--docs-success);
   }
 
   &--events {
-    background: #fff3e0;
-    border-color: #ff9800;
+    background: var(--docs-warning-bg);
+    border-color: var(--docs-warning);
   }
 
   .value {
@@ -227,13 +228,13 @@
     margin-bottom: $spacing-xs;
 
     &--tasks {
-      color: #1976d2;
+      color: var(--docs-primary);
     }
     &--resources {
-      color: #2e7d32;
+      color: var(--docs-success);
     }
     &--events {
-      color: #f57c00;
+      color: var(--docs-warning);
     }
   }
 
@@ -242,13 +243,13 @@
     font-weight: 500;
 
     &--tasks {
-      color: #1976d2;
+      color: var(--docs-primary);
     }
     &--resources {
-      color: #2e7d32;
+      color: var(--docs-success);
     }
     &--events {
-      color: #f57c00;
+      color: var(--docs-warning);
     }
   }
 }
@@ -257,13 +258,13 @@
 // Code Block
 // -----------------------------------------------------------------------------
 .middleware-card__code-block {
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
   padding: $spacing-lg;
   border-radius: $border-radius-lg;
   font-size: $font-size-xs;
   line-height: 1.6;
   overflow: auto;
-  border: 1px solid $border-gray;
+  border: 1px solid var(--docs-border-primary);
   margin: 0;
   font-family: $font-family-mono;
 }
@@ -272,20 +273,20 @@
 // Global Configuration Alert
 // -----------------------------------------------------------------------------
 .middleware-card__global-config {
-  background: #e8f4fd;
-  border: 1px solid #bee5eb;
+  background: var(--docs-info-bg);
+  border: 1px solid var(--docs-info-border);
   padding: $spacing-md;
   border-radius: $border-radius-lg;
 
   .title {
-    color: #0c5460;
+    color: var(--docs-info-text);
     font-weight: bold;
   }
 
   .content {
     margin-top: 10px;
     font-size: $font-size-sm;
-    color: #0c5460;
+    color: var(--docs-info-text);
 
     .config-item {
       margin-bottom: 5px;
@@ -305,17 +306,17 @@
   border-radius: $border-radius-lg;
 
   &--warning {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
+    background: var(--docs-alert-bg);
+    border: 1px solid var(--docs-warning);
 
     .title {
-      color: #856404;
+      color: var(--docs-warning-text);
       font-weight: bold;
     }
 
     .content {
       font-size: $font-size-sm;
-      color: #856404;
+      color: var(--docs-warning-text);
       margin-top: $spacing-sm;
       font-family: $font-family-mono;
     }
@@ -328,9 +329,9 @@
 .middleware-card__usage-details {
   &__title {
     margin: 0 0 $spacing-lg 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 
@@ -343,7 +344,7 @@
   &__category {
     h5 {
       margin: 0 0 $spacing-md 0;
-      color: $text-dark;
+      color: var(--docs-text-secondary);
       font-size: $font-size-md;
     }
   }
@@ -360,12 +361,12 @@
     }
 
     &::-webkit-scrollbar-track {
-      background: $light-gray;
+      background: var(--docs-bg-secondary);
       border-radius: 3px;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: $border-gray;
+      background: var(--docs-border-primary);
       border-radius: 3px;
 
       &:hover {
@@ -379,8 +380,8 @@
 // Usage Item
 // -----------------------------------------------------------------------------
 .middleware-card__usage-item {
-  background: $light-gray;
-  border: 1px solid $border-gray;
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
 
@@ -396,13 +397,13 @@
       .title {
         font-weight: 600;
         margin-bottom: 5px;
-        color: $text-darker;
+        color: var(--docs-text-primary);
         font-size: $font-size-md;
       }
 
       .id {
         font-size: $font-size-xs;
-        color: #666;
+        color: var(--docs-text-muted);
         font-family: $font-family-mono;
       }
     }
@@ -414,13 +415,13 @@
       font-weight: 500;
 
       &--task {
-        background: #fff;
-        color: #1565c0;
+        background: var(--docs-bg-primary);
+        color: var(--docs-primary);
       }
 
       &--resource {
-        background: #c8e6c9;
-        color: #2e7d32;
+        background: var(--docs-success-bg);
+        color: var(--docs-success);
       }
     }
   }
@@ -428,18 +429,18 @@
   &__config {
     .config-title {
       font-size: $font-size-base;
-      color: $text-dark;
+      color: var(--docs-text-secondary);
       margin-bottom: $spacing-sm;
       font-weight: 600;
     }
 
     .config-code {
-      background: $white;
+      background: var(--docs-bg-primary);
       padding: $spacing-md;
       border-radius: $border-radius-md;
       font-size: $font-size-xs;
       margin: 0;
-      border: 1px solid #dee2e6;
+      border: 1px solid var(--docs-border-primary);
       line-height: 1.4;
       font-family: $font-family-mono;
     }
@@ -454,9 +455,9 @@
 
   &__title {
     margin: 0 0 $spacing-lg 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 
@@ -472,12 +473,12 @@
     }
 
     &::-webkit-scrollbar-track {
-      background: $light-gray;
+      background: var(--docs-bg-secondary);
       border-radius: 3px;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: $border-gray;
+      background: var(--docs-border-primary);
       border-radius: 3px;
 
       &:hover {
@@ -489,18 +490,18 @@
 
 .middleware-card__event-item {
   padding: $spacing-sm $font-size-md;
-  background: #fff3e0;
+  background: var(--docs-warning-bg);
   border-radius: $border-radius-lg;
-  border-left: 4px solid #ff9800;
+  border-left: 4px solid var(--docs-warning);
 
   .title {
     font-weight: 600;
-    color: #f57c00;
+    color: var(--docs-warning);
   }
 
   .id {
     font-size: $font-size-xs;
-    color: #666;
+    color: var(--docs-text-muted);
     font-family: $font-family-mono;
   }
 }
@@ -510,10 +511,10 @@
 // -----------------------------------------------------------------------------
 .middleware-card__empty-state {
   margin-top: $spacing-xxxl;
-  color: $text-gray;
+  color: var(--docs-text-muted);
   font-style: italic;
   text-align: center;
   padding: $spacing-xxxl;
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
   border-radius: $border-radius-lg;
 }

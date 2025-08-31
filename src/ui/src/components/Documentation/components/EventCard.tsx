@@ -9,6 +9,8 @@ import {
   graphqlRequest,
   SAMPLE_EVENT_FILE_QUERY,
 } from "../utils/graphqlClient";
+import SchemaRenderer from "./SchemaRenderer";
+import ExecuteModal from "./ExecuteModal";
 
 export interface EventCardProps {
   event: Event;
@@ -63,6 +65,7 @@ export const EventCard: React.FC<EventCardProps> = ({
   };
 
   const status = getEventStatus();
+  const [isExecuteOpen, setIsExecuteOpen] = React.useState(false);
 
   return (
     <div id={`element-${event.id}`} className="event-card">
@@ -95,16 +98,17 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <span className="icon">📥</span>
                 <span className="count">Hooks: {hooks.length}</span>
               </div>
-            </div>
-            {event.tags && event.tags.length > 0 && (
-              <div className="event-card__tags">
-                {event.tags.map((tag) => (
-                  <span key={tag} className="event-card__tag">
-                    {tag}
-                  </span>
-                ))}
+              <div className="event-card__run">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setIsExecuteOpen(true)}
+                  title="Invoke Event"
+                >
+                  🚀
+                </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -131,23 +135,13 @@ export const EventCard: React.FC<EventCardProps> = ({
                   <div className="label">File Path:</div>
                   <div className="value">
                     {event.filePath ? (
-                      <button
+                      <a
                         type="button"
                         onClick={openFileModal}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#3498db",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View file contents"
                       >
                         {formatFilePath(event.filePath)}
-                      </button>
+                      </a>
                     ) : (
                       formatFilePath(event.filePath)
                     )}
@@ -198,6 +192,25 @@ export const EventCard: React.FC<EventCardProps> = ({
                   </div>
                 )}
 
+                {event.tags && event.tags.length > 0 && (
+                  <div className="event-card__info-block">
+                    <div className="label">Tags:</div>
+                    <div className="value">
+                      <div className="event-card__tags">
+                        {introspector.getTagsByIds(event.tags).map((tag) => (
+                          <a
+                            href={`#element-${tag.id}`}
+                            key={tag.id}
+                            className="clean-button"
+                          >
+                            {formatId(tag.id)}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {((!isGlobalEvent && emitters.length === 0) ||
                   hooks.length === 0) && (
                   <div
@@ -226,9 +239,9 @@ export const EventCard: React.FC<EventCardProps> = ({
           <div>
             <div className="event-card__section">
               <h4 className="event-card__section__title">📝 Payload Schema</h4>
-              <pre className="event-card__code-block">
-                {formatSchema(event.payloadSchema)}
-              </pre>
+              <div className="event-card__config">
+                <SchemaRenderer schemaString={event.payloadSchema} />
+              </div>
             </div>
           </div>
         </div>
@@ -381,6 +394,49 @@ export const EventCard: React.FC<EventCardProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+        enableEdit={Boolean(event.filePath)}
+        saveOnFile={event.filePath || null}
+      />
+
+      <ExecuteModal
+        isOpen={isExecuteOpen}
+        title={event.meta?.title || formatId(event.id)}
+        schemaString={event.payloadSchema}
+        onClose={() => setIsExecuteOpen(false)}
+        onInvoke={async ({ inputJson }) => {
+          const INVOKE_EVENT_MUTATION = `
+            mutation InvokeEvent($eventId: ID!, $inputJson: String, $evalInput: Boolean) {
+              invokeEvent(eventId: $eventId, inputJson: $inputJson, evalInput: $evalInput) {
+                success
+                error
+                invocationId
+              }
+            }
+          `;
+
+          try {
+            const res = await graphqlRequest<{
+              invokeEvent: {
+                success: boolean;
+                error?: string | null;
+                invocationId?: string | null;
+              };
+            }>(INVOKE_EVENT_MUTATION, {
+              eventId: event.id,
+              inputJson: inputJson?.trim() || undefined,
+              evalInput: false,
+            });
+
+            return {
+              output: res.invokeEvent.success
+                ? "Event invoked successfully"
+                : res.invokeEvent.error ?? undefined,
+              error: res.invokeEvent.error ?? undefined,
+            };
+          } catch (e: any) {
+            return { error: e?.message ?? String(e) };
+          }
+        }}
       />
     </div>
   );

@@ -1,0 +1,339 @@
+@use "../../../styles/variables" as *;
+
+.element-table {
+  margin-bottom: $spacing-xxxl;
+  background: var(--docs-bg-primary);
+  border-radius: $border-radius-lg;
+  border: 1px solid var(--docs-border-primary);
+  padding: $spacing-md $spacing-lg;
+  overflow: hidden;
+
+  &__title {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: var(--docs-text-primary);
+    margin-bottom: $spacing-md;
+    span {
+      margin-right: $spacing-md;
+    }
+  }
+
+  &__icon {
+    font-size: $font-size-xl;
+  }
+
+  &__container {
+    overflow-x: auto;
+
+    // Custom scrollbar styling
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--docs-bg-secondary);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--docs-border-secondary);
+      border-radius: 4px;
+
+      &:hover {
+        background: var(--docs-border-primary);
+      }
+    }
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: $font-family-base;
+    min-width: 600px;
+    table-layout: fixed;
+  }
+
+  &__header {
+    padding: $spacing-sm $spacing-md;
+    background: var(--docs-bg-tertiary);
+    color: var(--docs-text-primary);
+    font-weight: 600;
+    font-size: $font-size-sm;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border-bottom: 1px solid var(--docs-border-primary);
+
+    &--id {
+      width: 40%;
+      min-width: 200px;
+    }
+
+    &--title {
+      width: 25%;
+      min-width: 150px;
+    }
+
+    &--description {
+      width: 35%;
+      min-width: 250px;
+    }
+  }
+
+  &__row {
+    border-bottom: 1px solid var(--docs-border-primary);
+
+    &:hover {
+      background: var(--docs-bg-secondary);
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__cell {
+    padding: $spacing-md;
+    vertical-align: top;
+    line-height: 1.5;
+
+    &--id {
+      font-family: $font-family-mono;
+      background: var(--docs-bg-secondary);
+      border-right: 1px solid var(--docs-border-primary);
+    }
+
+    &--title {
+      font-weight: 500;
+      color: var(--docs-text-primary);
+      border-right: 1px solid var(--docs-border-primary);
+    }
+
+    &--description {
+      color: var(--docs-text-muted);
+      line-height: 1.6;
+    }
+  }
+
+  &__id-container {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    min-width: 0; // Allow flex child to shrink
+  }
+
+  &__id-link {
+    color: var(--docs-primary);
+    text-decoration: none;
+    display: block;
+    min-width: 0; // Allow flex child to shrink
+    flex: 1;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__id-code {
+    background: var(--docs-bg-tertiary);
+    padding: 4px 8px;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    font-family: $font-family-mono;
+    color: var(--docs-text-primary);
+    border: 1px solid var(--docs-border-primary);
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__title-link {
+    color: var(--docs-primary);
+    text-decoration: none;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__description-container {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  &__description {
+    // Style markdown content in descriptions
+    p {
+      margin: 0 0 $spacing-xs 0;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    code {
+      background: var(--docs-bg-tertiary);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: $font-size-xs;
+      font-family: $font-family-mono;
+      color: var(--docs-text-muted);
+    }
+
+    strong {
+      font-weight: 600;
+      color: var(--docs-text-primary);
+    }
+
+    em {
+      font-style: italic;
+      color: var(--docs-text-secondary);
+    }
+
+    // Clamp markdown-rendered descriptions by default
+    > * {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+
+    &.expanded > * {
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+    }
+  }
+
+  &__expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: $font-size-xs;
+    color: var(--docs-primary);
+    padding: 2px 4px;
+    border-radius: 3px;
+    align-self: flex-start;
+    text-decoration: underline;
+
+    &:hover {
+      background: var(--docs-bg-secondary);
+    }
+
+    &:focus {
+      outline: 2px solid var(--docs-primary);
+      border-radius: 3px;
+    }
+  }
+
+  &__copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: $font-size-sm;
+    color: var(--docs-text-muted);
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 3px;
+    flex-shrink: 0;
+
+    &:hover {
+      color: var(--docs-text-primary);
+      background: var(--docs-bg-secondary);
+    }
+
+    &:focus {
+      outline: 2px solid var(--docs-primary);
+    }
+  }
+
+  &__empty {
+    color: var(--docs-text-muted);
+    font-style: italic;
+    opacity: 0.7;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1024px) {
+  .element-table {
+    &__table {
+      min-width: 500px;
+    }
+
+    &__header {
+      &--id {
+        width: 35%;
+        min-width: 180px;
+      }
+
+      &--title {
+        width: 25%;
+        min-width: 120px;
+      }
+
+      &--description {
+        width: 40%;
+        min-width: 200px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .element-table {
+    padding: $spacing-sm $spacing-md;
+    margin-bottom: $spacing-xxl;
+
+    &__title {
+      font-size: $font-size-base;
+    }
+
+    &__table {
+      min-width: 450px;
+    }
+
+    &__header,
+    &__cell {
+      padding: $spacing-sm;
+      font-size: $font-size-sm;
+    }
+
+    &__header {
+      &--id {
+        width: 40%;
+        min-width: 150px;
+      }
+
+      &--title {
+        width: 25%;
+        min-width: 100px;
+      }
+
+      &--description {
+        width: 35%;
+        min-width: 150px;
+      }
+    }
+
+    &__description {
+      > * {
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+      }
+    }
+
+    &__id-code {
+      font-size: $font-size-xs;
+      padding: 3px 6px;
+    }
+  }
+}

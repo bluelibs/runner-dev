@@ -1,0 +1,114 @@
+@use "../../../../styles/variables" as *;
+
+.form {
+  display: grid;
+  gap: $spacing-md;
+}
+
+.form__row {
+  display: grid;
+  gap: $spacing-md;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.form__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form__label {
+  font-size: $font-size-sm;
+  color: var(--docs-text-primary);
+  margin-bottom: $spacing-xs;
+}
+
+.form__input,
+.form__select {
+  padding: $spacing-sm;
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-md;
+  font-size: $font-size-base;
+  background: var(--docs-input-bg);
+  color: var(--docs-text-primary);
+  outline: none;
+  transition: $transition-fast;
+
+  &::placeholder {
+    color: var(--docs-text-muted);
+  }
+}
+
+.form__input:focus,
+.form__select:focus {
+  border-color: var(--docs-primary);
+  box-shadow: 0 0 0 3px var(--docs-focus-ring);
+}
+
+.form__hint {
+  font-size: $font-size-xs;
+  color: var(--docs-text-muted);
+  margin-top: $spacing-xs;
+}
+
+.form__error {
+  font-size: $font-size-xs;
+  color: var(--docs-danger);
+  margin-top: $spacing-xs;
+}
+
+.is-invalid {
+  border-color: var(--docs-danger) !important;
+}
+
+.form__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: var(--docs-text-primary);
+}
+
+.form__actions {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+}
+
+.btn {
+  padding: 8px 10px;
+  border-radius: $border-radius-md;
+  border: 1px solid var(--docs-border-primary);
+  background: var(--docs-bg-primary);
+  color: var(--docs-text-primary);
+  cursor: pointer;
+  transition: $transition-fast;
+}
+
+.btn:hover {
+  border-color: var(--docs-primary);
+  background: var(--docs-hover-bg);
+}
+
+.btn--primary {
+  background: var(--docs-primary);
+  color: var(--docs-text-primary);
+  border-color: var(--docs-primary);
+
+  &:hover {
+    background: var(--docs-primary);
+    opacity: 0.9;
+  }
+}
+
+.status {
+  font-size: $font-size-sm;
+  min-width: 80px;
+}
+
+.status--ok {
+  color: var(--docs-success);
+}
+.status--error {
+  color: var(--docs-danger);
+}
+
+// Form controls now use CSS variables and work automatically with both themes

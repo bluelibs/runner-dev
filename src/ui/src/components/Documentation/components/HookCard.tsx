@@ -7,6 +7,9 @@ import { HookHeader } from "./hook/HookHeader";
 import { HookOverview } from "./hook/HookOverview";
 import { HookTargetEvents } from "./hook/HookTargetEvents";
 import { HookRelations } from "./hook/HookRelations";
+import { CodeModal } from "./CodeModal";
+import { graphqlRequest, SAMPLE_HOOK_FILE_QUERY } from "../utils/graphqlClient";
+import { formatFilePath, formatId } from "../utils/formatting";
 
 export interface HookCardProps {
   hook: Hook;
@@ -35,6 +38,7 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
               hook={hook}
               targetEvents={targetEvents}
               isGlobal={isGlobalHook}
+              introspector={introspector}
             />
           </div>
 

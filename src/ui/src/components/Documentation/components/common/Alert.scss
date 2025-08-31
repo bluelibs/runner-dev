@@ -25,13 +25,13 @@
   }
 
   &--warning {
-    background: #fff3cd;
+    background: var(--docs-alert-bg);
     border: 1px solid #ffeaa7;
     .alert__title {
-      color: #856404;
+      color: var(--docs-alert-text);
     }
     .alert__content {
-      color: #856404;
+      color: var(--docs-alert-text);
       font-family: $font-family-mono;
     }
   }

@@ -7,11 +7,11 @@
 // Tag Card Base
 // -----------------------------------------------------------------------------
 .tag-card {
-  background: $white;
-  border: 1px solid $border-gray;
+  background: var(--docs-card-bg);
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-xl;
   overflow: hidden;
-  box-shadow: $shadow-md;
+  box-shadow: var(--docs-shadow-md, #{$shadow-md});
   margin-bottom: $spacing-lg;
   width: 100%;
 }
@@ -20,8 +20,13 @@
 // Tag Card Header
 // -----------------------------------------------------------------------------
 .tag-card__header {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-  color: white;
+  // Use panel/background tokens for theme-friendly header
+  background: linear-gradient(
+    180deg,
+    var(--docs-panel-bg),
+    var(--docs-bg-secondary)
+  );
+  color: var(--docs-text-primary);
   padding: $spacing-lg $spacing-xl;
 }
 
@@ -39,6 +44,7 @@
   margin: 0 0 10px 0;
   font-size: $font-size-xl;
   font-weight: 700;
+  color: var(--docs-text-primary);
 }
 
 .tag-card__id {
@@ -46,6 +52,7 @@
   opacity: 0.9;
   font-family: $font-family-mono;
   margin-bottom: $spacing-md;
+  color: var(--docs-text-secondary);
 }
 
 .tag-card__description {
@@ -74,9 +81,9 @@
 .tag-card__section {
   &__title {
     margin: 0 0 $spacing-md 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 
@@ -97,9 +104,9 @@
   text-align: center;
   padding: $spacing-md $spacing-lg;
   background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+  color: var(--docs-text-on-accent, #fff);
   border-radius: $border-radius-lg;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--docs-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.1));
 
   .value {
     display: block;
@@ -123,11 +130,11 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: $spacing-sm;
-  
+
   @media (max-width: 768px) {
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   @media (max-width: 480px) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -136,7 +143,7 @@
 .tag-card__stat {
   text-align: center;
   padding: $spacing-sm;
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
   border-radius: $border-radius-lg;
 
   &__value {
@@ -147,29 +154,29 @@
 
   &__label {
     font-size: $font-size-xs;
-    color: $text-gray;
+    color: var(--docs-text-secondary);
     margin-top: $spacing-xs;
     display: block;
   }
 
   &--tasks .tag-card__stat__value {
-    color: $primary-blue;
+    color: var(--docs-primary);
   }
 
   &--resources .tag-card__stat__value {
-    color: $success-green;
+    color: var(--docs-success);
   }
 
   &--events .tag-card__stat__value {
-    color: $warning-orange;
+    color: var(--docs-warning);
   }
 
   &--middlewares .tag-card__stat__value {
-    color: $purple;
+    color: var(--docs-purple);
   }
 
   &--hooks .tag-card__stat__value {
-    color: $info-teal;
+    color: var(--docs-info);
   }
 }
 
@@ -181,13 +188,13 @@
   gap: $spacing-lg;
 
   &__block {
-    background: $light-gray;
+    background: var(--docs-code-bg);
     padding: $spacing-md;
     border-radius: $border-radius-lg;
     font-size: $font-size-xs;
     line-height: 1.6;
     overflow: auto;
-    border: 1px solid $border-gray;
+    border: 1px solid var(--docs-border-primary);
     margin: 0;
     font-family: $font-family-mono;
   }
@@ -201,9 +208,9 @@
 
   &__title {
     margin: 0 0 $spacing-lg 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 
@@ -216,7 +223,7 @@
   &__category {
     h5 {
       margin: 0 0 $spacing-md 0;
-      color: $text-dark;
+      color: var(--docs-text-primary);
       font-size: $font-size-md;
     }
   }
@@ -233,16 +240,16 @@
     }
 
     &::-webkit-scrollbar-track {
-      background: $light-gray;
+      background: var(--docs-bg-secondary);
       border-radius: 3px;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: $border-gray;
+      background: var(--docs-border-primary);
       border-radius: 3px;
 
       &:hover {
-        background: #999;
+        background: var(--docs-border-secondary);
       }
     }
   }
@@ -257,28 +264,28 @@
   border-left: 4px solid;
 
   &--resource {
-    background: #e8f5e8;
-    border-left-color: #4caf50;
+    background: var(--docs-success-bg);
+    border-left-color: var(--docs-success);
   }
 
   &--task {
-    background: #e3f2fd;
-    border-left-color: #2196f3;
+    background: var(--docs-primary-bg);
+    border-left-color: var(--docs-primary);
   }
 
   &--middleware {
-    background: #f3e5f5;
-    border-left-color: $purple-dark;
+    background: var(--docs-purple-bg);
+    border-left-color: var(--docs-purple);
   }
 
   &--event {
-    background: #fff8e1;
-    border-left-color: $warning-orange;
+    background: var(--docs-warning-bg);
+    border-left-color: var(--docs-warning);
   }
 
   &--hook {
-    background: #e0f7fa;
-    border-left-color: $info-teal;
+    background: var(--docs-info-bg);
+    border-left-color: var(--docs-info);
   }
 
   .title {
@@ -286,25 +293,25 @@
     margin-bottom: $spacing-xs;
 
     &--resource {
-      color: #2e7d32;
+      color: var(--docs-success);
     }
     &--task {
-      color: #1976d2;
+      color: var(--docs-primary);
     }
     &--middleware {
-      color: #7b1fa2;
+      color: var(--docs-purple);
     }
     &--event {
-      color: #f57c00;
+      color: var(--docs-warning);
     }
     &--hook {
-      color: #00695c;
+      color: var(--docs-info);
     }
   }
 
   .id {
     font-size: $font-size-xs;
-    color: #666;
+    color: var(--docs-text-secondary);
     font-family: $font-family-mono;
   }
 }

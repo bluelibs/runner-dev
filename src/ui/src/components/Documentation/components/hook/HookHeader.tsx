@@ -1,7 +1,6 @@
 import React from "react";
 import { Hook } from "../../../../../../schema/model";
 import { formatId } from "../../utils/formatting";
-
 export interface HookHeaderProps {
   hook: Hook;
   emittedEventsCount: number;
@@ -36,15 +35,6 @@ export const HookHeader: React.FC<HookHeaderProps> = ({
             <span className="icon">📤</span>
             <span className="count">{emittedEventsCount}</span>
           </div>
-          {hook.tags && hook.tags.length > 0 && (
-            <div className="hook-card__tags">
-              {hook.tags.map((tag) => (
-                <span key={tag} className="hook-card__tag">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

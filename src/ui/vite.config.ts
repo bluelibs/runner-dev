@@ -14,5 +14,6 @@ export default defineConfig({
         docs: path.resolve(__dirname, "src/hydrate-docs.tsx"),
       },
     },
+    sourcemap: true,
   },
 });

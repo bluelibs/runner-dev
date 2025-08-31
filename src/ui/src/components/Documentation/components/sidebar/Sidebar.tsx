@@ -1,6 +1,6 @@
 import React from "react";
-import { Introspector } from "../../../../../resources/models/Introspector";
-import { Section } from "../Documentation";
+import { Introspector } from "../../../../../../resources/models/Introspector";
+import { Section } from "../../Documentation";
 import "./Sidebar.scss";
 
 export interface SidebarProps {
@@ -86,7 +86,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {selectedTag && (
           <div className="sidebar__tag-filter">
-            <span className="sidebar__tag-filter__label">Tag: {selectedTag}</span>
+            <span className="sidebar__tag-filter__label">
+              Tag: {selectedTag}
+            </span>
             <button
               onClick={() => onTagChange(null)}
               className="sidebar__tag-filter__clear"

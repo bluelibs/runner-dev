@@ -59,6 +59,52 @@ export const SAMPLE_RESOURCE_FILE_QUERY = `
   }
 `;
 
+export const TASK_COVERAGE_QUERY = `
+  query TaskCoverage($id: ID!) {
+    task(id: $id) {
+      id
+      coverage { percentage }
+    }
+  }
+`;
+
+export const TASK_COVERAGE_DETAILS_QUERY = `
+  query TaskCoverageDetails($id: ID!) {
+    task(id: $id) {
+      id
+      coverage {
+        percentage
+        totalStatements
+        coveredStatements
+        details
+      }
+    }
+  }
+`;
+
+export const RESOURCE_COVERAGE_QUERY = `
+  query ResourceCoverage($id: ID!) {
+    resource(id: $id) {
+      id
+      coverage { percentage }
+    }
+  }
+`;
+
+export const RESOURCE_COVERAGE_DETAILS_QUERY = `
+  query ResourceCoverageDetails($id: ID!) {
+    resource(id: $id) {
+      id
+      coverage {
+        percentage
+        totalStatements
+        coveredStatements
+        details
+      }
+    }
+  }
+`;
+
 export const SAMPLE_MIDDLEWARE_FILE_QUERY = `
   query MiddlewareFile($id: ID!, $startLine: Int, $endLine: Int) {
     middleware(id: $id) {
@@ -72,6 +118,26 @@ export const SAMPLE_MIDDLEWARE_FILE_QUERY = `
 export const SAMPLE_EVENT_FILE_QUERY = `
   query EventFile($id: ID!, $startLine: Int, $endLine: Int) {
     event(id: $id) {
+      id
+      filePath
+      fileContents(startLine: $startLine, endLine: $endLine)
+    }
+  }
+`;
+
+export const SAMPLE_HOOK_FILE_QUERY = `
+  query HookFile($id: ID!, $startLine: Int, $endLine: Int) {
+    hook(id: $id) {
+      id
+      filePath
+      fileContents(startLine: $startLine, endLine: $endLine)
+    }
+  }
+`;
+
+export const SAMPLE_TAG_FILE_QUERY = `
+  query TagFile($id: ID!, $startLine: Int, $endLine: Int) {
+    tag(id: $id) {
       id
       filePath
       fileContents(startLine: $startLine, endLine: $endLine)

@@ -12,9 +12,11 @@ import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
   SAMPLE_RESOURCE_FILE_QUERY,
+  RESOURCE_COVERAGE_DETAILS_QUERY,
 } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./ResourceCard.scss";
+import { SchemaRenderer } from "./SchemaRenderer";
 export interface ResourceCardProps {
   resource: Resource;
   introspector: Introspector;
@@ -42,6 +44,10 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [coverageDetailsOpen, setCoverageDetailsOpen] = React.useState(false);
+  const [coverageDetailsText, setCoverageDetailsText] = React.useState<
+    string | null
+  >(null);
 
   async function openFileModal() {
     if (!resource?.id) return;
@@ -61,6 +67,35 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     }
   }
 
+  async function openCoverageDetails() {
+    try {
+      const data = await graphqlRequest<{
+        resource: {
+          id: string;
+          coverage?: {
+            percentage?: number | null;
+            totalStatements?: number | null;
+            coveredStatements?: number | null;
+            details?: string | null;
+          } | null;
+        };
+      }>(RESOURCE_COVERAGE_DETAILS_QUERY, { id: resource.id });
+      const c = data?.resource?.coverage;
+      const text = c
+        ? `Percentage: ${c.percentage ?? 0}%\nStatements: ${
+            c.coveredStatements ?? 0
+          }/${c.totalStatements ?? 0}\n\nDetails (raw):\n${c.details ?? "N/A"}`
+        : "No coverage details.";
+      setCoverageDetailsText(text);
+      setCoverageDetailsOpen(true);
+    } catch (e: any) {
+      setCoverageDetailsText(
+        `Error loading coverage: ${e?.message ?? String(e)}`
+      );
+      setCoverageDetailsOpen(true);
+    }
+  }
+
   return (
     <div id={`element-${resource.id}`} className="resource-card">
       <div className="resource-card__header">
@@ -76,15 +111,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               </p>
             )}
           </div>
-          {resource.tags && resource.tags.length > 0 && (
-            <div className="resource-card__tags">
-              {resource.tags.map((tag) => (
-                <span key={tag} className="resource-card__tag">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -98,28 +124,46 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   <div className="label">File Path:</div>
                   <div className="value">
                     {resource.filePath ? (
-                      <button
+                      <a
                         type="button"
                         onClick={openFileModal}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#2e7d32",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View file contents"
                       >
                         {formatFilePath(resource.filePath)}
-                      </button>
+                      </a>
                     ) : (
                       formatFilePath(resource.filePath)
                     )}
                   </div>
                 </div>
+
+                {resource.coverage?.percentage !== undefined && (
+                  <div className="resource-card__info-block">
+                    <div className="label">Coverage:</div>
+                    <div className="value">
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color:
+                            resource.coverage.percentage >= 100
+                              ? "#2e7d32"
+                              : resource.coverage.percentage >= 80
+                              ? "#ef6c00"
+                              : "#c62828",
+                        }}
+                      >
+                        {resource.coverage.percentage}%
+                      </span>{" "}
+                      <button
+                        type="button"
+                        onClick={openCoverageDetails}
+                        title="View coverage details"
+                      >
+                        (View Coverage)
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {resource.registeredBy && (
                   <div className="resource-card__info-block">
@@ -147,6 +191,25 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   <div className="value">{dependentTasks.length} task(s)</div>
                 </div>
 
+                {resource.tags && resource.tags.length > 0 && (
+                  <div className="resource-card__info-block">
+                    <div className="label">Tags:</div>
+                    <div className="value">
+                      <div className="resource-card__tags">
+                        {introspector.getTagsByIds(resource.tags).map((tag) => (
+                          <a
+                            href={`#element-${tag.id}`}
+                            key={tag.id}
+                            className="clean-button"
+                          >
+                            {formatId(tag.id)}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {resource.overriddenBy && (
                   <div className="resource-card__alert resource-card__alert--warning">
                     <div className="title">⚠️ Overridden By:</div>
@@ -172,9 +235,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
                 <div className="resource-card__config__subsection">
                   <h5>Configuration Schema</h5>
-                  <pre className="resource-card__config__block">
-                    {formatSchema(resource.configSchema)}
-                  </pre>
+                  <SchemaRenderer schemaString={resource.configSchema} />
                 </div>
               </div>
             </div>
@@ -293,6 +354,20 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+        enableEdit={Boolean(resource.filePath)}
+        saveOnFile={resource.filePath || null}
+      />
+
+      <CodeModal
+        title={`${
+          resource.meta?.title || formatId(resource.id)
+        } — Coverage Details`}
+        subtitle={resource.filePath || undefined}
+        isOpen={coverageDetailsOpen}
+        onClose={() => setCoverageDetailsOpen(false)}
+        code={coverageDetailsText}
+        enableEdit={false}
+        saveOnFile={null}
       />
     </div>
   );

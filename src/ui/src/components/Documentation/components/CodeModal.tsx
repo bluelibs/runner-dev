@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from "react";
-import Prism from "prismjs";
-import "prismjs/components/prism-typescript";
-import "prismjs/themes/prism-tomorrow.css";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
+import CodeMirror from "@uiw/react-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
+import { oneDark } from "@codemirror/theme-one-dark";
 import "./CodeModal.scss";
+import { graphqlRequest } from "../utils/graphqlClient";
 
 export interface CodeModalProps {
   title: string;
@@ -10,6 +12,8 @@ export interface CodeModalProps {
   isOpen: boolean;
   onClose: () => void;
   code: string | null | undefined;
+  enableEdit?: boolean;
+  saveOnFile?: string | null;
 }
 
 export const CodeModal: React.FC<CodeModalProps> = ({
@@ -18,11 +22,28 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   isOpen,
   onClose,
   code,
+  enableEdit = false,
+  saveOnFile,
 }) => {
-  const codeRef = useRef<HTMLElement>(null);
-  const originalBodyStyle = useRef<{ overflow: string; paddingRight: string }>({
-    overflow: "",
-    paddingRight: "",
+  // Always render the editor; track draft and last-saved baseline
+  const [draft, setDraft] = useState<string>(code ?? "");
+  const [baseline, setBaseline] = useState<string>(code ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const originalBodyStyle = useRef<{
+    position: string;
+    top: string;
+    left: string;
+    right: string;
+    width: string;
+    overflowY: string;
+  }>({
+    position: "",
+    top: "",
+    left: "",
+    right: "",
+    width: "",
+    overflowY: "",
   });
 
   useEffect(() => {
@@ -30,49 +51,89 @@ export const CodeModal: React.FC<CodeModalProps> = ({
       if (e.key === "Escape") onClose();
     }
 
-    if (isOpen) {
-      // Store original styles
-      originalBodyStyle.current = {
-        overflow: document.body.style.overflow,
-        paddingRight: document.body.style.paddingRight,
-      };
+    if (!isOpen) return;
 
-      // Calculate scrollbar width only once when opening
-      const scrollbarWidth =
-        window.innerWidth - document.documentElement.clientWidth;
+    const lockedScrollY = window.scrollY || window.pageYOffset || 0;
 
-      document.body.style.overflow = "hidden";
-      if (scrollbarWidth > 0) {
-        document.body.style.paddingRight = `${scrollbarWidth}px`;
-      }
-      window.addEventListener("keydown", onKey);
-    } else {
-      // Restore original styles
-      document.body.style.overflow = originalBodyStyle.current.overflow;
-      document.body.style.paddingRight = originalBodyStyle.current.paddingRight;
-      window.removeEventListener("keydown", onKey);
-    }
+    // Store original styles
+    originalBodyStyle.current = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflowY: document.body.style.overflowY,
+    };
+
+    // Robust scroll lock: prevent layout shift without padding hacks
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    document.body.style.overflowY = "scroll";
+
+    window.addEventListener("keydown", onKey);
 
     return () => {
       window.removeEventListener("keydown", onKey);
-      // Only restore if modal was open
-      if (isOpen) {
-        document.body.style.overflow = originalBodyStyle.current.overflow;
-        document.body.style.paddingRight =
-          originalBodyStyle.current.paddingRight;
-      }
+      // Restore original styles and scroll position
+      document.body.style.position = originalBodyStyle.current.position;
+      document.body.style.top = originalBodyStyle.current.top;
+      document.body.style.left = originalBodyStyle.current.left;
+      document.body.style.right = originalBodyStyle.current.right;
+      document.body.style.width = originalBodyStyle.current.width;
+      document.body.style.overflowY = originalBodyStyle.current.overflowY;
+      window.scrollTo(0, lockedScrollY);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
-    if (isOpen && codeRef.current && code) {
-      Prism.highlightElement(codeRef.current);
+    // When opening or when upstream code changes, reset draft and baseline
+    const next = code ?? "";
+    setDraft(next);
+    setBaseline(next);
+  }, [code, isOpen]);
+
+
+  const canEdit =
+    enableEdit && typeof saveOnFile === "string" && saveOnFile.length > 0;
+
+  const onSave = useCallback(async () => {
+    if (!canEdit || !saveOnFile) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const mutation = `
+        mutation EditFile($path: String!, $content: String!) {
+          editFile(path: $path, content: $content) {
+            success
+            error
+            path
+            resolvedPath
+          }
+        }
+      `;
+      const result = await graphqlRequest<{
+        editFile: { success: boolean; error?: string | null };
+      }>(mutation, { path: saveOnFile, content: draft });
+      if (!result.editFile?.success) {
+        throw new Error(result.editFile?.error || "Unknown error while saving");
+      }
+      // Update baseline so Save hides until further edits
+      setBaseline(draft);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+    } finally {
+      setIsSaving(false);
     }
-  }, [isOpen, code]);
+  }, [canEdit, saveOnFile, draft]);
+
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="code-modal__backdrop" onClick={onClose}>
       <div
         className="code-modal__dialog"
@@ -87,19 +148,58 @@ export const CodeModal: React.FC<CodeModalProps> = ({
           </div>
           <div className="code-modal__header-right">
             <div className="code-modal__esc-hint">Press ESC to Close</div>
+            {canEdit && draft !== baseline && (
+              <button
+                className="code-modal__btn code-modal__btn--glass-primary"
+                onClick={onSave}
+                disabled={isSaving}
+              >
+                {isSaving ? "SAVING..." : "SAVE"}
+              </button>
+            )}
             <button className="code-modal__close" onClick={onClose}>
               ×
             </button>
           </div>
         </div>
         <div className="code-modal__content">
-          <pre className="code-modal__pre">
-            <code ref={codeRef} className="language-typescript">
-              {code ?? "No content"}
-            </code>
-          </pre>
+          <div
+            className="code-modal__editor-wrap"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDownCapture={(e) => {
+              // Cmd/Ctrl+S to save when dirty
+              const k = e.key;
+              if ((e.metaKey || e.ctrlKey) && (k === "s" || k === "S")) {
+                e.preventDefault();
+                if (canEdit && draft !== baseline && !isSaving) onSave();
+              }
+            }}
+          >
+            <CodeMirror
+              value={draft}
+              onChange={(val) => {
+                if (canEdit) {
+                  setDraft(val);
+                }
+              }}
+              extensions={[javascript({ typescript: true })]}
+              theme={oneDark}
+              editable={canEdit}
+              basicSetup={{
+                lineNumbers: true,
+                foldGutter: true,
+                dropCursor: false,
+                allowMultipleSelections: false,
+              }}
+              className="code-modal__editor"
+              style={{ fontSize: "14px" }}
+            />
+          </div>
+          {error && <div className="code-modal__error">{error}</div>}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

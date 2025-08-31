@@ -2,22 +2,55 @@
 // DOCUMENTATION COMPONENT STYLES
 // =============================================================================
 @use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
 @use "sass:color";
 
 // -----------------------------------------------------------------------------
 // Main Documentation Layout
 // -----------------------------------------------------------------------------
-.docs-app {
+body {
   font-family: $font-family-base;
-  background: $light-gray;
-  min-height: 100vh;
+}
+.docs-app {
+  background: var(--docs-bg-secondary);
+  color: var(--docs-text-primary);
+  // Constrain the docs UI to the viewport and avoid window/body scrolling
   display: flex;
+  height: 100vh;
+  overflow: hidden;
+  transition: all $transition-fast;
 }
 
 // Highlight animation for tree navigation targets
 .docs-highlight-target {
   animation: docs-highlight-pulse 2s ease-in-out;
   border-radius: $border-radius-md;
+}
+
+.clean-button {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--docs-text-primary);
+  padding: 6px 12px;
+  border-radius: $border-radius-md;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
 }
 
 @keyframes docs-highlight-pulse {
@@ -35,6 +68,19 @@
   }
 }
 
+@keyframes typing-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Sidebar Navigation
 // -----------------------------------------------------------------------------
@@ -44,16 +90,20 @@
   top: 0;
   width: 280px;
   height: 100vh;
-  background: $gradient-sidebar;
+  background: #212121; // make a nice gradient left to right
+  background: linear-gradient(to right, #212121, #121212);
   color: white;
   padding: $spacing-xxl $spacing-lg;
+  padding-top: 0px;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden; // prevent accidental horizontal scroll twitch
   z-index: 1000;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
   transition: width 0.2s ease;
-  min-width: 200px;
+  min-width: 80px;
   max-width: 600px;
+  overscroll-behavior: contain; // avoid chaining to the page
+  container-type: inline-size; // enable container queries based on width
 
   // Custom scrollbar styling
   &::-webkit-scrollbar {
@@ -85,6 +135,81 @@
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
 }
 
+// Container-based compact rules when the sidebar is very narrow
+.docs-sidebar {
+  @container (max-width: 160px) {
+    .docs-switch .docs-switch-text .system-label {
+      display: none;
+    }
+    .navigation-view--list .nav-content {
+      display: inline-block;
+      text-align: center;
+    }
+    .docs-nav-stats {
+      display: none;
+    }
+    .navigation-view--list .nav-content .system-label {
+      display: none;
+    }
+
+    .sidebar-header__title,
+    .sidebar-header__description {
+      display: none;
+    }
+
+    .docs-main-filters {
+      .docs-namespace-input {
+        label {
+          display: none;
+        }
+        input {
+          padding-left: 8px;
+          min-width: 0;
+        }
+      }
+    }
+
+    .docs-view-toggle {
+      .docs-view-button {
+        .label {
+          display: none;
+        }
+        .icon {
+          font-size: 18px;
+        }
+      }
+    }
+
+    .navigation-view {
+      .nav-node-label,
+      .nav-badge,
+      .nav-node-count,
+      .nav-content .text {
+        display: none;
+      }
+
+      .nav-node-icon,
+      .nav-content .icon {
+        margin-right: 0;
+        font-size: 18px;
+      }
+
+      .nav-link,
+      .nav-node {
+        justify-content: center;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+    }
+  }
+}
+
+.docs-system-toggle-container {
+  margin-bottom: 20px;
+  font-family: $font-family-base;
+  text-transform: uppercase;
+}
+
 .docs-nav-header {
   margin-bottom: $spacing-xxxl;
 
@@ -102,6 +227,44 @@
     font-size: $font-size-base;
     opacity: 0.8;
     line-height: 1.4;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Main Filters (Search + Show System Toggle)
+// -----------------------------------------------------------------------------
+.docs-main-filters {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+
+  .docs-namespace-input {
+    flex: 1;
+    margin-bottom: 0; // Override the default margin
+    min-width: 0; // Allow shrinking when sidebar is narrow
+    display: flex;
+    flex-direction: column;
+
+    input {
+      min-width: 0; // Allow shrinking when sidebar is narrow
+    }
+  }
+  // Stack vertically when sidebar gets narrow
+  @media (max-width: 350px) {
+    flex-direction: column;
+    gap: $spacing-sm;
+    align-items: stretch;
+
+    .docs-system-toggle-container {
+      align-self: flex-start; // Align to left when stacked
+      justify-content: flex-start;
+      padding-top: 0; // Remove offset when stacked
+    }
+
+    .docs-namespace-input {
+      min-width: 200px; // Maintain minimum width when stacked
+    }
   }
 }
 
@@ -131,52 +294,30 @@
     align-items: center;
     justify-content: center;
     gap: $spacing-xs;
+    font-family: $font-family-base;
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
-      color: white;
+      color: var(--docs-text-primary);
     }
 
     &.active {
       background: $primary-blue;
       border-color: $primary-blue;
-      color: white;
+      color: var(--docs-text-primary);
       font-weight: 600;
     }
   }
 }
 
-.docs-tree-controls {
-  .docs-tree-type-select {
-    width: 100%;
-    padding: $spacing-xs $spacing-sm;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-    border-radius: $border-radius-md;
-    font-size: $font-size-xs;
-    cursor: pointer;
-
-    &:focus {
-      outline: none;
-      border-color: $primary-blue;
-      background: rgba(255, 255, 255, 0.12);
-    }
-
-    option {
-      background: #2c3e50;
-      color: white;
-    }
-  }
-}
-
-.docs-tree-container {
+.docs-nav-container {
   margin-bottom: $spacing-xl;
-  max-height: 60vh;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden; // standardize hidden horizontal overflow
+  overscroll-behavior: contain;
+  padding-right: 5px;
 
-  // Custom scrollbar styling for tree container
+  // Custom scrollbar styling for navigation container
   &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -197,47 +338,77 @@
   }
 
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+  overflow-x: hidden;
 
-  .docs-tree-view {
-    // Override tree view colors for dark sidebar
-    .tree-node {
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+  .docs-navigation {
+    // Override navigation view colors for dark sidebar
+    &.navigation-view--tree {
+      .nav-node {
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        &--focused {
+          background-color: rgba(59, 130, 246, 0.3);
+          border-color: rgba(59, 130, 246, 0.6);
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
       }
 
-      &--focused {
-        background-color: rgba(59, 130, 246, 0.3);
-        outline-color: rgba(59, 130, 246, 0.6);
+      .nav-node-label {
+        color: rgba(255, 255, 255, 0.9);
       }
-    }
 
-    .tree-node-label {
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .tree-node-count {
-      background-color: rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .tree-expander {
-      &:hover {
+      .nav-node-count {
         background-color: rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .nav-expander {
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      .nav-expander-icon {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .nav-search-highlight {
+        background-color: rgba(251, 191, 36, 0.3);
+        color: #fbbf24;
       }
     }
 
-    .tree-expander-icon {
-      color: rgba(255, 255, 255, 0.7);
-    }
+    &.navigation-view--list {
+      .nav-link {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid transparent;
+        color: var(--docs-text-primary);
 
-    .tree-children {
-      border-left-color: rgba(255, 255, 255, 0.2);
-    }
+        &--home {
+          background: rgba(52, 152, 219, 0.15);
+          border: 1px solid rgba(52, 152, 219, 0.3);
+        }
 
-    .tree-search-highlight {
-      background-color: rgba(251, 191, 36, 0.3);
-      color: #fbbf24;
+        &:hover {
+          background: rgba(52, 152, 219, 0.25);
+          border-color: $primary-blue;
+          transform: translateX(4px);
+        }
+
+        &--focused {
+          background: rgba(59, 130, 246, 0.3);
+          border-color: rgba(59, 130, 246, 0.6);
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+      }
+
+      .nav-badge {
+        background: rgba(52, 152, 219, 0.3);
+        color: $white;
+        border: 1px solid rgba(52, 152, 219, 0.5);
+      }
     }
   }
 }
@@ -270,6 +441,7 @@
     color: white;
     font-size: $font-size-base;
     transition: $transition-normal;
+    margin-bottom: $spacing-sm; // Ensure spacing from the toggle row
 
     &::placeholder {
       color: rgba(255, 255, 255, 0.5);
@@ -289,72 +461,81 @@
   }
 }
 
-.docs-nav-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-
-  li {
-    margin-bottom: $spacing-sm;
-  }
-}
-
-.docs-nav-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: $font-size-base 18px;
-  border-radius: $border-radius-lg;
-  text-decoration: none;
-  color: white;
-  transition: $transition-normal;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid transparent;
-  white-space: nowrap;
-  overflow: hidden;
-
-  &--home {
-    background: rgba(52, 152, 219, 0.15);
-    border: 1px solid rgba(52, 152, 219, 0.3);
-  }
-
-  &:hover {
-    background: rgba(52, 152, 219, 0.25);
-    border-color: $primary-blue;
-    transform: translateX(4px);
-  }
-}
-
-.docs-nav-content {
-  display: flex;
+// -----------------------------------------------------------------------------
+// System Toggle Switch
+// -----------------------------------------------------------------------------
+.docs-switch {
+  display: inline-flex;
   align-items: center;
   gap: $spacing-sm;
-  min-width: 0;
-  flex: 1;
+  cursor: pointer;
+  user-select: none;
+  flex-direction: row-reverse; // Put text on the left, control on the right
 
-  .icon {
-    font-size: $font-size-md;
-    flex-shrink: 0;
-  }
-
-  .text {
-    font-size: $font-size-base;
-    font-weight: 500;
+  .docs-switch-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: $font-size-sm;
+    letter-spacing: 0.3px;
+    font-size: $font-size-xs;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-family: $font-family-base;
   }
 }
 
-.docs-nav-badge {
-  background: rgba(52, 152, 219, 0.3);
-  color: $white;
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $spacing-sm;
-  font-size: $font-size-xs;
-  font-weight: bold;
-  border: 1px solid rgba(52, 152, 219, 0.5);
+.docs-switch-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
+
+.docs-switch-track {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  transition: $transition-normal;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0; // Prevent shrinking in tight sidebars
+}
+
+.docs-switch-thumb {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  background: var(--docs-bg-primary);
+  border-radius: 50%;
+  transform: translate(0, -50%);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.docs-switch:hover .docs-switch-track {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.docs-switch-input:focus + .docs-switch-track {
+  outline: none;
+}
+
+.docs-switch-input:checked + .docs-switch-track {
+  background: $primary-blue;
+  border-color: $primary-blue;
+}
+
+.docs-switch-input:checked + .docs-switch-track .docs-switch-thumb {
+  transform: translate(22px, -50%);
+  background: #eaf6ff;
+}
+
+// These styles are now handled by NavigationView component and its SCSS
 
 .docs-nav-stats {
   margin-top: $spacing-xxxl;
@@ -388,6 +569,33 @@
   flex: 1;
   padding: $spacing-xxxl;
   transition: margin-left 0.2s ease;
+  // Make the main area a dedicated scroll container to match Chat
+  height: 100vh;
+  // Always render a vertical scrollbar for a stable layout
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+  position: relative;
+  padding-right: 0;
+}
+
+.docs-main-content--suspended {
+  pointer-events: none;
+}
+
+.docs-main-content--suspended .docs-content-container {
+  filter: grayscale(0.2) blur(2px);
+  transition: filter 0.15s ease;
+}
+
+.docs-main-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(245, 247, 250, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 1;
 }
 
 .docs-content-container {
@@ -462,11 +670,17 @@
   h2 {
     font-size: $font-size-xxl;
     margin-bottom: $spacing-xxl;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     display: flex;
     align-items: center;
     gap: $spacing-sm;
   }
+}
+
+.overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 // -----------------------------------------------------------------------------
@@ -507,22 +721,16 @@
     &::after {
       content: "";
       position: absolute;
-      top: 50%;
       left: 50%;
       width: 0;
       height: 0;
-      background: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.1) 0%,
-        transparent 70%
-      );
+      background: radial-gradient(rgba(255, 255, 255, 0.1) 0%, transparent 70%);
       border-radius: 50%;
       transform: translate(-50%, -50%);
       transition: all 0.6s ease;
     }
 
     &:hover {
-      transform: translateY(-10px) scale(1.02);
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 
       &::before {
@@ -534,12 +742,7 @@
         height: 300px;
       }
 
-      h3 {
-        transform: scale(1.1);
-      }
-
       .count {
-        transform: scale(1.2) rotateY(10deg);
         text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
       }
     }
@@ -614,6 +817,16 @@
       }
     }
 
+    &--tags {
+      background: linear-gradient(135deg, $warning-orange, #13cb47);
+      box-shadow: 0 4px 20px rgba(156, 39, 176, 0.2);
+
+      &:hover {
+        background: linear-gradient(135deg, $error-red, #13cb47);
+        box-shadow: 0 20px 40px rgba(156, 39, 176, 0.4);
+      }
+    }
+
     h3 {
       margin: 0 0 $spacing-md 0;
       font-size: $font-size-lg;
@@ -652,7 +865,7 @@
   grid-template-columns: 1fr;
 
   @media (min-width: 768px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   @media (max-width: 767px) {
@@ -664,7 +877,7 @@
 // Live Panel Styles
 // -----------------------------------------------------------------------------
 .live-panel {
-  background: white;
+  background: var(--docs-bg-primary);
   border-radius: $border-radius-xl;
   box-shadow: $shadow-lg;
   padding: $spacing-xl;
@@ -677,7 +890,7 @@
 
   .live-loading {
     font-size: $font-size-lg;
-    color: #dee2e6;
+    color: var(--docs-text-muted);
   }
 
   .live-error {
@@ -691,7 +904,7 @@
     button {
       padding: $spacing-sm $spacing-lg;
       background: $primary-blue;
-      color: white;
+      color: var(--docs-text-primary);
       border: none;
       border-radius: $border-radius-md;
       cursor: pointer;
@@ -721,22 +934,22 @@
   }
 
   .live-toggle {
-    background: #f8f9fa;
-    color: $text-darker;
-    border: 1px solid #dee2e6;
+    background: var(--docs-bg-secondary);
+    color: var(--docs-text-primary);
+    border: 1px solid var(--docs-border-primary);
 
     &--active {
       background: $success-green;
-      color: white;
+      color: var(--docs-text-primary);
       border-color: $success-green;
     }
 
     &:hover {
-      background: color.adjust(#f8f9fa, $lightness: -5%);
+      background: var(--docs-hover-bg);
     }
 
     &--active:hover {
-      background: color.adjust($success-green, $lightness: -10%);
+      background: var(--docs-success-hover-bg);
     }
   }
 
@@ -746,7 +959,7 @@
     border: 1px solid $primary-blue;
 
     &:hover {
-      background: color.adjust($primary-blue, $lightness: -10%);
+      background: var(--docs-primary-hover-bg);
     }
   }
 }
@@ -762,15 +975,14 @@
 }
 
 .live-section {
-  background: #f8f9fa;
+  background: var(--docs-bg-secondary);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--docs-border-primary);
 
   h3 {
     margin: 0 0 $spacing-lg 0;
     font-size: $font-size-lg;
-    color: $white;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -792,7 +1004,7 @@
   &--logs {
     border-left: 4px solid #0000ff;
     h3 {
-      color: $text-darker;
+      color: var(--docs-text-primary);
     }
   }
 
@@ -814,14 +1026,14 @@
 .metric {
   text-align: center;
   padding: $spacing-lg;
-  background: white;
+  background: var(--docs-bg-primary);
   border-radius: $border-radius-md;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--docs-border-primary);
 
   .metric-label {
     display: block;
     font-size: $font-size-sm;
-    color: $text-muted;
+    color: var(--docs-text-muted);
     margin-bottom: $spacing-xs;
     font-weight: 500;
   }
@@ -830,13 +1042,13 @@
     display: block;
     font-size: $font-size-lg;
     font-weight: bold;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     margin-bottom: $spacing-xs;
   }
 
   .metric-detail {
     font-size: $font-size-xs;
-    color: $text-muted;
+    color: var(--docs-text-muted);
   }
 }
 
@@ -844,9 +1056,10 @@
   max-height: 300px;
   overflow-y: auto;
   overflow-x: auto;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-md;
-  background: white;
+  background: var(--docs-bg-primary);
+  overscroll-behavior: contain;
 
   // Custom scrollbar styling for live entries
   &::-webkit-scrollbar {
@@ -855,12 +1068,12 @@
   }
 
   &::-webkit-scrollbar-track {
-    background: #f8f9fa;
+    background: var(--docs-bg-secondary);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #dee2e6;
+    background: var(--docs-border-primary);
     border-radius: 4px;
     transition: background 0.2s ease;
 
@@ -870,12 +1083,12 @@
   }
 
   scrollbar-width: thin;
-  scrollbar-color: #dee2e6 #f8f9fa;
+  scrollbar-color: var(--docs-border-secondary) var(--docs-bg-secondary);
 }
 
 .live-entry {
   padding: $spacing-sm $spacing-md;
-  border-bottom: 1px solid #f8f9fa;
+  border-bottom: 1px solid var(--docs-border-primary);
   font-size: $font-size-sm;
   line-height: 1.4;
   display: flex;
@@ -913,7 +1126,7 @@
 
   .entry-time {
     font-family: monospace;
-    color: $text-muted;
+    color: var(--docs-text-muted);
     font-size: $font-size-xs;
     min-width: 80px;
   }
@@ -939,7 +1152,7 @@
   .entry-status,
   .entry-duration {
     font-size: $font-size-xs;
-    color: $text-muted;
+    color: var(--docs-text-muted);
     font-family: monospace;
   }
 
@@ -970,28 +1183,12 @@
     pre {
       margin: $spacing-xs 0 0 0;
       padding: $spacing-sm;
-      background: #f8f9fa;
+      background: var(--docs-bg-secondary);
       border-radius: 3px;
       font-size: $font-size-xs;
       overflow-x: auto;
       white-space: pre-wrap;
       word-break: break-all;
-    }
-  }
-
-  .entry-payload-button {
-    background: #e3f2fd;
-    border: 1px solid #bbdefb;
-    color: #1565c0;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: $font-size-xs;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: #bbdefb;
-      border-color: #90caf9;
     }
   }
 }

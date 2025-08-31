@@ -8,9 +8,15 @@ import {
   formatId,
 } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
-import { graphqlRequest, SAMPLE_TASK_FILE_QUERY } from "../utils/graphqlClient";
+import {
+  graphqlRequest,
+  SAMPLE_TASK_FILE_QUERY,
+  TASK_COVERAGE_DETAILS_QUERY,
+} from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./TaskCard.scss";
+import { SchemaRenderer } from "./SchemaRenderer";
+import ExecuteModal from "./ExecuteModal";
 export interface TaskCardProps {
   task: Task;
   introspector: Introspector;
@@ -24,6 +30,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [coverageDetailsOpen, setCoverageDetailsOpen] = React.useState(false);
+  const [coverageDetailsText, setCoverageDetailsText] = React.useState<
+    string | null
+  >(null);
+  const [isExecuteOpen, setIsExecuteOpen] = React.useState(false);
 
   async function openFileModal() {
     if (!task?.id) return;
@@ -43,6 +54,35 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
     }
   }
 
+  async function openCoverageDetails() {
+    try {
+      const data = await graphqlRequest<{
+        task: {
+          id: string;
+          coverage?: {
+            percentage?: number | null;
+            totalStatements?: number | null;
+            coveredStatements?: number | null;
+            details?: string | null;
+          } | null;
+        };
+      }>(TASK_COVERAGE_DETAILS_QUERY, { id: task.id });
+      const c = data?.task?.coverage;
+      const text = c
+        ? `Percentage: ${c.percentage ?? 0}%\nStatements: ${
+            c.coveredStatements ?? 0
+          }/${c.totalStatements ?? 0}\n\nDetails (raw):\n${c.details ?? "N/A"}`
+        : "No coverage details.";
+      setCoverageDetailsText(text);
+      setCoverageDetailsOpen(true);
+    } catch (e: any) {
+      setCoverageDetailsText(
+        `Error loading coverage: ${e?.message ?? String(e)}`
+      );
+      setCoverageDetailsOpen(true);
+    }
+  }
+
   return (
     <div id={`element-${task.id}`} className="task-card">
       <div className="task-card__header">
@@ -56,15 +96,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
               <p className="task-card__description">{task.meta.description}</p>
             )}
           </div>
-          {task.tags && task.tags.length > 0 && (
-            <div className="task-card__tags">
-              {task.tags.map((tag) => (
-                <a href={`#element-${tag}`} key={tag}>
-                  <span className="task-card__tag">{tag}</span>
-                </a>
-              ))}
-            </div>
-          )}
+          <div className="task-card__actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setIsExecuteOpen(true)}
+              title="Run Task"
+            >
+              🏃
+            </button>
+          </div>
         </div>
       </div>
 
@@ -78,28 +119,46 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   <div className="label">File Path:</div>
                   <div className="value">
                     {task.filePath ? (
-                      <button
+                      <a
                         type="button"
                         onClick={openFileModal}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#0056b3",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View file contents"
                       >
                         {formatFilePath(task.filePath)}
-                      </button>
+                      </a>
                     ) : (
                       formatFilePath(task.filePath)
                     )}
                   </div>
                 </div>
+
+                {task.coverage?.percentage !== undefined && (
+                  <div className="task-card__info-block">
+                    <div className="label">Coverage:</div>
+                    <div className="value">
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color:
+                            task.coverage.percentage >= 100
+                              ? "#2e7d32"
+                              : task.coverage.percentage >= 80
+                              ? "#ef6c00"
+                              : "#c62828",
+                        }}
+                      >
+                        {task.coverage.percentage}%
+                      </span>{" "}
+                      <button
+                        type="button"
+                        onClick={openCoverageDetails}
+                        title="View coverage details"
+                      >
+                        (View Coverage)
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {task.registeredBy && (
                   <div className="task-card__info-block">
@@ -146,6 +205,25 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   </div>
                 </div>
 
+                {task.tags && task.tags.length > 0 && (
+                  <div className="task-card__info-block">
+                    <div className="label">Tags:</div>
+                    <div className="value">
+                      <div className="task-card__tags">
+                        {introspector.getTagsByIds(task.tags).map((tag) => (
+                          <a
+                            href={`#element-${tag.id}`}
+                            key={tag.id}
+                            className="clean-button"
+                          >
+                            {formatId(tag.id)}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {task.overriddenBy && (
                   <div className="task-card__alert task-card__alert--warning">
                     <div className="title">⚠️ Overridden By:</div>
@@ -158,10 +236,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
           <div>
             <div className="task-card__section">
-              <h4 className="task-card__section__title">📝 Schema</h4>
-              <pre className="task-card__code-block">
-                {formatSchema(task.inputSchema)}
-              </pre>
+              <h4 className="task-card__section__title">📝 Input Schema</h4>
+              <div className="task-card__config">
+                <SchemaRenderer schemaString={task.inputSchema} />
+              </div>
             </div>
           </div>
         </div>
@@ -279,6 +357,59 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+        enableEdit={Boolean(task.filePath)}
+        saveOnFile={task.filePath || null}
+      />
+
+      <ExecuteModal
+        isOpen={isExecuteOpen}
+        title={task.meta?.title || formatId(task.id)}
+        schemaString={task.inputSchema}
+        onClose={() => setIsExecuteOpen(false)}
+        onInvoke={async ({ inputJson }) => {
+          const INVOKE_TASK_MUTATION = `
+            mutation InvokeTask($taskId: ID!, $inputJson: String, $evalInput: Boolean) {
+              invokeTask(taskId: $taskId, inputJson: $inputJson, evalInput: $evalInput) {
+                success
+                error
+                result
+                invocationId
+              }
+            }
+          `;
+
+          try {
+            const res = await graphqlRequest<{
+              invokeTask: {
+                success: boolean;
+                error?: string | null;
+                result?: string | null;
+                invocationId?: string | null;
+              };
+            }>(INVOKE_TASK_MUTATION, {
+              taskId: task.id,
+              inputJson: inputJson?.trim() || undefined,
+              evalInput: false,
+            });
+
+            return {
+              output: res.invokeTask.result ?? undefined,
+              error: res.invokeTask.error ?? undefined,
+            };
+          } catch (e: any) {
+            return { error: e?.message ?? String(e) };
+          }
+        }}
+      />
+
+      <CodeModal
+        title={`${task.meta?.title || formatId(task.id)} — Coverage Details`}
+        subtitle={task.filePath || undefined}
+        isOpen={coverageDetailsOpen}
+        onClose={() => setCoverageDetailsOpen(false)}
+        code={coverageDetailsText}
+        enableEdit={false}
+        saveOnFile={null}
       />
     </div>
   );

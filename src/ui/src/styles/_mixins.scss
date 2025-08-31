@@ -1,0 +1,327 @@
+// =============================================================================
+// SCSS MIXINS - Reusable style patterns and utilities
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Dark Mode Utilities
+// -----------------------------------------------------------------------------
+
+// Mixin for applying dark mode aware colors
+@mixin dark-aware-color($property, $light-value, $dark-value) {
+  #{$property}: $light-value;
+
+  [data-theme="dark"] & {
+    #{$property}: $dark-value;
+  }
+}
+
+// Mixin for dark mode aware backgrounds with transition
+@mixin dark-aware-bg($light-bg, $dark-bg, $transition: true) {
+  background: $light-bg;
+
+  @if $transition {
+    transition: background-color 0.2s ease;
+  }
+
+  [data-theme="dark"] & {
+    background: $dark-bg;
+  }
+}
+
+// Mixin for dark mode aware borders
+@mixin dark-aware-border(
+  $light-color,
+  $dark-color,
+  $width: 1px,
+  $style: solid
+) {
+  border: $width $style $light-color;
+  transition: border-color 0.2s ease;
+
+  [data-theme="dark"] & {
+    border-color: $dark-color;
+  }
+}
+
+// Mixin for dark mode aware text colors
+@mixin dark-aware-text($light-color, $dark-color) {
+  color: $light-color;
+  transition: color 0.2s ease;
+
+  [data-theme="dark"] & {
+    color: $dark-color;
+  }
+}
+
+// Mixin for dark mode aware shadows
+@mixin dark-aware-shadow($light-shadow, $dark-shadow) {
+  box-shadow: $light-shadow;
+  transition: box-shadow 0.2s ease;
+
+  [data-theme="dark"] & {
+    box-shadow: $dark-shadow;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Component Patterns
+// -----------------------------------------------------------------------------
+
+// Standard card styling with dark mode support
+@mixin docs-card($padding: var(--spacing-lg, 20px)) {
+  background: var(--docs-card-bg);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: var(--border-radius-lg, 8px);
+  box-shadow: var(--docs-shadow-sm);
+  color: var(--docs-text-primary);
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: var(--docs-shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+// Standard panel styling with dark mode support
+@mixin docs-panel($padding: var(--spacing-lg, 20px)) {
+  background: var(--docs-panel-bg);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: var(--border-radius-lg, 8px);
+  color: var(--docs-text-primary);
+  padding: $padding;
+  transition: all 0.2s ease;
+}
+
+// Button styling with dark mode support
+@mixin docs-button($variant: primary) {
+  border: none;
+  border-radius: var(--border-radius, 4px);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 15px);
+  transition: all 0.2s ease;
+
+  @if $variant == primary {
+    background: var(--docs-primary);
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: var(--docs-primary);
+      filter: brightness(110%);
+      transform: translateY(-1px);
+    }
+  } @else if $variant == secondary {
+    background: var(--docs-bg-secondary);
+    border: 1px solid var(--docs-border-primary);
+    color: var(--docs-text-primary);
+
+    &:hover:not(:disabled) {
+      background: var(--docs-hover-bg);
+    }
+  } @else if $variant == ghost {
+    background: transparent;
+    color: var(--docs-text-secondary);
+
+    &:hover:not(:disabled) {
+      background: var(--docs-hover-bg);
+      color: var(--docs-text-primary);
+    }
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+// Input styling with dark mode support
+@mixin docs-input($variant: default) {
+  background: var(--docs-input-bg);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: var(--border-radius, 4px);
+  color: var(--docs-text-primary);
+  font-family: inherit;
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 15px);
+  transition: all 0.2s ease;
+  width: 100%;
+
+  &:focus {
+    border-color: var(--docs-primary);
+    box-shadow: 0 0 0 3px var(--docs-focus-ring);
+    outline: none;
+  }
+
+  &:hover:not(:disabled):not(:focus) {
+    border-color: var(--docs-text-secondary);
+  }
+
+  &:disabled {
+    background: var(--docs-bg-secondary);
+    color: var(--docs-text-disabled);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &::placeholder {
+    color: var(--docs-text-muted);
+  }
+
+  @if $variant == error {
+    border-color: var(--docs-danger);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
+    }
+  }
+}
+
+// Scrollbar styling for dark mode
+@mixin docs-scrollbar($size: 6px) {
+  &::-webkit-scrollbar {
+    width: $size;
+    height: $size;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--docs-border-subtle);
+    border-radius: calc($size / 2);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--docs-border-secondary);
+    border-radius: calc($size / 2);
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: var(--docs-text-muted);
+    }
+  }
+}
+
+// Loading state mixin
+@mixin docs-loading($overlay: true) {
+  position: relative;
+  pointer-events: none;
+
+  @if $overlay {
+    &::after {
+      background: var(--docs-panel-bg);
+      border-radius: inherit;
+      content: "Loading...";
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.9;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      color: var(--docs-text-primary);
+      font-size: var(--font-size-sm, 12px);
+    }
+  }
+}
+
+// Focus ring utility
+@mixin docs-focus-ring($color: var(--docs-focus-ring), $offset: 2px) {
+  &:focus-visible {
+    outline: 2px solid $color;
+    outline-offset: $offset;
+  }
+}
+
+// Truncate text utility
+@mixin text-truncate($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+    overflow: hidden;
+  }
+}
+
+// Responsive breakpoint utilities
+@mixin mobile {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: 769px) and (max-width: 1024px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: 1025px) {
+    @content;
+  }
+}
+
+// Animation utilities
+@mixin fade-in($duration: 0.3s) {
+  animation: fade-in $duration ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@mixin slide-up($duration: 0.3s, $distance: 20px) {
+  animation: slide-up $duration ease-out;
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY($distance);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+// Status indicator utilities
+@mixin status-indicator($color, $size: 8px) {
+  &::before {
+    background: $color;
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    height: $size;
+    margin-right: calc($size / 2);
+    width: $size;
+  }
+}
+
+// Glassmorphism effect for dark mode
+@mixin glassmorphism($opacity: 0.1) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  [data-theme="dark"] & {
+    background: rgba(255, 255, 255, $opacity / 2);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}

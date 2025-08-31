@@ -2,6 +2,7 @@ import React from "react";
 import { Event } from "../../../../../../schema/model";
 import { Introspector } from "../../../../../../resources/models/Introspector";
 import { formatId, formatSchema } from "../../utils/formatting";
+import SchemaRenderer from "../SchemaRenderer";
 
 export interface HookTargetEventsProps {
   isGlobal: boolean;
@@ -89,7 +90,7 @@ export const HookTargetEvents: React.FC<HookTargetEventsProps> = ({
           <div className="hook-card__section__content">
             <div className="hook-card__schema-block">
               <div className="title">Payload Schema</div>
-              <pre className="schema">{formatSchema(evt.payloadSchema)}</pre>
+              <SchemaRenderer schemaString={evt.payloadSchema} />
             </div>
 
             <div className="hook-card__schema-block">

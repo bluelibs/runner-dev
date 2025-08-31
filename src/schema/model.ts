@@ -21,6 +21,8 @@ export interface BaseElement {
   tags?: string[] | null;
   // Detailed tag usages with serialized config when present
   tagsDetailed?: TagUsage[] | null;
+  // Pre-fetched coverage summary (percentage only) when available
+  coverage?: { percentage?: number } | null;
 }
 
 export interface All extends BaseElement {
@@ -44,7 +46,7 @@ export interface TagUsage {
   configSchema?: string | null;
 }
 
-export interface Tag {
+export interface Tag extends BaseElement {
   id: string;
   configSchema?: string | null;
   tasks: Task[];

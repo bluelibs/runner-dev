@@ -2,6 +2,10 @@ import express from "express";
 import { Introspector } from "../models/Introspector";
 import { Store } from "@bluelibs/runner";
 import { initializeFromStore } from "../models/initializeFromStore";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { readDocContent, readPackageDoc } from "../../mcp/help";
+import { parse, print } from "graphql";
 
 export interface DocsRouteConfig {
   uiDir: string;
@@ -10,6 +14,14 @@ export interface DocsRouteConfig {
   logger: {
     info: (message: string) => void;
     warn?: (message: string) => void;
+  };
+  // Optional provider to obtain GraphQL SDL string
+  getGraphqlSdl?: () => string;
+  // Optional coverage service to pre-populate element coverage percentage
+  coverage?: {
+    getSummaryForPath: (
+      p: string | null | undefined
+    ) => Promise<{ percentage?: number | null } | null>;
   };
 }
 
@@ -27,10 +39,140 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
     initializeFromStore(introspector, config.store);
     const data = (introspector as unknown as Introspector).serialize();
 
+    // Attach pre-fetched coverage percentages when coverage is available.
+    if (config.coverage) {
+      const attach = async (
+        arr: Array<{ filePath?: string | null; coverage?: any }>
+      ) => {
+        for (const el of arr) {
+          try {
+            const s = await config.coverage!.getSummaryForPath(
+              el.filePath || null
+            );
+            if (s && typeof s.percentage === "number") {
+              (el as any).coverage = { percentage: s.percentage };
+            }
+          } catch {}
+        }
+      };
+
+      try {
+        await attach((data as any).tasks || []);
+        await attach((data as any).resources || []);
+        await attach((data as any).hooks || []);
+        await attach((data as any).middlewares || []);
+        await attach((data as any).events || []);
+      } catch {}
+    }
+
+    // Try to read framework and runner-dev AI.md from node_modules
+    const runnerFrameworkDoc = await readPackageDoc(
+      "@bluelibs/runner",
+      "AI.md"
+    ).catch(() => ({ content: "" } as any));
+    let runnerFrameworkAiMd = runnerFrameworkDoc.content || "";
+
+    // Runner-Dev AI.md (when this package is a dependency)
+    const runnerDevDoc = await readPackageDoc(
+      "@bluelibs/runner-dev",
+      "AI.md"
+    ).catch(() => ({ content: "" } as any));
+    let runnerDevAiMd = runnerDevDoc.content || "";
+
+    // Fallback to package-relative AI.md (when developing this repo)
+    if (!runnerDevAiMd) {
+      try {
+        const fallback = await fs.readFile(
+          path.resolve(__dirname, "../../../AI.md"),
+          "utf8"
+        );
+        runnerDevAiMd = fallback || runnerDevAiMd;
+      } catch {}
+    }
+
+    // Expose framework and dev docs separately
+    const runnerFrameworkMd = runnerFrameworkAiMd || "";
+    const runnerDevMd = runnerDevAiMd || "";
+
+    // Obtain GraphQL SDL if available
+    let graphqlSdl: string | undefined;
+    try {
+      graphqlSdl = config.getGraphqlSdl?.();
+    } catch (e) {
+      logger.warn?.("Failed to generate GraphQL SDL for /docs/data");
+    }
+
+    // Build a lightweight Project Overview (Markdown) using the in-memory introspector
+    const overviewLines: string[] = [];
+    try {
+      const tasks = introspector.getTasks?.() ?? [];
+      const hooks = introspector.getHooks?.() ?? [];
+      const resources = introspector.getResources?.() ?? [];
+      const middlewares = introspector.getMiddlewares?.() ?? [];
+      const events = introspector.getEvents?.() ?? [];
+
+      overviewLines.push(`# Project Overview`);
+      overviewLines.push("");
+      overviewLines.push(`- Tasks: ${tasks.length}`);
+      overviewLines.push(`- Hooks: ${hooks.length}`);
+      overviewLines.push(`- Resources: ${resources.length}`);
+      overviewLines.push(`- Middleware: ${middlewares.length}`);
+      overviewLines.push(`- Events: ${events.length}`);
+      overviewLines.push("");
+
+      const sample = <T>(arr: T[], n = 10) => arr.slice(0, n);
+      const fmt = (
+        id: string,
+        title?: string | null,
+        description?: string | null
+      ) => {
+        const lineTitle = title && title.trim().length ? title : id;
+        const extra =
+          description && description.trim().length ? ` — ${description}` : "";
+        return `- ${lineTitle} {${id}}${extra}`;
+      };
+
+      if (tasks.length) {
+        overviewLines.push(`## Sample Tasks`);
+        for (const t of sample(tasks)) {
+          const meta = (t as any).meta || {};
+          overviewLines.push(
+            fmt(String((t as any).id), meta.title, meta.description)
+          );
+        }
+        overviewLines.push("");
+      }
+      if (resources.length) {
+        overviewLines.push(`## Sample Resources`);
+        for (const r of sample(resources)) {
+          const meta = (r as any).meta || {};
+          overviewLines.push(
+            fmt(String((r as any).id), meta.title, meta.description)
+          );
+        }
+        overviewLines.push("");
+      }
+      if (events.length) {
+        overviewLines.push(`## Sample Events`);
+        for (const e of sample(events)) {
+          const meta = (e as any).meta || {};
+          overviewLines.push(
+            fmt(String((e as any).id), meta.title, meta.description)
+          );
+        }
+        overviewLines.push("");
+      }
+    } catch {}
+    const projectOverviewMd = overviewLines.join("\n");
+
     res.setHeader("Content-Type", "application/json");
     res.json({
       namespacePrefix,
       introspectorData: data,
+      runnerFrameworkMd,
+      runnerDevMd,
+      projectOverviewMd,
+      graphqlSdl,
     });
   };
 }

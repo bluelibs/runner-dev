@@ -67,6 +67,10 @@ export const LogEntryType = new GraphQLObjectType<
       description: "Correlation id for tracing",
       type: GraphQLString,
     },
+    sourceId: {
+      description: "Source id",
+      type: GraphQLString,
+    },
   }),
 });
 

@@ -1,0 +1,213 @@
+@use "../../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Message Item Component Styles
+// -----------------------------------------------------------------------------
+.message-item {
+  background: var(--docs-card-bg);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-lg;
+  color: var(--docs-text-primary);
+  margin-bottom: $spacing-md;
+  padding: $spacing-lg;
+  transition: all $transition-fast;
+  
+  &:hover {
+    box-shadow: $shadow-md;
+    transform: translateY(-2px);
+  }
+  
+  .message-header {
+    align-items: center;
+    border-bottom: 1px solid var(--docs-border-secondary, rgba(0, 0, 0, 0.1));
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: $spacing-md;
+    padding-bottom: $spacing-sm;
+    
+    .message-meta {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      
+      .message-author {
+        color: var(--docs-text-primary);
+        font-weight: 600;
+      }
+      
+      .message-time {
+        color: var(--docs-text-secondary);
+        font-size: $font-size-sm;
+      }
+      
+      .message-type {
+        background: var(--docs-primary);
+        border-radius: $border-radius-pill;
+        color: white;
+        font-size: $font-size-xs;
+        font-weight: 600;
+        padding: $spacing-xs $spacing-sm;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        
+        &.user {
+          background: var(--docs-badge-user, $success-green);
+        }
+        
+        &.assistant {
+          background: var(--docs-badge-assistant, $primary-blue);
+        }
+        
+        &.system {
+          background: var(--docs-badge-system, $warning-orange);
+        }
+      }
+    }
+    
+    .message-actions {
+      display: flex;
+      gap: $spacing-xs;
+      
+      .action-btn {
+        background: transparent;
+        border: 1px solid var(--docs-border-primary, $border-gray);
+        border-radius: $border-radius;
+        color: var(--docs-text-secondary);
+        cursor: pointer;
+        padding: $spacing-xs;
+        transition: all $transition-fast;
+        
+        &:hover {
+          background: var(--docs-btn-hover-bg, $light-gray);
+          color: var(--docs-text-primary);
+        }
+      }
+    }
+  }
+  
+  .message-content {
+    line-height: 1.6;
+    
+    // Markdown content styling
+    .markdown-content {
+      h1, h2, h3, h4, h5, h6 {
+        color: var(--docs-text-primary);
+        margin: $spacing-lg 0 $spacing-sm 0;
+        
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+      
+      p {
+        margin-bottom: $spacing-md;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+      
+      code {
+        background: var(--docs-code-bg, rgba(0, 0, 0, 0.1));
+        color: var(--docs-code-text, $danger-red);
+        font-family: $font-family-mono;
+        font-size: 0.9em;
+        padding: 2px 4px;
+        border-radius: $border-radius-sm;
+      }
+      
+      pre {
+        background: var(--docs-pre-bg, #f6f8fa);
+        border: 1px solid var(--docs-border-primary, $border-gray);
+        border-radius: $border-radius;
+        margin: $spacing-md 0;
+        overflow-x: auto;
+        padding: $spacing-md;
+        
+        code {
+          background: none;
+          color: var(--docs-text-primary);
+          padding: 0;
+        }
+      }
+      
+      ul, ol {
+        margin: $spacing-md 0;
+        padding-left: $spacing-xl;
+      }
+      
+      li {
+        margin-bottom: $spacing-xs;
+      }
+      
+      blockquote {
+        border-left: 4px solid var(--docs-accent-color, $primary-blue);
+        color: var(--docs-text-secondary);
+        font-style: italic;
+        margin: $spacing-md 0;
+        padding-left: $spacing-md;
+      }
+      
+      table {
+        border-collapse: collapse;
+        margin: $spacing-md 0;
+        width: 100%;
+        
+        th, td {
+          border: 1px solid var(--docs-border-primary, $border-gray);
+          padding: $spacing-sm;
+          text-align: left;
+        }
+        
+        th {
+          background: var(--docs-table-header-bg, $light-gray);
+          font-weight: 600;
+        }
+      }
+    }
+  }
+  
+  .message-attachments {
+    border-top: 1px solid var(--docs-border-secondary, rgba(0, 0, 0, 0.1));
+    margin-top: $spacing-md;
+    padding-top: $spacing-md;
+    
+    .attachments-title {
+      color: var(--docs-text-secondary);
+      font-size: $font-size-sm;
+      font-weight: 600;
+      margin-bottom: $spacing-sm;
+    }
+    
+    .attachment-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-sm;
+      
+      .attachment-item {
+        align-items: center;
+        background: var(--docs-attachment-bg, $light-gray);
+        border-radius: $border-radius;
+        display: flex;
+        gap: $spacing-xs;
+        padding: $spacing-xs $spacing-sm;
+        transition: all $transition-fast;
+        
+        &:hover {
+          background: var(--docs-attachment-hover-bg, $border-gray);
+        }
+        
+        .attachment-icon {
+          color: var(--docs-text-secondary);
+        }
+        
+        .attachment-name {
+          font-size: $font-size-sm;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+}
+
+// Dark mode is now the default

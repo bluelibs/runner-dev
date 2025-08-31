@@ -6,22 +6,22 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--docs-loading-overlay-bg);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 5vh;
+  padding: 5vh 0;
   z-index: 9999;
-  overflow-y: auto;
 }
 
 .code-modal__dialog {
   width: min(1100px, 92vw);
-  max-height: 85vh;
-  background: $white;
+  max-height: calc(100vh - 10vh);
+  background: var(--docs-bg-primary);
   border-radius: $border-radius-xl;
-  box-shadow: $shadow-lg;
-  overflow: hidden;
+  box-shadow: var(--docs-shadow-lg);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
 }
@@ -30,19 +30,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: $gradient-purple-dark;
-  color: $white;
+  // Use theme-aware header variables with sensible fallbacks for dark mode
+  background: var(--docs-header-bg, var(--docs-bg-primary));
+  color: var(--docs-header-text, var(--docs-text-primary));
+  border-bottom: 1px solid var(--docs-header-border, var(--docs-border-primary));
+  backdrop-filter: saturate(140%) blur(6px);
+  -webkit-backdrop-filter: saturate(140%) blur(6px);
   padding: $spacing-lg $spacing-xl;
 }
 
 .code-modal__title {
   margin: 0;
   font-size: $font-size-xl;
+  font-family: $font-family-base;
+  font-weight: 600;
 }
 
 .code-modal__subtitle {
   font-size: $font-size-sm;
   opacity: 0.9;
+  font-family: $font-family-base;
 }
 
 .code-modal__header-right {
@@ -58,12 +65,13 @@
   letter-spacing: 0.025em;
   text-transform: uppercase;
   white-space: nowrap;
+  font-family: $font-family-base;
 }
 
 .code-modal__close {
   background: transparent;
   border: none;
-  color: $white;
+  color: inherit; // inherit header text for proper light/dark contrast
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
@@ -76,21 +84,94 @@
 
 .code-modal__content {
   padding: $spacing-xl;
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
+  flex: 1;
+  min-height: 0;
+  // Let the content area scroll; editor itself shouldn't manage internal scroll
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-.code-modal__pre {
-  margin: 0;
-  padding: $spacing-xl;
-  border-radius: $border-radius-lg;
-  font-family: $font-family-mono;
-  font-size: $font-size-sm;
-  line-height: 1.5;
-  max-height: 60vh;
-  overflow: auto;
+.code-modal__editor-wrap {
+  position: relative;
+  // Don't flex; allow content to control height so parent scrolls
+  min-height: 400px;
+}
 
-  // Override Prism theme background to match our design
-  background: #0d1117 !important;
-  border: 1px solid #30363d;
+.code-modal__editor {
+  width: 100%;
+  min-height: 400px;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+
+  .cm-editor {
+    font-family: $font-family-mono;
+    border-radius: $border-radius-lg;
+
+    &.cm-focused {
+      outline: none;
+    }
+  }
+
+  .cm-scroller {
+    font-family: $font-family-mono;
+    line-height: 1.5;
+  }
+}
+
+.code-modal__actions {
+  margin-top: $spacing-lg;
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+}
+
+.code-modal__btn {
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.code-modal__btn--primary {
+  background: var(--docs-success);
+  border: 1px solid var(--docs-success);
+  color: var(--docs-text-primary);
+
+  &:hover {
+    background: var(--docs-success);
+    opacity: 0.9;
+  }
+}
+
+// Glass styles
+.code-modal__btn--glass {
+  background: var(--docs-bg-tertiary);
+  color: var(--docs-text-primary);
+  border: 1px solid var(--docs-border-primary);
+  box-shadow: var(--docs-shadow-sm);
+
+  &:hover {
+    background: var(--docs-hover-bg);
+  }
+}
+
+.code-modal__btn--glass-primary {
+  background: var(--docs-primary-bg);
+  color: var(--docs-primary);
+  border: 1px solid var(--docs-primary-border);
+  box-shadow: var(--docs-shadow-md);
+
+  &:hover {
+    background: var(--docs-primary-hover-bg);
+  }
+}
+
+.code-modal__error {
+  margin-left: auto;
+  color: var(--docs-error);
+  font-size: $font-size-sm;
 }

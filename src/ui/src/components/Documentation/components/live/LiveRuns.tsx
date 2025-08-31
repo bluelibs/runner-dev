@@ -174,11 +174,11 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
 
   return (
     <div className="live-runs">
-      <h3 className="live-runs__title">🚀 Live Actions</h3>
+      <h3 className="live-runs__title">Live Actions</h3>
       <div className="live-runs__grid">
         {/* Run Task Section */}
         <div className="live-runs__panel">
-          <h4 className="live-runs__panel-title">🏃 Run a Task</h4>
+          <h4 className="live-runs__panel-title">Run a Task</h4>
           <div className="live-runs__form">
             <WriteCodeInput
               ref={taskInputRef}
@@ -216,7 +216,7 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
                 taskRunning ? "live-runs__button--disabled" : ""
               }`}
             >
-              {taskRunning ? "⏳ Running..." : "▶️ Run Task"}
+              {taskRunning ? "Running..." : "Run Task"}
             </button>
             {taskResult && (
               <div
@@ -236,7 +236,7 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
 
         {/* Invoke Event Section */}
         <div className="live-runs__panel">
-          <h4 className="live-runs__panel-title">📡 Invoke Event</h4>
+          <h4 className="live-runs__panel-title">Invoke Event</h4>
           <div className="live-runs__form">
             <WriteCodeInput
               ref={eventInputRef}
@@ -274,7 +274,7 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
                 eventInvoking ? "live-runs__button--disabled" : ""
               }`}
             >
-              {eventInvoking ? "⏳ Invoking..." : "🚀 Invoke Event"}
+              {eventInvoking ? "Invoking..." : "Invoke Event"}
             </button>
             {/* {eventResult && (
               <div

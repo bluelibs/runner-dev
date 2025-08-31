@@ -88,7 +88,12 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
       meta: buildMetaWithNormalizedTags(task.meta, task),
       tags: tagIds,
       tagsDetailed,
-      filePath: sanitizePath(task[definitions.symbolFilePath] ?? null),
+      filePath: sanitizePath(
+        (task as any)?.[definitions.symbolFilePath] ??
+          (task as any)?.filePath ??
+          (task as any)?.path ??
+          null
+      ),
       dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
       middleware: task.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
@@ -128,7 +133,12 @@ export function mapStoreHookToHookModel(
       meta: buildMetaWithNormalizedTags(hk?.meta, hk),
       tags: tagIds,
       tagsDetailed,
-      filePath: sanitizePath(hk?.[definitions.symbolFilePath] ?? null),
+      filePath: sanitizePath(
+        (hk as any)?.[definitions.symbolFilePath] ??
+          (hk as any)?.filePath ??
+          (hk as any)?.path ??
+          null
+      ),
       emits: eventIdsFromDeps,
       dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
       middleware: [],
@@ -174,7 +184,12 @@ export function mapStoreResourceToResourceModel(
       tagsDetailed,
       emits: eventIdsFromDeps,
       dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
-      filePath: sanitizePath(resource[definitions.symbolFilePath] ?? null),
+      filePath: sanitizePath(
+        (resource as any)?.[definitions.symbolFilePath] ??
+          (resource as any)?.filePath ??
+          (resource as any)?.path ??
+          null
+      ),
       middleware: resource.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
       overrides: resource.overrides

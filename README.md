@@ -111,6 +111,7 @@ This package also ships a CLI that can query the same GraphQL API or generate an
 Prerequisites:
 
 - Ensure your app registers the Dev GraphQL server (`dev.with({ port: 1337 })`) or otherwise expose a compatible endpoint.
+- Alternatively, you can run queries in a new **dry‑run mode** with a TypeScript entry file (no server required).
 - Build this package (or install it) so the binary is available.
 
 Help:
@@ -118,6 +119,50 @@ Help:
 ```bash
 npx @bluelibs/runner-dev --help
 ```
+
+Create new project:
+
+```bash
+# Create a new Runner project
+npx @bluelibs/runner-dev new <project-name>
+
+# Example
+npx @bluelibs/runner-dev new my-awesome-app
+```
+
+This command creates a new Runner project with:
+
+- Complete TypeScript setup with ts-node-dev for development
+- Jest configuration for testing
+- Package.json with all necessary dependencies
+- Basic project structure with main.ts entry point
+- README and .gitignore files
+
+Flags for `new`:
+
+- `--install`: install dependencies after scaffolding
+- `--run-tests`: run the generated test suite (`npm test -- --runInBand`) after install
+- `--run`: start the dev server (`npm run dev`) after install/tests; this keeps the process running
+
+Examples:
+
+```bash
+# Create and auto-install dependencies, then run tests
+npx @bluelibs/runner-dev new my-awesome-app --install --run-tests
+
+# Create and start the dev server immediately (blocks)
+npx @bluelibs/runner-dev new my-awesome-app --install --run
+```
+
+Note: the `new` command requires the target directory to be empty. If the directory exists and is not empty, the command aborts with an error.
+
+The project name must contain only letters, numbers, dashes, and underscores.
+
+After creation, follow the next steps:
+
+- `cd <project-name>`
+- `npm install`
+- `npm run dev`
 
 Ping endpoint:
 
@@ -139,6 +184,24 @@ ENDPOINT=http://localhost:1337/graphql \
 
 # Add a namespace sugar to inject idIncludes/filter automatically
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }' --namespace task.
+```
+
+Dry‑run (no server):
+
+```bash
+# Using a TS entry file default export
+npx @bluelibs/runner-dev query 'query { tasks { id } }' \
+  --entry-file ./src/main.ts
+
+# Using a named export (e.g., exported as `app`)
+npx @bluelibs/runner-dev query 'query { tasks { id } }' \
+  --entry-file ./src/main.ts --export app
+
+# Notes
+# - Dry‑run compiles your entry, builds the Runner Store in-memory, and executes the query against
+#   an in-memory GraphQL schema. No HTTP server is started.
+# - TypeScript only. Requires ts-node at runtime. If missing, you'll be prompted to install it.
+# - Precedence: when --entry-file is provided, dry‑run mode is used; otherwise the CLI uses --endpoint/ENDPOINT.
 ```
 
 Project overview (Markdown):
@@ -171,6 +234,13 @@ Flags:
 - `--format data|json|pretty`: output mode (default `data`)
 - `--raw`: print full GraphQL envelope including errors
 - `--namespace <str>`: convenience filter that injects `idIncludes` or `events(filter: { idIncludes })` at the top-level fields when possible
+- `--entry-file <path>`: TypeScript entry file for dry‑run mode (no server)
+- `--export <name>`: named export to use from the entry (default export preferred)
+
+Precedence:
+
+- If `--entry-file` is present, dry‑run mode is used.
+- Otherwise, remote mode via `--endpoint`/`ENDPOINT` is used.
 
 ### Local dev playbook
 

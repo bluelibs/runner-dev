@@ -7,11 +7,10 @@
 // Hook Card Base
 // -----------------------------------------------------------------------------
 .hook-card {
-  background: $white;
-  border: 1px solid $border-gray;
+  background: var(--docs-bg-primary);
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-xl;
   overflow: hidden;
-  box-shadow: $shadow-md;
   margin-bottom: $spacing-lg;
 }
 
@@ -20,7 +19,7 @@
 // -----------------------------------------------------------------------------
 .hook-card__header {
   background: $gradient-purple;
-  color: white;
+  color: var(--docs-text-primary);
   padding: $spacing-xl;
 }
 
@@ -122,9 +121,9 @@
 .hook-card__section {
   &__title {
     margin: 0 0 $spacing-md 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 
@@ -140,25 +139,30 @@
 .hook-card__info-block {
   .label {
     font-weight: bold;
-    color: $text-dark;
+    color: var(--docs-text-secondary);
+  }
+
+  .value a {
+    text-decoration: underline;
+    cursor: pointer;
   }
 
   .value {
     font-family: $font-family-mono;
     font-size: $font-size-sm;
-    color: $text-gray;
+    color: var(--docs-text-muted);
     margin-top: $spacing-xs;
-    background: $light-gray;
+    background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
 
     &--order {
-      color: $purple;
+      color: var(--docs-primary);
       font-weight: 500;
 
       .order-description {
         font-size: $font-size-xs;
-        color: $text-gray;
+        color: var(--docs-text-muted);
         margin-top: 2px;
         font-weight: normal;
       }
@@ -170,8 +174,8 @@
 // Target Event Details
 // -----------------------------------------------------------------------------
 .hook-card__target-event {
-  background: #f3e5f5;
-  border: 1px solid #e1bee7;
+  background: var(--docs-purple-bg);
+  border: 1px solid var(--docs-primary-border);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
   margin-bottom: $spacing-lg;
@@ -188,7 +192,7 @@
 
     .title {
       margin: 0;
-      color: #4a148c;
+      color: var(--docs-primary);
       font-size: $font-size-md;
     }
   }
@@ -196,37 +200,37 @@
   &__id {
     font-family: $font-family-mono;
     font-size: $font-size-sm;
-    color: #6a1b9a;
+    color: var(--docs-primary);
     margin-bottom: 10px;
   }
 
   &__description {
     font-size: $font-size-sm;
-    color: #6a1b9a;
+    color: var(--docs-primary);
     line-height: 1.4;
   }
 }
 
 .hook-card__schema-block {
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
   padding: $spacing-md;
   border-radius: $border-radius-lg;
-  border: 1px solid $border-gray;
+  border: 1px solid var(--docs-border-primary);
 
   .title {
     font-weight: 600;
     margin-bottom: $spacing-sm;
-    color: $text-dark;
+    color: var(--docs-text-secondary);
   }
 
   .schema {
-    background: $white;
+    background: var(--docs-bg-primary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
     font-size: $font-size-xs;
     max-height: 600px;
     margin: 0;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--docs-border-primary);
     overflow: auto;
     line-height: 1.4;
     font-family: $font-family-mono;
@@ -249,16 +253,16 @@
       font-weight: bold;
 
       &--emitters {
-        color: $primary-blue;
+        color: var(--docs-primary);
       }
       &--hooks {
-        color: $purple;
+        color: var(--docs-primary);
       }
     }
 
     .label {
       font-size: $font-size-xs;
-      color: $text-gray;
+      color: var(--docs-text-muted);
       font-weight: 500;
     }
   }
@@ -272,33 +276,33 @@
   border-radius: $border-radius-lg;
 
   &--danger {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
+    background: var(--docs-danger-bg);
+    border: 1px solid var(--docs-danger);
 
     .title {
-      color: #721c24;
+      color: var(--docs-danger-text);
       font-weight: bold;
     }
 
     .content {
       margin-top: $spacing-sm;
       font-size: $font-size-sm;
-      color: #721c24;
+      color: var(--docs-danger-text);
     }
   }
 
   &--warning {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
+    background: var(--docs-alert-bg);
+    border: 1px solid var(--docs-warning);
 
     .title {
-      color: #856404;
+      color: var(--docs-alert-text);
       font-weight: bold;
     }
 
     .content {
       font-size: $font-size-sm;
-      color: #856404;
+      color: var(--docs-alert-text);
       margin-top: $spacing-sm;
       font-family: $font-family-mono;
     }
@@ -309,8 +313,8 @@
 // Event Not Found State
 // -----------------------------------------------------------------------------
 .hook-card__not-found {
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
+  background: var(--docs-danger-bg);
+  border: 1px solid var(--docs-danger);
   padding: $spacing-xxxl;
   border-radius: $border-radius-lg;
   text-align: center;
@@ -320,12 +324,12 @@
   }
 
   .title {
-    color: #721c24;
+    color: var(--docs-danger-text);
     margin: $spacing-md 0 10px 0;
   }
 
   .message {
-    color: #721c24;
+    color: var(--docs-danger-text);
     margin: 0;
   }
 }
@@ -338,9 +342,9 @@
 
   &__title {
     margin: 0 0 $spacing-lg 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 
@@ -353,7 +357,7 @@
   &__category {
     h5 {
       margin: 0 0 $spacing-md 0;
-      color: $text-dark;
+      color: var(--docs-text-secondary);
       font-size: $font-size-md;
     }
   }
@@ -374,18 +378,18 @@
   display: block;
 
   &--task {
-    background: #e3f2fd;
-    border-left-color: #2196f3;
+    background: var(--docs-primary-bg);
+    border-left-color: var(--docs-primary);
   }
 
   &--resource {
-    background: #e8f5e8;
-    border-left-color: #4caf50;
+    background: var(--docs-success-bg);
+    border-left-color: var(--docs-success);
   }
 
   &--event {
-    background: #fff3e0;
-    border-left-color: #ff9800;
+    background: var(--docs-warning-bg);
+    border-left-color: var(--docs-warning);
   }
 
   .title {
@@ -393,19 +397,19 @@
     margin-bottom: $spacing-xs;
 
     &--task {
-      color: #1976d2;
+      color: var(--docs-primary);
     }
     &--resource {
-      color: #2e7d32;
+      color: var(--docs-success);
     }
     &--event {
-      color: #f57c00;
+      color: var(--docs-warning);
     }
   }
 
   .id {
     font-size: $font-size-xs;
-    color: #666;
+    color: var(--docs-text-muted);
     font-family: $font-family-mono;
   }
 }
@@ -415,7 +419,7 @@
 // -----------------------------------------------------------------------------
 .hook-card__global-badge {
   background: linear-gradient(135deg, #ff6b6b, #feca57);
-  color: white;
+  color: var(--docs-text-primary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -439,14 +443,14 @@
 
 .hook-card__global-event {
   .global-indicator {
-    color: #ff6b6b;
+    color: var(--docs-danger);
     font-weight: 600;
     font-size: $font-size-sm;
   }
 
   .global-description {
     font-size: $font-size-xs;
-    color: $text-gray;
+    color: var(--docs-text-muted);
     margin-top: $spacing-xs;
     font-style: italic;
   }
@@ -459,7 +463,7 @@
 
 .hook-card__global-message {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--docs-text-primary);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
 
@@ -498,7 +502,7 @@
     padding: $spacing-sm;
     background: rgba(255, 255, 255, 0.05);
     border-radius: $border-radius-sm;
-    border-left: 3px solid #667eea;
+    border-left: 3px solid var(--docs-primary);
 
     .icon {
       font-size: $font-size-sm;
@@ -506,7 +510,7 @@
 
     .text {
       font-size: $font-size-sm;
-      color: $text-dark;
+      color: var(--docs-text-secondary);
     }
   }
 }
@@ -526,23 +530,23 @@
     text-decoration: none;
 
     &.hook-card__dependency-item--task {
-      background: #bbdefb;
-      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+      background: var(--docs-primary-hover-bg);
+      box-shadow: 0 4px 12px var(--docs-primary-light);
     }
 
     &.hook-card__dependency-item--resource {
-      background: #c8e6c9;
-      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+      background: var(--docs-success-hover-bg);
+      box-shadow: 0 4px 12px var(--docs-success-light);
     }
 
     &.hook-card__dependency-item--event {
-      background: #ffe0b2;
-      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+      background: var(--docs-warning-bg);
+      box-shadow: 0 4px 12px var(--docs-warning-light);
     }
   }
 
   &:focus {
-    outline: 2px solid #667eea;
+    outline: 2px solid var(--docs-primary);
     outline-offset: 2px;
   }
 

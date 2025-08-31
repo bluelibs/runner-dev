@@ -1,0 +1,23 @@
+@use "../../../../styles/variables" as *;
+
+.form-controls {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+  
+  .form-control {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    
+    .control-label {
+      font-size: $font-size-sm;
+      font-weight: 600;
+      color: var(--docs-text-primary, $text-darker);
+    }
+  }
+}
+
+[data-theme="dark"] .form-controls {
+  --docs-text-primary: #e5e5e5;
+}

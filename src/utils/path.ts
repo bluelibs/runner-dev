@@ -54,6 +54,15 @@ function lastSegments(inputPath: string, count: number): string {
  */
 export function sanitizePath(input: unknown): string | null {
   if (typeof input !== "string" || input.length === 0) return null;
+  // If input already looks like a structured path (eg. "workspace:src/file"),
+  // and the prefix matches a known root name, return it unchanged to avoid
+  // double-prefixing (e.g. "workspace:workspace:src/...").
+  const colonIdx = input.indexOf(":");
+  if (colonIdx > 0) {
+    const prefix = input.slice(0, colonIdx);
+    const roots = getPathRoots();
+    if (roots.some((r) => r.name === prefix)) return input;
+  }
   const abs = normalizeAbsolute(input);
 
   for (const root of getPathRoots()) {

@@ -47,7 +47,7 @@
     }
 
     &--event {
-      background: #fff3e0;
+      background: var(--docs-warning-bg);
       border-left-color: #ff9800;
     }
     
@@ -80,7 +80,7 @@
 
     .id {
       font-size: $font-size-xs;
-      color: #666;
+      color: var(--docs-text-secondary);
       font-family: $font-family-mono;
     }
   }

@@ -6,7 +6,6 @@ import { swapManager } from "./swap.resource";
 import { introspector } from "./introspector.resource";
 import { live } from "./live.resource";
 import { registerHttpRoutes } from "./routeHandlers/registerHttpRoutes.hook";
-import { getFileContents } from "./getFileContents.task";
 import { graphqlQueryTask } from "./graphql.query.task";
 
 export type DevConfig = {
@@ -28,7 +27,6 @@ export const dev = resource({
       maxEntries: config.maxEntries,
     }),
     registerHttpRoutes,
-    getFileContents,
     graphqlQueryTask,
   ],
 });

@@ -64,12 +64,18 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
   };
 
   return (
-    <div className="live-section live-section--combined">
+    <div className="" style={{ marginBottom: "20px" }}>
       {/* Recent Errors */}
       {errors.length > 0 && (
         <div style={{ marginBottom: "15px" }}>
           <h4>❌ Recent Errors ({errors.length})</h4>
-          <div className="live-entries">
+          <div
+            className="live-entries"
+            style={{
+              maxHeight: "300px",
+              overflowY: "auto",
+            }}
+          >
             {errors
               .slice(-10)
               .reverse()
@@ -77,23 +83,57 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                 <div
                   key={`${error.timestampMs}-${idx}`}
                   className="live-entry live-entry--error"
+                  style={{ display: "flex", alignItems: "center" }}
                 >
                   <span className="entry-time">
                     {formatTimestamp(error.timestampMs)}
                   </span>
-                  <span className="entry-source">
+                  <a
+                    href={`#element-${error.sourceId}`}
+                    className="entry-source"
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
                     {error.sourceKind}:{error.sourceId}
-                  </span>
+                  </a>
                   {/* <span className="entry-message">{error.message}</span> */}
                   {error.stack && (
-                    <button
-                      className="entry-payload-button"
-                      onClick={() =>
-                        openErrorModal(error.stack!, error.sourceId)
-                      }
+                    <div
+                      style={{
+                        marginLeft: "auto",
+                        display: "flex",
+                        gap: "8px",
+                      }}
                     >
-                      View Stack Trace
-                    </button>
+                      <button
+                        className="clean-button"
+                        onClick={() =>
+                          openErrorModal(error.stack!, error.sourceId)
+                        }
+                      >
+                        View Stack Trace
+                      </button>
+
+                      <button
+                        className="clean-button"
+                        title="Add to AI"
+                        onClick={() => {
+                          const source =
+                            (error.sourceResolved && error.sourceResolved.id) ||
+                            error.sourceId;
+                          const messageText = `I have the following error on @${source}: ${
+                            error.message
+                          } with stack:\n${error.stack || ""}`;
+                          const displayText = messageText;
+                          window.dispatchEvent(
+                            new CustomEvent("docs:add-to-ai", {
+                              detail: { messageText, displayText },
+                            })
+                          );
+                        }}
+                      >
+                        ✦
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -105,7 +145,13 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
       {runs.length > 0 && (
         <div>
           <h4>🏃 Recent Runs ({runs.length})</h4>
-          <div className="live-entries">
+          <div
+            className="live-entries"
+            style={{
+              maxHeight: "300px",
+              overflowY: "auto",
+            }}
+          >
             {runs
               .slice(-10)
               .reverse()
@@ -120,22 +166,42 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                     {formatTimestamp(run.timestampMs)}
                   </span>
                   <span className="entry-status">{run.ok ? "✅" : "❌"}</span>
-                  <span className="entry-node">
+                  <a href={`#element-${run.nodeId}`} className="entry-node">
                     {run.nodeKind}:{run.nodeId}
-                  </span>
+                  </a>
                   {run.durationMs && (
                     <span className="entry-duration">
                       {run.durationMs.toFixed(1)}ms
                     </span>
                   )}
-                  {run.error && (
-                    <button
-                      className="entry-payload-button"
-                      onClick={() => openErrorModal(run.error!, run.nodeId)}
+                  <div
+                    style={{ marginLeft: "auto", display: "flex", gap: "8px" }}
+                  >
+                    {run.error && (
+                      <button
+                        className="clean-button"
+                        onClick={() => openErrorModal(run.error!, run.nodeId)}
+                      >
+                        View Error
+                      </button>
+                    )}
+                    {/* <button
+                      className="clean-button"
+                      title="Replay this task"
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new CustomEvent("docs:replay-task", {
+                            detail: { 
+                              nodeId: run.nodeId,
+                              nodeKind: run.nodeKind
+                            },
+                          })
+                        );
+                      }}
                     >
-                      View Error
-                    </button>
-                  )}
+                      🔄 Replay
+                    </button> */}
+                  </div>
                 </div>
               ))}
           </div>

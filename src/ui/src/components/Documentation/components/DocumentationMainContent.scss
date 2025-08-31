@@ -1,0 +1,24 @@
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Documentation Main Content Area Styles
+// -----------------------------------------------------------------------------
+.docs-main-content {
+  // Main content area styling (dark by default)
+  background: var(--docs-bg-primary);
+  color: var(--docs-text-primary);
+  transition: background-color $transition-fast, color $transition-fast;
+  
+  // Content wrapper
+  .content-wrapper {
+    padding: $spacing-lg;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  // Section dividers
+  .section-divider {
+    border-top: 1px solid var(--docs-border-primary);
+    margin: $spacing-xl 0;
+  }
+}

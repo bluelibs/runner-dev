@@ -94,6 +94,99 @@ interface LiveData {
   runs: RunRecord[];
 }
 
+interface LivePanelProps {
+  detailed?: boolean;
+  introspector: Introspector;
+}
+
+interface MemoryStats {
+  heapUsed: number;
+  heapTotal: number;
+  rss: number;
+}
+
+interface CpuStats {
+  usage: number;
+  loadAverage: number;
+}
+
+interface EventLoopStats {
+  lag: number;
+}
+
+interface GcStats {
+  collections: number;
+  duration: number;
+}
+
+interface LogEntry {
+  timestampMs: number;
+  level: string;
+  message: string;
+  data?: string;
+  correlationId?: string;
+}
+
+interface EmissionEntry {
+  timestampMs: number;
+  eventId: string;
+  emitterId?: string;
+  payload?: string;
+  correlationId?: string;
+  eventResolved?: {
+    id: string;
+    meta?: {
+      title?: string;
+      description?: string;
+      tags: Array<{
+        id: string;
+        config?: string;
+      }>;
+    };
+  };
+}
+
+interface ErrorEntry {
+  timestampMs: number;
+  sourceId: string;
+  sourceKind: string;
+  message: string;
+  stack?: string;
+  data?: string;
+  correlationId?: string;
+  sourceResolved?: {
+    id: string;
+    meta?: {
+      title?: string;
+      description?: string;
+      tags: Array<{
+        id: string;
+        config?: string;
+      }>;
+    };
+  };
+}
+
+interface RunRecord {
+  timestampMs: number;
+  nodeId: string;
+  nodeKind: string;
+  ok: boolean;
+  durationMs?: number;
+  error?: string;
+}
+
+interface LiveData {
+  memory: MemoryStats;
+  cpu: CpuStats;
+  eventLoop: EventLoopStats;
+  gc: GcStats;
+  logs: LogEntry[];
+  emissions: EmissionEntry[];
+  errors: ErrorEntry[];
+  runs: RunRecord[];
+}
+
 const LIVE_DATA_QUERY = `
   query LiveData($afterTimestamp: Float, $last: Int) {
     live {
@@ -119,6 +212,7 @@ const LIVE_DATA_QUERY = `
         message
         data
         correlationId
+        sourceId
       }
       emissions(afterTimestamp: $afterTimestamp, last: $last) {
         timestampMs
@@ -128,13 +222,13 @@ const LIVE_DATA_QUERY = `
         correlationId
         eventResolved {
           id
+          tags {
+            id
+            config
+          }
           meta {
             title
             description
-            tags {
-              id
-              config
-            }
           }
         }
       }
@@ -148,13 +242,13 @@ const LIVE_DATA_QUERY = `
         correlationId
         sourceResolved {
           id
+          tags {
+            id
+            config
+          }
           meta {
             title
             description
-            tags {
-              id
-              config
-            }
           }
         }
       }
@@ -175,7 +269,10 @@ interface LivePanelProps {
   introspector: Introspector;
 }
 
-export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false, introspector }) => {
+export const LivePanel: React.FC<LivePanelProps> = ({
+  detailed = false,
+  introspector,
+}) => {
   const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [isPolling, setIsPolling] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -285,12 +382,12 @@ export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false, introspe
       <div className="live-controls">
         <button
           onClick={() => setIsPolling(!isPolling)}
-          className={`live-toggle ${isPolling ? "live-toggle--active" : ""}`}
+          className={`clean-button ${isPolling ? "live-toggle--active" : ""}`}
         >
-          {isPolling ? "⏸️ Pause" : "▶️ Resume"} Live Updates
+          {isPolling ? "⏸ Pause" : "▶ Resume"} Live Updates
         </button>
-        <button onClick={() => fetchLiveData()} className="live-refresh">
-          🔄 Refresh
+        <button onClick={() => fetchLiveData()} className="clean-button">
+          Refresh
         </button>
       </div>
 
@@ -355,21 +452,26 @@ export const LivePanel: React.FC<LivePanelProps> = ({ detailed = false, introspe
           <RecentLogs logs={liveData.logs} />
         </div>
 
-        {/* Recent Events and Runs - Side by Side */}
+        {/* Recent Events and Runs - stacked */}
         <div
           className="live-events-runs-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "1fr",
             gap: "16px",
           }}
         >
-          <RecentEvents emissions={liveData.emissions} detailed={detailed} />
-          <RecentRuns
-            runs={liveData.runs}
-            errors={liveData.errors}
-            detailed={detailed}
-          />
+          <div className="live-section">
+            <RecentEvents emissions={liveData.emissions} detailed={detailed} />
+          </div>
+
+          <div className="live-section">
+            <RecentRuns
+              runs={liveData.runs}
+              errors={liveData.errors}
+              detailed={detailed}
+            />
+          </div>
         </div>
 
         {/* Live Actions - Full Width */}

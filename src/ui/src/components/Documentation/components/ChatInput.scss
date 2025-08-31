@@ -1,0 +1,190 @@
+@use "../../../styles/variables" as *;
+@use "../../../styles/mixins" as *;
+
+// -----------------------------------------------------------------------------
+// Chat Input Component Styles
+// -----------------------------------------------------------------------------
+.docs-chat-input {
+  .chat-input-container {
+    position: relative;
+    
+    .chat-main-input {
+      @include docs-input();
+      resize: vertical;
+      min-height: 60px;
+      max-height: 200px;
+      font-family: inherit;
+      line-height: 1.5;
+      
+      &:focus {
+        border-color: var(--docs-primary);
+        box-shadow: 0 0 0 3px var(--docs-focus-ring);
+        outline: none;
+      }
+      
+      &::placeholder {
+        color: var(--docs-text-muted);
+      }
+    }
+  }
+  
+  .chat-button-group {
+    display: flex;
+    gap: $spacing-sm;
+    justify-content: flex-end;
+    margin-top: $spacing-sm;
+    
+    .chat-send-btn {
+      @include docs-button(primary);
+      
+      &.loading {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+    }
+    
+    .chat-retry-btn {
+      @include docs-button(secondary);
+    }
+    
+    .chat-stop-btn {
+      @include docs-button(primary);
+      background: var(--docs-danger);
+      
+      &:hover:not(:disabled) {
+        background: var(--docs-danger);
+        filter: brightness(110%);
+      }
+    }
+  }
+  
+  // Suggestions dropdown
+  .chat-suggestions-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: var(--docs-panel-bg);
+    border: 1px solid var(--docs-border-primary);
+    border-radius: $border-radius-lg;
+    box-shadow: var(--docs-shadow-lg);
+    margin-bottom: $spacing-sm;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    
+    @include docs-scrollbar(4px);
+    
+    .suggestion-item {
+      cursor: pointer;
+      padding: $spacing-sm $spacing-md;
+      transition: all $transition-fast;
+      
+      &:hover,
+      &.selected {
+        background: var(--docs-hover-bg);
+      }
+      
+      .suggestion-header {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        
+        .suggestion-type {
+          background: var(--docs-primary);
+          border-radius: $border-radius-pill;
+          color: white;
+          font-size: $font-size-xs;
+          font-weight: 600;
+          min-width: 60px;
+          padding: $spacing-xs $spacing-sm;
+          text-align: center;
+          text-transform: uppercase;
+        }
+        
+        .suggestion-name {
+          color: var(--docs-text-primary);
+          font-family: $font-family-mono;
+          font-size: $font-size-sm;
+          flex: 1;
+        }
+      }
+      
+      .suggestion-meta {
+        margin-left: 72px;
+        margin-top: $spacing-xs;
+        
+        .suggestion-title {
+          color: var(--docs-text-primary);
+          font-size: $font-size-xs;
+          font-weight: 600;
+        }
+        
+        .suggestion-description {
+          color: var(--docs-text-secondary);
+          font-size: $font-size-xs;
+          line-height: 1.3;
+          @include text-truncate(1);
+        }
+      }
+    }
+  }
+  
+  // Docs insert menu
+  .docs-insert-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: var(--docs-panel-bg);
+    border: 1px solid var(--docs-border-primary);
+    border-radius: $border-radius-lg;
+    box-shadow: var(--docs-shadow-lg);
+    margin-bottom: $spacing-sm;
+    min-width: 260px;
+    padding: $spacing-xs;
+    z-index: 1000;
+    
+    .menu-item {
+      @include docs-button(ghost);
+      display: block;
+      padding: $spacing-sm;
+      text-align: left;
+      width: 100%;
+      
+      .menu-item-title {
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      
+      .menu-item-desc {
+        color: var(--docs-text-secondary);
+        font-size: $font-size-xs;
+        margin-top: 2px;
+      }
+      
+      .menu-item-id {
+        color: var(--docs-text-muted);
+        font-family: $font-family-mono;
+        font-size: $font-size-xs;
+        margin-top: 4px;
+      }
+    }
+  }
+  
+  // Docs insert button
+  .docs-insert-btn {
+    @include docs-button(ghost);
+    border: 1px solid var(--docs-border-primary);
+    min-width: 36px;
+    opacity: 0.7;
+    
+    &:hover:not(:disabled) {
+      opacity: 1;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}

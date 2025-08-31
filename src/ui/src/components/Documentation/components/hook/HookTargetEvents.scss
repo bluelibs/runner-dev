@@ -1,0 +1,15 @@
+@use "../../../../styles/variables" as *;
+
+.hook-target-events {
+  background: var(--docs-panel-bg, $white);
+  border: 1px solid var(--docs-border-primary, $border-gray);
+  border-radius: $border-radius-lg;
+  color: var(--docs-text-primary, $text-darker);
+  padding: $spacing-lg;
+}
+
+[data-theme="dark"] .hook-target-events {
+  --docs-panel-bg: #1e1e1e;
+  --docs-text-primary: #e5e5e5;
+  --docs-border-primary: #333;
+}

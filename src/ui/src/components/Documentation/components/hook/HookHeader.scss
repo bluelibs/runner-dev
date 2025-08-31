@@ -1,0 +1,67 @@
+@use "../../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Hook Header Component Styles
+// -----------------------------------------------------------------------------
+.hook-header {
+  background: var(--docs-panel-bg);
+  border-bottom: 1px solid var(--docs-border-primary);
+  color: var(--docs-text-primary);
+  padding: $spacing-lg;
+  
+  .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    
+    .hook-title {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      
+      .hook-name {
+        font-size: $font-size-xl;
+        font-weight: 700;
+        margin: 0;
+      }
+      
+      .hook-type {
+        background: var(--docs-primary);
+        border-radius: $border-radius-pill;
+        color: white;
+        font-size: $font-size-xs;
+        font-weight: 600;
+        padding: $spacing-xs $spacing-sm;
+        text-transform: uppercase;
+      }
+    }
+    
+    .hook-actions {
+      display: flex;
+      gap: $spacing-sm;
+      
+      .action-btn {
+        background: var(--docs-bg-tertiary);
+        border: 1px solid var(--docs-border-primary);
+        border-radius: $border-radius;
+        color: var(--docs-text-primary);
+        cursor: pointer;
+        padding: $spacing-sm $spacing-md;
+        transition: all $transition-fast;
+        
+        &:hover {
+          background: var(--docs-hover-bg);
+        }
+      }
+    }
+  }
+  
+  .hook-description {
+    color: var(--docs-text-secondary);
+    font-size: $font-size-base;
+    line-height: 1.6;
+    margin-top: $spacing-md;
+  }
+}
+
+// Dark mode is now the default

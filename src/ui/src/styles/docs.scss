@@ -1,26 +1,91 @@
-// =============================================================================
-// DOCS STYLES - Main import file for all documentation components
-// =============================================================================
-
-// Import shared variables first
+// Import shared variables and mixins first
 @use "variables";
+@use "mixins";
 
-// Import all component styles
-// @use 'Documentation';
-// @use 'TaskCard';
-// @use 'ResourceCard';
-// @use 'EventCard';
-// @use 'DiagnosticsPanel';
+// Import component-specific styles - Organized by category
 
-// Import component-specific styles
+// Main documentation components
+@use "../components/Documentation/Documentation";
+@use "../components/Documentation/components/DocumentationMainContent";
+@use "../components/Documentation/components/DocumentationSidebar";
+
+// Chat components
+@use "../components/Documentation/components/ChatInput";
+@use "../components/Documentation/components/ChatSettingsForm";
+@use "../components/Documentation/components/chat/ChatSidebar";
+
+// Card components
 @use "../components/Documentation/components/HookCard";
 @use "../components/Documentation/components/TagCard";
-@use "../components/Documentation/components/Sidebar";
-@use "../components/Documentation/components/DiagnosticsPanel";
-@use "../components/Documentation/Documentation";
 @use "../components/Documentation/components/EventCard";
 @use "../components/Documentation/components/TaskCard";
 @use "../components/Documentation/components/ResourceCard";
+@use "../components/Documentation/components/MiddlewareCard";
+
+// Hook components
+@use "../components/Documentation/components/hook/HookHeader";
+@use "../components/Documentation/components/hook/HookOverview";
+@use "../components/Documentation/components/hook/HookRelations";
+@use "../components/Documentation/components/hook/HookTargetEvents";
+
+// Live components
+@use "../components/Documentation/components/LivePanel";
+@use "../components/Documentation/components/live/LiveRuns";
+@use "../components/Documentation/components/live/RecentEvents";
+@use "../components/Documentation/components/live/RecentRuns";
+@use "../components/Documentation/components/live/RecentLogs";
+
+// Message components
+@use "../components/Documentation/components/messages/MessageItem";
+@use "../components/Documentation/components/messages/ToolCallsList";
+@use "../components/Documentation/components/messages/TypingIndicator";
+
+// Common components
+@use "../components/Documentation/components/common/Alert";
+@use "../components/Documentation/components/common/Card";
+@use "../components/Documentation/components/common/InfoBlock";
+@use "../components/Documentation/components/common/Input";
+@use "../components/Documentation/components/common/FormControls";
+@use "../components/Documentation/components/common/RelationsSection";
+@use "../components/Documentation/components/common/Section";
+@use "../components/Documentation/components/common/Form";
+
+// Sidebar components
+@use "../components/Documentation/components/sidebar/Sidebar";
+@use "../components/Documentation/components/sidebar/SidebarHeader";
+
+// Other components
+@use "../components/Documentation/components/DiagnosticsPanel";
+@use "../components/Documentation/components/JsonViewer";
+@use "../components/Documentation/components/TreeView";
+@use "../components/Documentation/components/NavigationView";
+@use "../components/Documentation/components/TagsSection";
+@use "../components/Documentation/components/SchemaRenderer";
+@use "../components/Documentation/components/ElementTable";
+@use "../components/Documentation/components/CodeModal";
+@use "../components/Documentation/components/ExecuteModal";
+@use "../components/Documentation/components/overview/OverviewStatsPanel";
+
+// =============================================================================
+// DOCS STYLES - Main import file for all documentation components
+// =============================================================================
+// Import Google Fonts
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+// =============================================================================
+// GLOBAL ELEMENT STYLES
+// =============================================================================
+a {
+  color: var(--docs-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  cursor: pointer;
+  display: inline-block;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
 
 // Dev placeholder - remove when ready
 dev {

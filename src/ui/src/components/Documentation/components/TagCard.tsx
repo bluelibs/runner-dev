@@ -1,7 +1,7 @@
 import React from "react";
 import { Tag } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import { formatSchema, formatId } from "../utils/formatting";
+import { formatSchema, formatId, formatFilePath } from "../utils/formatting";
 import "./TagCard.scss";
 import { CodeModal } from "./CodeModal";
 import {
@@ -10,14 +10,18 @@ import {
   SAMPLE_RESOURCE_FILE_QUERY,
   SAMPLE_MIDDLEWARE_FILE_QUERY,
   SAMPLE_EVENT_FILE_QUERY,
+  SAMPLE_TAG_FILE_QUERY,
 } from "../utils/graphqlClient";
+
+import { TaggedElements } from "./tag/TaggedElements";
+import { SchemaRenderer } from "./SchemaRenderer";
 
 export interface TagCardProps {
   tag: Tag;
   introspector: Introspector;
 }
 
-export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
+export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
   const allTaggedElements = [
     ...tag.tasks,
     ...tag.resources,
@@ -34,6 +38,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [saveOnFile, setSaveOnFile] = React.useState<string | null>(null);
 
   async function openElementFile(
     kind: "task" | "resource" | "middleware" | "event",
@@ -46,6 +51,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
     setError(null);
     setModalTitle(title || formatId(id));
     setModalSubtitle(filePath || undefined);
+    setSaveOnFile(filePath || null);
     try {
       let data: any;
       if (kind === "task") {
@@ -79,13 +85,34 @@ export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
     }
   }
 
+  async function openTagFileModal() {
+    if (!tag?.id) return;
+    setIsModalOpen(true);
+    setLoading(true);
+    setError(null);
+    setModalTitle(tag.meta?.title || formatId(tag.id));
+    setModalSubtitle(tag.filePath || undefined);
+    setSaveOnFile(tag.filePath || null);
+    try {
+      const data = await graphqlRequest<{
+        tag: { fileContents: string | null };
+      }>(SAMPLE_TAG_FILE_QUERY, { id: tag.id });
+      setFileContent(data?.tag?.fileContents ?? null);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load file");
+      setFileContent(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div id={`element-${tag.id}`} className="tag-card">
       <div className="tag-card__header">
         <div className="tag-card__header-content">
           <div className="main">
             <h3 className="tag-card__title">🏷️ {formatId(tag.id)}</h3>
-            <div className="tag-card__id">{tag.id}</div>
+            <div className="tag-card__id">{tag.meta?.title || tag.id}</div>
           </div>
         </div>
       </div>
@@ -134,6 +161,22 @@ export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
                     <div className="tag-card__stat__label">Hooks</div>
                   </div>
                 </div>
+                <div className="tag-card__info-block">
+                  <div className="label">File Path:</div>
+                  <div className="value">
+                    {tag.filePath ? (
+                      <a
+                        type="button"
+                        onClick={openTagFileModal}
+                        title="View file contents"
+                      >
+                        {formatFilePath(tag.filePath)}
+                      </a>
+                    ) : (
+                      formatFilePath(tag.filePath)
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -144,233 +187,13 @@ export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
                 ⚙️ Configuration Schema
               </h4>
               <div className="tag-card__config">
-                <pre className="tag-card__config__block">
-                  {formatSchema(tag.configSchema)}
-                </pre>
+                <SchemaRenderer schemaString={tag.configSchema} />
               </div>
             </div>
           </div>
         </div>
 
-        {allTaggedElements.length > 0 && (
-          <div className="tag-card__relations">
-            <h4 className="tag-card__relations__title">🔗 Tagged Elements</h4>
-            <div className="tag-card__relations__grid">
-              {tag.tasks.length > 0 && (
-                <div className="tag-card__relations__category">
-                  <h5>Tasks</h5>
-                  <div className="tag-card__relations__items">
-                    {tag.tasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="tag-card__relation-item tag-card__relation-item--task"
-                      >
-                        <a
-                          href={`#element-${task.id}`}
-                          className="tag-card__relation-link"
-                        >
-                          <div className="title title--task">
-                            {task.meta?.title || formatId(task.id)}
-                          </div>
-                          <div className="id">{task.id}</div>
-                        </a>
-                        {task.filePath && (
-                          <button
-                            type="button"
-                            title="View file"
-                            onClick={() =>
-                              openElementFile(
-                                "task",
-                                task.id,
-                                task.meta?.title || null,
-                                task.filePath
-                              )
-                            }
-                            style={{
-                              marginLeft: 0,
-                              paddingLeft: 0,
-                              background: "transparent",
-                              border: "none",
-                              color: "#1976d2",
-                              cursor: "pointer",
-                              textDecoration: "underline",
-                            }}
-                          >
-                            View file
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {tag.resources.length > 0 && (
-                <div className="tag-card__relations__category">
-                  <h5>Resources</h5>
-                  <div className="tag-card__relations__items">
-                    {tag.resources.map((resource) => (
-                      <div
-                        key={resource.id}
-                        className="tag-card__relation-item tag-card__relation-item--resource"
-                      >
-                        <a
-                          href={`#element-${resource.id}`}
-                          className="tag-card__relation-link"
-                        >
-                          <div className="title title--resource">
-                            {resource.meta?.title || formatId(resource.id)}
-                          </div>
-                          <div className="id">{resource.id}</div>
-                        </a>
-                        {resource.filePath && (
-                          <button
-                            type="button"
-                            title="View file"
-                            onClick={() =>
-                              openElementFile(
-                                "resource",
-                                resource.id,
-                                resource.meta?.title || null,
-                                resource.filePath
-                              )
-                            }
-                            style={{
-                              marginLeft: 8,
-                              background: "transparent",
-                              border: "none",
-                              color: "#2e7d32",
-                              cursor: "pointer",
-                              textDecoration: "underline",
-                            }}
-                          >
-                            View file
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {tag.middlewares.length > 0 && (
-                <div className="tag-card__relations__category">
-                  <h5>Middlewares</h5>
-                  <div className="tag-card__relations__items">
-                    {tag.middlewares.map((middleware) => (
-                      <div
-                        key={middleware.id}
-                        className="tag-card__relation-item tag-card__relation-item--middleware"
-                      >
-                        <a
-                          href={`#element-${middleware.id}`}
-                          className="tag-card__relation-link"
-                        >
-                          <div className="title title--middleware">
-                            {middleware.meta?.title || formatId(middleware.id)}
-                          </div>
-                          <div className="id">{middleware.id}</div>
-                        </a>
-                        {middleware.filePath && (
-                          <button
-                            type="button"
-                            title="View file"
-                            onClick={() =>
-                              openElementFile(
-                                "middleware",
-                                middleware.id,
-                                middleware.meta?.title || null,
-                                middleware.filePath
-                              )
-                            }
-                            style={{
-                              marginLeft: 8,
-                              background: "transparent",
-                              border: "none",
-                              color: "#7b1fa2",
-                              cursor: "pointer",
-                              textDecoration: "underline",
-                            }}
-                          >
-                            View file
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {tag.events.length > 0 && (
-                <div className="tag-card__relations__category">
-                  <h5>Events</h5>
-                  <div className="tag-card__relations__items">
-                    {tag.events.map((event) => (
-                      <div
-                        key={event.id}
-                        className="tag-card__relation-item tag-card__relation-item--event"
-                      >
-                        <a
-                          href={`#element-${event.id}`}
-                          className="tag-card__relation-link"
-                        >
-                          <div className="title title--event">
-                            {event.meta?.title || formatId(event.id)}
-                          </div>
-                          <div className="id">{event.id}</div>
-                        </a>
-                        {event.filePath && (
-                          <button
-                            type="button"
-                            title="View file"
-                            onClick={() =>
-                              openElementFile(
-                                "event",
-                                event.id,
-                                event.meta?.title || null,
-                                event.filePath
-                              )
-                            }
-                            style={{
-                              marginLeft: 8,
-                              background: "transparent",
-                              border: "none",
-                              color: "#f57c00",
-                              cursor: "pointer",
-                              textDecoration: "underline",
-                            }}
-                          >
-                            View file
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {tag.hooks.length > 0 && (
-                <div className="tag-card__relations__category">
-                  <h5>Hooks</h5>
-                  <div className="tag-card__relations__items">
-                    {tag.hooks.map((hook) => (
-                      <a
-                        key={hook.id}
-                        href={`#element-${hook.id}`}
-                        className="tag-card__relation-item tag-card__relation-item--hook tag-card__relation-link"
-                      >
-                        <div className="title title--hook">
-                          {hook.meta?.title || formatId(hook.id)}
-                        </div>
-                        <div className="id">{hook.id}</div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <TaggedElements tag={tag} introspector={introspector} />
       </div>
 
       <CodeModal
@@ -379,6 +202,8 @@ export const TagCard: React.FC<TagCardProps> = ({ tag }) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
+        enableEdit={Boolean(saveOnFile)}
+        saveOnFile={saveOnFile}
       />
     </div>
   );

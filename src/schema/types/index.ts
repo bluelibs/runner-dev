@@ -29,3 +29,4 @@ export {
   InvokeResultType,
   EvalResultType,
 } from "./SwapType";
+export { CoverageInfoType } from "./CoverageType";

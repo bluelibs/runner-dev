@@ -1,0 +1,184 @@
+@use "../../../../styles/variables" as *;
+
+.sidebar-header {
+  margin-bottom: $spacing-xl;
+
+  &__content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__title-section {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    flex: 1;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+    // Support for documentation sidebar styling
+    &--docs {
+      font-size: $spacing-lg;
+      color: #ecf0f1;
+      border-bottom: 3px solid $primary-blue;
+      padding-bottom: $spacing-sm;
+      font-weight: 700;
+    }
+  }
+
+  &__status {
+    font-size: $font-size-xs;
+    font-weight: 500;
+
+    .status-thinking {
+      color: #10b981;
+      animation: pulse 2s infinite;
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+
+      &::before {
+        content: "●";
+        animation: pulse 2s infinite;
+      }
+    }
+
+    .status-ready {
+      color: #6b7280;
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+
+      &::before {
+        content: "●";
+        color: #10b981;
+      }
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    .sidebar-header__action-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: $font-size-sm;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+
+      &.active {
+        border-width: 1px;
+        border-color: $primary-blue;
+        border-style: solid;
+      }
+
+      &.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: none;
+        }
+      }
+
+      // Special styling for destructive actions (clear, delete)
+      &--destructive {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.15);
+        color: rgba(239, 68, 68, 0.9);
+        box-shadow: 0 1px 4px rgba(239, 68, 68, 0.08);
+
+        &:hover {
+          background: rgba(239, 68, 68, 0.12);
+          border-color: rgba(239, 68, 68, 0.25);
+          box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+        }
+
+        &:active {
+          box-shadow: 0 1px 4px rgba(239, 68, 68, 0.1);
+        }
+      }
+    }
+  }
+
+  &__description {
+    margin: 0;
+    font-size: $font-size-base;
+    opacity: 0.8;
+    line-height: 1.4;
+  }
+}
+
+// Documentation-specific styling
+.sidebar-header--docs {
+  margin-bottom: $spacing-lg;
+
+  .sidebar-header__content {
+    padding: 15px 0px;
+  }
+
+  .sidebar-header__title {
+    font-size: $spacing-lg;
+    color: #ecf0f1;
+    // border-bottom: 3px solid $primary-blue;
+    padding-bottom: $spacing-sm;
+    font-weight: 700;
+  }
+}
+
+// Chat-specific styling
+.sidebar-header--chat {
+  position: sticky;
+  top: 0;
+  background: rgba(17, 24, 39, 1);
+  z-index: 10;
+  padding: $spacing-md 0;
+  padding-bottom: 3px;
+  border: none;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  margin: (-$spacing-xl) 0 $spacing-sm 0;
+  width: 100%;
+  left: 0;
+  right: 0;
+}
+
+// Animations
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

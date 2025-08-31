@@ -153,6 +153,9 @@
     transition: all 0.1s ease;
     cursor: pointer;
     white-space: nowrap;
+    // Ensure the action button stays in the last column
+    grid-column: 6;
+    justify-self: end;
 
     &:hover {
       background: var(--docs-hover-bg);
@@ -379,6 +382,9 @@
   transition: all 0.2s ease;
   cursor: pointer;
   white-space: nowrap;
+  /* Pin to last grid column in fullscreen rows */
+  grid-column: 6;
+  justify-self: end;
 }
 .recent-logs-fs__action:hover {
   background: linear-gradient(

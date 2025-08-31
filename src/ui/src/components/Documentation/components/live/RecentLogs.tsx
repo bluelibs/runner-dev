@@ -28,6 +28,11 @@ const levelName = (
   return "default";
 };
 
+const shortCorrelationId = (id: string, len = 6): string => {
+  if (!id) return "";
+  return id.length > len ? id.slice(-len) : id;
+};
+
 export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
@@ -108,8 +113,8 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
             </span>
             <span className="recent-logs__message">{log.message}</span>
             {log.correlationId && (
-              <span className="recent-logs__corr" title="Correlation ID">
-                {log.correlationId}
+              <span className="recent-logs__corr" title={log.correlationId}>
+                {shortCorrelationId(log.correlationId)}
               </span>
             )}
             {log.sourceId && (
@@ -183,9 +188,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                     {log.correlationId && (
                       <span
                         className="recent-logs-fs__corr"
-                        title="Correlation ID"
+                        title={`Correlation ID: ${log.correlationId}`}
                       >
-                        {log.correlationId}
+                        {shortCorrelationId(log.correlationId)}
                       </span>
                     )}
                     {log.sourceId && (

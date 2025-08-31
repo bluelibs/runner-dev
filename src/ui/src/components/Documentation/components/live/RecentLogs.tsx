@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import JsonViewer from "../JsonViewer";
+import "./RecentLogs.scss";
 
 interface LogEntry {
   timestampMs: number;
@@ -15,6 +16,18 @@ interface RecentLogsProps {
   logs: LogEntry[];
 }
 
+const levelName = (
+  level: string
+): "error" | "warn" | "info" | "debug" | "trace" | "default" => {
+  const l = level.toLowerCase();
+  if (l === "fatal" || l === "error") return "error";
+  if (l === "warn" || l === "warning") return "warn";
+  if (l === "info") return "info";
+  if (l === "debug") return "debug";
+  if (l === "trace") return "trace";
+  return "default";
+};
+
 export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
@@ -22,24 +35,6 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
   const formatTimestamp = (timestampMs: number): string => {
     const d = new Date(timestampMs);
     return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
-  };
-
-  const getLogLevelColor = (level: string): string => {
-    switch (level.toLowerCase()) {
-      case "error":
-      case "fatal":
-        return "#ef4444";
-      case "warn":
-        return "#f59e0b";
-      case "info":
-        return "#3b82f6";
-      case "debug":
-        return "#6b7280";
-      case "trace":
-        return "#9ca3af";
-      default:
-        return "#374151";
-    }
   };
 
   const tryParseJson = (jsonString: string): object | null => {
@@ -55,6 +50,8 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
     const base = isFullscreen ? logs : logs.slice(-10);
     return [...base].reverse();
   }, [logs, isFullscreen]);
+
+  console.log(visibleLogs);
 
   const selectedLog = useMemo(() => {
     if (selectedLogIndex === null) return null;
@@ -76,179 +73,65 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
   }, [isFullscreen, selectedLogIndex]);
 
   return (
-    <div
-      className="live-section"
-      style={{
-        marginBottom: "20px",
-        position: "relative",
-        background: "#ffffff",
-        borderRadius: "8px",
-        border: "1px solid #e5e7eb",
-        padding: "16px",
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: "16px",
-        }}
-      >
-        <h3
-          style={{
-            margin: 0,
-            fontSize: "14px",
-            fontWeight: "500",
-            color: "#374151",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          Recent Logs ({logs.length})
-        </h3>
+    <div className="recent-logs live-section">
+      <div className="recent-logs__header">
+        <h3 className="recent-logs__title">Recent Logs ({logs.length})</h3>
         <button
           type="button"
-          className="clean-button"
+          className="recent-logs__toggle"
           aria-label={isFullscreen ? "Exit full screen" : "Enter full screen"}
           title={isFullscreen ? "Exit full screen" : "Enter full screen"}
           onClick={() => setIsFullscreen((v) => !v)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            background: "transparent",
-            border: "1px solid #d1d5db",
-            borderRadius: "4px",
-            padding: "4px 8px",
-            color: "#6b7280",
-            fontSize: "12px",
-            fontWeight: "400",
-            transition: "all 0.15s ease",
-            cursor: "pointer",
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.background = "#f3f4f6";
-            e.currentTarget.style.color = "#374151";
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#6b7280";
-          }}
         >
           <span>{isFullscreen ? "Exit" : "Expand"}</span>
         </button>
       </div>
 
       <div
-        className="live-entries"
-        style={{
-          maxHeight: isFullscreen ? "80vh" : "300px",
-          overflowY: "auto",
-          border: "1px solid #e5e7eb",
-          borderRadius: "6px",
-          background: "#f9fafb",
-          color: "#374151",
-          boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)",
-          padding: "8px",
-        }}
+        className={`recent-logs__list ${
+          isFullscreen ? "recent-logs__list--expanded" : ""
+        }`}
       >
         {visibleLogs.map((log, idx) => (
           <div
             key={`${log.timestampMs}-${idx}`}
-            className="live-entry live-entry--log"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "auto auto 1fr auto",
-              alignItems: "center",
-              gap: 12,
-              padding: "8px 12px",
-              borderBottom:
-                idx === visibleLogs.length - 1 ? "none" : "1px solid #f3f4f6",
-              cursor: "pointer",
-              transition: "background-color 0.1s ease",
-              fontSize: "13px",
-            }}
+            className={`recent-logs__row recent-logs__row--compact`}
             onClick={() => setSelectedLogIndex(idx)}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = "#f8fafc";
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
           >
-            <span
-              className="entry-time"
-              style={{
-                fontFamily: "ui-monospace, monospace",
-                fontSize: "11px",
-                color: "#9ca3af",
-                fontWeight: "400",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <span className="recent-logs__time">
               {new Date(log.timestampMs).toLocaleTimeString()}
             </span>
             <span
-              className="entry-level"
-              style={{
-                color: getLogLevelColor(log.level),
-                fontWeight: 500,
-                textTransform: "uppercase",
-                fontSize: "10px",
-                background: `${getLogLevelColor(log.level)}15`,
-                padding: "2px 6px",
-                borderRadius: "2px",
-                letterSpacing: "0.3px",
-                whiteSpace: "nowrap",
-              }}
+              className={`recent-logs__level recent-logs__level--${levelName(
+                log.level
+              )}`}
             >
               {log.level}
             </span>
-            <span
-              className="entry-message"
-              style={{
-                color: "#374151",
-                fontSize: "13px",
-                lineHeight: "1.4",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {log.message}
-            </span>
+            <span className="recent-logs__message">{log.message}</span>
+            {log.correlationId && (
+              <span className="recent-logs__corr" title="Correlation ID">
+                {log.correlationId}
+              </span>
+            )}
+            {log.sourceId && (
+              <a
+                href={`#element-${log.sourceId}`}
+                onClick={(e) => e.stopPropagation()}
+                title={`Go to source #${log.sourceId}`}
+                className="recent-logs__source"
+              >
+                #{log.sourceId}
+              </a>
+            )}
             <button
               type="button"
-              className="clean-button"
+              className="recent-logs__action"
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedLogIndex(idx);
               }}
               title="View details"
-              style={{
-                background: "transparent",
-                border: "1px solid #d1d5db",
-                color: "#6b7280",
-                padding: "2px 6px",
-                borderRadius: "3px",
-                fontSize: "11px",
-                fontWeight: "400",
-                transition: "all 0.1s ease",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = "#f3f4f6";
-                e.currentTarget.style.color = "#374151";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#6b7280";
-              }}
             >
               View
             </button>
@@ -261,236 +144,67 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
           <div
             role="dialog"
             aria-modal="true"
-            style={{
-              position: "fixed",
-              inset: 0,
-              background:
-                "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)",
-              backdropFilter: "blur(8px)",
-              zIndex: 2147483646,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 24,
-              animation: "fadeIn 0.2s ease-out",
-            }}
+            className="recent-logs-fs__overlay"
             onClick={() => setIsFullscreen(false)}
           >
             <div
-              style={{
-                position: "relative",
-                width: "min(1400px, 96vw)",
-                height: "min(900px, 92vh)",
-                background:
-                  "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)",
-                color: "var(--panel-fg, #f1f5f9)",
-                border: "1px solid rgba(148, 163, 184, 0.3)",
-                borderRadius: "16px",
-                boxShadow:
-                  "0 25px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)",
-                padding: 24,
-                display: "flex",
-                flexDirection: "column",
-                backdropFilter: "blur(16px)",
-              }}
+              className="recent-logs-fs__panel"
               onClick={(e) => e.stopPropagation()}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 20,
-                  paddingBottom: "16px",
-                  borderBottom: "1px solid rgba(148, 163, 184, 0.2)",
-                }}
-              >
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: "1.5rem",
-                    fontWeight: "600",
-                    color: "#f1f5f9",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "1.75rem",
-                      filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))",
-                    }}
-                  >
-                    📝
-                  </span>
-                  Recent Logs - Full Screen
+              <div className="recent-logs-fs__header">
+                <h3 className="recent-logs-fs__title">
+                  📝 Recent Logs - Full Screen
                 </h3>
                 <button
-                  className="clean-button"
+                  className="recent-logs-fs__close"
                   onClick={() => setIsFullscreen(false)}
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%)",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    color: "#ef4444",
-                    padding: "10px 16px",
-                    borderRadius: "8px",
-                    fontSize: "0.875rem",
-                    fontWeight: "500",
-                    transition: "all 0.2s ease",
-                    cursor: "pointer",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background =
-                      "linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%)";
-                    e.currentTarget.style.borderColor =
-                      "rgba(239, 68, 68, 0.5)";
-                    e.currentTarget.style.boxShadow =
-                      "0 4px 12px rgba(239, 68, 68, 0.15)";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background =
-                      "linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%)";
-                    e.currentTarget.style.borderColor =
-                      "rgba(239, 68, 68, 0.3)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
                 >
                   Close
                 </button>
               </div>
-              <div
-                style={{
-                  flex: 1,
-                  overflow: "auto",
-                  border: "1px solid rgba(71, 85, 105, 0.3)",
-                  borderRadius: "12px",
-                  padding: "16px",
-                  background:
-                    "linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%)",
-                  backdropFilter: "blur(4px)",
-                }}
-              >
+              <div className="recent-logs-fs__content">
                 {visibleLogs.map((log, idx) => (
                   <div
                     key={`fs-${log.timestampMs}-${idx}`}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "auto auto 1fr auto",
-                      gap: 16,
-                      padding: "16px 18px",
-                      borderRadius: "10px",
-                      marginBottom: "8px",
-                      background:
-                        idx % 2 === 0
-                          ? "linear-gradient(135deg, rgba(51, 65, 85, 0.3) 0%, rgba(71, 85, 105, 0.2) 100%)"
-                          : "linear-gradient(135deg, rgba(30, 41, 59, 0.3) 0%, rgba(51, 65, 85, 0.2) 100%)",
-                      border: "1px solid rgba(148, 163, 184, 0.1)",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      alignItems: "start",
-                    }}
+                    className="recent-logs__row recent-logs__row--fullscreen"
                     onClick={() => setSelectedLogIndex(idx)}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.background =
-                        "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(29, 78, 216, 0.1) 100%)";
-                      e.currentTarget.style.borderColor =
-                        "rgba(59, 130, 246, 0.3)";
-                      e.currentTarget.style.transform = "translateY(-1px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 6px 20px rgba(0, 0, 0, 0.15)";
-                    }}
-                    onMouseOut={(e) => {
-                      const baseColor =
-                        idx % 2 === 0
-                          ? "linear-gradient(135deg, rgba(51, 65, 85, 0.3) 0%, rgba(71, 85, 105, 0.2) 100%)"
-                          : "linear-gradient(135deg, rgba(30, 41, 59, 0.3) 0%, rgba(51, 65, 85, 0.2) 100%)";
-                      e.currentTarget.style.background = baseColor;
-                      e.currentTarget.style.borderColor =
-                        "rgba(148, 163, 184, 0.1)";
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
                   >
-                    <span
-                      style={{
-                        fontVariantNumeric: "tabular-nums",
-                        fontSize: "0.875rem",
-                        color: "#94a3b8",
-                        fontWeight: "500",
-                        background: "rgba(15, 23, 42, 0.5)",
-                        padding: "6px 10px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(71, 85, 105, 0.3)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                    <span className="recent-logs-fs__time">
                       {formatTimestamp(log.timestampMs)}
                     </span>
                     <span
-                      style={{
-                        color: getLogLevelColor(log.level),
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        fontSize: "0.875rem",
-                        background: `${getLogLevelColor(log.level)}15`,
-                        border: `1px solid ${getLogLevelColor(log.level)}40`,
-                        padding: "6px 10px",
-                        borderRadius: "8px",
-                        letterSpacing: "0.5px",
-                        textShadow: `0 1px 2px ${getLogLevelColor(
-                          log.level
-                        )}40`,
-                        whiteSpace: "nowrap",
-                      }}
+                      className={`recent-logs-fs__level recent-logs-fs__level--${levelName(
+                        log.level
+                      )}`}
                     >
                       {log.level}
                     </span>
-                    <span
-                      style={{
-                        wordBreak: "break-word",
-                        whiteSpace: "pre-wrap",
-                        lineHeight: "1.6",
-                        color: "#f1f5f9",
-                        fontSize: "1rem",
-                      }}
-                    >
+                    <span className="recent-logs-fs__message">
                       {log.message}
                     </span>
+                    {log.correlationId && (
+                      <span
+                        className="recent-logs-fs__corr"
+                        title="Correlation ID"
+                      >
+                        {log.correlationId}
+                      </span>
+                    )}
+                    {log.sourceId && (
+                      <a
+                        href={`#element-${log.sourceId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        title={`Go to source #${log.sourceId}`}
+                        className="recent-logs-fs__source"
+                      >
+                        #{log.sourceId}
+                      </a>
+                    )}
                     <button
-                      className="clean-button"
+                      className="recent-logs-fs__action"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedLogIndex(idx);
-                      }}
-                      style={{
-                        background:
-                          "linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)",
-                        border: "1px solid rgba(168, 85, 247, 0.3)",
-                        color: "#a855f7",
-                        padding: "8px 12px",
-                        borderRadius: "8px",
-                        fontSize: "0.875rem",
-                        fontWeight: "500",
-                        transition: "all 0.2s ease",
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.background =
-                          "linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%)";
-                        e.currentTarget.style.borderColor =
-                          "rgba(168, 85, 247, 0.5)";
-                        e.currentTarget.style.boxShadow =
-                          "0 3px 10px rgba(168, 85, 247, 0.2)";
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.background =
-                          "linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)";
-                        e.currentTarget.style.borderColor =
-                          "rgba(168, 85, 247, 0.3)";
-                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
                       Details
@@ -508,216 +222,60 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
           <div
             role="dialog"
             aria-modal="true"
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0, 0, 0, 0.5)",
-              zIndex: 2147483647,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 16,
-            }}
+            className="recent-logs-modal__overlay"
             onClick={() => setSelectedLogIndex(null)}
           >
             <div
-              style={{
-                width: "min(800px, 95vw)",
-                maxHeight: "90vh",
-                overflow: "hidden",
-                background: "#ffffff",
-                color: "#1f2937",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                boxShadow:
-                  "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                flexDirection: "column",
-              }}
+              className="recent-logs-modal__panel"
               onClick={(e) => e.stopPropagation()}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  padding: "16px 20px",
-                  borderBottom: "1px solid #e5e7eb",
-                  background: "#f9fafb",
-                }}
-              >
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    color: "#1f2937",
-                  }}
-                >
-                  Log Details
-                </h3>
+              <div className="recent-logs-modal__header">
+                <h3 className="recent-logs-modal__title">Log Details</h3>
                 <button
-                  className="clean-button"
+                  className="recent-logs-modal__close"
                   onClick={() => setSelectedLogIndex(null)}
-                  style={{
-                    background: "#f3f4f6",
-                    border: "1px solid #d1d5db",
-                    color: "#6b7280",
-                    padding: "6px 10px",
-                    borderRadius: "4px",
-                    fontSize: "0.75rem",
-                    fontWeight: "500",
-                    transition: "all 0.15s ease",
-                    cursor: "pointer",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = "#e5e7eb";
-                    e.currentTarget.style.color = "#374151";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = "#f3f4f6";
-                    e.currentTarget.style.color = "#6b7280";
-                  }}
                 >
                   Close
                 </button>
               </div>
-              <div
-                style={{
-                  flex: 1,
-                  overflow: "auto",
-                  padding: "20px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 16,
-                    gridTemplateColumns:
-                      window.innerWidth > 768 ? "300px 1fr" : "1fr",
-                  }}
-                >
+              <div className="recent-logs-modal__content">
+                <div className="recent-logs-modal__grid">
                   <div>
-                    <div style={{ marginBottom: 16 }}>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: "500",
-                          color: "#6b7280",
-                          marginBottom: "6px",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}
-                      >
-                        Timestamp
-                      </div>
-                      <div
-                        style={{
-                          background: "#f9fafb",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "4px",
-                          padding: "8px",
-                          fontFamily: "ui-monospace, monospace",
-                          fontSize: "12px",
-                          color: "#374151",
-                        }}
-                      >
+                    <div className="recent-logs-modal__field">
+                      <div className="recent-logs-modal__label">Timestamp</div>
+                      <div className="recent-logs-modal__value recent-logs-modal__value--mono">
                         {formatTimestamp(selectedLog.timestampMs)}
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: 16 }}>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: "500",
-                          color: "#6b7280",
-                          marginBottom: "6px",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}
-                      >
-                        Level
-                      </div>
+                    <div className="recent-logs-modal__field">
+                      <div className="recent-logs-modal__label">Level</div>
                       <span
-                        style={{
-                          color: getLogLevelColor(selectedLog.level),
-                          fontWeight: 500,
-                          textTransform: "uppercase",
-                          fontSize: "11px",
-                          background: `${getLogLevelColor(
-                            selectedLog.level
-                          )}15`,
-                          padding: "3px 6px",
-                          borderRadius: "3px",
-                          letterSpacing: "0.3px",
-                          display: "inline-block",
-                        }}
+                        className={`recent-logs-modal__level recent-logs-modal__level--${levelName(
+                          selectedLog.level
+                        )}`}
                       >
                         {selectedLog.level}
                       </span>
                     </div>
 
                     {selectedLog.correlationId && (
-                      <div style={{ marginBottom: 16 }}>
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: "500",
-                            color: "#6b7280",
-                            marginBottom: "6px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
+                      <div className="recent-logs-modal__field">
+                        <div className="recent-logs-modal__label">
                           Correlation ID
                         </div>
-                        <div
-                          style={{
-                            background: "#f9fafb",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "4px",
-                            padding: "8px",
-                            fontFamily: "ui-monospace, monospace",
-                            fontSize: "11px",
-                            color: "#374151",
-                            wordBreak: "break-all",
-                          }}
-                        >
+                        <div className="recent-logs-modal__value recent-logs-modal__value--mono recent-logs-modal__value--break">
                           {selectedLog.correlationId}
                         </div>
                       </div>
                     )}
 
                     {selectedLog.sourceId && (
-                      <div style={{ marginBottom: 16 }}>
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: "500",
-                            color: "#6b7280",
-                            marginBottom: "6px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          Source
-                        </div>
+                      <div className="recent-logs-modal__field">
+                        <div className="recent-logs-modal__label">Source</div>
                         <a
                           href={`#element-${selectedLog.sourceId}`}
-                          style={{
-                            background: "#f0fdf4",
-                            border: "1px solid #bbf7d0",
-                            color: "#16a34a",
-                            padding: "4px 8px",
-                            borderRadius: "3px",
-                            fontSize: "11px",
-                            fontWeight: "400",
-                            textDecoration: "none",
-                            display: "inline-block",
-                            fontFamily: "ui-monospace, monospace",
-                          }}
+                          className="recent-logs-modal__source"
                         >
                           #{selectedLog.sourceId}
                         </a>
@@ -726,92 +284,77 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                   </div>
 
                   <div>
-                    <div style={{ marginBottom: 16 }}>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: "500",
-                          color: "#6b7280",
-                          marginBottom: "6px",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}
-                      >
-                        Message
-                      </div>
-                      <div
-                        style={{
-                          background: "#f9fafb",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "4px",
-                          padding: "12px",
-                          wordBreak: "break-word",
-                          whiteSpace: "pre-wrap",
-                          lineHeight: "1.4",
-                          fontSize: "13px",
-                          color: "#374151",
-                          maxHeight: "120px",
-                          overflowY: "auto",
-                        }}
-                      >
+                    <div className="recent-logs-modal__field">
+                      <div className="recent-logs-modal__label">Message</div>
+                      <div className="recent-logs-modal__message">
                         {selectedLog.message}
                       </div>
                     </div>
 
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 6,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            fontWeight: "500",
-                            color: "#6b7280",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          Data
+                    {/* Additional context extracted from JSON data if present */}
+                    {(() => {
+                      const parsed = selectedLog.data
+                        ? tryParseJson(selectedLog.data)
+                        : null;
+                      if (!parsed || typeof parsed !== "object") return null;
+                      const obj = parsed as Record<string, unknown>;
+                      const candidateKeys = [
+                        "traceId",
+                        "spanId",
+                        "requestId",
+                        "userId",
+                        "runId",
+                        "taskId",
+                        "jobId",
+                        "elementId",
+                      ];
+                      const entries = candidateKeys
+                        .map((k) => [k, obj[k]])
+                        .filter(([, v]) =>
+                          ["string", "number"].includes(typeof v as string)
+                        ) as [string, string | number][];
+                      if (entries.length === 0) return null;
+                      return (
+                        <div className="recent-logs-modal__field">
+                          <div className="recent-logs-modal__label">
+                            Additional Context
+                          </div>
+                          <div className="recent-logs-modal__kv-grid">
+                            {entries.map(([k, v]) => (
+                              <div
+                                key={k}
+                                className="recent-logs-modal__kv-item"
+                                title={`${k}`}
+                              >
+                                <span className="recent-logs-modal__kv-key">
+                                  {k}:
+                                </span>{" "}
+                                {String(v)}
+                              </div>
+                            ))}
+                          </div>
                         </div>
+                      );
+                    })()}
+
+                    <div>
+                      <div className="recent-logs-modal__data-header">
+                        <div className="recent-logs-modal__label">Data</div>
                         {selectedLog.data && (
                           <button
-                            className="clean-button"
+                            className="recent-logs-modal__copy"
                             onClick={() => {
                               const raw = selectedLog.data ?? "";
                               navigator.clipboard
                                 .writeText(raw)
                                 .catch(() => {});
                             }}
-                            style={{
-                              background: "transparent",
-                              border: "1px solid #d1d5db",
-                              color: "#6b7280",
-                              padding: "2px 6px",
-                              borderRadius: "3px",
-                              fontSize: "10px",
-                              fontWeight: "400",
-                              cursor: "pointer",
-                            }}
                           >
                             Copy
                           </button>
                         )}
                       </div>
-                      <div
-                        style={{
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "4px",
-                          padding: "12px",
-                          maxHeight: "200px",
-                          overflow: "auto",
-                          background: "#f9fafb",
-                        }}
-                      >
+                      <div className="recent-logs-modal__data">
                         {selectedLog.data ? (
                           (() => {
                             const parsed = tryParseJson(selectedLog.data!);
@@ -819,30 +362,13 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                               return <JsonViewer data={parsed} />;
                             }
                             return (
-                              <pre
-                                style={{
-                                  wordBreak: "break-word",
-                                  whiteSpace: "pre-wrap",
-                                  margin: 0,
-                                  fontSize: "12px",
-                                  lineHeight: "1.3",
-                                  color: "#374151",
-                                  fontFamily: "ui-monospace, monospace",
-                                }}
-                              >
+                              <pre className="recent-logs-modal__pre">
                                 {selectedLog.data}
                               </pre>
                             );
                           })()
                         ) : (
-                          <div
-                            style={{
-                              textAlign: "center",
-                              color: "#9ca3af",
-                              fontSize: "12px",
-                              padding: "16px",
-                            }}
-                          >
+                          <div className="recent-logs-modal__empty">
                             No data available
                           </div>
                         )}

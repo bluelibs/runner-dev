@@ -1,5 +1,5 @@
-import React from 'react';
-import { marked } from 'marked';
+import React from "react";
+import { marked } from "marked";
 
 // Configure marked options for better code rendering
 marked.setOptions({
@@ -14,13 +14,13 @@ export interface MarkdownRendererProps {
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
-  className = '',
+  className = "",
 }) => {
   const htmlContent = React.useMemo(() => {
     try {
       return marked(content);
     } catch (error) {
-      console.error('Error rendering markdown:', error);
+      console.error("Error rendering markdown:", error);
       return content; // Fallback to plain text
     }
   }, [content]);
@@ -34,12 +34,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 };
 
 // Hook for rendering markdown content
-export const useMarkdown = (content: string): string => {
+export const useMarkdown = (content: string): string | Promise<string> => {
   return React.useMemo(() => {
     try {
       return marked(content);
     } catch (error) {
-      console.error('Error processing markdown:', error);
+      console.error("Error processing markdown:", error);
       return content;
     }
   }, [content]);

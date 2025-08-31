@@ -1,0 +1,23 @@
+@use "../../../styles/variables" as *;
+
+.chat-settings-form {
+  background: var(--docs-panel-bg, $white);
+  color: var(--docs-text-primary, $text-darker);
+  padding: $spacing-lg;
+  border-radius: $border-radius-lg;
+  
+  .form-section {
+    margin-bottom: $spacing-lg;
+    
+    .section-title {
+      font-size: $font-size-md;
+      font-weight: 600;
+      margin-bottom: $spacing-md;
+    }
+  }
+}
+
+[data-theme="dark"] .chat-settings-form {
+  --docs-panel-bg: #1e1e1e;
+  --docs-text-primary: #e5e5e5;
+}

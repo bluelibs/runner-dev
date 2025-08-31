@@ -93,3 +93,179 @@ $gradient-sidebar: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
 // -----------------------------------------------------------------------------
 $transition-fast: all 0.2s ease;
 $transition-normal: all 0.3s ease;
+
+// -----------------------------------------------------------------------------
+// Dark Mode Color Palette
+// -----------------------------------------------------------------------------
+
+// Dark background colors
+$dark-bg-primary: #111827; // Main dark background
+$dark-bg-secondary: #1f2937; // Secondary dark background
+$dark-bg-tertiary: #374151; // Card/panel backgrounds
+$dark-bg-elevated: #1e1e1e; // Modal/elevated surfaces
+$dark-bg-sidebar: #0f172a; // Sidebar dark background
+
+// Dark text colors
+$dark-text-primary: #f9fafb; // Primary text on dark
+$dark-text-secondary: #d1d5db; // Secondary text on dark
+$dark-text-muted: #9ca3af; // Muted text on dark
+$dark-text-disabled: #6b7280; // Disabled text on dark
+
+// Dark border colors
+$dark-border-primary: #374151; // Primary borders on dark
+$dark-border-secondary: #4b5563; // Secondary borders on dark
+$dark-border-subtle: #1f2937; // Subtle borders on dark
+
+// Dark state colors (adjusted for dark theme)
+$dark-primary-blue: #60a5fa; // Brighter blue for dark mode
+$dark-success-green: #34d399; // Brighter green for dark mode
+$dark-warning-orange: #fbbf24; // Brighter orange for dark mode
+$dark-danger-red: #f87171; // Brighter red for dark mode
+$dark-info-blue: #38bdf8; // Brighter info blue for dark mode
+
+// Dark interactive colors
+$dark-hover-bg: rgba(59, 130, 246, 0.1); // Hover background
+$dark-active-bg: rgba(59, 130, 246, 0.2); // Active background
+$dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
+
+// -----------------------------------------------------------------------------
+// Semantic Color Tokens (CSS Custom Properties approach)
+// -----------------------------------------------------------------------------
+
+// Base semantic tokens - defaulting to dark mode
+:root {
+  // Background colors - dark by default
+  --docs-bg-primary: #{$dark-bg-primary};
+  --docs-bg-secondary: #{$dark-bg-secondary};
+  --docs-bg-tertiary: #{$dark-bg-tertiary};
+  --docs-bg-elevated: #{$dark-bg-elevated};
+
+  // Text colors - dark theme by default
+  --docs-text-primary: #{$dark-text-primary};
+  --docs-text-secondary: #{$dark-text-secondary};
+  --docs-text-muted: #{$dark-text-muted};
+  --docs-text-disabled: #{$dark-text-disabled};
+
+  // Border colors - dark theme by default
+  --docs-border-primary: #{$dark-border-primary};
+  --docs-border-secondary: #{$dark-border-secondary};
+  --docs-border-subtle: #{$dark-border-subtle};
+
+  // Interactive colors - bright colors for dark theme
+  --docs-primary: #{$dark-primary-blue};
+  --docs-success: #{$dark-success-green};
+  --docs-warning: #{$dark-warning-orange};
+  --docs-danger: #{$dark-danger-red};
+  --docs-info: #{$dark-info-blue};
+
+  // State colors - dark theme
+  --docs-hover-bg: #{$dark-hover-bg};
+  --docs-active-bg: #{$dark-active-bg};
+  --docs-focus-ring: #{$dark-focus-ring};
+
+  // Component specific - dark theme
+  --docs-sidebar-bg: #{$dark-bg-sidebar};
+  --docs-panel-bg: #{$dark-bg-elevated};
+  --docs-card-bg: #{$dark-bg-secondary};
+  --docs-input-bg: #{$dark-bg-tertiary};
+  --docs-code-bg: #{$dark-bg-tertiary};
+  --docs-pre-bg: #161b22;
+
+  // Shadows - darker shadows for dark mode
+  --docs-shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --docs-shadow-md: 0 6px 20px rgba(0, 0, 0, 0.3);
+  --docs-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  // Alert & warning backgrounds - dark theme
+  --docs-alert-bg: rgba(245, 124, 0, 0.2);
+  --docs-alert-text: #ffa726;
+  --docs-warning-bg: rgba(255, 193, 7, 0.15);
+  --docs-warning-text: #ffca28;
+  --docs-error-bg: rgba(244, 67, 54, 0.15);
+  --docs-error-text: #ef5350;
+
+  // Interactive states - dark theme
+  --docs-loading-overlay-bg: rgba(0, 0, 0, 0.7);
+  --docs-primary-bg: rgba(33, 150, 243, 0.15);
+  --docs-primary-hover-bg: rgba(33, 150, 243, 0.25);
+  --docs-primary-light: rgba(33, 150, 243, 0.3);
+  --docs-primary-border: rgba(33, 150, 243, 0.4);
+  --docs-success-bg: rgba(76, 175, 80, 0.15);
+  --docs-success-hover-bg: rgba(76, 175, 80, 0.25);
+  --docs-success-light: rgba(76, 175, 80, 0.3);
+  --docs-success-border: rgba(76, 175, 80, 0.4);
+  --docs-purple-bg: rgba(156, 39, 176, 0.15);
+  --docs-purple: #{$purple-dark};
+  --docs-danger-bg: rgba(244, 67, 54, 0.15);
+  // Info background (used by tag/hook items)
+  --docs-info-bg: rgba(56, 189, 248, 0.15);
+}
+
+// Light mode overrides (when explicitly enabled)
+[data-theme="light"] {
+  // Background colors - light theme
+  --docs-bg-primary: #{$white};
+  --docs-bg-secondary: #{$light-gray};
+  --docs-bg-tertiary: #{$border-gray};
+  --docs-bg-elevated: #{$white};
+
+  // Text colors - light theme
+  --docs-text-primary: #{$text-darker};
+  --docs-text-secondary: #{$text-gray};
+  --docs-text-muted: #{$text-muted};
+  --docs-text-disabled: #{$text-gray};
+
+  // Border colors - light theme
+  --docs-border-primary: #{$border-gray};
+  --docs-border-secondary: rgba(0, 0, 0, 0.1);
+  --docs-border-subtle: rgba(0, 0, 0, 0.05);
+
+  // Interactive colors - standard colors for light theme
+  --docs-primary: #{$primary-blue};
+  --docs-success: #{$success-green};
+  --docs-warning: #{$warning-orange};
+  --docs-danger: #{$danger-red};
+  --docs-info: #{$info-blue};
+
+  // State colors - light theme
+  --docs-hover-bg: rgba(0, 122, 204, 0.05);
+  --docs-active-bg: rgba(0, 122, 204, 0.1);
+  --docs-focus-ring: rgba(0, 122, 204, 0.2);
+
+  // Component specific - light theme
+  --docs-sidebar-bg: #{$light-gray};
+  --docs-panel-bg: #{$white};
+  --docs-card-bg: #{$white};
+  --docs-input-bg: #{$white};
+  --docs-code-bg: #f6f8fa;
+  --docs-pre-bg: #f6f8fa;
+
+  // Shadows - lighter shadows for light mode
+  --docs-shadow-sm: #{$shadow-sm};
+  --docs-shadow-md: #{$shadow-md};
+  --docs-shadow-lg: #{$shadow-lg};
+
+  // Alert & warning backgrounds - light theme
+  --docs-alert-bg: #fff3cd;
+  --docs-alert-text: #856404;
+  --docs-warning-bg: #fff3e0;
+  --docs-warning-text: #f57c00;
+  --docs-error-bg: #fff5f5;
+  --docs-error-text: #c62828;
+
+  // Interactive states - light theme
+  --docs-loading-overlay-bg: rgba(255, 255, 255, 0.8);
+  --docs-primary-bg: #f3f9ff;
+  --docs-primary-hover-bg: #e3f2fd;
+  --docs-primary-light: #e1f5fe;
+  --docs-primary-border: #bbdefb;
+  --docs-success-bg: #f1f8e9;
+  --docs-success-hover-bg: #e8f5e8;
+  --docs-success-light: #e8f5e8;
+  --docs-success-border: #c8e6c9;
+  --docs-purple-bg: #f3e5f5;
+  --docs-purple: #{$purple};
+  --docs-danger-bg: #f8d7da;
+  // Info background (used by tag/hook items)
+  --docs-info-bg: #e0f7fa;
+}

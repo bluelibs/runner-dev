@@ -224,7 +224,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', gap: '20px' }}>
+    <div style={{ display: "flex", gap: "20px" }}>
       <div className="diagnostics-panel__tabs">
         {categories.map((category) => (
           <button
@@ -247,176 +247,164 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
       </div>
 
       <div style={{ flex: 1 }}>
-
-      {activeCategory === "summary" && (
-        <div>
-          <div className="diagnostics-panel__detailed-grid">
-            {renderSummaryCard(
-              "Total Issues",
-              diagnostics.length,
-              "#6c757d",
-              "📊",
-              "All diagnostic items",
-              "diagnostics-panel__summary-card--total"
-            )}
-            {renderSummaryCard(
-              "Errors",
-              errorCount,
-              "#dc3545",
-              "❌",
-              "Critical issues requiring attention",
-              "diagnostics-panel__summary-card--errors"
-            )}
-            {renderSummaryCard(
-              "Warnings",
-              warningCount,
-              "#ffc107",
-              "⚠️",
-              "Potential problems to review",
-              "diagnostics-panel__summary-card--warnings"
-            )}
-            {renderSummaryCard(
-              "Information",
-              infoCount,
-              "#17a2b8",
-              "ℹ️",
-              "Informational messages",
-              "diagnostics-panel__summary-card--info"
-            )}
-          </div>
-
-          {diagnostics.length > 0 && (
-            <div>
-              <h4 style={{ margin: "0 0 15px 0", color: "#495057" }}>
-                Recent Diagnostics
-              </h4>
-              <div className="diagnostics-panel__items">
-                {diagnostics.slice(0, 5).map(renderDiagnosticItem)}
-                {diagnostics.length > 5 && (
-                  <div className="diagnostics-panel__view-all">
-                    <button onClick={() => setActiveCategory("errors")}>
-                      View All {diagnostics.length} Diagnostics
-                    </button>
-                  </div>
-                )}
-              </div>
+        {activeCategory === "summary" && (
+          <div>
+            <div className="diagnostics-panel__detailed-grid">
+              {renderSummaryCard(
+                "Total Issues",
+                diagnostics.length,
+                "#6c757d",
+                "📊",
+                "All diagnostic items",
+                "diagnostics-panel__summary-card--total"
+              )}
+              {renderSummaryCard(
+                "Errors",
+                errorCount,
+                "#dc3545",
+                "❌",
+                "Critical issues requiring attention",
+                "diagnostics-panel__summary-card--errors"
+              )}
+              {renderSummaryCard(
+                "Warnings",
+                warningCount,
+                "#ffc107",
+                "⚠️",
+                "Potential problems to review",
+                "diagnostics-panel__summary-card--warnings"
+              )}
+              {renderSummaryCard(
+                "Information",
+                infoCount,
+                "#17a2b8",
+                "ℹ️",
+                "Informational messages",
+                "diagnostics-panel__summary-card--info"
+              )}
             </div>
-          )}
-        </div>
-      )}
 
-      {activeCategory === "errors" && (
-        <div>
-          <div className="diagnostics-panel__items">
-            {diagnostics
-              .filter((d) => d.severity === "error")
-              .map(renderDiagnosticItem)}
-            {errorCount === 0 && (
-              <div className="diagnostics-panel__success-state">
-                <div className="icon">✅</div>
-                <h4>No Errors Found!</h4>
-                <p>Your application has no critical errors.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeCategory === "warnings" && (
-        <div>
-          <div className="diagnostics-panel__items">
-            {diagnostics
-              .filter((d) => d.severity === "warning")
-              .map(renderDiagnosticItem)}
-            {warningCount === 0 && (
-              <div
-                className="diagnostics-panel__success-state"
-                style={{ background: "#fff3cd", border: "1px solid #ffeaa7" }}
-              >
-                <div className="icon">👍</div>
-                <h4 style={{ color: "#856404" }}>No Warnings!</h4>
-                <p style={{ color: "#856404" }}>
-                  No potential issues detected.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeCategory === "orphans" &&
-        renderSpecialItems(
-          orphanEvents,
-          "Orphan Events",
-          "👻",
-          "#6f42c1",
-          (item) => item.id,
-          (item) => `${formatId(item.id)} (No listeners)`,
-          "diagnostics-panel__special-section__item--orphan"
-        )}
-
-      {activeCategory === "unemitted" &&
-        renderSpecialItems(
-          unemittedEvents,
-          "Unemitted Events",
-          "📤",
-          "#fd7e14",
-          (item) => item.id,
-          (item) => `${formatId(item.id)} (No emitters)`,
-          "diagnostics-panel__special-section__item--unused"
-        )}
-
-      {activeCategory === "unused" &&
-        renderSpecialItems(
-          unusedMiddleware,
-          "Unused Middleware",
-          "🔗",
-          "#6c757d",
-          (item) => item.id,
-          (item) => `${formatId(item.id)} (Not used)`,
-          "diagnostics-panel__special-section__item--unused"
-        )}
-
-      {activeCategory === "conflicts" && (
-        <div className="diagnostics-panel__special-section">
-          <h4>
-            <span className="icon">⚔️</span>
-            Override Conflicts ({overrideConflicts.length})
-          </h4>
-          {overrideConflicts.length === 0 ? (
-            <div className="diagnostics-panel__empty-state">
-              <div className="celebration">🎉</div>
-              No override conflicts found. Great job!
-            </div>
-          ) : (
-            <div className="diagnostics-panel__special-section__items">
-              {overrideConflicts.map((item, index) => (
-                <div
-                  key={index}
-                  className="diagnostics-panel__special-section__item diagnostics-panel__special-section__item--conflict diagnostics-panel__conflict-item"
-                >
-                  <div className="title">
-                    <a
-                      href={`#element-${item.targetId}`}
-                      className="diagnostics-panel__conflict-link"
-                    >
-                      {formatId(item.targetId)}
-                    </a>
-                    {" ← overridden by → "}
-                    <a
-                      href={`#element-${item.by}`}
-                      className="diagnostics-panel__conflict-link"
-                    >
-                      {formatId(item.by)}
-                    </a>
-                  </div>
-                  <div className="id">Target: {item.targetId}</div>
+            {diagnostics.length > 0 && (
+              <div>
+                <h4>Recent Diagnostics</h4>
+                <div className="diagnostics-panel__items">
+                  {diagnostics.slice(0, 5).map(renderDiagnosticItem)}
                 </div>
-              ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeCategory === "errors" && (
+          <div>
+            <div className="diagnostics-panel__items">
+              {diagnostics
+                .filter((d) => d.severity === "error")
+                .map(renderDiagnosticItem)}
+              {errorCount === 0 && (
+                <div className="diagnostics-panel__success-state">
+                  <div className="icon">✅</div>
+                  <h4>No Errors Found!</h4>
+                  <p>Your application has no critical errors.</p>
+                </div>
+              )}
             </div>
+          </div>
+        )}
+
+        {activeCategory === "warnings" && (
+          <div>
+            <div className="diagnostics-panel__items">
+              {diagnostics
+                .filter((d) => d.severity === "warning")
+                .map(renderDiagnosticItem)}
+              {warningCount === 0 && (
+                <div
+                  className="diagnostics-panel__success-state"
+                  style={{ background: "#fff3cd", border: "1px solid #ffeaa7" }}
+                >
+                  <div className="icon">👍</div>
+                  <h4>No Warnings!</h4>
+                  <p>No potential issues detected.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeCategory === "orphans" &&
+          renderSpecialItems(
+            orphanEvents,
+            "Orphan Events",
+            "👻",
+            "#6f42c1",
+            (item) => item.id,
+            (item) => `${formatId(item.id)} (No listeners)`,
+            "diagnostics-panel__special-section__item--orphan"
           )}
-        </div>
-      )}
+
+        {activeCategory === "unemitted" &&
+          renderSpecialItems(
+            unemittedEvents,
+            "Unemitted Events",
+            "📤",
+            "#fd7e14",
+            (item) => item.id,
+            (item) => `${formatId(item.id)} (No emitters)`,
+            "diagnostics-panel__special-section__item--unused"
+          )}
+
+        {activeCategory === "unused" &&
+          renderSpecialItems(
+            unusedMiddleware,
+            "Unused Middleware",
+            "🔗",
+            "#6c757d",
+            (item) => item.id,
+            (item) => `${formatId(item.id)} (Not used)`,
+            "diagnostics-panel__special-section__item--unused"
+          )}
+
+        {activeCategory === "conflicts" && (
+          <div className="diagnostics-panel__special-section">
+            <h4>
+              <span className="icon">⚔️</span>
+              Override Conflicts ({overrideConflicts.length})
+            </h4>
+            {overrideConflicts.length === 0 ? (
+              <div className="diagnostics-panel__empty-state">
+                <div className="celebration">🎉</div>
+                No override conflicts found. Great job!
+              </div>
+            ) : (
+              <div className="diagnostics-panel__special-section__items">
+                {overrideConflicts.map((item, index) => (
+                  <div
+                    key={index}
+                    className="diagnostics-panel__special-section__item diagnostics-panel__special-section__item--conflict diagnostics-panel__conflict-item"
+                  >
+                    <div className="title">
+                      <a
+                        href={`#element-${item.targetId}`}
+                        className="diagnostics-panel__conflict-link"
+                      >
+                        {formatId(item.targetId)}
+                      </a>
+                      {" ← overridden by → "}
+                      <a
+                        href={`#element-${item.by}`}
+                        className="diagnostics-panel__conflict-link"
+                      >
+                        {formatId(item.by)}
+                      </a>
+                    </div>
+                    <div className="id">Target: {item.targetId}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

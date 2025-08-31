@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from "react";
 import { ChatState } from "./chat/ChatTypes";
+import "./ChatInput.scss";
 // docs toggling handled at thread level via chatContext in useChatState
 
 type ChatElement = {
@@ -561,7 +562,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="docs-chat-input">
-      <div className="chat-input-container" style={{ position: "relative" }}>
+      <div className="chat-input-container">
         <textarea
           ref={inputRef}
           placeholder="Ask about code, request files, or get help... (Use @ to reference elements or @docs for context)"
@@ -573,11 +574,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           spellCheck={false}
           className="chat-main-input"
           rows={3}
-          style={{
-            resize: "vertical",
-            minHeight: "60px",
-            maxHeight: "200px",
-          }}
         />
 
         {/* Suggestions dropdown */}

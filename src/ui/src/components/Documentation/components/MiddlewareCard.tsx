@@ -112,23 +112,13 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                 <div className="label">File Path:</div>
                 <div className="value">
                   {middleware.filePath ? (
-                    <button
+                    <a
                       type="button"
                       onClick={openFileModal}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "#7b1fa2",
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                        padding: 0,
-                        fontFamily: "inherit",
-                        fontSize: "inherit",
-                      }}
                       title="View file contents"
                     >
                       {formatFilePath(middleware.filePath)}
-                    </button>
+                    </a>
                   ) : (
                     formatFilePath(middleware.filePath)
                   )}

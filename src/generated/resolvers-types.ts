@@ -913,8 +913,6 @@ export type TaskRunsArgs = {
 
 export type TaskDependsOn = {
   __typename?: 'TaskDependsOn';
-  /** Coverage summary for this task's file (percentage is always resolvable if coverage report is present). */
-  coverage: Maybe<CoverageInfo>;
   /** Events this task emits */
   emitters: Array<Event>;
   /** Hooks this task depends on */
@@ -1525,7 +1523,6 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
 }>;
 
 export type TaskDependsOnResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskDependsOn'] = ResolversParentTypes['TaskDependsOn']> = ResolversObject<{
-  coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
   emitters: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;

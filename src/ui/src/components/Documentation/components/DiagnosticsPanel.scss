@@ -33,7 +33,7 @@
 // Summary Cards
 // -----------------------------------------------------------------------------
 .diagnostics-panel__summary-card {
-  background: $white;
+  background: var(--docs-bg-primary);
   border: 1px solid;
   border-radius: $border-radius-md;
   padding: $font-size-md;
@@ -62,7 +62,7 @@
 
   &__description {
     font-size: $font-size-xs;
-    color: $text-gray;
+    color: var(--docs-text-muted);
   }
 }
 
@@ -83,7 +83,7 @@
   padding: $spacing-sm $font-size-md;
   border: none;
   background: transparent;
-  color: $text-gray;
+  color: var(--docs-text-muted);
   cursor: pointer;
   border-radius: 4px 0 0 4px;
   font-weight: 400;
@@ -96,11 +96,11 @@
 
   &--active {
     background: $primary-blue;
-    color: white;
+    color: var(--docs-text-primary);
   }
 
   &:hover:not(&--active) {
-    background: rgba(52, 152, 219, 0.1);
+    background: var(--docs-hover-bg);
   }
 }
 
@@ -113,13 +113,13 @@
   text-align: center;
 
   .diagnostics-panel__tab--active & {
-    background: rgba(255, 255, 255, 0.3);
-    color: white;
+    background: var(--docs-active-bg);
+    color: var(--docs-text-primary);
   }
 
   .diagnostics-panel__tab:not(.diagnostics-panel__tab--active) & {
-    background: #dee2e6;
-    color: $text-dark;
+    background: var(--docs-bg-secondary);
+    color: var(--docs-text-primary);
   }
 }
 
@@ -127,7 +127,7 @@
 // Clickable Elements
 // -----------------------------------------------------------------------------
 .diagnostics-panel__click-indicator {
-  color: $text-gray;
+  color: var(--docs-text-muted);
   font-size: $font-size-sm;
   opacity: 0.7;
 }
@@ -141,8 +141,8 @@
 }
 
 .diagnostics-panel__item {
-  background: $white;
-  border: 1px solid $border-gray;
+  background: var(--docs-bg-primary);
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-sm;
   padding: $spacing-sm;
   border-left: 4px solid;
@@ -166,8 +166,8 @@
     transition: $transition-fast;
 
     &:hover {
-      background: rgba(52, 152, 219, 0.05);
-      border-color: rgba(52, 152, 219, 0.3);
+      background: var(--docs-hover-bg);
+      border-color: var(--docs-border-secondary);
       text-decoration: none;
     }
 
@@ -220,8 +220,8 @@
 }
 
 .diagnostics-panel__code-badge {
-  background: $light-gray;
-  color: $text-dark;
+  background: var(--docs-bg-secondary);
+  color: var(--docs-text-primary);
   padding: 2px $spacing-sm;
   border-radius: $spacing-sm;
   font-size: $font-size-xs;
@@ -237,7 +237,7 @@
   display: flex;
   gap: $spacing-sm;
   font-size: $font-size-xs;
-  color: $text-gray;
+  color: var(--docs-text-muted);
 
   strong {
     font-weight: 600;
@@ -250,7 +250,7 @@
 .diagnostics-panel__special-section {
   h4 {
     margin: 0 0 $spacing-md 0;
-    color: $text-dark;
+    color: var(--docs-text-primary);
     display: flex;
     align-items: center;
     gap: $spacing-sm;
@@ -266,8 +266,8 @@
   }
 
   &__item {
-    background: $white;
-    border: 1px solid $border-gray;
+    background: var(--docs-bg-primary);
+    border: 1px solid var(--docs-border-primary);
     border-radius: $border-radius-sm;
     padding: $spacing-sm;
     border-left: 4px solid;
@@ -291,7 +291,7 @@
 
     .id {
       font-size: $font-size-xs;
-      color: #666;
+      color: var(--docs-text-muted);
       font-family: $font-family-mono;
     }
 
@@ -305,8 +305,8 @@
       align-items: center;
 
       &:hover {
-        background: rgba(52, 152, 219, 0.05);
-        border-color: rgba(52, 152, 219, 0.3);
+        background: var(--docs-hover-bg);
+        border-color: var(--docs-border-secondary);
         text-decoration: none;
       }
 
@@ -340,11 +340,11 @@
 // Empty States
 // -----------------------------------------------------------------------------
 .diagnostics-panel__empty-state {
-  color: $text-gray;
+  color: var(--docs-text-muted);
   font-style: italic;
   text-align: center;
   padding: $spacing-lg;
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
   border-radius: $border-radius-sm;
 
   .celebration {
@@ -354,12 +354,12 @@
 }
 
 .diagnostics-panel__success-state {
-  color: #28a745;
+  color: var(--docs-success);
   text-align: center;
   padding: $spacing-xxxl;
-  background: #d4edda;
+  background: var(--docs-success-bg);
   border-radius: $border-radius-sm;
-  border: 1px solid #c3e6cb;
+  border: 1px solid var(--docs-success-border);
 
   .icon {
     font-size: 48px;
@@ -367,12 +367,12 @@
   }
 
   h4 {
-    color: #155724;
+    color: var(--docs-success);
     margin: 10px 0;
   }
 
   p {
-    color: #155724;
+    color: var(--docs-success);
     margin: 0;
   }
 }
@@ -396,7 +396,7 @@
 
     &:hover {
       background: $primary-blue;
-      color: white;
+      color: var(--docs-text-primary);
     }
   }
 }
@@ -474,11 +474,11 @@
   border-left-color: $text-gray;
 
   h4 {
-    color: $text-gray;
+    color: var(--docs-text-muted);
   }
 
   .diagnostics-panel__summary-card__value {
-    color: $text-gray;
+    color: var(--docs-text-muted);
   }
 }
 

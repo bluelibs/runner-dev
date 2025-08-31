@@ -119,23 +119,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   <div className="label">File Path:</div>
                   <div className="value">
                     {task.filePath ? (
-                      <button
+                      <a
                         type="button"
                         onClick={openFileModal}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#0056b3",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View file contents"
                       >
                         {formatFilePath(task.filePath)}
-                      </button>
+                      </a>
                     ) : (
                       formatFilePath(task.filePath)
                     )}
@@ -162,16 +152,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                       <button
                         type="button"
                         onClick={openCoverageDetails}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#0056b3",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View coverage details"
                       >
                         (View Coverage)

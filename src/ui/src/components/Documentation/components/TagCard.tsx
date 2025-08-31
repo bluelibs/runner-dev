@@ -55,7 +55,8 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
     try {
       let data: any;
       if (kind === "task") {
-        data = await graphqlRequest<{ task: { fileContents: string | null } }>(          SAMPLE_TASK_FILE_QUERY,
+        data = await graphqlRequest<{ task: { fileContents: string | null } }>(
+          SAMPLE_TASK_FILE_QUERY,
           { id }
         );
         setFileContent(data?.task?.fileContents ?? null);
@@ -70,7 +71,8 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
         }>(SAMPLE_MIDDLEWARE_FILE_QUERY, { id });
         setFileContent(data?.middleware?.fileContents ?? null);
       } else if (kind === "event") {
-        data = await graphqlRequest<{ event: { fileContents: string | null } }>(          SAMPLE_EVENT_FILE_QUERY,
+        data = await graphqlRequest<{ event: { fileContents: string | null } }>(
+          SAMPLE_EVENT_FILE_QUERY,
           { id }
         );
         setFileContent(data?.event?.fileContents ?? null);
@@ -163,23 +165,13 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
                   <div className="label">File Path:</div>
                   <div className="value">
                     {tag.filePath ? (
-                      <button
+                      <a
                         type="button"
                         onClick={openTagFileModal}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#7b1fa2",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View file contents"
                       >
                         {formatFilePath(tag.filePath)}
-                      </button>
+                      </a>
                     ) : (
                       formatFilePath(tag.filePath)
                     )}

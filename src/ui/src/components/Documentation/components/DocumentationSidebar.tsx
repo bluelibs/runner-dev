@@ -10,6 +10,8 @@ export interface DocumentationSidebarProps {
   isChatOpen?: boolean;
   onToggleChat?: () => void;
   leftOffset?: number;
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
   viewMode: ViewMode;
   treeType: TreeType;
   localNamespaceSearch: string;
@@ -38,6 +40,8 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   isChatOpen,
   onToggleChat,
   leftOffset = 0,
+  isDarkMode = true,
+  onToggleDarkMode,
   viewMode,
   treeType,
   localNamespaceSearch,
@@ -64,15 +68,17 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
         title="Documentation"
         className="sidebar-header--docs"
         actions={
-          <button
-            className={`sidebar-header__action-btn ${
-              isChatOpen ? "active" : ""
-            }`}
-            title={isChatOpen ? "Hide Chat" : "Show Chat"}
-            onClick={onToggleChat}
-          >
-            AI
-          </button>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              className={`sidebar-header__action-btn ${
+                isChatOpen ? "active" : ""
+              }`}
+              title={isChatOpen ? "Hide Chat" : "Show Chat"}
+              onClick={onToggleChat}
+            >
+              AI
+            </button>
+          </div>
         }
       />
 

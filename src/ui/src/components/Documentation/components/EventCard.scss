@@ -7,8 +7,8 @@
 // Event Card Base
 // -----------------------------------------------------------------------------
 .event-card {
-  background: $white;
-  border: 1px solid $border-gray;
+  background: var(--docs-card-bg);
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-xl;
   overflow: hidden;
   margin-bottom: $spacing-lg;
@@ -18,9 +18,10 @@
 // Event Card Header
 // -----------------------------------------------------------------------------
 .event-card__header {
-  background: $gradient-warning;
-  color: white;
+  background: linear-gradient(180deg, var(--docs-panel-bg), var(--docs-bg-secondary));
+  color: var(--docs-text-primary);
   padding: $spacing-xl;
+  border-bottom: 1px solid var(--docs-border-primary);
 }
 
 .event-card__header-content {
@@ -55,6 +56,7 @@
   margin: 0 0 10px 0;
   font-size: $font-size-xl;
   font-weight: 700;
+  color: var(--docs-text-primary);
 }
 
 .event-card__id {
@@ -62,6 +64,7 @@
   opacity: 0.9;
   font-family: $font-family-mono;
   margin-bottom: $spacing-md;
+  color: var(--docs-text-secondary);
 }
 
 .event-card__description {
@@ -84,9 +87,11 @@
   display: flex;
   align-items: center;
   gap: $spacing-xs;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--docs-active-bg);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-xl;
+  color: var(--docs-text-primary);
+  border: 1px solid var(--docs-border-primary);
 
   .icon {
     font-size: $font-size-xs;
@@ -131,9 +136,9 @@
 .event-card__section {
   &__title {
     margin: 0 0 $spacing-md 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 
@@ -149,15 +154,15 @@
 .event-card__info-block {
   .label {
     font-weight: bold;
-    color: $text-dark;
+    color: var(--docs-text-primary);
   }
 
   .value {
     font-family: $font-family-mono;
     font-size: $font-size-sm;
-    color: $text-gray;
+    color: var(--docs-text-secondary);
     margin-top: $spacing-xs;
-    background: $light-gray;
+    background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
 
@@ -180,16 +185,16 @@
   display: block;
   text-decoration: none;
   color: inherit;
-  background: $white;
-  border: 1px solid $border-gray;
+  background: var(--docs-card-bg);
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-sm;
   padding: $spacing-sm;
-  border-left: 4px solid #ff9500;
+  border-left: 4px solid var(--docs-warning);
   transition: $transition-fast;
 
   &:hover {
-    background: rgba(52, 152, 219, 0.05);
-    border-color: rgba(52, 152, 219, 0.3);
+    background: var(--docs-hover-bg);
+    border-color: var(--docs-primary);
     text-decoration: none;
   }
 
@@ -201,13 +206,13 @@
     .title {
       font-weight: 600;
       margin-bottom: $spacing-xs;
-      color: $text-darker;
+      color: var(--docs-text-primary);
       font-size: $font-size-sm;
     }
 
     .id {
       font-size: $font-size-xs;
-      color: #666;
+      color: var(--docs-text-secondary);
       font-family: $font-family-mono;
     }
   }
@@ -217,15 +222,16 @@
 // Code Block
 // -----------------------------------------------------------------------------
 .event-card__code-block {
-  background: $light-gray;
+  background: var(--docs-code-bg);
   padding: $spacing-lg;
   border-radius: $border-radius-lg;
   font-size: $font-size-xs;
   line-height: 1.6;
   overflow: auto;
-  border: 1px solid $border-gray;
+  border: 1px solid var(--docs-border-primary);
   margin: 0;
   font-family: $font-family-mono;
+  color: var(--docs-text-primary);
 }
 
 // -----------------------------------------------------------------------------
@@ -236,34 +242,34 @@
   border-radius: $border-radius-lg;
 
   &--danger {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
+    background: var(--docs-danger-bg);
+    border: 1px solid var(--docs-danger);
 
     .title {
-      color: #721c24;
+      color: var(--docs-danger);
       font-weight: bold;
     }
 
     .content {
       margin-top: $spacing-sm;
       font-size: $font-size-sm;
-      color: #721c24;
+      color: var(--docs-danger);
     }
   }
 
   &--warning {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
+    background: var(--docs-alert-bg);
+    border: 1px solid var(--docs-warning);
 
     .title {
-      color: #856404;
+      color: var(--docs-alert-text);
       font-weight: bold;
     }
 
     .content {
       margin-top: $spacing-sm;
       font-size: $font-size-sm;
-      color: #856404;
+      color: var(--docs-alert-text);
     }
   }
 }
@@ -276,9 +282,9 @@
 
   &__title {
     margin: 0 0 $spacing-lg 0;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     font-size: $font-size-lg;
-    border-bottom: 2px solid $border-gray;
+    border-bottom: 2px solid var(--docs-border-primary);
     padding-bottom: $spacing-sm;
   }
 }
@@ -300,21 +306,21 @@
   border: 2px solid;
 
   &--active {
-    background: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
+    background: var(--docs-success-bg);
+    border-color: var(--docs-success-border);
+    color: var(--docs-success);
   }
 
   &--warning {
-    background: #fff3cd;
-    border-color: #ffeaa7;
-    color: #856404;
+    background: var(--docs-warning-bg);
+    border-color: var(--docs-warning-text);
+    color: var(--docs-warning-text);
   }
 
   &--danger {
-    background: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
+    background: var(--docs-danger-bg);
+    border-color: var(--docs-danger);
+    color: var(--docs-danger);
   }
 
   .value {
@@ -344,7 +350,7 @@
   }
   h5 {
     margin: 0 0 $spacing-md 0;
-    color: $text-dark;
+    color: var(--docs-text-primary);
     font-size: $font-size-md;
   }
 
@@ -363,18 +369,18 @@
   border-left: 4px solid;
 
   &--task {
-    background: #e3f2fd;
-    border-left-color: #2196f3;
+    background: var(--docs-primary-bg);
+    border-left-color: var(--docs-primary);
   }
 
   &--resource {
-    background: #e8f5e8;
-    border-left-color: #4caf50;
+    background: var(--docs-success-bg);
+    border-left-color: var(--docs-success);
   }
 
   &--hook {
-    background: #f3e5f5;
-    border-left-color: $purple-dark;
+    background: var(--docs-purple-bg);
+    border-left-color: var(--docs-purple);
   }
 
   &__content {
@@ -389,19 +395,19 @@
       margin-bottom: $spacing-xs;
 
       &--task {
-        color: #1976d2;
+        color: var(--docs-primary);
       }
       &--resource {
-        color: #2e7d32;
+        color: var(--docs-success);
       }
       &--hook {
-        color: #7b1fa2;
+        color: var(--docs-purple);
       }
     }
 
     .id {
       font-size: $font-size-xs;
-      color: #666;
+      color: var(--docs-text-secondary);
       font-family: $font-family-mono;
     }
   }
@@ -409,9 +415,9 @@
 
 .event-card__listener {
   padding: $spacing-sm $font-size-md;
-  background: #f3e5f5;
+  background: var(--docs-purple-bg);
   border-radius: $border-radius-lg;
-  border-left: 4px solid $purple-dark;
+  border-left: 4px solid var(--docs-purple);
 
   &__content {
     display: flex;
@@ -431,12 +437,12 @@
     .details {
       .title {
         font-weight: 600;
-        color: #7b1fa2;
+        color: var(--docs-purple);
       }
 
       .id {
         font-size: $font-size-xs;
-        color: #666;
+        color: var(--docs-text-secondary);
         font-family: $font-family-mono;
       }
     }
@@ -444,7 +450,7 @@
 
   &__description {
     font-size: $font-size-xs;
-    color: #666;
+    color: var(--docs-text-secondary);
     margin-top: $spacing-xs;
     font-style: italic;
   }
@@ -463,10 +469,10 @@
 // Empty State
 // -----------------------------------------------------------------------------
 .event-card__empty-state {
-  color: $text-gray;
+  color: var(--docs-text-muted);
   font-style: italic;
   text-align: center;
   padding: $spacing-xxxl;
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
   border-radius: $border-radius-lg;
 }

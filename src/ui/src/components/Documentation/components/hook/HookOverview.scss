@@ -1,0 +1,65 @@
+@use "../../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Hook Overview Component Styles
+// -----------------------------------------------------------------------------
+.hook-overview {
+  background: var(--docs-panel-bg, $white);
+  border: 1px solid var(--docs-border-primary, $border-gray);
+  border-radius: $border-radius-lg;
+  color: var(--docs-text-primary, $text-darker);
+  padding: $spacing-lg;
+  
+  .overview-section {
+    margin-bottom: $spacing-lg;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section-title {
+      color: var(--docs-text-primary, $text-darker);
+      font-size: $font-size-md;
+      font-weight: 600;
+      margin-bottom: $spacing-md;
+    }
+    
+    .section-content {
+      line-height: 1.6;
+      
+      .info-grid {
+        display: grid;
+        gap: $spacing-md;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        
+        .info-item {
+          display: flex;
+          flex-direction: column;
+          gap: $spacing-xs;
+          
+          .info-label {
+            color: var(--docs-text-secondary, $text-gray);
+            font-size: $font-size-sm;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          
+          .info-value {
+            color: var(--docs-text-primary, $text-darker);
+            font-family: $font-family-mono;
+            font-size: $font-size-sm;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Dark mode styles
+[data-theme="dark"] .hook-overview {
+  --docs-panel-bg: #1e1e1e;
+  --docs-text-primary: #e5e5e5;
+  --docs-text-secondary: #a0a0a0;
+  --docs-border-primary: #333;
+}

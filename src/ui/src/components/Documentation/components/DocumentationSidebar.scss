@@ -1,0 +1,87 @@
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Documentation Sidebar Styles
+// -----------------------------------------------------------------------------
+.docs-sidebar {
+  background: var(--docs-sidebar-bg);
+  border-right: 1px solid var(--docs-border-primary);
+  color: var(--docs-text-primary);
+  height: 100vh;
+  overflow-y: auto;
+  padding: $spacing-lg;
+  transition: all $transition-fast;
+  width: 280px;
+
+  // Sidebar header
+  .sidebar-header {
+    border-bottom: 1px solid var(--docs-border-secondary);
+
+    .sidebar-title {
+      font-size: $font-size-lg;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  // Navigation sections
+  .nav-section {
+    margin-bottom: $spacing-lg;
+
+    .nav-section-title {
+      color: var(--docs-text-secondary);
+      font-size: $font-size-sm;
+      font-weight: 600;
+      margin-bottom: $spacing-sm;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-items {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+
+      .nav-item {
+        margin-bottom: $spacing-xs;
+
+        .nav-link {
+          border-radius: $border-radius;
+          color: var(--docs-text-primary);
+          display: block;
+          padding: $spacing-sm;
+          text-decoration: none;
+          transition: all $transition-fast;
+
+          &:hover {
+            background: var(--docs-hover-bg);
+            color: var(--docs-primary);
+          }
+
+          &.active {
+            background: var(--docs-primary);
+            color: white;
+          }
+        }
+      }
+    }
+  }
+
+  // Scrollbar styling
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--docs-border-subtle);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--docs-border-secondary);
+    border-radius: 3px;
+
+    &:hover {
+      background: var(--docs-text-muted);
+    }
+  }
+}

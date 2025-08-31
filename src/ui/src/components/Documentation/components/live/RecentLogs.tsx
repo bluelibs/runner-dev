@@ -51,8 +51,6 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
     return [...base].reverse();
   }, [logs, isFullscreen]);
 
-  console.log(visibleLogs);
-
   const selectedLog = useMemo(() => {
     if (selectedLogIndex === null) return null;
     return visibleLogs[selectedLogIndex] ?? null;

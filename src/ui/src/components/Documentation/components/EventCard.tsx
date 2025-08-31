@@ -135,23 +135,13 @@ export const EventCard: React.FC<EventCardProps> = ({
                   <div className="label">File Path:</div>
                   <div className="value">
                     {event.filePath ? (
-                      <button
+                      <a
                         type="button"
                         onClick={openFileModal}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#3498db",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View file contents"
                       >
                         {formatFilePath(event.filePath)}
-                      </button>
+                      </a>
                     ) : (
                       formatFilePath(event.filePath)
                     )}

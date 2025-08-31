@@ -2,6 +2,7 @@
 // DOCUMENTATION COMPONENT STYLES
 // =============================================================================
 @use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
 @use "sass:color";
 
 // -----------------------------------------------------------------------------
@@ -11,11 +12,13 @@ body {
   font-family: $font-family-base;
 }
 .docs-app {
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
+  color: var(--docs-text-primary);
   // Constrain the docs UI to the viewport and avoid window/body scrolling
+  display: flex;
   height: 100vh;
   overflow: hidden;
-  display: flex;
+  transition: all $transition-fast;
 }
 
 // Highlight animation for tree navigation targets
@@ -26,19 +29,27 @@ body {
 
 .clean-button {
   display: inline-block;
-  background: #e3f2fd;
-  border: 1px solid #bbdefb;
-  color: #1565c0;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: $font-size-xs;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--docs-text-primary);
+  padding: 6px 12px;
+  border-radius: $border-radius-md;
+  font-size: $font-size-sm;
   cursor: pointer;
   transition: all 0.2s ease;
   text-decoration: none;
+  font-weight: 500;
 
   &:hover {
-    background: #bbdefb;
-    border-color: #90caf9;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 }
 
@@ -287,13 +298,13 @@ body {
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
-      color: white;
+      color: var(--docs-text-primary);
     }
 
     &.active {
       background: $primary-blue;
       border-color: $primary-blue;
-      color: white;
+      color: var(--docs-text-primary);
       font-weight: 600;
     }
   }
@@ -373,7 +384,7 @@ body {
       .nav-link {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid transparent;
-        color: white;
+        color: var(--docs-text-primary);
 
         &--home {
           background: rgba(52, 152, 219, 0.15);
@@ -499,7 +510,7 @@ body {
   left: 4px;
   width: 18px;
   height: 18px;
-  background: white;
+  background: var(--docs-bg-primary);
   border-radius: 50%;
   transform: translate(0, -50%);
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
@@ -659,7 +670,7 @@ body {
   h2 {
     font-size: $font-size-xxl;
     margin-bottom: $spacing-xxl;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     display: flex;
     align-items: center;
     gap: $spacing-sm;
@@ -710,22 +721,16 @@ body {
     &::after {
       content: "";
       position: absolute;
-      top: 50%;
       left: 50%;
       width: 0;
       height: 0;
-      background: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.1) 0%,
-        transparent 70%
-      );
+      background: radial-gradient(rgba(255, 255, 255, 0.1) 0%, transparent 70%);
       border-radius: 50%;
       transform: translate(-50%, -50%);
       transition: all 0.6s ease;
     }
 
     &:hover {
-      transform: translateY(-10px) scale(1.02);
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 
       &::before {
@@ -737,12 +742,7 @@ body {
         height: 300px;
       }
 
-      h3 {
-        transform: scale(1.1);
-      }
-
       .count {
-        transform: scale(1.2) rotateY(10deg);
         text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
       }
     }
@@ -877,7 +877,7 @@ body {
 // Live Panel Styles
 // -----------------------------------------------------------------------------
 .live-panel {
-  background: white;
+  background: var(--docs-bg-primary);
   border-radius: $border-radius-xl;
   box-shadow: $shadow-lg;
   padding: $spacing-xl;
@@ -890,7 +890,7 @@ body {
 
   .live-loading {
     font-size: $font-size-lg;
-    color: #dee2e6;
+    color: var(--docs-text-muted);
   }
 
   .live-error {
@@ -904,7 +904,7 @@ body {
     button {
       padding: $spacing-sm $spacing-lg;
       background: $primary-blue;
-      color: white;
+      color: var(--docs-text-primary);
       border: none;
       border-radius: $border-radius-md;
       cursor: pointer;
@@ -934,22 +934,22 @@ body {
   }
 
   .live-toggle {
-    background: #f8f9fa;
-    color: $text-darker;
-    border: 1px solid #dee2e6;
+    background: var(--docs-bg-secondary);
+    color: var(--docs-text-primary);
+    border: 1px solid var(--docs-border-primary);
 
     &--active {
       background: $success-green;
-      color: white;
+      color: var(--docs-text-primary);
       border-color: $success-green;
     }
 
     &:hover {
-      background: color.adjust(#f8f9fa, $lightness: -5%);
+      background: var(--docs-hover-bg);
     }
 
     &--active:hover {
-      background: color.adjust($success-green, $lightness: -10%);
+      background: var(--docs-success-hover-bg);
     }
   }
 
@@ -959,7 +959,7 @@ body {
     border: 1px solid $primary-blue;
 
     &:hover {
-      background: color.adjust($primary-blue, $lightness: -10%);
+      background: var(--docs-primary-hover-bg);
     }
   }
 }
@@ -975,10 +975,10 @@ body {
 }
 
 .live-section {
-  background: #f8f9fa;
+  background: var(--docs-bg-secondary);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--docs-border-primary);
 
   h3 {
     margin: 0 0 $spacing-lg 0;
@@ -1004,7 +1004,7 @@ body {
   &--logs {
     border-left: 4px solid #0000ff;
     h3 {
-      color: $text-darker;
+      color: var(--docs-text-primary);
     }
   }
 
@@ -1026,14 +1026,14 @@ body {
 .metric {
   text-align: center;
   padding: $spacing-lg;
-  background: white;
+  background: var(--docs-bg-primary);
   border-radius: $border-radius-md;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--docs-border-primary);
 
   .metric-label {
     display: block;
     font-size: $font-size-sm;
-    color: $text-muted;
+    color: var(--docs-text-muted);
     margin-bottom: $spacing-xs;
     font-weight: 500;
   }
@@ -1042,13 +1042,13 @@ body {
     display: block;
     font-size: $font-size-lg;
     font-weight: bold;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     margin-bottom: $spacing-xs;
   }
 
   .metric-detail {
     font-size: $font-size-xs;
-    color: $text-muted;
+    color: var(--docs-text-muted);
   }
 }
 
@@ -1056,9 +1056,9 @@ body {
   max-height: 300px;
   overflow-y: auto;
   overflow-x: auto;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-md;
-  background: white;
+  background: var(--docs-bg-primary);
   overscroll-behavior: contain;
 
   // Custom scrollbar styling for live entries
@@ -1068,12 +1068,12 @@ body {
   }
 
   &::-webkit-scrollbar-track {
-    background: #f8f9fa;
+    background: var(--docs-bg-secondary);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #dee2e6;
+    background: var(--docs-border-primary);
     border-radius: 4px;
     transition: background 0.2s ease;
 
@@ -1083,12 +1083,12 @@ body {
   }
 
   scrollbar-width: thin;
-  scrollbar-color: #dee2e6 #f8f9fa;
+  scrollbar-color: var(--docs-border-secondary) var(--docs-bg-secondary);
 }
 
 .live-entry {
   padding: $spacing-sm $spacing-md;
-  border-bottom: 1px solid #f8f9fa;
+  border-bottom: 1px solid var(--docs-border-primary);
   font-size: $font-size-sm;
   line-height: 1.4;
   display: flex;
@@ -1126,7 +1126,7 @@ body {
 
   .entry-time {
     font-family: monospace;
-    color: $text-muted;
+    color: var(--docs-text-muted);
     font-size: $font-size-xs;
     min-width: 80px;
   }
@@ -1152,7 +1152,7 @@ body {
   .entry-status,
   .entry-duration {
     font-size: $font-size-xs;
-    color: $text-muted;
+    color: var(--docs-text-muted);
     font-family: monospace;
   }
 
@@ -1183,28 +1183,12 @@ body {
     pre {
       margin: $spacing-xs 0 0 0;
       padding: $spacing-sm;
-      background: #f8f9fa;
+      background: var(--docs-bg-secondary);
       border-radius: 3px;
       font-size: $font-size-xs;
       overflow-x: auto;
       white-space: pre-wrap;
       word-break: break-all;
-    }
-  }
-
-  .entry-payload-button {
-    background: #e3f2fd;
-    border: 1px solid #bbdefb;
-    color: #1565c0;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: $font-size-xs;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: #bbdefb;
-      border-color: #90caf9;
     }
   }
 }

@@ -105,7 +105,7 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                       }}
                     >
                       <button
-                        className="entry-payload-button"
+                        className="clean-button"
                         onClick={() =>
                           openErrorModal(error.stack!, error.sourceId)
                         }
@@ -114,7 +114,7 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                       </button>
 
                       <button
-                        className="entry-payload-button"
+                        className="clean-button"
                         title="Add to AI"
                         onClick={() => {
                           const source =
@@ -166,11 +166,7 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                     {formatTimestamp(run.timestampMs)}
                   </span>
                   <span className="entry-status">{run.ok ? "✅" : "❌"}</span>
-                  <a
-                    href={`#element-${run.nodeId}`}
-                    className="entry-node"
-                    style={{ textDecoration: "none", color: "inherit" }}
-                  >
+                  <a href={`#element-${run.nodeId}`} className="entry-node">
                     {run.nodeKind}:{run.nodeId}
                   </a>
                   {run.durationMs && (
@@ -183,14 +179,14 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                   >
                     {run.error && (
                       <button
-                        className="entry-payload-button"
+                        className="clean-button"
                         onClick={() => openErrorModal(run.error!, run.nodeId)}
                       >
                         View Error
                       </button>
                     )}
                     {/* <button
-                      className="entry-payload-button"
+                      className="clean-button"
                       title="Replay this task"
                       onClick={() => {
                         window.dispatchEvent(

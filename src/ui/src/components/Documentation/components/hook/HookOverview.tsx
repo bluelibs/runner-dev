@@ -95,18 +95,7 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
                     >
                       {formatId(evt.id)}
                     </a>
-                    {evt.meta?.title && (
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "#6c757d",
-                          marginTop: "4px",
-                          fontStyle: "italic",
-                        }}
-                      >
-                        ({evt.meta.title})
-                      </div>
-                    )}
+                    {evt.meta?.title && <div>({evt.meta.title})</div>}
                   </div>
                 ))}
               </>

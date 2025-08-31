@@ -1,0 +1,55 @@
+@use "../../../../styles/variables" as *;
+
+.recent-runs {
+  background: var(--docs-panel-bg, $white);
+  border: 1px solid var(--docs-border-primary, $border-gray);
+  border-radius: $border-radius-lg;
+  color: var(--docs-text-primary, $text-darker);
+  padding: $spacing-lg;
+  
+  .runs-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    
+    .run-item {
+      background: var(--docs-item-bg, $light-gray);
+      border-radius: $border-radius;
+      padding: $spacing-md;
+      transition: all $transition-fast;
+      
+      &:hover {
+        background: var(--docs-item-hover-bg, $border-gray);
+      }
+      
+      .run-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: $spacing-sm;
+        
+        .run-status {
+          padding: $spacing-xs $spacing-sm;
+          border-radius: $border-radius-pill;
+          font-size: $font-size-xs;
+          font-weight: 600;
+          
+          &.success { background: var(--docs-success-bg, $success-green); color: white; }
+          &.error { background: var(--docs-error-bg, $danger-red); color: white; }
+          &.running { background: var(--docs-info-bg, $primary-blue); color: white; }
+        }
+      }
+    }
+  }
+}
+
+[data-theme="dark"] .recent-runs {
+  --docs-panel-bg: #1e1e1e;
+  --docs-text-primary: #e5e5e5;
+  --docs-border-primary: #333;
+  --docs-item-bg: #2a2a2a;
+  --docs-item-hover-bg: #3a3a3a;
+  --docs-success-bg: #10b981;
+  --docs-error-bg: #ef4444;
+  --docs-info-bg: #3b82f6;
+}

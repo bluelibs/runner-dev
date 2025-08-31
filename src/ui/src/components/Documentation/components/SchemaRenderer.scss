@@ -1,9 +1,10 @@
+
 @use "../../../styles/variables" as *;
 
 .schema-renderer {
   display: grid;
   gap: $spacing-lg;
-  background: $white;
+  background: var(--docs-bg-primary);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -12,7 +13,7 @@
 .schema-renderer__tabs {
   display: inline-flex;
   gap: 2px;
-  background: $light-gray;
+  background: var(--docs-bg-secondary);
   padding: 4px;
   border-radius: $border-radius-lg;
   margin-bottom: $spacing-md;
@@ -26,35 +27,35 @@
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 500;
-  color: $text-muted;
+  color: var(--docs-text-muted);
   position: relative;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.7);
-    color: $text-dark;
+    background: var(--docs-hover-bg);
+    color: var(--docs-text-primary);
   }
 }
 
 .schema-renderer__tab.is-active {
-  background: $white;
-  color: $primary-blue;
+  background: var(--docs-bg-primary);
+  color: var(--docs-primary);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: $white;
-    color: $primary-blue;
+    background: var(--docs-bg-primary);
+    color: var(--docs-primary);
   }
 }
 
 .schema-renderer__code-block {
-  background: #f8f9fa;
+  background: var(--docs-bg-secondary);
   padding: $spacing-lg;
   border-radius: $border-radius-lg;
   font-size: 13px;
   line-height: 1.6;
   overflow: auto;
   max-height: 400px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--docs-border-primary);
   margin: 0;
   font-family: $font-family-mono;
   position: relative;
@@ -65,16 +66,16 @@
   }
 
   &::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--docs-bg-tertiary);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: var(--docs-border-secondary);
     border-radius: 4px;
 
     &:hover {
-      background: #a8a8a8;
+      background: var(--docs-border-primary);
     }
   }
 }
@@ -83,8 +84,8 @@
   padding: $spacing-md 0;
 
   .schema-renderer__form {
-    background: #fafbfc;
-    border: 1px solid #e9ecef;
+    background: var(--docs-bg-secondary);
+    border: 1px solid var(--docs-border-primary);
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
   }
@@ -98,22 +99,22 @@
 }
 
 .schema-renderer__object {
-  border: 2px dashed #dee2e6;
+  border: 2px dashed var(--docs-border-primary);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
-  background: rgba(248, 249, 250, 0.5);
+  background: var(--docs-bg-secondary);
   transition: border-color 0.2s ease;
 
   &:hover {
-    border-color: $primary-blue;
-    background: rgba(248, 249, 250, 0.8);
+    border-color: var(--docs-primary);
+    background: var(--docs-bg-tertiary);
   }
 }
 
 .schema-renderer__object-title {
   font-weight: 600;
   margin-bottom: $spacing-md;
-  color: $text-dark;
+  color: var(--docs-text-secondary);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -131,8 +132,8 @@
   margin-bottom: $spacing-sm;
 
   .btn {
-    background: $primary-blue;
-    color: white;
+    background: var(--docs-primary);
+    color: var(--docs-text-primary);
     border: none;
     padding: 6px 12px;
     border-radius: $border-radius-md;
@@ -142,7 +143,7 @@
     transition: all 0.2s ease;
 
     &:hover {
-      background: $primary-blue;
+      background: var(--docs-primary);
       transform: translateY(-1px);
     }
 
@@ -154,12 +155,12 @@
 
 .schema-renderer__json-inline {
   margin-top: $spacing-lg;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--docs-border-primary);
   padding-top: $spacing-lg;
 }
 
 .schema-renderer__empty {
-  color: $text-muted;
+  color: var(--docs-text-muted);
   text-align: center;
   padding: $spacing-xl;
   font-style: italic;
@@ -178,12 +179,12 @@
   justify-content: space-between;
   margin-bottom: $spacing-md;
   padding-bottom: $spacing-sm;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--docs-border-primary);
 }
 
 .schema-renderer__section-title {
   font-weight: 600;
-  color: $text-dark;
+  color: var(--docs-text-secondary);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -192,7 +193,7 @@
 
 .schema-renderer__section-hint {
   font-size: 12px;
-  color: $text-muted;
+  color: var(--docs-text-muted);
   font-style: italic;
 }
 
@@ -210,3 +211,6 @@
     transform: translateY(0);
   }
 }
+
+
+

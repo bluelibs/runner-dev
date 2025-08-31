@@ -124,23 +124,13 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   <div className="label">File Path:</div>
                   <div className="value">
                     {resource.filePath ? (
-                      <button
+                      <a
                         type="button"
                         onClick={openFileModal}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#2e7d32",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View file contents"
                       >
                         {formatFilePath(resource.filePath)}
-                      </button>
+                      </a>
                     ) : (
                       formatFilePath(resource.filePath)
                     )}
@@ -167,16 +157,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                       <button
                         type="button"
                         onClick={openCoverageDetails}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#2e7d32",
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                        }}
                         title="View coverage details"
                       >
                         (View Coverage)

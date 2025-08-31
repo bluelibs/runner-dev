@@ -1,0 +1,115 @@
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Live Panel Component Styles
+// -----------------------------------------------------------------------------
+.docs-live-panel {
+  background: var(--docs-panel-bg);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-lg;
+  box-shadow: var(--docs-shadow-sm);
+  color: var(--docs-text-primary);
+  padding: $spacing-lg;
+  transition: all $transition-fast;
+  
+  .panel-header {
+    align-items: center;
+    border-bottom: 1px solid var(--docs-border-secondary);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-md;
+    
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      font-size: $font-size-lg;
+      font-weight: 600;
+      margin: 0;
+      
+      .title-icon {
+        color: var(--docs-primary);
+        font-size: $font-size-xl;
+      }
+    }
+    
+    .panel-controls {
+      display: flex;
+      gap: $spacing-sm;
+      
+      .control-btn {
+        background: var(--docs-bg-tertiary);
+        border: 1px solid var(--docs-border-primary);
+        border-radius: $border-radius;
+        color: var(--docs-text-primary);
+        cursor: pointer;
+        padding: $spacing-xs $spacing-sm;
+        transition: all $transition-fast;
+        
+        &:hover {
+          background: var(--docs-hover-bg);
+        }
+        
+        &.active {
+          background: var(--docs-primary);
+          border-color: var(--docs-primary);
+          color: var(--docs-text-primary);
+        }
+      }
+    }
+  }
+  
+  .panel-content {
+    .content-section {
+      margin-bottom: $spacing-lg;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .section-title {
+        color: var(--docs-text-secondary);
+        font-size: $font-size-sm;
+        font-weight: 600;
+        margin-bottom: $spacing-sm;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+    
+    .data-grid {
+      display: grid;
+      gap: $spacing-sm;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+  }
+  
+  // Loading state
+  &.loading {
+    opacity: 0.7;
+    pointer-events: none;
+    
+    .panel-content {
+      position: relative;
+      
+      &::after {
+        background: var(--docs-loading-overlay-bg);
+        border-radius: $border-radius;
+        color: var(--docs-text-secondary);
+        content: "Loading...";
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+      }
+    }
+  }
+}
+
+// Loading state dark overlay is handled by CSS variables

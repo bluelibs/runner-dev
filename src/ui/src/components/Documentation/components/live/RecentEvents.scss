@@ -1,0 +1,34 @@
+@use "../../../../styles/variables" as *;
+
+.recent-events {
+  background: var(--docs-panel-bg, $white);
+  border: 1px solid var(--docs-border-primary, $border-gray);
+  border-radius: $border-radius-lg;
+  color: var(--docs-text-primary, $text-darker);
+  padding: $spacing-lg;
+  
+  .events-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    
+    .event-item {
+      background: var(--docs-item-bg, $light-gray);
+      border-radius: $border-radius;
+      padding: $spacing-md;
+      transition: all $transition-fast;
+      
+      &:hover {
+        background: var(--docs-item-hover-bg, $border-gray);
+      }
+    }
+  }
+}
+
+[data-theme="dark"] .recent-events {
+  --docs-panel-bg: #1e1e1e;
+  --docs-text-primary: #e5e5e5;
+  --docs-border-primary: #333;
+  --docs-item-bg: #2a2a2a;
+  --docs-item-hover-bg: #3a3a3a;
+}

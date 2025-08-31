@@ -53,6 +53,30 @@ export const Documentation: React.FC<DocumentationProps> = ({
     }
   });
 
+  // Dark mode state - default to true (dark mode by default)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('docs-dark-mode');
+      return saved ? JSON.parse(saved) : true; // Default to dark mode
+    } catch {
+      return true; // Default to dark mode
+    }
+  });
+
+  // Update document theme attribute and localStorage when dark mode changes
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    try {
+      localStorage.setItem('docs-dark-mode', JSON.stringify(isDarkMode));
+    } catch (error) {
+      console.warn('Failed to save dark mode preference:', error);
+    }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   // Custom hooks for state management
   const filterHook = useDocumentationFilters(introspector, namespacePrefix);
   const viewModeHook = useViewMode();
@@ -225,6 +249,8 @@ export const Documentation: React.FC<DocumentationProps> = ({
         isChatOpen={isChatOpen}
         onToggleChat={handleToggleChat}
         leftOffset={isChatOpen ? chatHook.chatWidth + 40 : 0}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={toggleDarkMode}
         viewMode={viewModeHook.viewMode}
         treeType={viewModeHook.treeType}
         localNamespaceSearch={filterHook.localNamespaceSearch}

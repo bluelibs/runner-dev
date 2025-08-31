@@ -1,0 +1,170 @@
+@use "../../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Common Input Component Styles
+// -----------------------------------------------------------------------------
+.docs-input {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  
+  .input-label {
+    color: var(--docs-text-primary, $text-darker);
+    font-size: $font-size-sm;
+    font-weight: 600;
+    
+    .required {
+      color: var(--docs-error-color, $danger-red);
+    }
+  }
+  
+  .input-field {
+    background: var(--docs-input-bg, $white);
+    border: 1px solid var(--docs-border-primary, $border-gray);
+    border-radius: $border-radius;
+    color: var(--docs-text-primary, $text-darker);
+    font-family: inherit;
+    font-size: $font-size-base;
+    padding: $spacing-sm $spacing-md;
+    transition: all $transition-fast;
+    
+    &:focus {
+      border-color: var(--docs-focus-color, $primary-blue);
+      box-shadow: 0 0 0 3px var(--docs-focus-shadow, rgba(0, 122, 204, 0.1));
+      outline: none;
+    }
+    
+    &:hover:not(:disabled) {
+      border-color: var(--docs-hover-border, $text-gray);
+    }
+    
+    &:disabled {
+      background: var(--docs-disabled-bg, $light-gray);
+      color: var(--docs-disabled-text, $text-gray);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    &.error {
+      border-color: var(--docs-error-color, $danger-red);
+      
+      &:focus {
+        box-shadow: 0 0 0 3px var(--docs-error-shadow, rgba(220, 53, 69, 0.1));
+      }
+    }
+    
+    &.success {
+      border-color: var(--docs-success-color, $success-green);
+      
+      &:focus {
+        box-shadow: 0 0 0 3px var(--docs-success-shadow, rgba(40, 167, 69, 0.1));
+      }
+    }
+    
+    // Input variants
+    &.input-sm {
+      font-size: $font-size-sm;
+      padding: $spacing-xs $spacing-sm;
+    }
+    
+    &.input-lg {
+      font-size: $font-size-md;
+      padding: $spacing-md $spacing-lg;
+    }
+    
+    // Textarea specific
+    &.textarea {
+      min-height: 80px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    
+    // Select specific
+    &.select {
+      cursor: pointer;
+      background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px;
+      padding-right: 35px;
+    }
+  }
+  
+  .input-helper {
+    color: var(--docs-text-secondary, $text-gray);
+    font-size: $font-size-xs;
+    line-height: 1.4;
+    
+    &.error {
+      color: var(--docs-error-color, $danger-red);
+    }
+    
+    &.success {
+      color: var(--docs-success-color, $success-green);
+    }
+  }
+  
+  .input-prefix,
+  .input-suffix {
+    align-items: center;
+    color: var(--docs-text-secondary, $text-gray);
+    display: flex;
+    font-size: $font-size-sm;
+    padding: 0 $spacing-sm;
+  }
+  
+  .input-group {
+    display: flex;
+    position: relative;
+    
+    .input-field {
+      flex: 1;
+    }
+    
+    .input-prefix + .input-field {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    
+    .input-field + .input-suffix {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    
+    .input-prefix {
+      background: var(--docs-input-addon-bg, $light-gray);
+      border: 1px solid var(--docs-border-primary, $border-gray);
+      border-right: 0;
+      border-radius: $border-radius 0 0 $border-radius;
+    }
+    
+    .input-suffix {
+      background: var(--docs-input-addon-bg, $light-gray);
+      border: 1px solid var(--docs-border-primary, $border-gray);
+      border-left: 0;
+      border-radius: 0 $border-radius $border-radius 0;
+    }
+  }
+}
+
+// Dark mode styles
+[data-theme="dark"] .docs-input {
+  --docs-text-primary: #e5e5e5;
+  --docs-text-secondary: #a0a0a0;
+  --docs-input-bg: #2a2a2a;
+  --docs-border-primary: #444;
+  --docs-focus-color: #60a5fa;
+  --docs-focus-shadow: rgba(96, 165, 250, 0.2);
+  --docs-hover-border: #666;
+  --docs-disabled-bg: #1a1a1a;
+  --docs-disabled-text: #666;
+  --docs-error-color: #f87171;
+  --docs-error-shadow: rgba(248, 113, 113, 0.2);
+  --docs-success-color: #34d399;
+  --docs-success-shadow: rgba(52, 211, 153, 0.2);
+  --docs-input-addon-bg: #1e1e1e;
+  
+  .input-field.select {
+    background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23a0a0a0" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+  }
+}

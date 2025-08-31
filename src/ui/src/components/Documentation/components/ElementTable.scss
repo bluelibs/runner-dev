@@ -2,9 +2,9 @@
 
 .element-table {
   margin-bottom: $spacing-xxxl;
-  background: white;
+  background: var(--docs-bg-primary);
   border-radius: $border-radius-lg;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--docs-border-primary);
   padding: $spacing-md $spacing-lg;
   overflow: hidden;
 
@@ -12,7 +12,7 @@
     margin: 0;
     font-size: $font-size-lg;
     font-weight: 700;
-    color: $text-darker;
+    color: var(--docs-text-primary);
     margin-bottom: $spacing-md;
     span {
       margin-right: $spacing-md;
@@ -32,15 +32,15 @@
     }
 
     &::-webkit-scrollbar-track {
-      background: #f8f9fa;
+      background: var(--docs-bg-secondary);
     }
 
     &::-webkit-scrollbar-thumb {
-      background: #dee2e6;
+      background: var(--docs-border-secondary);
       border-radius: 4px;
 
       &:hover {
-        background: #adb5bd;
+        background: var(--docs-border-primary);
       }
     }
   }
@@ -55,14 +55,14 @@
 
   &__header {
     padding: $spacing-sm $spacing-md;
-    background: #e9ecef;
-    color: $text-darker;
+    background: var(--docs-bg-tertiary);
+    color: var(--docs-text-primary);
     font-weight: 600;
     font-size: $font-size-sm;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     text-align: left;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--docs-border-primary);
 
     &--id {
       width: 40%;
@@ -81,10 +81,10 @@
   }
 
   &__row {
-    border-bottom: 1px solid #f1f3f4;
+    border-bottom: 1px solid var(--docs-border-primary);
 
     &:hover {
-      background: #f8f9fa;
+      background: var(--docs-bg-secondary);
     }
 
     &:last-child {
@@ -99,18 +99,18 @@
 
     &--id {
       font-family: $font-family-mono;
-      background: #f8f9fa;
-      border-right: 1px solid #dee2e6;
+      background: var(--docs-bg-secondary);
+      border-right: 1px solid var(--docs-border-primary);
     }
 
     &--title {
       font-weight: 500;
-      color: $text-darker;
-      border-right: 1px solid #dee2e6;
+      color: var(--docs-text-primary);
+      border-right: 1px solid var(--docs-border-primary);
     }
 
     &--description {
-      color: $text-muted;
+      color: var(--docs-text-muted);
       line-height: 1.6;
     }
   }
@@ -123,26 +123,25 @@
   }
 
   &__id-link {
-    color: $primary-blue;
+    color: var(--docs-primary);
     text-decoration: none;
     display: block;
     min-width: 0; // Allow flex child to shrink
     flex: 1;
 
     &:hover {
-      color: $primary-blue-dark;
       text-decoration: underline;
     }
   }
 
   &__id-code {
-    background: #e9ecef;
+    background: var(--docs-bg-tertiary);
     padding: 4px 8px;
     border-radius: $border-radius-sm;
     font-size: $font-size-sm;
     font-family: $font-family-mono;
-    color: $text-darker;
-    border: 1px solid #dee2e6;
+    color: var(--docs-text-primary);
+    border: 1px solid var(--docs-border-primary);
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -150,7 +149,7 @@
   }
 
   &__title-link {
-    color: $primary-blue;
+    color: var(--docs-primary);
     text-decoration: none;
     display: block;
     overflow: hidden;
@@ -158,7 +157,6 @@
     white-space: nowrap;
 
     &:hover {
-      color: $primary-blue-dark;
       text-decoration: underline;
     }
   }
@@ -180,22 +178,22 @@
     }
 
     code {
-      background: #f1f3f4;
+      background: var(--docs-bg-tertiary);
       padding: 2px 4px;
       border-radius: 3px;
       font-size: $font-size-xs;
       font-family: $font-family-mono;
-      color: #6c757d;
+      color: var(--docs-text-muted);
     }
 
     strong {
       font-weight: 600;
-      color: $text-darker;
+      color: var(--docs-text-primary);
     }
 
     em {
       font-style: italic;
-      color: $text-dark;
+      color: var(--docs-text-secondary);
     }
 
     // Clamp markdown-rendered descriptions by default
@@ -219,19 +217,18 @@
     border: none;
     cursor: pointer;
     font-size: $font-size-xs;
-    color: $primary-blue;
+    color: var(--docs-primary);
     padding: 2px 4px;
     border-radius: 3px;
     align-self: flex-start;
     text-decoration: underline;
 
     &:hover {
-      color: $primary-blue-dark;
-      background: #f8f9fa;
+      background: var(--docs-bg-secondary);
     }
 
     &:focus {
-      outline: 2px solid $primary-blue;
+      outline: 2px solid var(--docs-primary);
       border-radius: 3px;
     }
   }
@@ -241,7 +238,7 @@
     border: none;
     cursor: pointer;
     font-size: $font-size-sm;
-    color: $text-muted;
+    color: var(--docs-text-muted);
     padding: 2px;
     display: inline-flex;
     align-items: center;
@@ -249,17 +246,17 @@
     flex-shrink: 0;
 
     &:hover {
-      color: $text-darker;
-      background: #f8f9fa;
+      color: var(--docs-text-primary);
+      background: var(--docs-bg-secondary);
     }
 
     &:focus {
-      outline: 2px solid $primary-blue;
+      outline: 2px solid var(--docs-primary);
     }
   }
 
   &__empty {
-    color: #adb5bd;
+    color: var(--docs-text-muted);
     font-style: italic;
     opacity: 0.7;
   }

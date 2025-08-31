@@ -96,7 +96,7 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
                   )}
                   {emission.payload && (
                     <button
-                      className="entry-payload-button"
+                      className="clean-button"
                       onClick={() =>
                         openPayloadModal(
                           JSON.stringify(

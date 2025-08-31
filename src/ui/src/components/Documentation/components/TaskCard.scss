@@ -32,6 +32,23 @@
   .main {
     flex: 1;
   }
+
+  .task-card__actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-left: $spacing-md;
+
+    button {
+      border: none;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  }
 }
 
 .task-card__title {

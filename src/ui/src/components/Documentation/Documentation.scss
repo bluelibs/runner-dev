@@ -817,6 +817,16 @@ body {
       }
     }
 
+    &--tags {
+      background: linear-gradient(135deg, $warning-orange, #13cb47);
+      box-shadow: 0 4px 20px rgba(156, 39, 176, 0.2);
+
+      &:hover {
+        background: linear-gradient(135deg, $error-red, #13cb47);
+        box-shadow: 0 20px 40px rgba(156, 39, 176, 0.4);
+      }
+    }
+
     h3 {
       margin: 0 0 $spacing-md 0;
       font-size: $font-size-lg;

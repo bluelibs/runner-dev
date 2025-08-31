@@ -36,6 +36,18 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    align-items: center;
+    .event-card__run {
+      button {
+        border: none;
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+    }
   }
 }
 

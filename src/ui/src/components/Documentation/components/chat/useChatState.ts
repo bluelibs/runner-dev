@@ -34,6 +34,13 @@ import { fetchElementFileContentsBySearch } from "../../utils/fileContentUtils";
 import { graphqlRequest } from "../../utils/graphqlClient";
 import { SYSTEM_PROMPT } from "./ai.systemPrompt";
 import { createTools } from "./ai.tools";
+import {
+  applyToolCallDelta,
+  setPlannedToolCalls,
+  setToolCallStatus,
+  attachToolCallsToLastAssistantMessage,
+  addAssistantBubbleWithToolCalls,
+} from "./orchestrator.utils";
 
 const defaultSettings: ChatSettings = {
   openaiApiKey: null,
@@ -380,16 +387,7 @@ export const useChatState = (opts?: {
             };
 
             // Ensure UI shows planned tool calls even if no deltas were streamed
-            setChatState((prev) => ({
-              ...prev,
-              thinkingStage: "processing",
-              toolCalls: toolCalls.map((c, i) => ({
-                id: c.id || String(i),
-                name: c.name,
-                argsPreview: c.argsText || "",
-                status: "pending",
-              })),
-            }));
+            setPlannedToolCalls(setChatState, toolCalls);
 
             const toolResults: AiMessage[] = [];
             for (let i = 0; i < toolCalls.length; i++) {
@@ -401,26 +399,15 @@ export const useChatState = (opts?: {
                 argsObj = c.argsText ? JSON.parse(c.argsText) : {};
               } catch {}
               // mark this call as running
-              setChatState((prev) => ({
-                ...prev,
-                toolCalls: (prev.toolCalls || []).map((t, idx) =>
-                  idx === i ? { ...t, status: "running" } : t
-                ),
-              }));
+              setToolCallStatus(setChatState, i, "running");
               const result = await tool.run(argsObj);
               // show a small preview of the result
-              setChatState((prev) => ({
-                ...prev,
-                toolCalls: (prev.toolCalls || []).map((t, idx) =>
-                  idx === i
-                    ? {
-                        ...t,
-                        status: "done",
-                        resultPreview: JSON.stringify(result, null, 2),
-                      }
-                    : t
-                ),
-              }));
+              setToolCallStatus(
+                setChatState,
+                i,
+                "done",
+                JSON.stringify(result, null, 2)
+              );
               toolResults.push({
                 role: "tool",
                 content: JSON.stringify(result),
@@ -442,26 +429,9 @@ export const useChatState = (opts?: {
                 txt.trim().length > 0
                   ? prev.messages
                   : prev.messages.filter((m) => m.id !== assistantMessageId);
-              return {
-                ...prev,
-                messages: [
-                  ...keep,
-                  {
-                    id: assistantMessageId2,
-                    author: "bot",
-                    type: "text",
-                    text: "",
-                    timestamp: Date.now(),
-                    toolCalls: (prev.toolCalls || []).map((t) => ({
-                      id: t.id,
-                      name: t.name,
-                      argsPreview: t.argsPreview,
-                      resultPreview: t.resultPreview,
-                    })),
-                  } as TextMessage,
-                ],
-              };
+              return { ...prev, messages: keep };
             });
+            addAssistantBubbleWithToolCalls(setChatState, assistantMessageId2);
 
             let secondAccumulated = "";
             const secondMessages = [
@@ -506,27 +476,7 @@ export const useChatState = (opts?: {
                 },
                 onToolCallDelta: (delta2: any) => {
                   secondAccumulator.accept(delta2);
-                  setChatState((prev) => {
-                    const existing = prev.toolCalls || [];
-                    const idx = delta2.index;
-                    const prevItem = existing[idx];
-                    const name = delta2.function?.name || prevItem?.name;
-                    const nextArgs =
-                      (prevItem?.argsPreview || "") +
-                      (delta2.function?.arguments || "");
-                    const updated = existing.slice();
-                    updated[idx] = {
-                      id: delta2.id || prevItem?.id || String(idx),
-                      name,
-                      argsPreview: nextArgs,
-                      status: "running",
-                    };
-                    return {
-                      ...prev,
-                      thinkingStage: "processing",
-                      toolCalls: updated,
-                    };
-                  });
+                  applyToolCallDelta(setChatState, delta2);
                 },
                 onUsage: (usage: any) => {
                   usageTotals = {
@@ -553,31 +503,7 @@ export const useChatState = (opts?: {
                 },
                 onFinish: async () => {
                   // Attach tool calls summary to the last assistant text message
-                  setChatState((prev) => {
-                    const calls = prev.toolCalls || [];
-                    if (!calls.length) return prev;
-                    let lastBotIndex: number | undefined = undefined;
-                    for (let i = prev.messages.length - 1; i >= 0; i--) {
-                      const mm = prev.messages[i];
-                      if (mm.author === "bot" && mm.type === "text") {
-                        lastBotIndex = i;
-                        break;
-                      }
-                    }
-                    if (lastBotIndex === undefined) return prev;
-                    const nextMessages = prev.messages.slice();
-                    const existing = nextMessages[lastBotIndex] as TextMessage;
-                    nextMessages[lastBotIndex] = {
-                      ...(existing as TextMessage),
-                      toolCalls: calls.map((t) => ({
-                        id: t.id,
-                        name: t.name,
-                        argsPreview: t.argsPreview,
-                        resultPreview: t.resultPreview,
-                      })),
-                    } as TextMessage;
-                    return { ...prev, messages: nextMessages };
-                  });
+                  attachToolCallsToLastAssistantMessage(setChatState);
 
                   // If second turn requested tools, execute them and follow-up once more
                   const toolCalls2 = secondAccumulator.list();
@@ -595,16 +521,7 @@ export const useChatState = (opts?: {
                         })),
                       };
 
-                      setChatState((prev) => ({
-                        ...prev,
-                        thinkingStage: "processing",
-                        toolCalls: toolCalls2.map((c: any, i: number) => ({
-                          id: c.id || String(i),
-                          name: c.name,
-                          argsPreview: c.argsText || "",
-                          status: "pending",
-                        })),
-                      }));
+                      setPlannedToolCalls(setChatState, toolCalls2);
 
                       const toolResults2: AiMessage[] = [];
                       for (let i = 0; i < toolCalls2.length; i++) {
@@ -615,29 +532,14 @@ export const useChatState = (opts?: {
                         try {
                           argsObj = c.argsText ? JSON.parse(c.argsText) : {};
                         } catch {}
-                        setChatState((prev) => ({
-                          ...prev,
-                          toolCalls: (prev.toolCalls || []).map((t, idx) =>
-                            idx === i ? { ...t, status: "running" } : t
-                          ),
-                        }));
+                        setToolCallStatus(setChatState, i, "running");
                         const result = await tool.run(argsObj);
-                        setChatState((prev) => ({
-                          ...prev,
-                          toolCalls: (prev.toolCalls || []).map((t, idx) =>
-                            idx === i
-                              ? {
-                                  ...t,
-                                  status: "done",
-                                  resultPreview: JSON.stringify(
-                                    result,
-                                    null,
-                                    2
-                                  ),
-                                }
-                              : t
-                          ),
-                        }));
+                        setToolCallStatus(
+                          setChatState,
+                          i,
+                          "done",
+                          JSON.stringify(result, null, 2)
+                        );
                         toolResults2.push({
                           role: "tool",
                           content: JSON.stringify(result),
@@ -647,31 +549,17 @@ export const useChatState = (opts?: {
                       }
 
                       const assistantMessageId3 = `b-${Date.now()}-3`;
-                      setChatState((prev) => ({
-                        ...prev,
-                        messages: [
-                          ...prev.messages,
-                          {
-                            id: assistantMessageId3,
-                            author: "bot",
-                            type: "text",
-                            text: "",
-                            timestamp: Date.now(),
-                            toolCalls: (prev.toolCalls || []).map((t) => ({
-                              id: t.id,
-                              name: t.name,
-                              argsPreview: t.argsPreview,
-                              resultPreview: t.resultPreview,
-                            })),
-                          } as TextMessage,
-                        ],
-                      }));
+                      addAssistantBubbleWithToolCalls(
+                        setChatState,
+                        assistantMessageId3
+                      );
 
                       let thirdAccumulated = "";
                       const thirdMessages = [
                         ...buildRequestMessages(
                           SYSTEM_PROMPT,
-                          overrideInclude ?? (chatState.chatContext?.include || {}),
+                          overrideInclude ??
+                            (chatState.chatContext?.include || {}),
                           prior,
                           expanded.modelText,
                           docsBundle
@@ -733,33 +621,7 @@ export const useChatState = (opts?: {
                             }));
                           },
                           onFinish: () => {
-                            setChatState((prev) => {
-                              const calls = prev.toolCalls || [];
-                              if (!calls.length) return prev;
-                              let lastBotIndex: number | undefined = undefined;
-                              for (let i = prev.messages.length - 1; i >= 0; i--) {
-                                const mm = prev.messages[i];
-                                if (mm.author === "bot" && mm.type === "text") {
-                                  lastBotIndex = i;
-                                  break;
-                                }
-                              }
-                              if (lastBotIndex === undefined) return prev;
-                              const nextMessages = prev.messages.slice();
-                              const existing = nextMessages[
-                                lastBotIndex
-                              ] as TextMessage;
-                              nextMessages[lastBotIndex] = {
-                                ...(existing as TextMessage),
-                                toolCalls: calls.map((t) => ({
-                                  id: t.id,
-                                  name: t.name,
-                                  argsPreview: t.argsPreview,
-                                  resultPreview: t.resultPreview,
-                                })),
-                              } as TextMessage;
-                              return { ...prev, messages: nextMessages };
-                            });
+                            attachToolCallsToLastAssistantMessage(setChatState);
 
                             // If the full 2- or 3-turn flow produced no assistant text, trigger a fallback inference
                             setTimeout(() => {
@@ -769,7 +631,8 @@ export const useChatState = (opts?: {
                                 .find(
                                   (m) => m.author === "bot" && m.type === "text"
                                 ) as TextMessage | undefined;
-                              const empty = !lastBot || !(lastBot.text || "").trim();
+                              const empty =
+                                !lastBot || !(lastBot.text || "").trim();
                               if (empty) {
                                 const retryPrompt =
                                   "Re-evaluate the provided context and produce a concise answer, as the prior step only used tool calls without output.";
@@ -800,7 +663,9 @@ export const useChatState = (opts?: {
                       );
                     } catch (e) {
                       const extra = `❌ Tool execution failed: ${String(e)}`;
-                      const sep = secondAccumulated.endsWith("\n") ? "" : "\n\n";
+                      const sep = secondAccumulated.endsWith("\n")
+                        ? ""
+                        : "\n\n";
                       const withError = secondAccumulated + sep + extra;
                       setChatState((prev) => ({
                         ...prev,
@@ -896,27 +761,7 @@ export const useChatState = (opts?: {
             onToolCallDelta: (delta: any) => {
               accumulator.accept(delta);
               // reflect live tool-call info in UI
-              setChatState((prev) => {
-                const existing = prev.toolCalls || [];
-                const idx = delta.index;
-                const prevItem = existing[idx];
-                const name = delta.function?.name || prevItem?.name;
-                const nextArgs =
-                  (prevItem?.argsPreview || "") +
-                  (delta.function?.arguments || "");
-                const updated = existing.slice();
-                updated[idx] = {
-                  id: delta.id || prevItem?.id || String(idx),
-                  name,
-                  argsPreview: nextArgs,
-                  status: "running",
-                };
-                return {
-                  ...prev,
-                  thinkingStage: "processing",
-                  toolCalls: updated,
-                };
-              });
+              applyToolCallDelta(setChatState, delta);
             },
             onUsage: (usage: any) => {
               usageTotals = {

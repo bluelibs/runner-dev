@@ -12,6 +12,8 @@ import "./SchemaRenderer.scss";
 
 export interface SchemaRendererProps {
   schemaString?: string | null;
+  onJsonChange?: (jsonString: string, data: any) => void;
+  hidePrint?: boolean;
 }
 
 type JsonSchema = {
@@ -107,6 +109,8 @@ function derefLocal(
 
 export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   schemaString,
+  onJsonChange,
+  hidePrint,
 }) => {
   const [activeTab, setActiveTab] = React.useState<"print" | "form" | "json">(
     "print"
@@ -301,6 +305,17 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     }
   }, [formData]);
 
+  // Emit live JSON (minified) and the data object when the form changes
+  React.useEffect(() => {
+    if (!onJsonChange) return;
+    try {
+      const minified = JSON.stringify(formData ?? {});
+      onJsonChange(minified, formData);
+    } catch {
+      onJsonChange("{}", formData);
+    }
+  }, [formData, onJsonChange]);
+
   const copyJson = async () => {
     try {
       await navigator.clipboard.writeText(jsonString);
@@ -315,15 +330,17 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   return (
     <div className="schema-renderer">
       <div className="schema-renderer__tabs">
-        <button
-          type="button"
-          className={`schema-renderer__tab ${
-            activeTab === "print" ? "is-active" : ""
-          }`}
-          onClick={() => setActiveTab("print")}
-        >
-          Print
-        </button>
+        {!hidePrint && (
+          <button
+            type="button"
+            className={`schema-renderer__tab ${
+              activeTab === "print" ? "is-active" : ""
+            }`}
+            onClick={() => setActiveTab("print")}
+          >
+            Print
+          </button>
+        )}
         <button
           type="button"
           className={`schema-renderer__tab ${
@@ -353,7 +370,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
         </button>
       </div>
 
-      {activeTab === "print" && (
+      {!hidePrint && activeTab === "print" && (
         <pre className="schema-renderer__code-block">
           {formatSchema(schemaString)}
         </pre>

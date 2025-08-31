@@ -254,6 +254,7 @@
         font-size: $font-size-sm;
         line-height: 1.4;
         position: relative;
+        overflow: hidden;
 
         // Message content styling
         .message-text {

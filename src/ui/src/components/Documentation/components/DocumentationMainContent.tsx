@@ -121,6 +121,10 @@ export const DocumentationMainContent: React.FC<
               <h3>Hooks</h3>
               <div className="count">{hooks.length}</div>
             </a>
+            <a href="#tags" className="card card--tags">
+              <h3>Tags</h3>
+              <div className="count">{tags.length}</div>
+            </a>
           </div>
         </section>
 

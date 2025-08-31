@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 
 export interface ClickOutsideProps {
   children: React.ReactNode;
-  onClickOutside: () => void;
+  onClickOutside: (event?: MouseEvent) => void;
   className?: string;
   style?: React.CSSProperties;
   enabled?: boolean;
@@ -25,7 +25,7 @@ export const ClickOutside: React.FC<ClickOutsideProps> = ({
       if (!root) return;
       const target = event.target as Node | null;
       if (target && !root.contains(target)) {
-        onClickOutside();
+        onClickOutside(event);
       }
     };
 

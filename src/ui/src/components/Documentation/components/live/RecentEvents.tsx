@@ -75,10 +75,23 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
                   <span className="entry-time">
                     {formatTimestamp(emission.timestampMs)}
                   </span>
-                  <span className="entry-event">{emission.eventId}</span>
+                  <a 
+                    href={`#element-${emission.eventId}`}
+                    className="entry-event entry-event--link"
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    {emission.eventId}
+                  </a>
                   {emission.emitterId && (
                     <span className="entry-emitter">
-                      from {emission.emitterId}
+                      from{" "}
+                      <a 
+                        href={`#element-${emission.emitterId}`}
+                        className="entry-emitter--link"
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                      >
+                        {emission.emitterId}
+                      </a>
                     </span>
                   )}
                   {emission.payload && (

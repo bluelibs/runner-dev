@@ -296,7 +296,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <>
               <button
                 className="sidebar-header__action-btn"
-                onClick={() => setIsSettingsOpen((v) => !v)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsSettingsOpen((v) => !v);
+                }}
                 title="Settings"
               >
                 ⚙️
@@ -346,7 +350,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               borderTop: "1px solid #eee",
               borderBottom: "1px solid #eee",
             }}
-            onClickOutside={() => setIsSettingsOpen(false)}
+            onClickOutside={(event) => {
+              // Don't close if clicking the settings button itself
+              if (event) {
+                const target = event.target as Element;
+                if (target?.closest('button[title="Settings"]')) {
+                  return;
+                }
+              }
+              setIsSettingsOpen(false);
+            }}
           >
             <ChatSettingsForm
               settings={chatState.settings}

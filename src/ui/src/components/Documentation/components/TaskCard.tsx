@@ -16,6 +16,7 @@ import {
 import { TagsSection } from "./TagsSection";
 import "./TaskCard.scss";
 import { SchemaRenderer } from "./SchemaRenderer";
+import ExecuteModal from "./ExecuteModal";
 export interface TaskCardProps {
   task: Task;
   introspector: Introspector;
@@ -33,6 +34,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const [coverageDetailsText, setCoverageDetailsText] = React.useState<
     string | null
   >(null);
+  const [isExecuteOpen, setIsExecuteOpen] = React.useState(false);
 
   async function openFileModal() {
     if (!task?.id) return;
@@ -93,6 +95,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
             {task.meta?.description && (
               <p className="task-card__description">{task.meta.description}</p>
             )}
+          </div>
+          <div className="task-card__actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setIsExecuteOpen(true)}
+              title="Run Task"
+            >
+              🏃
+            </button>
           </div>
         </div>
       </div>
@@ -367,6 +379,47 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         code={loading ? "Loading..." : error ? `Error: ${error}` : fileContent}
         enableEdit={Boolean(task.filePath)}
         saveOnFile={task.filePath || null}
+      />
+
+      <ExecuteModal
+        isOpen={isExecuteOpen}
+        title={task.meta?.title || formatId(task.id)}
+        schemaString={task.inputSchema}
+        onClose={() => setIsExecuteOpen(false)}
+        onInvoke={async ({ inputJson }) => {
+          const INVOKE_TASK_MUTATION = `
+            mutation InvokeTask($taskId: ID!, $inputJson: String, $evalInput: Boolean) {
+              invokeTask(taskId: $taskId, inputJson: $inputJson, evalInput: $evalInput) {
+                success
+                error
+                result
+                invocationId
+              }
+            }
+          `;
+
+          try {
+            const res = await graphqlRequest<{
+              invokeTask: {
+                success: boolean;
+                error?: string | null;
+                result?: string | null;
+                invocationId?: string | null;
+              };
+            }>(INVOKE_TASK_MUTATION, {
+              taskId: task.id,
+              inputJson: inputJson?.trim() || undefined,
+              evalInput: false,
+            });
+
+            return {
+              output: res.invokeTask.result ?? undefined,
+              error: res.invokeTask.error ?? undefined,
+            };
+          } catch (e: any) {
+            return { error: e?.message ?? String(e) };
+          }
+        }}
       />
 
       <CodeModal

@@ -83,16 +83,27 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                 <div
                   key={`${error.timestampMs}-${idx}`}
                   className="live-entry live-entry--error"
+                  style={{ display: "flex", alignItems: "center" }}
                 >
                   <span className="entry-time">
                     {formatTimestamp(error.timestampMs)}
                   </span>
-                  <span className="entry-source">
+                  <a
+                    href={`#element-${error.sourceId}`}
+                    className="entry-source"
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
                     {error.sourceKind}:{error.sourceId}
-                  </span>
+                  </a>
                   {/* <span className="entry-message">{error.message}</span> */}
                   {error.stack && (
-                    <>
+                    <div
+                      style={{
+                        marginLeft: "auto",
+                        display: "flex",
+                        gap: "8px",
+                      }}
+                    >
                       <button
                         className="entry-payload-button"
                         onClick={() =>
@@ -122,7 +133,7 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                       >
                         ✦
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               ))}
@@ -155,22 +166,46 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                     {formatTimestamp(run.timestampMs)}
                   </span>
                   <span className="entry-status">{run.ok ? "✅" : "❌"}</span>
-                  <span className="entry-node">
+                  <a
+                    href={`#element-${run.nodeId}`}
+                    className="entry-node"
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
                     {run.nodeKind}:{run.nodeId}
-                  </span>
+                  </a>
                   {run.durationMs && (
                     <span className="entry-duration">
                       {run.durationMs.toFixed(1)}ms
                     </span>
                   )}
-                  {run.error && (
-                    <button
+                  <div
+                    style={{ marginLeft: "auto", display: "flex", gap: "8px" }}
+                  >
+                    {run.error && (
+                      <button
+                        className="entry-payload-button"
+                        onClick={() => openErrorModal(run.error!, run.nodeId)}
+                      >
+                        View Error
+                      </button>
+                    )}
+                    {/* <button
                       className="entry-payload-button"
-                      onClick={() => openErrorModal(run.error!, run.nodeId)}
+                      title="Replay this task"
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new CustomEvent("docs:replay-task", {
+                            detail: { 
+                              nodeId: run.nodeId,
+                              nodeKind: run.nodeKind
+                            },
+                          })
+                        );
+                      }}
                     >
-                      View Error
-                    </button>
-                  )}
+                      🔄 Replay
+                    </button> */}
+                  </div>
                 </div>
               ))}
           </div>

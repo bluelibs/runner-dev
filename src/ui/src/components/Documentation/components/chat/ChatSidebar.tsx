@@ -151,6 +151,35 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     setCodeModal((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
+  // Keep refs to latest handlers/values so we can attach a single global listener
+  const sendMessageWithTextRef =
+    useRef<(messageText: string, displayText?: string) => void>(
+      sendMessageWithText
+    );
+  const isChatOpenRef = useRef<boolean>(isChatOpen);
+  const onToggleChatRef = useRef<() => void>(onToggleChat);
+
+  useEffect(() => {
+    sendMessageWithTextRef.current = sendMessageWithText;
+    isChatOpenRef.current = isChatOpen;
+    onToggleChatRef.current = onToggleChat;
+  }, [sendMessageWithText, isChatOpen, onToggleChat]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail: any = (e as CustomEvent).detail || {};
+      const messageText: string = detail.messageText || "";
+      const displayText: string | undefined = detail.displayText || undefined;
+      if (!messageText) return;
+      // open chat panel if closed so user sees the message
+      if (!isChatOpenRef.current) onToggleChatRef.current();
+      sendMessageWithTextRef.current(messageText, displayText);
+    };
+    window.addEventListener("docs:add-to-ai", handler as EventListener);
+    return () =>
+      window.removeEventListener("docs:add-to-ai", handler as EventListener);
+  }, []);
+
   // Handle tagged element selection
   const handleTaggedElementSelect = useCallback(
     (elementId: string, elementType: string) => {

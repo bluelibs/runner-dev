@@ -92,14 +92,37 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                   </span>
                   {/* <span className="entry-message">{error.message}</span> */}
                   {error.stack && (
-                    <button
-                      className="entry-payload-button"
-                      onClick={() =>
-                        openErrorModal(error.stack!, error.sourceId)
-                      }
-                    >
-                      View Stack Trace
-                    </button>
+                    <>
+                      <button
+                        className="entry-payload-button"
+                        onClick={() =>
+                          openErrorModal(error.stack!, error.sourceId)
+                        }
+                      >
+                        View Stack Trace
+                      </button>
+
+                      <button
+                        className="entry-payload-button"
+                        title="Add to AI"
+                        onClick={() => {
+                          const source =
+                            (error.sourceResolved && error.sourceResolved.id) ||
+                            error.sourceId;
+                          const messageText = `I have the following error on @${source}: ${
+                            error.message
+                          } with stack:\n${error.stack || ""}`;
+                          const displayText = messageText;
+                          window.dispatchEvent(
+                            new CustomEvent("docs:add-to-ai", {
+                              detail: { messageText, displayText },
+                            })
+                          );
+                        }}
+                      >
+                        ✦
+                      </button>
+                    </>
                   )}
                 </div>
               ))}

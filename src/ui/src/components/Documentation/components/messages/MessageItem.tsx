@@ -29,8 +29,7 @@ export const MessageItem: React.FC<Props> = React.memo(
         } else {
           const textarea = document.createElement("textarea");
           textarea.value = text;
-          textarea.style.position = "fixed";
-          textarea.style.opacity = "0";
+          textarea.className = "clipboard-textarea";
           document.body.appendChild(textarea);
           textarea.focus();
           textarea.select();
@@ -96,14 +95,11 @@ export const MessageItem: React.FC<Props> = React.memo(
               const calls = tm.toolCalls || [];
               if (!calls.length) return null;
               return (
-                <details
-                  className="message-tool-calls"
-                  style={{ marginTop: 8 }}
-                >
-                  <summary style={{ cursor: "pointer", opacity: 0.85 }}>
+                <details className="message-tool-calls">
+                  <summary>
                     Used tools ({calls.length})
                   </summary>
-                  <div style={{ marginTop: 6 }}>
+                  <div className="tool-calls-content">
                     <ToolCallsList
                       calls={calls}
                       showStatus={false}

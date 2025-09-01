@@ -85,10 +85,7 @@ export async function main(argv: string[]): Promise<void> {
     const flags = alignRows(
       [
         [c.yellow("--install"), "Install dependencies after scaffold"],
-        [
-          c.yellow("--run"),
-          "Run 'npm run dev' after scaffold (keeps running)",
-        ],
+        [c.yellow("--run"), "Run 'npm run dev' after scaffold (keeps running)"],
         [c.yellow("--run-tests"), "Run 'npm test' after scaffold"],
       ],
       { gap: 4, indent: 2 }
@@ -112,8 +109,7 @@ export async function main(argv: string[]): Promise<void> {
     const env = alignRows(
       [
         [c.bold("ENDPOINT / GRAPHQL_ENDPOINT"), "GraphQL endpoint URL"],
-        [c.bold(headersExample), "Add HTTP headers (JSON)"]
-        ,
+        [c.bold(headersExample), "Add HTTP headers (JSON)"],
         [c.bold("ALLOW_MUTATIONS=true"), "Enable mutations tool"],
       ],
       { gap: 4, indent: 2 }
@@ -174,14 +170,7 @@ export async function main(argv: string[]): Promise<void> {
       // Force non-interactive Jest inside the generated project to avoid watch mode hangs
       await runCommand(
         "npm",
-        [
-          "run",
-          "test",
-          "--",
-          "--ci",
-          "--watchAll=false",
-          "--runInBand",
-        ],
+        ["run", "test", "--", "--ci", "--watchAll=false", "--runInBand"],
         targetDir
       );
     } else if (shouldRunTests && SKIP_TESTS) {
@@ -219,7 +208,9 @@ export async function main(argv: string[]): Promise<void> {
   }
 
   const nsArg =
-    getFlagValue(flagArgs, "ns") || getFlagValue(flagArgs, "namespace") || "app";
+    getFlagValue(flagArgs, "ns") ||
+    getFlagValue(flagArgs, "namespace") ||
+    "app";
   const baseDir = getFlagValue(flagArgs, "dir") || "src";
   const dryRun = flagSet.has("dry") || flagSet.has("dry-run");
   const addIndex = flagSet.has("export") || flagSet.has("add-export");
@@ -245,7 +236,9 @@ export async function main(argv: string[]): Promise<void> {
 
   // eslint-disable-next-line no-console
   console.log(
-    `\n${c.green("Created")} ${c.bold(path.relative(process.cwd(), res.filePath))}\n` +
+    `\n${c.green("Created")} ${c.bold(
+      path.relative(process.cwd(), res.filePath)
+    )}\n` +
       alignRows(
         [
           [c.cyan("id"), res.id],
@@ -265,7 +258,9 @@ async function ensureEmptyDir(dir: string): Promise<void> {
     if (entries.length > 0) {
       // eslint-disable-next-line no-console
       console.error(
-        `Target directory '${path.basename(dir)}' already exists and is not empty.`
+        `Target directory '${path.basename(
+          dir
+        )}' already exists and is not empty.`
       );
       process.exit(1);
     }

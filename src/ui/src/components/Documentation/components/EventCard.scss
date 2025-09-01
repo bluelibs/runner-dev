@@ -2,6 +2,7 @@
 // EVENT CARD COMPONENT STYLES
 // =============================================================================
 @use "../../../styles/variables" as *;
+@use "../../../styles/mixins" as *;
 
 // -----------------------------------------------------------------------------
 // Event Card Base
@@ -168,6 +169,23 @@
 
     &--status {
       font-weight: 500;
+      
+      // Status color classes
+      &.status-unused {
+        color: var(--docs-text-muted);
+      }
+      
+      &.status-no-emitters {
+        color: var(--docs-danger);
+      }
+      
+      &.status-no-listeners {
+        color: var(--docs-warning);
+      }
+      
+      &.status-active {
+        color: var(--docs-success);
+      }
     }
   }
 }

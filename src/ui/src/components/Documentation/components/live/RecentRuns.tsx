@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CodeModal } from "../CodeModal";
+import "./RecentRuns.scss";
 
 interface RunRecord {
   timestampMs: number;
@@ -64,18 +65,12 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
   };
 
   return (
-    <div className="" style={{ marginBottom: "20px" }}>
+    <div className="recent-runs">
       {/* Recent Errors */}
       {errors.length > 0 && (
-        <div style={{ marginBottom: "15px" }}>
+        <div className="errors-section">
           <h4>❌ Recent Errors ({errors.length})</h4>
-          <div
-            className="live-entries"
-            style={{
-              maxHeight: "300px",
-              overflowY: "auto",
-            }}
-          >
+          <div className="live-entries">
             {errors
               .slice(-10)
               .reverse()
@@ -83,7 +78,6 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                 <div
                   key={`${error.timestampMs}-${idx}`}
                   className="live-entry live-entry--error"
-                  style={{ display: "flex", alignItems: "center" }}
                 >
                   <span className="entry-time">
                     {formatTimestamp(error.timestampMs)}
@@ -91,19 +85,12 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                   <a
                     href={`#element-${error.sourceId}`}
                     className="entry-source"
-                    style={{ textDecoration: "none", color: "inherit" }}
                   >
                     {error.sourceKind}:{error.sourceId}
                   </a>
                   {/* <span className="entry-message">{error.message}</span> */}
                   {error.stack && (
-                    <div
-                      style={{
-                        marginLeft: "auto",
-                        display: "flex",
-                        gap: "8px",
-                      }}
-                    >
+                    <div className="entry-actions">
                       <button
                         className="clean-button"
                         onClick={() =>
@@ -143,15 +130,9 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
 
       {/* Recent Runs */}
       {runs.length > 0 && (
-        <div>
+        <div className="runs-section">
           <h4>🏃 Recent Runs ({runs.length})</h4>
-          <div
-            className="live-entries"
-            style={{
-              maxHeight: "300px",
-              overflowY: "auto",
-            }}
-          >
+          <div className="live-entries">
             {runs
               .slice(-10)
               .reverse()
@@ -174,9 +155,7 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                       {run.durationMs.toFixed(1)}ms
                     </span>
                   )}
-                  <div
-                    style={{ marginLeft: "auto", display: "flex", gap: "8px" }}
-                  >
+                  <div className="entry-actions">
                     {run.error && (
                       <button
                         className="clean-button"

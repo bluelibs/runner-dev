@@ -1,4 +1,5 @@
 @use "../../../../styles/variables" as *;
+@use "../../../../styles/mixins" as *;
 
 // -----------------------------------------------------------------------------
 // Message Item Component Styles
@@ -208,6 +209,36 @@
       }
     }
   }
+  
+  // Message tool calls section
+  .message-tool-calls {
+    margin-top: $spacing-sm;
+    
+    summary {
+      cursor: pointer;
+      opacity: 0.85;
+      color: var(--docs-text-secondary);
+      font-size: $font-size-sm;
+      font-weight: 500;
+      
+      &:hover {
+        opacity: 1;
+        color: var(--docs-text-primary);
+      }
+    }
+    
+    .tool-calls-content {
+      margin-top: $spacing-xs;
+    }
+  }
+}
+
+// Utility class for clipboard operations
+.clipboard-textarea {
+  position: fixed !important;
+  opacity: 0 !important;
+  pointer-events: none;
+  z-index: -1;
 }
 
 // Dark mode is now the default

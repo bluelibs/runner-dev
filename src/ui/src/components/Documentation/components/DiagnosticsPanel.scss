@@ -2,12 +2,68 @@
 // DIAGNOSTICS PANEL COMPONENT STYLES
 // =============================================================================
 @use "../../../styles/variables" as *;
+@use "../../../styles/mixins" as *;
 
 // -----------------------------------------------------------------------------
 // Diagnostics Panel Base
 // -----------------------------------------------------------------------------
 .diagnostics-panel {
-  // Base container styles handled by parent component
+  display: flex;
+  gap: $spacing-lg;
+  
+  &__content {
+    flex: 1;
+  }
+  
+  &__tabs {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    min-width: 200px;
+  }
+  
+  &__tab {
+    @include docs-button(ghost);
+    justify-content: space-between;
+    text-align: left;
+    
+    &--active {
+      background: var(--docs-primary-bg);
+      color: var(--docs-primary);
+    }
+    
+    &-count {
+      background: var(--docs-text-muted);
+      color: var(--docs-bg-primary);
+      border-radius: $border-radius-pill;
+      padding: 2px 6px;
+      font-size: $font-size-xs;
+      min-width: 20px;
+      text-align: center;
+    }
+  }
+  
+  &__success-state {
+    @include docs-panel($spacing-lg);
+    background: var(--docs-warning-bg);
+    border: 1px solid var(--docs-warning-text);
+    text-align: center;
+    
+    .icon {
+      font-size: $font-size-xl;
+      margin-bottom: $spacing-sm;
+    }
+    
+    h4 {
+      color: var(--docs-text-primary);
+      margin-bottom: $spacing-sm;
+    }
+    
+    p {
+      color: var(--docs-text-secondary);
+      margin: 0;
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------

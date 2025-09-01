@@ -392,25 +392,11 @@ export const LivePanel: React.FC<LivePanelProps> = ({
       </div>
 
       {/* Main Grid Layout */}
-      <div
-        className="live-main-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr",
-          gap: "20px",
-        }}
-      >
+      <div className="live-main-grid">
         {/* System Health - Full Width */}
         <div className="live-section live-section--health">
           <h3>🖥️ System Health</h3>
-          <div
-            className="health-metrics"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: "20px",
-            }}
-          >
+          <div className="health-metrics">
             <div className="metric">
               <span className="metric-label">Memory</span>
               <span className="metric-value">
@@ -453,14 +439,7 @@ export const LivePanel: React.FC<LivePanelProps> = ({
         </div>
 
         {/* Recent Events and Runs - stacked */}
-        <div
-          className="live-events-runs-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: "16px",
-          }}
-        >
+        <div className="live-events-runs-grid">
           <div className="live-section">
             <RecentEvents emissions={liveData.emissions} detailed={detailed} />
           </div>

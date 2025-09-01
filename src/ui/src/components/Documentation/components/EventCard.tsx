@@ -58,10 +58,10 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   const getEventStatus = () => {
     if (emitters.length === 0 && hooks.length === 0)
-      return { text: "Unused", color: "#6c757d" };
-    if (emitters.length === 0) return { text: "No Emitters", color: "#dc3545" };
-    if (hooks.length === 0) return { text: "No Listeners", color: "#fd7e14" };
-    return { text: "Active", color: "#28a745" };
+      return { text: "Unused", className: "status-unused" };
+    if (emitters.length === 0) return { text: "No Emitters", className: "status-no-emitters" };
+    if (hooks.length === 0) return { text: "No Listeners", className: "status-no-listeners" };
+    return { text: "Active", className: "status-active" };
   };
 
   const status = getEventStatus();
@@ -165,8 +165,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <div className="event-card__info-block">
                   <div className="label">Event Status:</div>
                   <div
-                    className="value value--status"
-                    style={{ color: status.color }}
+                    className={`value value--status ${status.className}`}
                   >
                     {status.text}
                   </div>

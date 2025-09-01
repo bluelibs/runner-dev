@@ -5,7 +5,12 @@ type TemplateParams = {
   pascal: string;
 };
 
-export function resourceTemplate({ header, id, camel, pascal }: TemplateParams): string {
+export function resourceTemplate({
+  header,
+  id,
+  camel,
+  pascal,
+}: TemplateParams): string {
   return `${header}
 import { resource } from '@bluelibs/runner';
 
@@ -30,7 +35,12 @@ export const ${camel} = resource({
 `;
 }
 
-export function taskTemplate({ header, id, camel, pascal }: TemplateParams): string {
+export function taskTemplate({
+  header,
+  id,
+  camel,
+  pascal,
+}: TemplateParams): string {
   return `${header}
 import { task } from '@bluelibs/runner';
 
@@ -55,7 +65,12 @@ export const ${camel} = task({
 `;
 }
 
-export function eventTemplate({ header, id, camel, pascal }: TemplateParams): string {
+export function eventTemplate({
+  header,
+  id,
+  camel,
+  pascal,
+}: TemplateParams): string {
   return `${header}
 import { event } from '@bluelibs/runner';
 
@@ -70,7 +85,12 @@ export const ${camel} = event<${pascal}Payload>({
 `;
 }
 
-export function tagTemplate({ header, id, camel, pascal }: TemplateParams): string {
+export function tagTemplate({
+  header,
+  id,
+  camel,
+  pascal,
+}: TemplateParams): string {
   return `${header}
 import { tag } from '@bluelibs/runner';
 
@@ -92,7 +112,12 @@ export const ${camel} = tag<${pascal}Config, ${pascal}InputContract, ${pascal}Re
 `;
 }
 
-export function taskMiddlewareTemplate({ header, id, camel, pascal }: TemplateParams): string {
+export function taskMiddlewareTemplate({
+  header,
+  id,
+  camel,
+  pascal,
+}: TemplateParams): string {
   return `${header}
 import { taskMiddleware } from '@bluelibs/runner';
 
@@ -121,7 +146,12 @@ export const ${camel} = taskMiddleware<${pascal}Config, ${pascal}Input, ${pascal
 `;
 }
 
-export function resourceMiddlewareTemplate({ header, id, camel, pascal }: TemplateParams): string {
+export function resourceMiddlewareTemplate({
+  header,
+  id,
+  camel,
+  pascal,
+}: TemplateParams): string {
   return `${header}
 import { resourceMiddleware } from '@bluelibs/runner';
 

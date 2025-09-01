@@ -4,7 +4,8 @@ import { c, alignRows, divider, indentLines } from "./cli/format";
 
 // Allow running the CLI directly via ts-node without a JS build.
 // Detect TS runtime by the current filename extension.
-const isTsRuntime = typeof __filename === "string" && __filename.endsWith(".ts");
+const isTsRuntime =
+  typeof __filename === "string" && __filename.endsWith(".ts");
 
 async function loadModule(basePath: string): Promise<any> {
   if (isTsRuntime) {
@@ -75,14 +76,26 @@ async function run(): Promise<void> {
           "runner-dev schema sdl"
         )} --endpoint http://localhost:1337/graphql`,
         `${c.gray("# Scaffold a project (default)")}`,
-        `${c.cmd("runner-dev new my-app")} ${c.gray("# same as 'new project my-app'")}`,
+        `${c.cmd("runner-dev new my-app")} ${c.gray(
+          "# same as 'new project my-app'"
+        )}`,
         `${c.gray("# Scaffold artifacts in an existing repo")}`,
-        `${c.cmd("runner-dev new resource user-service --ns app --dir src --export")}`,
-        `${c.cmd("runner-dev new task create-user --ns app.users --dir src --export")}`,
-        `${c.cmd("runner-dev new event user-registered --ns app.users --dir src --export")}`,
+        `${c.cmd(
+          "runner-dev new resource user-service --ns app --dir src --export"
+        )}`,
+        `${c.cmd(
+          "runner-dev new task create-user --ns app.users --dir src --export"
+        )}`,
+        `${c.cmd(
+          "runner-dev new event user-registered --ns app.users --dir src --export"
+        )}`,
         `${c.cmd("runner-dev new tag http --ns app.web --dir src --export")}`,
-        `${c.cmd("runner-dev new taskMiddleware auth --ns app --dir src --export")}`,
-        `${c.cmd("runner-dev new resourceMiddleware soft-delete --ns app --dir src --export")}`,
+        `${c.cmd(
+          "runner-dev new taskMiddleware auth --ns app --dir src --export"
+        )}`,
+        `${c.cmd(
+          "runner-dev new resourceMiddleware soft-delete --ns app --dir src --export"
+        )}`,
       ].join("\n"),
       2
     );

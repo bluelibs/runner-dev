@@ -106,7 +106,7 @@ export const TreeView: React.FC<TreeViewProps> = ({
           className={`tree-node ${isFocused ? "tree-node--focused" : ""} ${
             !isFolder ? "tree-node--leaf" : ""
           }`}
-          style={{ paddingLeft: `${depth * 10 + 8}px` }}
+          style={{ "--tree-depth": depth } as React.CSSProperties}
           onClick={handleNodeClick}
           tabIndex={0}
           role="treeitem"

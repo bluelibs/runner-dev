@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CodeModal } from "../CodeModal";
+import "./RecentEvents.scss";
 
 interface EmissionEntry {
   timestampMs: number;
@@ -49,15 +50,9 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
   };
 
   return (
-    <div className="" style={{ marginBottom: "20px" }}>
+    <div className="recent-events">
       <h4>📡 Recent Events ({emissions.length})</h4>
-      <div
-        className="live-entries"
-        style={{
-          maxHeight: "300px",
-          overflowY: "auto",
-        }}
-      >
+      <div className="live-entries">
         {emissions.length === 0 ? (
           <div className="live-entry">
             <span>No recent events</span>
@@ -77,8 +72,7 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
                   </span>
                   <a 
                     href={`#element-${emission.eventId}`}
-                    className="entry-event entry-event--link"
-                    style={{ textDecoration: 'none', color: 'inherit' }}
+                    className="entry-event"
                   >
                     {emission.eventId}
                   </a>
@@ -88,7 +82,6 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
                       <a 
                         href={`#element-${emission.emitterId}`}
                         className="entry-emitter--link"
-                        style={{ textDecoration: 'none', color: 'inherit' }}
                       >
                         {emission.emitterId}
                       </a>

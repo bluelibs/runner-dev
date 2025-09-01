@@ -224,7 +224,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   }
 
   return (
-    <div style={{ display: "flex", gap: "20px" }}>
+    <div className="diagnostics-panel">
       <div className="diagnostics-panel__tabs">
         {categories.map((category) => (
           <button
@@ -246,7 +246,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
         ))}
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div className="diagnostics-panel__content">
         {activeCategory === "summary" && (
           <div>
             <div className="diagnostics-panel__detailed-grid">
@@ -319,10 +319,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 .filter((d) => d.severity === "warning")
                 .map(renderDiagnosticItem)}
               {warningCount === 0 && (
-                <div
-                  className="diagnostics-panel__success-state"
-                  style={{ background: "#fff3cd", border: "1px solid #ffeaa7" }}
-                >
+                <div className="diagnostics-panel__success-state">
                   <div className="icon">👍</div>
                   <h4>No Warnings!</h4>
                   <p>No potential issues detected.</p>

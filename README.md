@@ -120,6 +120,19 @@ Help:
 npx @bluelibs/runner-dev --help
 ```
 
+Run CLI from TypeScript (no build):
+
+```bash
+# Using ts-node ESM loader
+node --loader ts-node/esm src/cli.ts query 'query { tasks { id } }' --entry-file ./src/main.ts
+
+# Or with tsx (recommended DX)
+npx tsx src/cli.ts query 'query { tasks { id } }' --entry-file ./src/main.ts
+
+# Or classic ts-node when configured
+npx ts-node src/cli.ts query 'query { tasks { id } }' --entry-file ./src/main.ts
+```
+
 Create new project:
 
 ```bash
@@ -154,6 +167,43 @@ npx @bluelibs/runner-dev new my-awesome-app --install --run-tests
 npx @bluelibs/runner-dev new my-awesome-app --install --run
 ```
 
+Scaffold artifacts (resource | task | event | tag | taskMiddleware | resourceMiddleware):
+
+```bash
+# General form
+npx @bluelibs/runner-dev new <kind> <name> [--ns app] [--dir src] [--export] [--dry]
+
+# Examples
+npx @bluelibs/runner-dev new resource user-service --ns app --dir src --export
+npx @bluelibs/runner-dev new task create-user --ns app.users --dir src --export
+npx @bluelibs/runner-dev new event user-registered --ns app.users --dir src --export
+npx @bluelibs/runner-dev new tag http --ns app.web --dir src --export
+npx @bluelibs/runner-dev new taskMiddleware auth --ns app --dir src --export
+npx @bluelibs/runner-dev new resourceMiddleware soft-delete --ns app --dir src --export
+```
+
+Flags for artifact scaffolding:
+
+- `--ns` / `--namespace`: namespace used when generating the id (default: `app`)
+- `--id <id>`: explicit id override (for example: `app.tasks.save`)
+- `--dir <dir>`: base directory under which files are created (default: `src`)
+- `--export`: append a re-export to an `index.ts` in the target folder for better auto-import UX
+- `--dry` / `--dry-run`: print the generated file without writing it
+
+Conventions:
+
+- Generated ids follow: `<namespace>.(resources|tasks|events|tags|middleware).<kebab-name>`
+- Folders:
+  - resources: `src/resources`
+  - tasks: `src/tasks`
+  - events: `src/events`
+  - tags: `src/tags`
+  - task middleware: `src/middleware/task`
+  - resource middleware: `src/middleware/resource`
+- The `--export` flag will add `export * from './<name>';` to the folder's `index.ts` (created if missing).
+
+Tip: run `npx @bluelibs/runner-dev new help` to see the full usage and examples for artifact scaffolding.
+
 Note: the `new` command requires the target directory to be empty. If the directory exists and is not empty, the command aborts with an error.
 
 The project name must contain only letters, numbers, dashes, and underscores.
@@ -170,9 +220,10 @@ Ping endpoint:
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev ping
 ```
 
-Run a query:
+Run a query (two modes):
 
 ```bash
+# Remote mode (HTTP endpoint)
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }'
 
 # With variables and pretty output
@@ -184,9 +235,12 @@ ENDPOINT=http://localhost:1337/graphql \
 
 # Add a namespace sugar to inject idIncludes/filter automatically
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }' --namespace task.
+
+# Dry‑run mode (no server) — uses a TS entry file
+npx @bluelibs/runner-dev query 'query { tasks { id } }' --entry-file ./src/main.ts
 ```
 
-Dry‑run (no server):
+Dry‑run (no server) details:
 
 ```bash
 # Using a TS entry file default export
@@ -201,7 +255,10 @@ npx @bluelibs/runner-dev query 'query { tasks { id } }' \
 # - Dry‑run compiles your entry, builds the Runner Store in-memory, and executes the query against
 #   an in-memory GraphQL schema. No HTTP server is started.
 # - TypeScript only. Requires ts-node at runtime. If missing, you'll be prompted to install it.
-# - Precedence: when --entry-file is provided, dry‑run mode is used; otherwise the CLI uses --endpoint/ENDPOINT.
+# - Selection logic:
+#   - If --entry-file is provided, dry‑run mode is used (no server).
+#   - Otherwise, remote mode is used via --endpoint or ENDPOINT/GRAPHQL_ENDPOINT.
+#   - If neither an endpoint nor an entry file is provided, the command errors.
 ```
 
 Project overview (Markdown):

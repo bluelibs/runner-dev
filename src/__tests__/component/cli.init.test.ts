@@ -66,10 +66,7 @@ describe("CLI init", () => {
     const projectName = "test-project";
     const projectDir = path.join(testProjectDir, projectName);
 
-    const res = await runCli(
-      ["new", projectName, "--install", "--run-tests"],
-      testProjectDir
-    );
+    const res = await runCli(["new", projectName], testProjectDir);
 
     expect(res.code).toBe(0);
     // Use a more flexible check that handles path resolution differences

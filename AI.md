@@ -304,6 +304,11 @@ npx @bluelibs/runner-dev query 'query { tasks { id } }' \
   --entry-file ./src/main.ts --export app
 ```
 
+Selection logic:
+- If `--entry-file` is provided, dry-run mode is used (no server; requires ts-node).
+- Otherwise, the CLI uses a remote endpoint via `--endpoint` or `ENDPOINT/GRAPHQL_ENDPOINT`.
+- If neither is provided, the command errors.
+
 **Generate a project overview:**
 ```bash
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev overview --details 10

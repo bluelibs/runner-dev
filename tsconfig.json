@@ -23,8 +23,5 @@
   },
 
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/custom.d.ts"],
-  "exclude": [
-    "src/__tests__/**",
-    "src/ui/**"
-  ]
+  "exclude": ["src/__tests__/**", "src/ui/**"]
 }

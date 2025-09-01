@@ -2,6 +2,25 @@
 import "source-map-support/register";
 import { c, alignRows, divider, indentLines } from "./cli/format";
 
+// Allow running the CLI directly via ts-node without a JS build.
+// Detect TS runtime by the current filename extension.
+const isTsRuntime = typeof __filename === "string" && __filename.endsWith(".ts");
+
+async function loadModule(basePath: string): Promise<any> {
+  if (isTsRuntime) {
+    // In ts-node runtime, .ts requires should already be hooked. Try CJS require first.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      return require(`${basePath}.ts`);
+    } catch {
+      // Fall back to dynamic import if available in the environment
+      return await import(`${basePath}.ts`);
+    }
+  }
+  // Built JS path
+  return await import(`${basePath}.js`);
+}
+
 const subcommand = process.argv[2];
 
 async function run(): Promise<void> {
@@ -10,10 +29,13 @@ async function run(): Promise<void> {
     const usage = alignRows(
       [
         [c.cmd("runner-dev mcp"), "Start the MCP GraphQL server over stdio"],
-        [c.cmd("runner-dev query"), "Run a GraphQL query against an endpoint"],
+        [
+          c.cmd("runner-dev query"),
+          "Run a GraphQL query (endpoint or dry-run entry)",
+        ],
         [
           c.cmd("runner-dev new"),
-          "Scaffold a new Runner TypeScript project (or populate existing directory)",
+          "Scaffold project or artifacts: project | resource | task | event | tag | taskMiddleware | resourceMiddleware",
         ],
         [c.cmd("runner-dev overview"), "Print Markdown project overview"],
         [c.cmd("runner-dev schema"), "Print SDL or introspection JSON"],
@@ -44,10 +66,23 @@ async function run(): Promise<void> {
         `ENDPOINT=http://localhost:1337/graphql ${c.cmd(
           "runner-dev query"
         )} 'query { tasks { id } }' --format pretty`,
+        `${c.gray("# Or run in dry‑run mode with a TS entry (no server)")}`,
+        `${c.cmd(
+          "runner-dev query"
+        )} 'query { tasks { id } }' --entry-file ./src/main.ts`,
         `${c.gray("# Print SDL")}`,
         `${c.cmd(
           "runner-dev schema sdl"
         )} --endpoint http://localhost:1337/graphql`,
+        `${c.gray("# Scaffold a project (default)")}`,
+        `${c.cmd("runner-dev new my-app")} ${c.gray("# same as 'new project my-app'")}`,
+        `${c.gray("# Scaffold artifacts in an existing repo")}`,
+        `${c.cmd("runner-dev new resource user-service --ns app --dir src --export")}`,
+        `${c.cmd("runner-dev new task create-user --ns app.users --dir src --export")}`,
+        `${c.cmd("runner-dev new event user-registered --ns app.users --dir src --export")}`,
+        `${c.cmd("runner-dev new tag http --ns app.web --dir src --export")}`,
+        `${c.cmd("runner-dev new taskMiddleware auth --ns app --dir src --export")}`,
+        `${c.cmd("runner-dev new resourceMiddleware soft-delete --ns app --dir src --export")}`,
       ].join("\n"),
       2
     );
@@ -73,36 +108,36 @@ async function run(): Promise<void> {
   }
 
   if (subcommand === "mcp") {
-    await import("./mcp.js");
+    await loadModule("./mcp");
     return;
   }
 
   if (subcommand === "query") {
-    const mod = await import("./cli/query.js");
+    const mod = await loadModule("./cli/query");
     await mod.main(process.argv);
     return;
   }
 
   if (subcommand === "new") {
-    const mod = await import("./cli/init.js");
+    const mod = await loadModule("./cli/init");
     await mod.main(process.argv);
     return;
   }
 
   if (subcommand === "overview") {
-    const mod = await import("./cli/overview.js");
+    const mod = await loadModule("./cli/overview");
     await mod.main(process.argv);
     return;
   }
 
   if (subcommand === "schema") {
-    const mod = await import("./cli/schema.js");
+    const mod = await loadModule("./cli/schema");
     await mod.main(process.argv);
     return;
   }
 
   if (subcommand === "ping") {
-    const mod = await import("./cli/ping.js");
+    const mod = await loadModule("./cli/ping");
     await mod.main(process.argv);
     return;
   }

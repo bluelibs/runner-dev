@@ -3,6 +3,8 @@ import fsp from "fs/promises";
 import path from "path";
 import { spawn } from "child_process";
 import { c, alignRows, divider, indentLines } from "./format";
+import type { ArtifactKind } from "./generators/common";
+import { scaffoldArtifact } from "./generators/artifact";
 
 type ScaffoldOptions = {
   projectName: string;
@@ -10,127 +12,250 @@ type ScaffoldOptions = {
 };
 
 export async function main(argv: string[]): Promise<void> {
-  const [, , , rawName] = argv;
-  const flagArgs = argv.slice(4);
+  // argv: [node, runner-dev, new, maybeKindOrName, maybeName, ...flags]
+  const maybeKindOrName = argv[3];
+  const maybeName = argv[4];
+  const flagArgs = argv.slice(5);
   const flagSet = new Set(
     flagArgs.filter((a) => a && a.startsWith("--")).map((a) => a.slice(2))
   );
+  if (
+    maybeKindOrName === "help" ||
+    maybeKindOrName === "-h" ||
+    maybeKindOrName === "--help" ||
+    flagSet.has("help")
+  ) {
+    printNewHelp();
+    return;
+  }
+  const knownKinds: ArtifactKind[] = [
+    "project",
+    "resource",
+    "task",
+    "event",
+    "tag",
+    "taskMiddleware",
+    "resourceMiddleware",
+  ];
+
+  let kind: ArtifactKind;
+  let nameOrProject: string | undefined;
+  if (!maybeKindOrName || maybeKindOrName === "project") {
+    kind = "project";
+    nameOrProject = maybeName || "my-runner-project";
+  } else if ((knownKinds as string[]).includes(maybeKindOrName)) {
+    kind = maybeKindOrName as ArtifactKind;
+    nameOrProject = maybeName;
+  } else {
+    // Backward compat: runner-dev new <projectName>
+    kind = "project";
+    nameOrProject = maybeKindOrName || "my-runner-project";
+  }
+
+  // Shared flags
   const shouldInstall = flagSet.has("install");
   const shouldRun = flagSet.has("run");
   const shouldRunTests = flagSet.has("run-tests") || flagSet.has("runTests");
-  const projectName = (rawName || "my-runner-project").trim();
-  if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
+  // Allow fast/CI mode via env to skip heavy steps even if flags are passed
+  const FAST = process.env.RUNNER_DEV_FAST === "1" || process.env.CI === "true";
+  const SKIP_INSTALL = FAST || process.env.RUNNER_DEV_SKIP_INSTALL === "1";
+  const SKIP_TESTS = FAST || process.env.RUNNER_DEV_SKIP_TESTS === "1";
+  const SKIP_RUN = FAST || process.env.RUNNER_DEV_SKIP_RUN === "1";
+
+  if (kind === "project") {
+    const projectName = (nameOrProject || "my-runner-project").trim();
+    if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
+      // eslint-disable-next-line no-console
+      console.error(
+        "Invalid project name. Use only letters, numbers, dashes and underscores."
+      );
+      process.exit(1);
+    }
+
+    const targetDir = path.resolve(process.cwd(), projectName);
+    await ensureEmptyDir(targetDir);
+
+    const options: ScaffoldOptions = { projectName, targetDir };
+    await scaffold(options);
+
+    // eslint-disable-next-line no-console
+    console.log(`\n${c.green("Project created in")} ${c.bold(targetDir)}.`);
+
+    // Helpful options & commands
+    const flags = alignRows(
+      [
+        [c.yellow("--install"), "Install dependencies after scaffold"],
+        [
+          c.yellow("--run"),
+          "Run 'npm run dev' after scaffold (keeps running)",
+        ],
+        [c.yellow("--run-tests"), "Run 'npm test' after scaffold"],
+      ],
+      { gap: 4, indent: 2 }
+    );
+
+    const quick = indentLines(
+      [
+        `${c.gray("# Query your GraphQL endpoint")}`,
+        `ENDPOINT=http://localhost:1337/graphql ${c.cmd(
+          "npx runner-dev query"
+        )} 'query { tasks { id } }' --format pretty`,
+        `${c.gray("# Print SDL")}`,
+        `${c.cmd(
+          "npx runner-dev schema sdl"
+        )} --endpoint http://localhost:1337/graphql`,
+      ].join("\n"),
+      2
+    );
+
+    const headersExample = 'HEADERS=\'{"Authorization":"Bearer ..."}\'';
+    const env = alignRows(
+      [
+        [c.bold("ENDPOINT / GRAPHQL_ENDPOINT"), "GraphQL endpoint URL"],
+        [c.bold(headersExample), "Add HTTP headers (JSON)"]
+        ,
+        [c.bold("ALLOW_MUTATIONS=true"), "Enable mutations tool"],
+      ],
+      { gap: 4, indent: 2 }
+    );
+
+    // eslint-disable-next-line no-console
+    console.log(
+      [
+        "",
+        c.title("Helpful options & commands"),
+        divider(),
+        c.bold("Flags for 'runner-dev new'"),
+        flags,
+        "",
+        c.bold("Quick commands"),
+        quick,
+        "",
+        c.bold("Environment"),
+        env,
+        "",
+      ].join("\n")
+    );
+
+    // eslint-disable-next-line no-console
+    console.log(
+      [
+        c.bold("Endpoints"),
+        alignRows(
+          [
+            [c.cyan("GraphQL"), "http://localhost:1337/graphql"],
+            [c.cyan("Voyager"), "http://localhost:1337/voyager"],
+            [c.cyan("Docs"), "http://localhost:1337/docs"],
+          ],
+          { gap: 4, indent: 2 }
+        ),
+      ].join("\n")
+    );
+
+    // Execute optional post-scaffold actions
+    if ((shouldInstall || shouldRunTests || shouldRun) && !SKIP_INSTALL) {
+      console.log("\nInstalling dependencies...\n");
+      await runCommand(
+        "npm",
+        [
+          "install",
+          "--prefer-offline",
+          "--no-audit",
+          "--no-fund",
+          "--progress=false",
+        ],
+        targetDir
+      );
+    } else if (shouldInstall && SKIP_INSTALL) {
+      console.log("\nSkipping install due to RUNNER_DEV_* env.\n");
+    }
+    if (shouldRunTests && !SKIP_TESTS) {
+      console.log("\nRunning tests...\n");
+      // Force non-interactive Jest inside the generated project to avoid watch mode hangs
+      await runCommand(
+        "npm",
+        [
+          "run",
+          "test",
+          "--",
+          "--ci",
+          "--watchAll=false",
+          "--runInBand",
+        ],
+        targetDir
+      );
+    } else if (shouldRunTests && SKIP_TESTS) {
+      console.log("\nSkipping tests due to RUNNER_DEV_* env.\n");
+    }
+    if (shouldRun && !SKIP_RUN) {
+      console.log("\nStarting dev server... (Ctrl+C to stop)\n");
+      await runCommand("npm", ["run", "dev"], targetDir);
+    } else if (shouldRun && SKIP_RUN) {
+      console.log("\nSkipping dev server start due to RUNNER_DEV_* env.\n");
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `\n${c.bold("Next steps")}\n${alignRows(
+        [
+          [c.cmd(`cd ${projectName}`), "enter project directory"],
+          [c.cmd("npm install"), "install dependencies"],
+          [c.cmd("npm run dev"), "start local dev server"],
+        ],
+        { gap: 4, indent: 2 }
+      )}`
+    );
+    return;
+  }
+
+  // Artifact scaffolding in existing project
+  const nameRaw = (nameOrProject || "").trim();
+  if (!nameRaw) {
     // eslint-disable-next-line no-console
     console.error(
-      "Invalid project name. Use only letters, numbers, dashes and underscores."
+      `Please provide a name. Usage: runner-dev new ${kind} <name> [--ns app] [--dir src] [--dry]`
     );
     process.exit(1);
   }
 
-  const targetDir = path.resolve(process.cwd(), projectName);
-  await ensureEmptyDir(targetDir);
+  const nsArg =
+    getFlagValue(flagArgs, "ns") || getFlagValue(flagArgs, "namespace") || "app";
+  const baseDir = getFlagValue(flagArgs, "dir") || "src";
+  const dryRun = flagSet.has("dry") || flagSet.has("dry-run");
+  const addIndex = flagSet.has("export") || flagSet.has("add-export");
+  const explicitId = getFlagValue(flagArgs, "id");
 
-  const options: ScaffoldOptions = { projectName, targetDir };
-  await scaffold(options);
+  const res = await scaffoldArtifact({
+    kind,
+    name: nameRaw,
+    namespace: nsArg,
+    baseDir,
+    dryRun,
+    addIndex,
+    explicitId,
+  });
 
-  // eslint-disable-next-line no-console
-  console.log(`\n${c.green("Project created in")} ${c.bold(targetDir)}.`);
-
-  // Helpful options & commands
-  const flags = alignRows(
-    [
-      [c.yellow("--install"), "Install dependencies after scaffold"],
-      [c.yellow("--run"), "Run 'npm run dev' after scaffold (keeps running)"],
-      [c.yellow("--run-tests"), "Run 'npm test' after scaffold"],
-    ],
-    { gap: 4, indent: 2 }
-  );
-
-  const quick = indentLines(
-    [
-      `${c.gray("# Query your GraphQL endpoint")}`,
-      `ENDPOINT=http://localhost:1337/graphql ${c.cmd(
-        "npx runner-dev query"
-      )} 'query { tasks { id } }' --format pretty`,
-      `${c.gray("# Print SDL")}`,
-      `${c.cmd(
-        "npx runner-dev schema sdl"
-      )} --endpoint http://localhost:1337/graphql`,
-    ].join("\n"),
-    2
-  );
-
-  const headersExample = 'HEADERS=\'{"Authorization":"Bearer ..."}\'';
-  const env = alignRows(
-    [
-      [c.bold("ENDPOINT / GRAPHQL_ENDPOINT"), "GraphQL endpoint URL"],
-      [c.bold(headersExample), "Add HTTP headers (JSON)"],
-      [c.bold("ALLOW_MUTATIONS=true"), "Enable mutations tool"],
-    ],
-    { gap: 4, indent: 2 }
-  );
+  if (dryRun && res.content) {
+    // eslint-disable-next-line no-console
+    console.log(`\n${c.title("Dry run (no files written)")}`);
+    // eslint-disable-next-line no-console
+    console.log(["Path:", res.filePath, "\n\n", res.content].join("\n"));
+    return;
+  }
 
   // eslint-disable-next-line no-console
   console.log(
-    [
-      "",
-      c.title("Helpful options & commands"),
-      divider(),
-      c.bold("Flags for 'runner-dev new'"),
-      flags,
-      "",
-      c.bold("Quick commands"),
-      quick,
-      "",
-      c.bold("Environment"),
-      env,
-      "",
-    ].join("\n")
-  );
-
-  // eslint-disable-next-line no-console
-  console.log(
-    [
-      c.bold("Endpoints"),
+    `\n${c.green("Created")} ${c.bold(path.relative(process.cwd(), res.filePath))}\n` +
       alignRows(
         [
-          [c.cyan("GraphQL"), "http://localhost:1337/graphql"],
-          [c.cyan("Voyager"), "http://localhost:1337/voyager"],
-          [c.cyan("Docs"), "http://localhost:1337/docs"],
+          [c.cyan("id"), res.id],
+          [
+            c.cyan("export"),
+            res.exported ? "added to index.ts" : "skip (use --export)",
+          ],
         ],
-        { gap: 4, indent: 2 }
-      ),
-    ].join("\n")
-  );
-
-  // Execute optional post-scaffold actions
-  if (shouldInstall || shouldRunTests || shouldRun) {
-    console.log("\nInstalling dependencies...\n");
-    await runCommand(
-      "npm",
-      ["install", "--prefer-offline", "--no-audit", "--no-fund"],
-      targetDir
-    );
-  }
-  if (shouldRunTests) {
-    console.log("\nRunning tests...\n");
-    await runCommand("npm", ["run", "test", "--", "--runInBand"], targetDir);
-  }
-  if (shouldRun) {
-    console.log("\nStarting dev server... (Ctrl+C to stop)\n");
-    await runCommand("npm", ["run", "dev"], targetDir);
-  }
-
-  // eslint-disable-next-line no-console
-  console.log(
-    `\n${c.bold("Next steps")}\n${alignRows(
-      [
-        [c.cmd(`cd ${projectName}`), "enter project directory"],
-        [c.cmd("npm install"), "install dependencies"],
-        [c.cmd("npm run dev"), "start local dev server"],
-      ],
-      { gap: 4, indent: 2 }
-    )}`
+        { gap: 3, indent: 2 }
+      )
   );
 }
 
@@ -140,9 +265,7 @@ async function ensureEmptyDir(dir: string): Promise<void> {
     if (entries.length > 0) {
       // eslint-disable-next-line no-console
       console.error(
-        `Target directory '${path.basename(
-          dir
-        )}' already exists and is not empty.`
+        `Target directory '${path.basename(dir)}' already exists and is not empty.`
       );
       process.exit(1);
     }
@@ -340,4 +463,84 @@ async function runCommand(
     });
     child.on("error", reject);
   });
+}
+
+function getFlagValue(args: string[], name: string): string | undefined {
+  const prefix = `--${name}=`;
+  const entry = args.find((a) => a.startsWith(prefix));
+  if (!entry) return undefined;
+  return entry.slice(prefix.length);
+}
+
+function printNewHelp(): void {
+  // eslint-disable-next-line no-console
+  console.log(
+    [
+      "",
+      c.title("runner-dev new"),
+      divider(),
+      alignRows(
+        [
+          [c.cmd("runner-dev new <name>"), "Scaffold a new project (default)"],
+          [c.cmd("runner-dev new project <name>"), "Scaffold project"],
+          [c.cmd("runner-dev new resource <name>"), "Scaffold resource"],
+          [c.cmd("runner-dev new task <name>"), "Scaffold task"],
+          [c.cmd("runner-dev new event <name>"), "Scaffold event"],
+          [c.cmd("runner-dev new tag <name>"), "Scaffold tag"],
+          [
+            c.cmd("runner-dev new taskMiddleware <name>"),
+            "Scaffold task middleware",
+          ],
+          [
+            c.cmd("runner-dev new resourceMiddleware <name>"),
+            "Scaffold resource middleware",
+          ],
+        ],
+        { gap: 3, indent: 2 }
+      ),
+      "",
+      c.bold("Flags"),
+      alignRows(
+        [
+          [c.yellow("--ns=<namespace>"), "Namespace for id (default: app)"],
+          [c.yellow("--id=<id>"), "Explicit id override (ex: app.tasks.save)"],
+          [c.yellow("--dir=<dir>"), "Base directory (default: src)"],
+          [c.yellow("--export"), "Append export to <dir>/.../index.ts"],
+          [c.yellow("--dry"), "Print file to stdout, do not write"],
+        ],
+        { gap: 3, indent: 2 }
+      ),
+      "",
+      c.bold("Examples"),
+      indentLines(
+        [
+          `${c.gray("# Project")}`,
+          `${c.cmd("runner-dev new my-app")}`,
+          `${c.gray("# Resource")}`,
+          `${c.cmd(
+            "runner-dev new resource user-service --ns app --dir src --export"
+          )}`,
+          `${c.gray("# Task")}`,
+          `${c.cmd(
+            "runner-dev new task create-user --ns app.users --dir src --export"
+          )}`,
+          `${c.gray("# Event")}`,
+          `${c.cmd(
+            "runner-dev new event user-registered --ns app.users --dir src --export"
+          )}`,
+          `${c.gray("# Tag")}`,
+          `${c.cmd("runner-dev new tag http --ns app.web --dir src --export")}`,
+          `${c.gray("# Middleware")}`,
+          `${c.cmd(
+            "runner-dev new taskMiddleware auth --ns app --dir src --export"
+          )}`,
+          `${c.cmd(
+            "runner-dev new resourceMiddleware soft-delete --ns app --dir src --export"
+          )}`,
+        ].join("\n"),
+        2
+      ),
+      "",
+    ].join("\n")
+  );
 }

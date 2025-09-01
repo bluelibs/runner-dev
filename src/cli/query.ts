@@ -29,6 +29,11 @@ Options:
   --namespace <str>       Convenience filter for idIncludes
   --entry-file <path>     TS entry file exporting default or named app
   --export <name>         Named export to use (default export preferred)
+
+ Modes & selection:
+   - If --entry-file is provided, dry-run mode is used (no server). Requires ts-node.
+   - Otherwise, a remote endpoint is used via --endpoint or ENDPOINT/GRAPHQL_ENDPOINT.
+   - If neither is provided, the command errors.
 `);
 }
 

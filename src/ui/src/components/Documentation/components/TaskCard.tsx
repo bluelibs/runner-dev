@@ -103,7 +103,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
               onClick={() => setIsExecuteOpen(true)}
               title="Run Task"
             >
-              🏃
+              Run
             </button>
           </div>
         </div>

@@ -4,8 +4,8 @@
   margin-bottom: $spacing-xxxl;
   background: var(--docs-bg-primary);
   border-radius: $border-radius-lg;
-  border: 1px solid var(--docs-border-primary);
-  padding: $spacing-md $spacing-lg;
+  // border: 1px solid var(--docs-border-primary);
+  // padding: $spacing-md $spacing-lg;
   overflow: hidden;
 
   &__title {
@@ -67,6 +67,7 @@
     &--id {
       width: 40%;
       min-width: 200px;
+      border-top-left-radius: $border-radius-lg;
     }
 
     &--title {
@@ -77,6 +78,7 @@
     &--description {
       width: 35%;
       min-width: 250px;
+      border-top-right-radius: $border-radius-lg;
     }
   }
 

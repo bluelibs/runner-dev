@@ -59,8 +59,10 @@ export const EventCard: React.FC<EventCardProps> = ({
   const getEventStatus = () => {
     if (emitters.length === 0 && hooks.length === 0)
       return { text: "Unused", className: "status-unused" };
-    if (emitters.length === 0) return { text: "No Emitters", className: "status-no-emitters" };
-    if (hooks.length === 0) return { text: "No Listeners", className: "status-no-listeners" };
+    if (emitters.length === 0)
+      return { text: "No Emitters", className: "status-no-emitters" };
+    if (hooks.length === 0)
+      return { text: "No Listeners", className: "status-no-listeners" };
     return { text: "Active", className: "status-active" };
   };
 
@@ -105,7 +107,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                   onClick={() => setIsExecuteOpen(true)}
                   title="Invoke Event"
                 >
-                  🚀
+                  Emit
                 </button>
               </div>
             </div>
@@ -164,9 +166,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
                 <div className="event-card__info-block">
                   <div className="label">Event Status:</div>
-                  <div
-                    className={`value value--status ${status.className}`}
-                  >
+                  <div className={`value value--status ${status.className}`}>
                     {status.text}
                   </div>
                 </div>

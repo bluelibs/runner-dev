@@ -84,11 +84,11 @@
 
 // Standard panel styling with dark mode support
 @mixin docs-panel($padding: var(--spacing-lg, 20px)) {
-  background: var(--docs-panel-bg);
-  border: 1px solid var(--docs-border-primary);
-  border-radius: var(--border-radius-lg, 8px);
+  // background: var(--docs-panel-bg);
+  // border: 1px solid var(--docs-border-primary);
+  // border-radius: var(--border-radius-lg, 8px);
   color: var(--docs-text-primary);
-  padding: $padding;
+  // padding: $padding;
   transition: all 0.2s ease;
 }
 

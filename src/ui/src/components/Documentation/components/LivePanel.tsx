@@ -395,7 +395,7 @@ export const LivePanel: React.FC<LivePanelProps> = ({
       <div className="live-main-grid">
         {/* System Health - Full Width */}
         <div className="live-section live-section--health">
-          <h3>🖥️ System Health</h3>
+          <h3>System Health</h3>
           <div className="health-metrics">
             <div className="metric">
               <span className="metric-label">Memory</span>

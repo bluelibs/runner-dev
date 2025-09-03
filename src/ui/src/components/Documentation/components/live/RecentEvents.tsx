@@ -51,7 +51,7 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
 
   return (
     <div className="recent-events">
-      <h4>📡 Recent Events ({emissions.length})</h4>
+      <h4>Recent Events ({emissions.length})</h4>
       <div className="live-entries">
         {emissions.length === 0 ? (
           <div className="live-entry">
@@ -70,7 +70,7 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
                   <span className="entry-time">
                     {formatTimestamp(emission.timestampMs)}
                   </span>
-                  <a 
+                  <a
                     href={`#element-${emission.eventId}`}
                     className="entry-event"
                   >
@@ -79,7 +79,7 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
                   {emission.emitterId && (
                     <span className="entry-emitter">
                       from{" "}
-                      <a 
+                      <a
                         href={`#element-${emission.emitterId}`}
                         className="entry-emitter--link"
                       >

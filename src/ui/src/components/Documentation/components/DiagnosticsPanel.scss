@@ -10,28 +10,28 @@
 .diagnostics-panel {
   display: flex;
   gap: $spacing-lg;
-  
+
   &__content {
     flex: 1;
   }
-  
+
   &__tabs {
     display: flex;
     flex-direction: column;
     gap: $spacing-xs;
     min-width: 200px;
   }
-  
+
   &__tab {
     @include docs-button(ghost);
     justify-content: space-between;
     text-align: left;
-    
+
     &--active {
       background: var(--docs-primary-bg);
       color: var(--docs-primary);
     }
-    
+
     &-count {
       background: var(--docs-text-muted);
       color: var(--docs-bg-primary);
@@ -42,23 +42,23 @@
       text-align: center;
     }
   }
-  
+
   &__success-state {
     @include docs-panel($spacing-lg);
     background: var(--docs-warning-bg);
     border: 1px solid var(--docs-warning-text);
     text-align: center;
-    
+
     .icon {
       font-size: $font-size-xl;
       margin-bottom: $spacing-sm;
     }
-    
+
     h4 {
       color: var(--docs-text-primary);
       margin-bottom: $spacing-sm;
     }
-    
+
     p {
       color: var(--docs-text-secondary);
       margin: 0;
@@ -102,17 +102,19 @@
     margin-bottom: $spacing-sm;
 
     .icon {
-      font-size: $font-size-lg;
+      font-size: $font-size-md;
     }
 
     h4 {
       margin: 0;
+      font-size: $font-size-base;
+      font-weight: 400;
     }
   }
 
   &__value {
-    font-size: $font-size-xl;
-    font-weight: bold;
+    font-size: $font-size-base;
+    font-weight: 400;
     margin-bottom: $spacing-xs;
   }
 
@@ -259,7 +261,7 @@
   padding: 2px $spacing-sm;
   border-radius: $spacing-sm;
   font-size: $font-size-xs;
-  font-weight: 500;
+  font-weight: 400;
   text-transform: uppercase;
 
   &--error {
@@ -296,7 +298,7 @@
   color: var(--docs-text-muted);
 
   strong {
-    font-weight: 600;
+    font-weight: 400;
   }
 }
 
@@ -310,9 +312,11 @@
     display: flex;
     align-items: center;
     gap: $spacing-sm;
+    font-size: $font-size-base;
+    font-weight: 400;
 
     .icon {
-      font-size: $font-size-lg;
+      font-size: $font-size-md;
     }
   }
 
@@ -327,6 +331,8 @@
     border-radius: $border-radius-sm;
     padding: $spacing-sm;
     border-left: 4px solid;
+    font-size: $font-size-base;
+    font-weight: 400;
 
     &--orphan {
       border-left-color: $purple;
@@ -341,7 +347,7 @@
     }
 
     .title {
-      font-weight: 500;
+      font-weight: 400;
       margin-bottom: $spacing-xs;
     }
 
@@ -380,7 +386,7 @@
   .diagnostics-panel__conflict-link {
     color: $primary-blue;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 400;
 
     &:hover {
       text-decoration: underline;

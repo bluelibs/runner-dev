@@ -69,7 +69,7 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
       {/* Recent Errors */}
       {errors.length > 0 && (
         <div className="errors-section">
-          <h4>❌ Recent Errors ({errors.length})</h4>
+          <h4>Recent Errors ({errors.length})</h4>
           <div className="live-entries">
             {errors
               .slice(-10)
@@ -131,7 +131,7 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
       {/* Recent Runs */}
       {runs.length > 0 && (
         <div className="runs-section">
-          <h4>🏃 Recent Runs ({runs.length})</h4>
+          <h4>Recent Runs ({runs.length})</h4>
           <div className="live-entries">
             {runs
               .slice(-10)

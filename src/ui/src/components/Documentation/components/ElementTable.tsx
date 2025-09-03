@@ -79,10 +79,10 @@ export const ElementTable: React.FC<ElementTableProps> = ({
 
   return (
     <div className="element-table" id={id}>
-      <h3 className="element-table__title">
+      <h2 className="element-table__title">
         {icon && <span className="element-table__icon">{icon}</span>}
         {title} ({elements.length})
-      </h3>
+      </h2>
       <div className="element-table__container">
         <table className="element-table__table">
           <thead>

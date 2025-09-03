@@ -301,21 +301,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                         : null;
                       if (!parsed || typeof parsed !== "object") return null;
                       const obj = parsed as Record<string, unknown>;
-                      const candidateKeys = [
-                        "traceId",
-                        "spanId",
-                        "requestId",
-                        "userId",
-                        "runId",
-                        "taskId",
-                        "jobId",
-                        "elementId",
-                      ];
-                      const entries = candidateKeys
-                        .map((k) => [k, obj[k]])
-                        .filter(([, v]) =>
-                          ["string", "number"].includes(typeof v as string)
-                        ) as [string, string | number][];
+
+                      const entries = Object.keys(obj).map((k) => [k, obj[k]]);
+
                       if (entries.length === 0) return null;
                       return (
                         <div className="recent-logs-modal__field">
@@ -325,12 +313,12 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                           <div className="recent-logs-modal__kv-grid">
                             {entries.map(([k, v]) => (
                               <div
-                                key={k}
+                                key={String(k)}
                                 className="recent-logs-modal__kv-item"
                                 title={`${k}`}
                               >
                                 <span className="recent-logs-modal__kv-key">
-                                  {k}:
+                                  {String(k)}:
                                 </span>{" "}
                                 {String(v)}
                               </div>

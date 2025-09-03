@@ -156,7 +156,7 @@ export const DocumentationMainContent: React.FC<
         {resources.length > 0 && (
           <ElementTable
             elements={resources}
-            title="Resources"
+            title="Resources Overview"
             icon="🔧"
             id="resources"
           />
@@ -179,7 +179,7 @@ export const DocumentationMainContent: React.FC<
         {events.length > 0 && (
           <ElementTable
             elements={events}
-            title="Events"
+            title="Events Overview"
             icon="📡"
             id="events"
           />
@@ -200,7 +200,12 @@ export const DocumentationMainContent: React.FC<
         )}
 
         {hooks.length > 0 && (
-          <ElementTable elements={hooks} title="Hooks" icon="🪝" id="hooks" />
+          <ElementTable
+            elements={hooks}
+            title="Hooks Overview"
+            icon="🪝"
+            id="hooks"
+          />
         )}
         {hooks.length > 0 && (
           <section className="docs-section">
@@ -220,7 +225,7 @@ export const DocumentationMainContent: React.FC<
         {middlewares.length > 0 && (
           <ElementTable
             elements={middlewares}
-            title="Middlewares"
+            title="Middlewares Overview"
             icon="🔗"
             id="middlewares"
           />
@@ -241,7 +246,12 @@ export const DocumentationMainContent: React.FC<
         )}
 
         {tags.length > 0 && (
-          <ElementTable elements={tags} title="Tags" icon="🏷️" id="tags" />
+          <ElementTable
+            elements={tags}
+            title="Tags Overview"
+            icon="🏷️"
+            id="tags"
+          />
         )}
         {tags.length > 0 && (
           <section className="docs-section">

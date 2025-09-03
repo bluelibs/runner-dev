@@ -12,7 +12,7 @@
   color: var(--docs-text-primary);
   padding: $spacing-lg;
   transition: all $transition-fast;
-  
+
   .panel-header {
     align-items: center;
     border-bottom: 1px solid var(--docs-border-secondary);
@@ -20,7 +20,7 @@
     justify-content: space-between;
     margin-bottom: $spacing-lg;
     padding-bottom: $spacing-md;
-    
+
     .panel-title {
       display: flex;
       align-items: center;
@@ -28,17 +28,17 @@
       font-size: $font-size-lg;
       font-weight: 600;
       margin: 0;
-      
+
       .title-icon {
         color: var(--docs-primary);
         font-size: $font-size-xl;
       }
     }
-    
+
     .panel-controls {
       display: flex;
       gap: $spacing-sm;
-      
+
       .control-btn {
         background: var(--docs-bg-tertiary);
         border: 1px solid var(--docs-border-primary);
@@ -47,11 +47,11 @@
         cursor: pointer;
         padding: $spacing-xs $spacing-sm;
         transition: all $transition-fast;
-        
+
         &:hover {
           background: var(--docs-hover-bg);
         }
-        
+
         &.active {
           background: var(--docs-primary);
           border-color: var(--docs-primary);
@@ -60,15 +60,15 @@
       }
     }
   }
-  
+
   .panel-content {
     .content-section {
       margin-bottom: $spacing-lg;
-      
+
       &:last-child {
         margin-bottom: 0;
       }
-      
+
       .section-title {
         color: var(--docs-text-secondary);
         font-size: $font-size-sm;
@@ -78,7 +78,7 @@
         letter-spacing: 0.5px;
       }
     }
-    
+
     .data-grid {
       display: grid;
       gap: $spacing-sm;
@@ -97,15 +97,15 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: $spacing-lg;
-  
+
   @include mobile {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .metric {
     @include docs-panel($spacing-md);
     text-align: center;
-    
+
     .metric-label {
       display: block;
       font-size: $font-size-xs;
@@ -114,7 +114,7 @@
       letter-spacing: 0.5px;
       margin-bottom: $spacing-xs;
     }
-    
+
     .metric-value {
       display: block;
       font-size: $font-size-md;
@@ -122,7 +122,7 @@
       color: var(--docs-text-primary);
       margin-bottom: $spacing-xs;
     }
-    
+
     .metric-detail {
       font-size: $font-size-xs;
       color: var(--docs-text-secondary);
@@ -134,15 +134,6 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: $spacing-md;
-  
-  .live-section {
-    @include docs-panel($spacing-lg);
-    
-    h3 {
-      margin-bottom: $spacing-md;
-      color: var(--docs-text-primary);
-    }
-  }
 }
 
 // Loading state dark overlay is handled by CSS variables

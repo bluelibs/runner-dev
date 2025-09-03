@@ -91,8 +91,7 @@ body {
   top: 0;
   width: 280px;
   height: 100vh;
-  background: #212121; // make a nice gradient left to right
-  background: linear-gradient(to right, #212121, #121212);
+  background: linear-gradient(135deg, #1a1625, #0f0f23, #1a1a2e);
   color: white;
   padding: $spacing-xxl $spacing-lg;
   padding-top: 0px;
@@ -568,6 +567,7 @@ body {
 // -----------------------------------------------------------------------------
 .docs-main-content {
   flex: 1;
+  background: linear-gradient(135deg, #0f1419, #1a1625, #16213e);
   padding: $spacing-xxxl;
   transition: margin-left 0.2s ease;
   // Make the main area a dedicated scroll container to match Chat
@@ -586,20 +586,16 @@ body {
   pointer-events: none;
 }
 
-.docs-main-content--suspended .docs-content-container {
-  filter: grayscale(0.2) blur(2px);
-  transition: filter 0.15s ease;
-}
-
 .docs-main-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  background: rgba(245, 247, 250, 0.6);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(2px);
-  z-index: 1;
+  z-index: 10;
 }
 
 .docs-content-container {
+  padding-left: $spacing-md;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -878,10 +874,10 @@ body {
 // Live Panel Styles
 // -----------------------------------------------------------------------------
 .live-panel {
-  background: var(--docs-bg-primary);
+  // background: var(--docs-bg-primary);
   border-radius: $border-radius-xl;
-  box-shadow: $shadow-lg;
-  padding: $spacing-xl;
+  // box-shadow: $shadow-lg;
+  // padding: $spacing-xl;
 
   &--loading,
   &--error {
@@ -976,13 +972,12 @@ body {
 }
 
 .live-section {
-  background: var(--docs-bg-secondary);
-  border-radius: $border-radius-lg;
-  padding: $spacing-lg;
-  border: 1px solid var(--docs-border-primary);
+  // background: var(--docs-bg-secondary);
+  // border-radius: $border-radius-lg;
+  // padding: $spacing-lg;
+  // border: 1px solid var(--docs-border-primary);
 
   h3 {
-    margin: 0 0 $spacing-lg 0;
     font-size: $font-size-lg;
     font-weight: bold;
     display: flex;

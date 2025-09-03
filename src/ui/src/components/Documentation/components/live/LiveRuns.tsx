@@ -174,7 +174,7 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
 
   return (
     <div className="live-runs">
-      <h3 className="live-runs__title">Live Actions</h3>
+      <h4 className="live-runs__title">Live Actions</h4>
       <div className="live-runs__grid">
         {/* Run Task Section */}
         <div className="live-runs__panel">

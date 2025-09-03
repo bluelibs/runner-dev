@@ -5,6 +5,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import "./CodeModal.scss";
 import { graphqlRequest } from "../utils/graphqlClient";
+import { copyToClipboard } from "./chat/ChatUtils";
 
 export interface CodeModalProps {
   title: string;
@@ -30,6 +31,7 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   const [baseline, setBaseline] = useState<string>(code ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const originalBodyStyle = useRef<{
     position: string;
     top: string;
@@ -95,7 +97,6 @@ export const CodeModal: React.FC<CodeModalProps> = ({
     setBaseline(next);
   }, [code, isOpen]);
 
-
   const canEdit =
     enableEdit && typeof saveOnFile === "string" && saveOnFile.length > 0;
 
@@ -130,6 +131,14 @@ export const CodeModal: React.FC<CodeModalProps> = ({
     }
   }, [canEdit, saveOnFile, draft]);
 
+  const handleCopy = useCallback(async () => {
+    const textToCopy = draft || "";
+    const success = await copyToClipboard(textToCopy);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  }, [draft]);
 
   if (!isOpen) return null;
 
@@ -176,6 +185,14 @@ export const CodeModal: React.FC<CodeModalProps> = ({
               }
             }}
           >
+            <button
+              className={`code-modal__copy-btn${
+                copied ? " code-modal__copy-btn--copied" : ""
+              }`}
+              onClick={handleCopy}
+              title={copied ? "Copied!" : "Copy to clipboard"}
+              aria-label={copied ? "Copied" : "Copy code"}
+            />
             <CodeMirror
               value={draft}
               onChange={(val) => {

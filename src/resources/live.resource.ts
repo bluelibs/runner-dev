@@ -68,6 +68,7 @@ export interface Live {
           last?: number;
           eventIds?: string[];
           emitterIds?: string[];
+          correlationIds?: string[];
         }
   ): EmissionEntry[];
   getErrors(
@@ -85,6 +86,7 @@ export interface Live {
           )[];
           sourceIds?: string[];
           messageIncludes?: string;
+          correlationIds?: string[];
         }
   ): ErrorEntry[];
   getRuns(

@@ -60,9 +60,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       const ce = e as CustomEvent<{ type: string; id: string }>;
       if (ce?.detail?.type === "task" && ce.detail.id === task.id) {
         setIsExecuteOpen(true);
-        // ensure card is visible but don't over-scroll
-        const el = document.getElementById(`element-${task.id}`);
-        el?.scrollIntoView({ behavior: "instant", block: "nearest" });
+        // Note: Scrolling handled by main Documentation component hash navigation
       }
     };
     window.addEventListener("docs:execute-element", handler);

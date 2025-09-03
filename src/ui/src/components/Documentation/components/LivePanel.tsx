@@ -454,9 +454,9 @@ export const LivePanel: React.FC<LivePanelProps> = ({
         </div>
 
         {/* Live Actions - Full Width */}
-        <div className="live-actions-section">
+        {/* <div className="live-actions-section">
           <LiveRuns introspector={introspector} />
-        </div>
+        </div> */}
       </div>
     </div>
   );

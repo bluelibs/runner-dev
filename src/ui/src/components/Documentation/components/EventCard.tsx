@@ -75,8 +75,7 @@ export const EventCard: React.FC<EventCardProps> = ({
       const ce = e as CustomEvent<{ type: string; id: string }>;
       if (ce?.detail?.type === "event" && ce.detail.id === event.id) {
         setIsExecuteOpen(true);
-        const el = document.getElementById(`element-${event.id}`);
-        el?.scrollIntoView({ behavior: "instant", block: "nearest" });
+        // Note: Scrolling handled by main Documentation component hash navigation
       }
     };
     window.addEventListener("docs:execute-element", handler);

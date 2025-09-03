@@ -8,6 +8,7 @@ import {
   Checkbox,
 } from "./common/FormControls";
 import { formatSchema } from "../utils/formatting";
+import { copyToClipboard } from "./chat/ChatUtils";
 import "./SchemaRenderer.scss";
 import {
   hasOpenAIKey,
@@ -120,7 +121,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     "print"
   );
   const [didPrefill, setDidPrefill] = React.useState(false);
-  const [copyFeedback, setCopyFeedback] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState(false);
   const [aiLoading, setAiLoading] = React.useState(false);
   const [aiAvailable, setAiAvailable] = React.useState(false);
   const schema = React.useMemo(() => parseSchema(schemaString), [schemaString]);
@@ -326,16 +327,13 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     }
   }, [formData, onJsonChange]);
 
-  const copyJson = async () => {
-    try {
-      await navigator.clipboard.writeText(jsonString);
-      setCopyFeedback("Copied!");
-      setTimeout(() => setCopyFeedback(null), 2000);
-    } catch {
-      setCopyFeedback("Copy failed");
-      setTimeout(() => setCopyFeedback(null), 2000);
+  const copyJson = React.useCallback(async () => {
+    const success = await copyToClipboard(jsonString);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
     }
-  };
+  }, [jsonString]);
 
   const handleAIPrefill = async () => {
     if (!schemaString) return;
@@ -347,8 +345,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
       }
     } catch (e) {
       // surface as a brief feedback
-      setCopyFeedback("AI fill failed");
-      setTimeout(() => setCopyFeedback(null), 2000);
+      console.error("AI fill failed", e);
     } finally {
       setAiLoading(false);
     }
@@ -421,24 +418,35 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
       {activeTab === "form" && (
         <div className="schema-renderer__form-wrapper">
           {renderFormFromSchema(resolvedRoot)}
-          <div className="schema-renderer__json-inline">
-            <div className="schema-renderer__json-actions">
-              <button type="button" className="btn" onClick={copyJson}>
-                {copyFeedback || "Copy JSON"}
-              </button>
-            </div>
+          <div
+            className="schema-renderer__json-inline"
+            style={{ position: "relative" }}
+          >
+            <button
+              type="button"
+              className={`code-modal__copy-btn${
+                copied ? " code-modal__copy-btn--copied" : ""
+              }`}
+              onClick={copyJson}
+              title={copied ? "Copied!" : "Copy to clipboard"}
+              aria-label={copied ? "Copied" : "Copy code"}
+            />
             <pre className="schema-renderer__code-block">{jsonString}</pre>
           </div>
         </div>
       )}
 
       {activeTab === "json" && (
-        <div className="schema-renderer__json">
-          <div className="schema-renderer__json-actions">
-            <button type="button" className="btn" onClick={copyJson}>
-              {copyFeedback || "Copy JSON"}
-            </button>
-          </div>
+        <div className="schema-renderer__json" style={{ position: "relative" }}>
+          <button
+            type="button"
+            className={`code-modal__copy-btn${
+              copied ? " code-modal__copy-btn--copied" : ""
+            }`}
+            onClick={copyJson}
+            title={copied ? "Copied!" : "Copy to clipboard"}
+            aria-label={copied ? "Copied" : "Copy code"}
+          />
           <pre className="schema-renderer__code-block">{jsonString}</pre>
         </div>
       )}

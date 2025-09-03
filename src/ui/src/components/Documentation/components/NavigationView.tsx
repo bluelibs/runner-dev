@@ -226,6 +226,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
   const renderListMode = () => {
     const handleSectionClick = (sectionId: string, e: React.MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       setFocusedNodeId(sectionId);
       if (onSectionClick) {
         onSectionClick(sectionId === "home" ? "top" : sectionId);

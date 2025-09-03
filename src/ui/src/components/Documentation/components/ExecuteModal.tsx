@@ -66,12 +66,6 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     if (schema.$ref && schema.definitions) {
       const refPath = schema.$ref.replace("#/definitions/", "");
       const resolved = schema.definitions[refPath];
-      if (isOpen) {
-        console.log("ExecuteModal - resolved $ref schema:", {
-          refPath,
-          resolved,
-        });
-      }
       return resolved || null;
     }
 
@@ -86,16 +80,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
       Object.keys(resolvedSchema.properties).length > 0 &&
       // Allow schemas without explicit type or with type "object"
       (!resolvedSchema.type || resolvedSchema.type === "object");
-    if (isOpen) {
-      console.log("ExecuteModal - hasFormFields check:", {
-        schemaString,
-        schema,
-        resolvedSchema,
-        hasFormFields: result,
-        properties: resolvedSchema?.properties,
-        schemaType: resolvedSchema?.type,
-      });
-    }
+
     return result;
   }, [resolvedSchema, schema, schemaString, isOpen]);
 

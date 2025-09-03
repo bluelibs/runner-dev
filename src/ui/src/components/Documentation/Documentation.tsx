@@ -183,6 +183,15 @@ export const Documentation: React.FC<DocumentationProps> = ({
 
   // Handle hash changes to clear search when navigating to filtered-out elements
   useEffect(() => {
+    const scrollToCurrentHash = () => {
+      const hash = window.location.hash;
+      if (hash && hash.length > 1) {
+        const id = hash.slice(1);
+        const target = document.getElementById(id);
+        target?.scrollIntoView({ behavior: "instant", block: "start" });
+      }
+    };
+
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash.startsWith("#element-") && filterHook.localNamespaceSearch) {
@@ -208,18 +217,30 @@ export const Documentation: React.FC<DocumentationProps> = ({
       }
 
       // Always try to bring the target section/element into view inside the main container
-      if (hash && hash.length > 1) {
-        const id = hash.slice(1);
-        const target = document.getElementById(id);
-        target?.scrollIntoView({ behavior: "instant", block: "start" });
-      }
+      scrollToCurrentHash();
+    };
+
+    // Re-scroll after potential layout changes (like diagnostic pane rendering)
+    const handleLayoutChange = () => {
+      // Add a small delay to ensure layout is complete
+      setTimeout(scrollToCurrentHash, 100);
+    };
+
+    // Listen for diagnostic pane tab changes and other layout-affecting events
+    const handleDiagnosticChange = () => {
+      handleLayoutChange();
     };
 
     window.addEventListener("hashchange", handleHashChange);
+    window.addEventListener("docs:layout-change", handleLayoutChange);
+    window.addEventListener("docs:diagnostic-change", handleDiagnosticChange);
+    
     handleHashChange();
 
     return () => {
       window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("docs:layout-change", handleLayoutChange);
+      window.removeEventListener("docs:diagnostic-change", handleDiagnosticChange);
     };
   }, [
     filterHook.localNamespaceSearch,

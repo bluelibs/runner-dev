@@ -1,4 +1,3 @@
-
 @use "../../../styles/variables" as *;
 
 .schema-renderer {
@@ -155,8 +154,11 @@
 
 .schema-renderer__json-inline {
   margin-top: $spacing-lg;
-  border-top: 1px solid var(--docs-border-primary);
-  padding-top: $spacing-lg;
+  position: relative;
+
+  .schema-renderer__code-block {
+    position: relative;
+  }
 }
 
 .schema-renderer__empty {
@@ -211,6 +213,3 @@
     transform: translateY(0);
   }
 }
-
-
-

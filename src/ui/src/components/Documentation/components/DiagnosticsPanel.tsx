@@ -13,6 +13,15 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>("summary");
 
+  // Emit layout change event when the component first mounts or tab changes
+  React.useEffect(() => {
+    // Emit after the component has rendered
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("docs:diagnostic-change"));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [activeCategory]); // Re-emit when active category changes
+
   const diagnostics = introspector.getDiagnostics();
   const orphanEvents = introspector.getOrphanEvents();
   const unemittedEvents = introspector.getUnemittedEvents();

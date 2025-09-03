@@ -1,6 +1,6 @@
 {
   "name": "@bluelibs/runner-dev",
-  "version": "4.3.7",
+  "version": "4.3.8",
   "description": "BlueLibs Runner DevTools",
   "main": "dist/index.js",
   "repository": {
@@ -64,7 +64,6 @@
     "marked": "^16.2.1",
     "openai": "^5.15.0",
     "prettier": "^2.0.5",
-    
     "reflect-metadata": "^0.2.2",
     "sass-embedded": "^1.90.0",
     "supertest": "^7.1.4",
@@ -87,8 +86,8 @@
   },
   "license": "MIT",
   "dependencies": {
-  "react": "18.3.1",
-  "react-dom": "18.3.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "@adobe/jsonschema2md": "^8.0.5",
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",

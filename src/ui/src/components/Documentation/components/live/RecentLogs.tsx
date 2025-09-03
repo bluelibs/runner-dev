@@ -78,7 +78,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
   return (
     <div className="recent-logs live-section">
       <div className="recent-logs__header">
-        <h3 className="recent-logs__title">Recent Logs ({logs.length})</h3>
+        <h4 className="recent-logs__title">Recent Logs ({logs.length})</h4>
         <button
           type="button"
           className="recent-logs__toggle"

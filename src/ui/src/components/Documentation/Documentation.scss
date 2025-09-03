@@ -295,6 +295,12 @@ body {
     justify-content: center;
     gap: $spacing-xs;
     font-family: $font-family-base;
+    text-transform: uppercase;
+    font-weight: 100;
+    font-size: $font-size-xs;
+    .icon {
+      opacity: 0.5;
+    }
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
@@ -305,7 +311,7 @@ body {
       background: $primary-blue;
       border-color: $primary-blue;
       color: var(--docs-text-primary);
-      font-weight: 600;
+      // font-weight: 600;
     }
   }
 }
@@ -885,6 +891,12 @@ body {
     padding: $spacing-xxxl;
   }
 
+  .live-nav {
+    button {
+      margin-right: 12px;
+      margin-bottom: 5px;
+    }
+  }
   .live-loading {
     font-size: $font-size-lg;
     color: var(--docs-text-muted);

@@ -102,5 +102,8 @@
   },
   "peerDependencies": {
     "@bluelibs/runner": "^4.3.0"
+  },
+  "overrides": {
+    "@bluelibs/runner": "^4.3.0"
   }
 }

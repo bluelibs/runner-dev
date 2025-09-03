@@ -16,9 +16,7 @@ export async function main(argv: string[]): Promise<void> {
   const maybeKindOrName = argv[3];
   const maybeName = argv[4];
   const flagArgs = argv.slice(5);
-  const flagSet = new Set(
-    flagArgs.filter((a) => a && a.startsWith("--")).map((a) => a.slice(2))
-  );
+  const { flagSet, flagGet } = parseFlags(flagArgs);
   if (
     maybeKindOrName === "help" ||
     maybeKindOrName === "-h" ||
@@ -208,23 +206,33 @@ export async function main(argv: string[]): Promise<void> {
   }
 
   const nsArg =
-    getFlagValue(flagArgs, "ns") ||
-    getFlagValue(flagArgs, "namespace") ||
+    flagGet("ns") ||
+    flagGet("namespace") ||
     "app";
-  const baseDir = getFlagValue(flagArgs, "dir") || "src";
+  const baseDir = flagGet("dir") || "src";
   const dryRun = flagSet.has("dry") || flagSet.has("dry-run");
   const addIndex = flagSet.has("export") || flagSet.has("add-export");
-  const explicitId = getFlagValue(flagArgs, "id");
+  const explicitId = flagGet("id");
+  const force = flagSet.has("force");
 
-  const res = await scaffoldArtifact({
-    kind,
-    name: nameRaw,
-    namespace: nsArg,
-    baseDir,
-    dryRun,
-    addIndex,
-    explicitId,
-  });
+  let res: Awaited<ReturnType<typeof scaffoldArtifact>>;
+  try {
+    res = await scaffoldArtifact({
+      kind,
+      name: nameRaw,
+      namespace: nsArg,
+      baseDir,
+      dryRun,
+      addIndex,
+      explicitId,
+      force,
+    });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error((e as Error)?.message || String(e));
+    process.exit(1);
+    return; // for type narrowing
+  }
 
   if (dryRun && res.content) {
     // eslint-disable-next-line no-console
@@ -460,11 +468,41 @@ async function runCommand(
   });
 }
 
-function getFlagValue(args: string[], name: string): string | undefined {
-  const prefix = `--${name}=`;
-  const entry = args.find((a) => a.startsWith(prefix));
-  if (!entry) return undefined;
-  return entry.slice(prefix.length);
+function parseFlags(args: string[]): {
+  flagSet: Set<string>;
+  flagGet: (name: string) => string | undefined;
+} {
+  const values = new Map<string, string | undefined>();
+  const set = new Set<string>();
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (!a || !a.startsWith("--")) continue;
+    const keyValue = a.slice(2);
+    const eqIdx = keyValue.indexOf("=");
+    if (eqIdx !== -1) {
+      const k = keyValue.slice(0, eqIdx);
+      const v = keyValue.slice(eqIdx + 1);
+      set.add(k);
+      values.set(k, v);
+    } else {
+      const k = keyValue;
+      set.add(k);
+      const next = args[i + 1];
+      if (next && !next.startsWith("--")) {
+        values.set(k, next);
+        i++; // consume value
+      } else {
+        values.set(k, undefined); // boolean flag
+      }
+    }
+  }
+  return {
+    flagSet: set,
+    flagGet: (name: string) => {
+      const v = values.get(name);
+      return v === undefined ? undefined : v;
+    },
+  };
 }
 
 function printNewHelp(): void {
@@ -497,11 +535,15 @@ function printNewHelp(): void {
       c.bold("Flags"),
       alignRows(
         [
-          [c.yellow("--ns=<namespace>"), "Namespace for id (default: app)"],
+          [
+            c.yellow("--ns=<namespace>"),
+            "Namespace for id (default: app). Also maps to path as <dir>/<ns>/<type>.",
+          ],
           [c.yellow("--id=<id>"), "Explicit id override (ex: app.tasks.save)"],
           [c.yellow("--dir=<dir>"), "Base directory (default: src)"],
           [c.yellow("--export"), "Append export to <dir>/.../index.ts"],
           [c.yellow("--dry"), "Print file to stdout, do not write"],
+          [c.yellow("--force"), "Allow overwriting existing files"],
         ],
         { gap: 3, indent: 2 }
       ),

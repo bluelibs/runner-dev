@@ -25,13 +25,14 @@ Options:
   --variables '<json>'    Variables JSON
   --operation <name>      Operation name if multiple
   --format <fmt>          data|json|pretty (default: data)
+  --pretty                Shorthand for --format pretty
   --raw                   Output full GraphQL response (with errors)
   --namespace <str>       Convenience filter for idIncludes
   --entry-file <path>     TS entry file exporting default or named app
   --export <name>         Named export to use (default export preferred)
 
  Modes & selection:
-   - If --entry-file is provided, dry-run mode is used (no server). Requires ts-node.
+  - If --entry-file is provided, dry-run mode is used (no server). A TS runtime (tsx or ts-node) must be available.
    - Otherwise, a remote endpoint is used via --endpoint or ENDPOINT/GRAPHQL_ENDPOINT.
    - If neither is provided, the command errors.
 `);
@@ -68,7 +69,11 @@ export async function main(argv: string[]): Promise<void> {
     opts.get("variables") as string | undefined
   );
   const operationName = (opts.get("operation") as string) || undefined;
-  const format = ((opts.get("format") as string) || "data") as any;
+  // Support --pretty alias for convenience
+  const prettyAlias = opts.has("pretty") ? "pretty" : undefined;
+  const format = (prettyAlias ||
+    (opts.get("format") as string) ||
+    "data") as any;
   const raw = Boolean(opts.get("raw"));
   const namespace = (opts.get("namespace") as string) || undefined;
 
@@ -79,15 +84,40 @@ export async function main(argv: string[]): Promise<void> {
   try {
     // Prefer dry-run entry-file mode when provided
     if (entryFile) {
-      // Auto-load TypeScript; require ts-node/register/transpile-only
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        require("ts-node/register/transpile-only");
-      } catch (e) {
+      // Auto-load TypeScript runtime hooks: prefer tsx, fallback to ts-node
+      const tsLoaderErrors: string[] = [];
+      const loadedTsRuntime = (() => {
+        try {
+          // Try tsx (fast, no TS dependency). Optional.
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          require("tsx/cjs");
+          return "tsx";
+        } catch (e) {
+          tsLoaderErrors.push(`tsx: ${(e as Error).message}`);
+        }
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          require("ts-node/register/transpile-only");
+          return "ts-node/transpile-only";
+        } catch (e) {
+          tsLoaderErrors.push(
+            `ts-node/transpile-only: ${(e as Error).message}`
+          );
+        }
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          require("ts-node/register");
+          return "ts-node/register";
+        } catch (e) {
+          tsLoaderErrors.push(`ts-node/register: ${(e as Error).message}`);
+        }
+        return null;
+      })();
+      if (!loadedTsRuntime) {
         throw new Error(
-          `TypeScript loader not available. Please install ts-node. Original error: ${
-            (e as Error).message
-          }`
+          `TypeScript loader not available. Install one of: 'tsx' or 'ts-node'. Details: ${tsLoaderErrors.join(
+            "; "
+          )}`
         );
       }
 

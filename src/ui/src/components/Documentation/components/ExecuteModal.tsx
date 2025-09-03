@@ -5,6 +5,7 @@ import {
   hasOpenAIKey,
   generateInstanceFromJsonSchema,
 } from "./chat/ai.prefill";
+import { copyToClipboard } from "./chat/ChatUtils";
 
 export interface ExecuteModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const previouslyFocused = React.useRef<HTMLElement | null>(null);
   const [formData, setFormData] = React.useState<Record<string, any>>({});
+  const [copiedPreview, setCopiedPreview] = React.useState<boolean>(false);
 
   // Parse schema for simple form building
   const schema = React.useMemo(() => {
@@ -404,18 +406,20 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
               {title || "Execute"}
             </div>
             <div className="execute-modal__controls">
-              <button
-                className="btn execute-modal__ai-btn"
-                title={
-                  aiAvailable
-                    ? "AI prefill based on schema"
-                    : "AI key not configured in Chat settings"
-                }
-                onClick={handleAIPrefill}
-                disabled={!aiAvailable || aiLoading || !schemaString}
-              >
-                {aiLoading ? "Filling…" : "✧ Prefill"}
-              </button>
+              {resolvedSchema && (
+                <button
+                  className="btn execute-modal__ai-btn"
+                  title={
+                    aiAvailable
+                      ? "AI prefill based on schema"
+                      : "AI key not configured in Chat settings"
+                  }
+                  onClick={handleAIPrefill}
+                  disabled={!aiAvailable || aiLoading}
+                >
+                  {aiLoading ? "Filling…" : "✧ Prefill"}
+                </button>
+              )}
               <label className="execute-modal__eval">
                 <input
                   type="checkbox"
@@ -461,6 +465,21 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
                     <span className="execute-modal__section-title">
                       JSON Preview
                     </span>
+                    <button
+                      className={`execute-modal__copy-btn${
+                        copiedPreview ? " execute-modal__copy-btn--copied" : ""
+                      }`}
+                      onClick={async () => {
+                        const ok = await copyToClipboard(inputJson || "");
+                        if (ok) {
+                          setCopiedPreview(true);
+                          setTimeout(() => setCopiedPreview(false), 1200);
+                        }
+                      }}
+                      title={copiedPreview ? "Copied!" : "Copy JSON"}
+                      aria-label={copiedPreview ? "Copied" : "Copy JSON"}
+                      type="button"
+                    />
                   </div>
                   <textarea
                     className="execute-modal__textarea execute-modal__textarea--preview"

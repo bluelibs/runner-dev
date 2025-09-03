@@ -26,6 +26,7 @@
   width: 95%;
   max-width: 1400px;
   max-height: 90vh;
+  height: 90vh;
   display: flex;
   border-radius: 20px;
   overflow: hidden;
@@ -155,24 +156,80 @@
 .execute-modal__form-layout {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* side-by-side form + json */
   gap: 20px;
   height: 100%;
   overflow: hidden;
+  min-width: 0; /* avoid overflow in flex rows */
 }
 
 .execute-modal__form-section {
-  flex: 0 0 auto;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  max-height: 50%;
-  min-height: 240px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .execute-modal__json-preview {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  min-width: 0; /* prevent flex overflow */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Modern scrollbars for JSON preview container, its textarea and the form */
+.execute-modal__json-preview,
+.execute-modal__json-preview .execute-modal__textarea,
+.execute-modal__form {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.6) rgba(30, 41, 59, 0.6);
+}
+
+.execute-modal__json-preview::-webkit-scrollbar,
+.execute-modal__json-preview .execute-modal__textarea::-webkit-scrollbar,
+.execute-modal__form::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.execute-modal__json-preview::-webkit-scrollbar-track,
+.execute-modal__json-preview .execute-modal__textarea::-webkit-scrollbar-track,
+.execute-modal__form::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.2);
+  border-radius: 10px;
+}
+
+.execute-modal__json-preview::-webkit-scrollbar-thumb,
+.execute-modal__json-preview .execute-modal__textarea::-webkit-scrollbar-thumb,
+.execute-modal__form::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(99, 102, 241, 0.6),
+    rgba(139, 92, 246, 0.6)
+  );
+  border-radius: 10px;
+  border: 2px solid rgba(30, 41, 59, 0.8);
+}
+
+.execute-modal__json-preview::-webkit-scrollbar-thumb:hover,
+.execute-modal__json-preview
+  .execute-modal__textarea::-webkit-scrollbar-thumb:hover,
+.execute-modal__form::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(99, 102, 241, 0.8),
+    rgba(139, 92, 246, 0.8)
+  );
+}
+
+/* Make textarea adapt inside scrollable JSON preview container */
+.execute-modal__json-preview .execute-modal__textarea {
+  flex: 1;
+  height: auto;
   min-height: 0;
 }
 
@@ -248,6 +305,9 @@
   width: 100%;
   height: 100%;
   min-height: 200px;
+  box-sizing: border-box; /* ensure borders/padding don't overflow width */
+  display: block;
+  max-width: 100%;
   font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
   font-size: 14px;
   line-height: 1.6;
@@ -484,6 +544,56 @@
   position: relative;
 }
 
+/* Copy button icon for section headers (e.g., JSON Preview) */
+.execute-modal__copy-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.execute-modal__copy-btn::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  display: block;
+  background-color: rgba(255, 255, 255, 0.9);
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.execute-modal__copy-btn:hover,
+.execute-modal__copy-btn:focus-visible {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.execute-modal__copy-btn--copied {
+  opacity: 1;
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.execute-modal__copy-btn--copied::before {
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>');
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>');
+}
+
 .execute-modal__form::before {
   content: "";
   position: absolute;
@@ -607,6 +717,7 @@
   }
 
   .execute-modal__form-layout {
+    flex-direction: column; /* stack on small screens */
     gap: 16px;
   }
 

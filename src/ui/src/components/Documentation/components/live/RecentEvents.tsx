@@ -51,11 +51,11 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
 
   return (
     <div className="recent-events">
-      <h4>Recent Events ({emissions.length})</h4>
+      <h4>Recent Event Emissions ({emissions.length})</h4>
       <div className="live-entries">
         {emissions.length === 0 ? (
           <div className="live-entry">
-            <span>No recent events</span>
+            <span>No recent event emissions</span>
           </div>
         ) : (
           <>

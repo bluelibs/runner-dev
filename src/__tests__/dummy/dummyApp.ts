@@ -8,6 +8,8 @@ import {
   resourceMiddleware,
 } from "@bluelibs/runner";
 import { z } from "zod";
+import { createDummySuperApp } from "./largeApp";
+import { dev } from "../../resources/dev.resource";
 
 // Middleware
 export const logMw = resourceMiddleware({
@@ -176,3 +178,9 @@ export function createDummyApp(extra: any[] = []) {
     dependencies: {},
   });
 }
+
+export const app = createDummySuperApp([
+  dev.with({
+    port: 31337,
+  }),
+]);

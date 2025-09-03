@@ -93,5 +93,5 @@ if (ENDPOINT) {
     console.log(`Runner Dev MCP server started: ${ENDPOINT}`);
   });
 } else {
-  console.error("Runner Dev MCP server: ENDPOINT is not set");
+  console.error("Runner Dev MCP server: ENDPOINT is not set.");
 }

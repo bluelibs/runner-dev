@@ -94,7 +94,24 @@ export async function main(argv: string[]): Promise<void> {
       const abs = path.isAbsolute(entryFile)
         ? entryFile
         : path.resolve(process.cwd(), entryFile);
-      const mod = await import(pathToFileURL(abs).href);
+
+      // Prefer CJS require so ts-node's require hook can resolve .ts files and extension-less imports.
+      // Fall back to dynamic import if require fails (eg. pure ESM JS entry files).
+      let mod: any;
+      try {
+        // Try as given
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        mod = require(abs);
+      } catch (_) {
+        try {
+          // Try adding .ts extension explicitly
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          mod = require(abs.endsWith(".ts") ? abs : `${abs}.ts`);
+        } catch {
+          // Last resort: dynamic import (works for JS/ESM with explicit extensions)
+          mod = await import(pathToFileURL(abs).href);
+        }
+      }
       const entry =
         (exportName ? mod?.[exportName] : mod?.default) ?? mod?.app ?? null;
       if (!entry) {

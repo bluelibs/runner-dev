@@ -13,12 +13,6 @@ const app = createDummySuperApp([
   dev.with({
     port: 31337,
   }),
-  // live,
-  // introspector,
-  // telemetry,
-  // server,
-  // graphql,
-  // swapManager,
 ]);
 
 run(app, {

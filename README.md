@@ -7,7 +7,9 @@ The way it works, is that this is a resource that opens a graphql server which o
 ## Install
 
 ```bash
-npm install @bluelibs/runner-dev
+npm install -g @bluelibs/runner-dev
+# or
+npx @bluelibs/runner-dev
 ```
 
 ```ts

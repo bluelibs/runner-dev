@@ -20,7 +20,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
       window.dispatchEvent(new CustomEvent("docs:diagnostic-change"));
     }, 0);
     return () => clearTimeout(timer);
-  }, [activeCategory]); // Re-emit when active category changes
+  }, []); // Re-emit when active category changes
+
+  // on component finish render:
 
   const diagnostics = introspector.getDiagnostics();
   const orphanEvents = introspector.getOrphanEvents();

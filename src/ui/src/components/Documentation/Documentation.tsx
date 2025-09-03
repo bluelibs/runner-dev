@@ -56,7 +56,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
   // Dark mode state - default to true (dark mode by default)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('docs-dark-mode');
+      const saved = localStorage.getItem("docs-dark-mode");
       return saved ? JSON.parse(saved) : true; // Default to dark mode
     } catch {
       return true; // Default to dark mode
@@ -65,11 +65,14 @@ export const Documentation: React.FC<DocumentationProps> = ({
 
   // Update document theme attribute and localStorage when dark mode changes
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    document.documentElement.setAttribute(
+      "data-theme",
+      isDarkMode ? "dark" : "light"
+    );
     try {
-      localStorage.setItem('docs-dark-mode', JSON.stringify(isDarkMode));
+      localStorage.setItem("docs-dark-mode", JSON.stringify(isDarkMode));
     } catch (error) {
-      console.warn('Failed to save dark mode preference:', error);
+      console.warn("Failed to save dark mode preference:", error);
     }
   }, [isDarkMode]);
 
@@ -234,13 +237,16 @@ export const Documentation: React.FC<DocumentationProps> = ({
     window.addEventListener("hashchange", handleHashChange);
     window.addEventListener("docs:layout-change", handleLayoutChange);
     window.addEventListener("docs:diagnostic-change", handleDiagnosticChange);
-    
+
     handleHashChange();
 
     return () => {
       window.removeEventListener("hashchange", handleHashChange);
       window.removeEventListener("docs:layout-change", handleLayoutChange);
-      window.removeEventListener("docs:diagnostic-change", handleDiagnosticChange);
+      window.removeEventListener(
+        "docs:diagnostic-change",
+        handleDiagnosticChange
+      );
     };
   }, [
     filterHook.localNamespaceSearch,

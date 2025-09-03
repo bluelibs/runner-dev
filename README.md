@@ -401,7 +401,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
   - `swappedTasks: [SwappedTask!]!`
   - `live: Live!`
   - `diagnostics: [Diagnostic!]!`
-  - `tag(id: ID!): TagUsage`
+  - `tag(id: ID!): Tag`
   - `tags: [Tag!]!`
 
 - All
@@ -1351,3 +1351,4 @@ The hot-swapping system consists of:
 - **Error Handling**: Comprehensive validation and recovery mechanisms
 
 The implementation maintains 100% type safety and provides extensive test coverage with both unit tests and GraphQL integration tests.
+ and GraphQL integration tests.

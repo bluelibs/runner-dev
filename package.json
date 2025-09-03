@@ -1,6 +1,6 @@
 {
   "name": "@bluelibs/runner-dev",
-  "version": "4.3.8",
+  "version": "4.3.9",
   "description": "BlueLibs Runner DevTools",
   "main": "dist/index.js",
   "repository": {

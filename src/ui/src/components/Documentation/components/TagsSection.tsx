@@ -23,7 +23,7 @@ export const TagsSection: React.FC<TagsSectionProps> = ({
 
   return (
     <div className={`tags-section ${className}`}>
-      <h4 className="tags-section__title">🏷️ Tags</h4>
+      <h4 className="tags-section__title">Tags</h4>
       <div className="tags-section__content">
         {/* <div className="tags-section__items">
           {tags.map((tag) => (

@@ -54,6 +54,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
     }
   }
 
+  // Listen for execute requests from ElementTable
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const ce = e as CustomEvent<{ type: string; id: string }>;
+      if (ce?.detail?.type === "task" && ce.detail.id === task.id) {
+        setIsExecuteOpen(true);
+        // ensure card is visible but don't over-scroll
+        const el = document.getElementById(`element-${task.id}`);
+        el?.scrollIntoView({ behavior: "auto", block: "nearest" });
+      }
+    };
+    window.addEventListener("docs:execute-element", handler);
+    return () => window.removeEventListener("docs:execute-element", handler);
+  }, [task.id]);
+
   async function openCoverageDetails() {
     try {
       const data = await graphqlRequest<{
@@ -89,7 +104,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         <div className="task-card__header-content">
           <div className="main">
             <h3 className="task-card__title">
-              ⚙️ {task.meta?.title || formatId(task.id)}
+              {task.meta?.title || formatId(task.id)}
             </h3>
             <div className="task-card__id">{task.id}</div>
             {task.meta?.description && (
@@ -113,7 +128,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         <div className="task-card__grid">
           <div>
             <div className="task-card__section">
-              <h4 className="task-card__section__title">📋 Overview</h4>
+              <h4 className="task-card__section__title">Overview</h4>
               <div className="task-card__section__content">
                 <div className="task-card__info-block">
                   <div className="label">File Path:</div>
@@ -226,7 +241,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
                 {task.overriddenBy && (
                   <div className="task-card__alert task-card__alert--warning">
-                    <div className="title">⚠️ Overridden By:</div>
+                    <div className="title">Overridden By:</div>
                     <div className="content">{task.overriddenBy}</div>
                   </div>
                 )}
@@ -236,7 +251,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
           <div>
             <div className="task-card__section">
-              <h4 className="task-card__section__title">📝 Input Schema</h4>
+              <h4 className="task-card__section__title">Input Schema</h4>
               <div className="task-card__config">
                 <SchemaRenderer schemaString={task.inputSchema} />
               </div>
@@ -249,7 +264,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           emittedEvents.length > 0) && (
           <div className="task-card__relations">
             <h4 className="task-card__relations__title">
-              🔗 Dependencies & Relations
+              Dependencies & Relations
             </h4>
             <div className="task-card__relations__grid">
               {dependencies.tasks.length > 0 && (
@@ -318,7 +333,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         {middlewareUsages.length > 0 && (
           <div className="task-card__middleware">
             <h4 className="task-card__middleware__title">
-              🔗 Middleware Configuration
+              Middleware Configuration
             </h4>
             <div className="task-card__middleware__items">
               {middlewareUsages.map((usage) => (

@@ -406,7 +406,10 @@ export const live = resource({
       liveService.recordLog(
         log.level as LogLevel,
         String(log.message),
-        log.data,
+        {
+          ...log.data,
+          ...(log.error ? { error: log.error } : {}),
+        },
         correlationId,
         log.source
       );

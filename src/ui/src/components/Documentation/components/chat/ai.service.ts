@@ -137,15 +137,17 @@ export async function streamChatCompletion(
   );
   const url = `${base}/v1/chat/completions`;
 
-  const body = {
+  const body: any = {
     model: settings.model,
     messages: mappedMessages,
     stream: settings.stream,
-    stream_options: { include_usage: true },
     ...(response_format ? { response_format } : {}),
     ...(mappedTools && mappedTools.length ? { tools: mappedTools } : {}),
     ...(mappedToolChoice ? { tool_choice: mappedToolChoice } : {}),
   };
+  if (settings.stream) {
+    body.stream_options = { include_usage: true };
+  }
 
   const resp = await fetch(url, {
     method: "POST",

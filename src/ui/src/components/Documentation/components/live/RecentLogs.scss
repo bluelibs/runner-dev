@@ -579,6 +579,51 @@
   max-height: 150px;
   overflow-y: auto;
   backdrop-filter: blur(4px);
+
+  &--error {
+    background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.08) 0%,
+      rgba(220, 38, 38, 0.06) 100%
+    );
+    border-color: rgba(239, 68, 68, 0.15);
+  }
+
+  &--warn {
+    background: linear-gradient(
+      135deg,
+      rgba(245, 158, 11, 0.08) 0%,
+      rgba(217, 119, 6, 0.06) 100%
+    );
+    border-color: rgba(245, 158, 11, 0.15);
+  }
+
+  &--info {
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.08) 0%,
+      rgba(29, 78, 216, 0.06) 100%
+    );
+    border-color: rgba(59, 130, 246, 0.15);
+  }
+
+  &--debug {
+    background: linear-gradient(
+      135deg,
+      rgba(107, 114, 128, 0.08) 0%,
+      rgba(75, 85, 99, 0.06) 100%
+    );
+    border-color: rgba(107, 114, 128, 0.15);
+  }
+
+  &--trace {
+    background: linear-gradient(
+      135deg,
+      rgba(107, 114, 128, 0.06) 0%,
+      rgba(75, 85, 99, 0.04) 100%
+    );
+    border-color: rgba(107, 114, 128, 0.12);
+  }
 }
 
 .recent-logs-modal__data-header {

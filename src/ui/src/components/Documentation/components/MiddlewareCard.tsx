@@ -34,10 +34,10 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
   const emittedEvents = introspector.getMiddlewareEmittedEvents(middleware.id);
 
   const getMiddlewareTypeIcon = () => {
-    if (middleware.global?.enabled) return "🌐";
-    if (middleware.type === "task") return "⚙️";
-    if (middleware.type === "resource") return "🔧";
-    return "🔗";
+    if (middleware.global?.enabled) return "Global";
+    if (middleware.type === "task") return "Task";
+    if (middleware.type === "resource") return "Resource";
+    return "Middleware";
   };
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -69,7 +69,6 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
         <div className="middleware-card__header-content">
           <div className="main">
             <h3 className="middleware-card__title">
-              {getMiddlewareTypeIcon()}{" "}
               {middleware.meta?.title || formatId(middleware.id)}
             </h3>
             <div className="middleware-card__id">{middleware.id}</div>
@@ -81,7 +80,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
 
             {middleware.global?.enabled && (
               <div className="middleware-card__global-badges">
-                <span className="middleware-card__global-badge">🌐 Global</span>
+                <span className="middleware-card__global-badge">Global</span>
                 {middleware.global.tasks && (
                   <span className="middleware-card__global-badge">Tasks</span>
                 )}
@@ -97,7 +96,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             <div
               className={`middleware-card__type-badge middleware-card__type-badge--${middleware.type}`}
             >
-              {middleware.type === "task" ? "⚙️ Task" : "🔧 Resource"}
+              {middleware.type === "task" ? "Task" : "Resource"}
             </div>
           </div>
         </div>
@@ -106,7 +105,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
       <div className="middleware-card__content">
         <div className="middleware-card__grid">
           <div className="middleware-card__section">
-            <h4 className="middleware-card__section__title">📋 Overview</h4>
+            <h4 className="middleware-card__section__title">Overview</h4>
             <div className="middleware-card__section__content">
               <div className="middleware-card__info-block">
                 <div className="label">File Path:</div>
@@ -166,7 +165,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
               {middleware.global?.enabled && (
                 <div className="middleware-card__global-config">
                   <div className="title">
-                    🌐 Global Middleware Configuration
+                    Global Middleware Configuration
                   </div>
                   <div className="content">
                     <div className="config-item">
@@ -202,7 +201,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
 
               {middleware.overriddenBy && (
                 <div className="middleware-card__alert middleware-card__alert--warning">
-                  <div className="title">⚠️ Overridden By:</div>
+                  <div className="title">Overridden By:</div>
                   <div className="content">{middleware.overriddenBy}</div>
                 </div>
               )}
@@ -211,7 +210,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
 
           <div className="middleware-card__section">
             <h4 className="middleware-card__section__title">
-              📝 Configuration Schema
+              Configuration Schema
             </h4>
             <div className="middleware-card__config">
               <SchemaRenderer schemaString={middleware.configSchema} />
@@ -221,7 +220,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
           {(taskUsages.length > 0 || resourceUsages.length > 0) && (
             <div className="middleware-card__usage-details">
               <h4 className="middleware-card__usage-details__title">
-                🔗 Usage Details
+                Usage Details
               </h4>
               <div className="middleware-card__usage-details__grid">
                 {taskUsages.length > 0 && (
@@ -300,7 +299,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
           {emittedEvents.length > 0 && (
             <div className="middleware-card__events">
               <h4 className="middleware-card__events__title">
-                📡 Events Emitted by Usage
+                Events Emitted by Usage
               </h4>
               <div className="middleware-card__events__items">
                 {emittedEvents.map((event) => (

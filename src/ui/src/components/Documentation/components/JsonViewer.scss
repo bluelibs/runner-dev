@@ -1,17 +1,20 @@
-
-@use '../../../styles/variables' as *;
+@use "../../../styles/variables" as *;
 
 .json-viewer {
   font-family: monospace;
   font-size: $font-size-sm;
-  background-color: #f4f4f4;
+  background-color: var(--docs-bg-secondary);
+  color: var(--docs-text-primary);
   padding: $spacing-md;
   border-radius: $border-radius-md;
   overflow-x: auto;
+  .json-bracket {
+    margin-left: 12px;
+  }
 }
 
 .json-node {
-  margin-left: $spacing-lg;
+  margin-left: $spacing-xs;
   position: relative;
 
   &.expanded > .json-children {
@@ -22,9 +25,9 @@
 .json-toggle {
   cursor: pointer;
   position: absolute;
-  left: -$spacing-lg;
+  left: -$spacing-xs;
   top: 0;
-  color: #999;
+  color: var(--docs-text-muted);
   user-select: none;
 
   &:hover {
@@ -34,8 +37,8 @@
 
 .json-children {
   display: none;
-  padding-left: $spacing-md;
-  border-left: 1px dotted #ccc;
+  padding-left: $spacing-xs;
+  border-left: 1px dotted var(--docs-text-muted);
 }
 
 .json-key-value {
@@ -44,30 +47,35 @@
 }
 
 .json-key {
-  color: #a52a2a; // brown
+  color: var(--docs-text-secondary);
   margin-right: $spacing-sm;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .json-value {
   &--string {
-    color: #008000; // green
+    color: #22c55e; // green - works well in both themes
   }
 
   &--number {
-    color: #0000ff; // blue
+    color: #3b82f6; // blue - works well in both themes
   }
 
   &--boolean {
-    color: #ff00ff; // magenta
+    color: #a855f7; // purple - works well in both themes
   }
 
   &--null {
-    color: #808080; // gray
+    color: var(--docs-text-muted);
   }
 }
 
 .json-ellipsis {
-  color: #999;
+  color: var(--docs-text-muted);
   margin: 0 $spacing-xs;
+}
+
+.json-bracket {
+  margin-left: $spacing-xs;
 }

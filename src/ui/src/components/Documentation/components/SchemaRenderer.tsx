@@ -9,6 +9,10 @@ import {
 } from "./common/FormControls";
 import { formatSchema } from "../utils/formatting";
 import "./SchemaRenderer.scss";
+import {
+  hasOpenAIKey,
+  generateInstanceFromJsonSchema,
+} from "./chat/ai.prefill";
 
 export interface SchemaRendererProps {
   schemaString?: string | null;
@@ -117,6 +121,8 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   );
   const [didPrefill, setDidPrefill] = React.useState(false);
   const [copyFeedback, setCopyFeedback] = React.useState<string | null>(null);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [aiAvailable, setAiAvailable] = React.useState(false);
   const schema = React.useMemo(() => parseSchema(schemaString), [schemaString]);
   const resolvedRoot = React.useMemo(
     () =>
@@ -135,6 +141,10 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   });
 
   const formData = watch();
+
+  React.useEffect(() => {
+    setAiAvailable(hasOpenAIKey());
+  }, [schemaString]);
 
   const getPathValue = (obj: any, dotPath: string): any => {
     if (!obj) return undefined;
@@ -327,9 +337,41 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     }
   };
 
+  const handleAIPrefill = async () => {
+    if (!schemaString) return;
+    setAiLoading(true);
+    try {
+      const generated = await generateInstanceFromJsonSchema(schemaString);
+      if (generated && typeof generated === "object") {
+        reset(generated);
+      }
+    } catch (e) {
+      // surface as a brief feedback
+      setCopyFeedback("AI fill failed");
+      setTimeout(() => setCopyFeedback(null), 2000);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <div className="schema-renderer">
       <div className="schema-renderer__tabs">
+        {schema && (
+          <button
+            type="button"
+            className="schema-renderer__tab schema-renderer__tab--ai"
+            title={
+              aiAvailable
+                ? "AI prefill based on schema"
+                : "AI key not configured in Chat settings"
+            }
+            onClick={handleAIPrefill}
+            disabled={!aiAvailable || aiLoading}
+          >
+            {aiLoading ? "Filling…" : "✧ Fill"}
+          </button>
+        )}
         {!hidePrint && (
           <button
             type="button"

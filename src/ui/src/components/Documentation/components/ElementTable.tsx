@@ -16,6 +16,12 @@ export interface ElementTableProps {
   icon?: string;
   // Html Id to use for component
   id?: string;
+  // When provided, shows a subtle action button per row and wires ExecuteModal
+  // - "task" shows a Run button (InvokeTask)
+  // - "event" shows an Emit button (InvokeEvent)
+  enableActions?: "task" | "event";
+  // Callback to notify parent to handle execution in the respective Card
+  onAction?: (element: BaseElement) => void;
 }
 
 export const ElementTable: React.FC<ElementTableProps> = ({
@@ -23,6 +29,8 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   title,
   icon,
   id,
+  enableActions,
+  onAction,
 }) => {
   const [expandedMap, setExpandedMap] = React.useState<Record<string, boolean>>(
     {}
@@ -77,6 +85,11 @@ export const ElementTable: React.FC<ElementTableProps> = ({
 
   if (elements.length === 0) return null;
 
+  const openExecuteFor = (element: BaseElement) => {
+    // Defer execution to the respective Card via parent handler
+    onAction?.(element);
+  };
+
   return (
     <div className="element-table" id={id}>
       <h2 className="element-table__title">
@@ -128,6 +141,26 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                         <span className="element-table__empty">Untitled</span>
                       )}
                     </a>
+                    {enableActions && (
+                      <button
+                        className={`element-table__action-btn ${
+                          enableActions === "task"
+                            ? "element-table__action-btn--run"
+                            : "element-table__action-btn--emit"
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openExecuteFor(element);
+                        }}
+                        title={
+                          enableActions === "task" ? "Run Task" : "Emit Event"
+                        }
+                        aria-label={enableActions === "task" ? "Run" : "Emit"}
+                      >
+                        {enableActions === "task" ? "Run" : "Emit"}
+                      </button>
+                    )}
                   </td>
 
                   <td className="element-table__cell element-table__cell--description">

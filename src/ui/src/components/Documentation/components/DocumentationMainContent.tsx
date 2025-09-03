@@ -136,6 +136,15 @@ export const DocumentationMainContent: React.FC<
             title="Tasks Overview"
             icon="⚙️"
             id="tasks"
+            enableActions="task"
+            onAction={(el) => {
+              // Ask the TaskCard to open its Run modal via a custom event
+              window.dispatchEvent(
+                new CustomEvent("docs:execute-element", {
+                  detail: { type: "task", id: el.id },
+                })
+              );
+            }}
           />
         )}
         {tasks.length > 0 && (
@@ -182,6 +191,15 @@ export const DocumentationMainContent: React.FC<
             title="Events Overview"
             icon="📡"
             id="events"
+            enableActions="event"
+            onAction={(el) => {
+              // Ask the EventCard to open its Emit modal via a custom event
+              window.dispatchEvent(
+                new CustomEvent("docs:execute-element", {
+                  detail: { type: "event", id: el.id },
+                })
+              );
+            }}
           />
         )}
         {events.length > 0 && (
@@ -255,7 +273,7 @@ export const DocumentationMainContent: React.FC<
         )}
         {tags.length > 0 && (
           <section className="docs-section">
-            <h2>🏷️ Tags ({tags.length})</h2>
+            <h2>Tags ({tags.length})</h2>
             <div className="docs-tags-grid">
               {tags.map((tag) => (
                 <TagCard key={tag.id} tag={tag} introspector={introspector} />

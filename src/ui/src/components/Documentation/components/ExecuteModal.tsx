@@ -1,6 +1,10 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import "./ExecuteModal.scss";
+import {
+  hasOpenAIKey,
+  generateInstanceFromJsonSchema,
+} from "./chat/ai.prefill";
 
 export interface ExecuteModalProps {
   isOpen: boolean;
@@ -29,6 +33,8 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
   const [loading, setLoading] = React.useState<boolean>(false);
   const [response, setResponse] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [aiLoading, setAiLoading] = React.useState<boolean>(false);
+  const [aiAvailable, setAiAvailable] = React.useState<boolean>(false);
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const previouslyFocused = React.useRef<HTMLElement | null>(null);
@@ -41,7 +47,10 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
       return JSON.parse(schemaString);
     } catch (error) {
       if (isOpen) {
-        console.error("ExecuteModal - failed to parse schema:", { schemaString, error });
+        console.error("ExecuteModal - failed to parse schema:", {
+          schemaString,
+          error,
+        });
       }
       return null;
     }
@@ -50,17 +59,20 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
   // Resolve schema references and get the actual schema to use
   const resolvedSchema = React.useMemo(() => {
     if (!schema) return null;
-    
+
     // If schema has a $ref, resolve it
     if (schema.$ref && schema.definitions) {
-      const refPath = schema.$ref.replace('#/definitions/', '');
+      const refPath = schema.$ref.replace("#/definitions/", "");
       const resolved = schema.definitions[refPath];
       if (isOpen) {
-        console.log("ExecuteModal - resolved $ref schema:", { refPath, resolved });
+        console.log("ExecuteModal - resolved $ref schema:", {
+          refPath,
+          resolved,
+        });
       }
       return resolved || null;
     }
-    
+
     return schema;
   }, [schema, isOpen]);
 
@@ -148,6 +160,11 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     };
   }, [isOpen]);
 
+  // Detect if AI key is configured
+  React.useEffect(() => {
+    setAiAvailable(hasOpenAIKey());
+  }, [isOpen]);
+
   // Initialize form data from schema defaults
   React.useEffect(() => {
     if (resolvedSchema && resolvedSchema.properties) {
@@ -192,8 +209,26 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleAIPrefill = async () => {
+    if (!schemaString || !resolvedSchema) return;
+    setError(null);
+    setAiLoading(true);
+    try {
+      const generated = await generateInstanceFromJsonSchema(schemaString);
+      // Merge with defaults but prefer AI values
+      const merged = { ...formData, ...(generated || {}) };
+      setFormData(merged);
+      setInputJson(JSON.stringify(merged, null, 2));
+    } catch (e: any) {
+      setError(e?.message || String(e));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const renderFormField = (key: string, prop: any) => {
-    const isRequired = resolvedSchema.required && resolvedSchema.required.includes(key);
+    const isRequired =
+      resolvedSchema.required && resolvedSchema.required.includes(key);
     const value = formData[key] || "";
 
     if (prop.enum && Array.isArray(prop.enum)) {
@@ -369,6 +404,18 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
               {title || "Execute"}
             </div>
             <div className="execute-modal__controls">
+              <button
+                className="btn execute-modal__ai-btn"
+                title={
+                  aiAvailable
+                    ? "AI prefill based on schema"
+                    : "AI key not configured in Chat settings"
+                }
+                onClick={handleAIPrefill}
+                disabled={!aiAvailable || aiLoading || !schemaString}
+              >
+                {aiLoading ? "Filling…" : "✧ Prefill"}
+              </button>
               <label className="execute-modal__eval">
                 <input
                   type="checkbox"

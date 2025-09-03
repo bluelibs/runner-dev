@@ -257,8 +257,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         aria-label="AI chat"
       >
         <SidebarHeader
-          icon="😼" // cat icon: 🐱 // cat icon: whiskers:
-          title="Runtime AI"
+          icon=""
+          title="Runtime AI (beta)"
           className="sidebar-header--chat"
           status={
             <>

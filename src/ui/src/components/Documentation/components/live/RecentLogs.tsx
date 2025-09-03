@@ -52,7 +52,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
   };
 
   const visibleLogs = useMemo(() => {
-    const base = isFullscreen ? logs : logs.slice(-10);
+    const base = isFullscreen ? logs : logs.slice(-50);
     return [...base].reverse();
   }, [logs, isFullscreen]);
 
@@ -156,7 +156,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
             >
               <div className="recent-logs-fs__header">
                 <h3 className="recent-logs-fs__title">
-                  📝 Recent Logs - Full Screen
+                  Recent Logs - Full Screen
                 </h3>
                 <button
                   className="recent-logs-fs__close"
@@ -294,44 +294,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                       </div>
                     </div>
 
-                    {/* Additional context extracted from JSON data if present */}
-                    {(() => {
-                      const parsed = selectedLog.data
-                        ? tryParseJson(selectedLog.data)
-                        : null;
-                      if (!parsed || typeof parsed !== "object") return null;
-                      const obj = parsed as Record<string, unknown>;
-
-                      const entries = Object.keys(obj).map((k) => [k, obj[k]]);
-
-                      if (entries.length === 0) return null;
-                      return (
-                        <div className="recent-logs-modal__field">
-                          <div className="recent-logs-modal__label">
-                            Additional Context
-                          </div>
-                          <div className="recent-logs-modal__kv-grid">
-                            {entries.map(([k, v]) => (
-                              <div
-                                key={String(k)}
-                                className="recent-logs-modal__kv-item"
-                                title={`${k}`}
-                              >
-                                <span className="recent-logs-modal__kv-key">
-                                  {String(k)}:
-                                </span>{" "}
-                                {String(v)}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    <div>
-                      <div className="recent-logs-modal__data-header">
-                        <div className="recent-logs-modal__label">Data</div>
-                        {selectedLog.data && (
+                    {selectedLog.data && selectedLog.data !== "{}" && (
+                      <div>
+                        <div className="recent-logs-modal__data-header">
+                          <div className="recent-logs-modal__label">Data</div>
                           <button
                             className="recent-logs-modal__copy"
                             onClick={() => {
@@ -343,11 +309,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                           >
                             Copy
                           </button>
-                        )}
-                      </div>
-                      <div className="recent-logs-modal__data">
-                        {selectedLog.data ? (
-                          (() => {
+                        </div>
+                        <div className="recent-logs-modal__data">
+                          {(() => {
                             const parsed = tryParseJson(selectedLog.data!);
                             if (parsed) {
                               return <JsonViewer data={parsed} />;
@@ -357,14 +321,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                                 {selectedLog.data}
                               </pre>
                             );
-                          })()
-                        ) : (
-                          <div className="recent-logs-modal__empty">
-                            No data available
-                          </div>
-                        )}
+                          })()}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

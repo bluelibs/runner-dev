@@ -102,7 +102,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         <div className="resource-card__header-content">
           <div className="main">
             <h3 className="resource-card__title">
-              🔧 {resource.meta?.title || formatId(resource.id)}
+              {resource.meta?.title || formatId(resource.id)}
             </h3>
             <div className="resource-card__id">{resource.id}</div>
             {resource.meta?.description && (
@@ -118,7 +118,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         <div className="resource-card__grid">
           <div>
             <div className="resource-card__section">
-              <h4 className="resource-card__section__title">📋 Overview</h4>
+              <h4 className="resource-card__section__title">Overview</h4>
               <div className="resource-card__section__content">
                 <div className="resource-card__info-block">
                   <div className="label">File Path:</div>
@@ -212,7 +212,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
                 {resource.overriddenBy && (
                   <div className="resource-card__alert resource-card__alert--warning">
-                    <div className="title">⚠️ Overridden By:</div>
+                    <div className="title">Overridden By:</div>
                     <div className="content">{resource.overriddenBy}</div>
                   </div>
                 )}
@@ -223,7 +223,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
           <div>
             <div className="resource-card__section">
               <h4 className="resource-card__section__title">
-                ⚙️ Configuration
+                Configuration
               </h4>
               <div className="resource-card__config">
                 <div className="resource-card__config__subsection">
@@ -247,7 +247,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
           registeredElements.length > 0) && (
           <div className="resource-card__relations">
             <h4 className="resource-card__relations__title">
-              🔗 Dependencies & Relations
+              Dependencies & Relations
             </h4>
             <div className="resource-card__relations__grid">
               {dependencies.length > 0 && (
@@ -316,7 +316,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         {middlewareUsages.length > 0 && (
           <div className="resource-card__middleware">
             <h4 className="resource-card__middleware__title">
-              🔗 Middleware Configuration
+              Middleware Configuration
             </h4>
             <div className="resource-card__middleware__items">
               {middlewareUsages.map((usage) => (

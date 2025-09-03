@@ -49,11 +49,11 @@ export const EventCard: React.FC<EventCardProps> = ({
   }
 
   const getEventIcon = () => {
-    if (isGlobalEvent) return "🌐";
-    if (hooks.length > 0 && emitters.length > 0) return "📡";
-    if (emitters.length > 0) return "📤";
-    if (hooks.length > 0) return "📥";
-    return "📋";
+    if (isGlobalEvent) return "Global";
+    if (hooks.length > 0 && emitters.length > 0) return "Active";
+    if (emitters.length > 0) return "Emit";
+    if (hooks.length > 0) return "Listen";
+    return "Event";
   };
 
   const getEventStatus = () => {
@@ -69,13 +69,26 @@ export const EventCard: React.FC<EventCardProps> = ({
   const status = getEventStatus();
   const [isExecuteOpen, setIsExecuteOpen] = React.useState(false);
 
+  // Listen for execute requests from ElementTable
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const ce = e as CustomEvent<{ type: string; id: string }>;
+      if (ce?.detail?.type === "event" && ce.detail.id === event.id) {
+        setIsExecuteOpen(true);
+        const el = document.getElementById(`element-${event.id}`);
+        el?.scrollIntoView({ behavior: "auto", block: "nearest" });
+      }
+    };
+    window.addEventListener("docs:execute-element", handler);
+    return () => window.removeEventListener("docs:execute-element", handler);
+  }, [event.id]);
+
   return (
     <div id={`element-${event.id}`} className="event-card">
       <div className="event-card__header">
         <div className="event-card__header-content">
           <div className="main">
             <h3 className="event-card__title">
-              {getEventIcon()}{" "}
               {isGlobalEvent
                 ? event.meta?.title || "Global Event"
                 : event.meta?.title || formatId(event.id)}
@@ -93,11 +106,11 @@ export const EventCard: React.FC<EventCardProps> = ({
           <div className="meta">
             <div className="event-card__stats">
               <div className="event-card__stat-badge">
-                <span className="icon">📤</span>
+                <span className="icon">Emit</span>
                 <span className="count">Emitters: {emitters.length}</span>
               </div>
               <div className="event-card__stat-badge">
-                <span className="icon">📥</span>
+                <span className="icon">Hook</span>
                 <span className="count">Hooks: {hooks.length}</span>
               </div>
               <div className="event-card__run">
@@ -119,12 +132,12 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div className="event-card__grid">
           <div>
             <div className="event-card__section">
-              <h4 className="event-card__section__title">📋 Overview</h4>
+              <h4 className="event-card__section__title">Overview</h4>
               <div className="event-card__section__content">
                 {isGlobalEvent && (
                   <div className="event-card__global-message">
                     <div className="event-card__global-message__header">
-                      <span className="icon">🌐</span>
+                      <span className="icon">Global</span>
                       <h5 className="title">Global/System Event</h5>
                     </div>
                     <div className="event-card__global-message__content">
@@ -221,8 +234,8 @@ export const EventCard: React.FC<EventCardProps> = ({
                   >
                     <div className="title">
                       {!isGlobalEvent && emitters.length === 0
-                        ? "⚠️ No Emitters Found"
-                        : "⚠️ No Listeners Found"}
+                        ? "No Emitters Found"
+                        : "No Listeners Found"}
                     </div>
                     <div className="content">
                       {!isGlobalEvent && emitters.length === 0
@@ -237,7 +250,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
           <div>
             <div className="event-card__section">
-              <h4 className="event-card__section__title">📝 Payload Schema</h4>
+              <h4 className="event-card__section__title">Payload Schema</h4>
               <div className="event-card__config">
                 <SchemaRenderer schemaString={event.payloadSchema} />
               </div>
@@ -246,9 +259,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         </div>
 
         <div className="event-card__flow">
-          <h4 className="event-card__flow__title">
-            🔗 Event Flow & Statistics
-          </h4>
+          <h4 className="event-card__flow__title">Event Flow & Statistics</h4>
           <div className="event-card__metrics">
             <div
               className={`event-card__metric ${
@@ -286,16 +297,16 @@ export const EventCard: React.FC<EventCardProps> = ({
                       if ("dependsOn" in emitter && "middleware" in emitter) {
                         // It's a Task
                         className += " event-card__emitter--task";
-                        icon = "⚙️";
+                        icon = "Task";
                       } else if ("event" in emitter) {
                         // It's a Hook
                         className += " event-card__emitter--hook";
-                        icon = "🪝";
+                        icon = "Hook";
                       }
                     } else if ("config" in emitter) {
                       // It's a Resource
                       className += " event-card__emitter--resource";
-                      icon = "🔧";
+                      icon = "Resource";
                     }
 
                     return (
@@ -341,7 +352,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                       <div className="event-card__listener__content">
                         <div className="main">
                           <div className="event-card__listener__info">
-                            <span>🪝</span>
+                            <span>Hook</span>
                             <div className="details">
                               <div className="title">
                                 {hook.meta?.title || formatId(hook.id)}

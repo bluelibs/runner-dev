@@ -111,7 +111,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
       <div className="tag-card__header">
         <div className="tag-card__header-content">
           <div className="main">
-            <h3 className="tag-card__title">🏷️ {formatId(tag.id)}</h3>
+            <h3 className="tag-card__title">{formatId(tag.id)}</h3>
             <div className="tag-card__id">{tag.meta?.title || tag.id}</div>
           </div>
         </div>
@@ -121,7 +121,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
         <div className="tag-card__grid">
           <div>
             <div className="tag-card__section">
-              <h4 className="tag-card__section__title">📋 Overview</h4>
+              <h4 className="tag-card__section__title">Overview</h4>
               <div className="tag-card__section__content">
                 <div className="tag-card__summary">
                   <div className="tag-card__total">
@@ -184,7 +184,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
           <div>
             <div className="tag-card__section">
               <h4 className="tag-card__section__title">
-                ⚙️ Configuration Schema
+                Configuration Schema
               </h4>
               <div className="tag-card__config">
                 <SchemaRenderer schemaString={tag.configSchema} />

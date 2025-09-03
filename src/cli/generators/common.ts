@@ -4,8 +4,8 @@ export type ArtifactKind =
   | "task"
   | "event"
   | "tag"
-  | "taskMiddleware"
-  | "resourceMiddleware";
+  | "task-middleware"
+  | "resource-middleware";
 
 export function toKebabCase(input: string): string {
   return input

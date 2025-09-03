@@ -32,8 +32,8 @@ export async function main(argv: string[]): Promise<void> {
     "task",
     "event",
     "tag",
-    "taskMiddleware",
-    "resourceMiddleware",
+    "task-middleware",
+    "resource-middleware",
   ];
 
   let kind: ArtifactKind;
@@ -205,10 +205,7 @@ export async function main(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const nsArg =
-    flagGet("ns") ||
-    flagGet("namespace") ||
-    "app";
+  const nsArg = flagGet("ns") || flagGet("namespace") || "app";
   const baseDir = flagGet("dir") || "src";
   const dryRun = flagSet.has("dry") || flagSet.has("dry-run");
   const addIndex = flagSet.has("export") || flagSet.has("add-export");
@@ -569,10 +566,10 @@ function printNewHelp(): void {
           `${c.cmd("runner-dev new tag http --ns app.web --dir src --export")}`,
           `${c.gray("# Middleware")}`,
           `${c.cmd(
-            "runner-dev new taskMiddleware auth --ns app --dir src --export"
+            "runner-dev new task-middleware auth --ns app --dir src --export"
           )}`,
           `${c.cmd(
-            "runner-dev new resourceMiddleware soft-delete --ns app --dir src --export"
+            "runner-dev new resource-middleware soft-delete --ns app --dir src --export"
           )}`,
         ].join("\n"),
         2

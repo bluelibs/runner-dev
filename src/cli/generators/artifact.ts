@@ -54,17 +54,30 @@ export async function scaffoldArtifact({
         ? "events"
         : kind === "tag"
         ? "tags"
-        : kind === "taskMiddleware" || kind === "resourceMiddleware"
+        : kind === "task-middleware" || kind === "resource-middleware"
         ? "middleware"
         : kind
     }.${kebab}`;
 
-  // Build directory as: <baseDir>/<namespace segments>
+  // Build directory as: <baseDir>/<namespace segments>/<type-collection>
   const nsSegments = namespace
     .split(".")
     .map((s) => toKebabCase(s))
     .filter(Boolean);
-  const relDir = path.join(baseDir, ...nsSegments);
+  const typeCollection =
+    kind === "resource"
+      ? "resources"
+      : kind === "task"
+      ? "tasks"
+      : kind === "event"
+      ? "events"
+      : kind === "tag"
+      ? "tags"
+      : kind === "task-middleware"
+      ? path.join("middleware", "task")
+      : path.join("middleware", "resource");
+
+  const relDir = path.join(baseDir, ...nsSegments, typeCollection);
 
   // File naming convention: <name>.<kind>.ts (eg: create-user.task.ts)
   const fileSuffix =
@@ -76,7 +89,7 @@ export async function scaffoldArtifact({
       ? "event.ts"
       : kind === "tag"
       ? "tag.ts"
-      : kind === "taskMiddleware"
+      : kind === "task-middleware"
       ? "task-middleware.ts"
       : "resource-middleware.ts";
 
@@ -94,7 +107,7 @@ export async function scaffoldArtifact({
       ? eventTemplate({ header, id, camel, pascal })
       : kind === "tag"
       ? tagTemplate({ header, id, camel, pascal })
-      : kind === "taskMiddleware"
+      : kind === "task-middleware"
       ? taskMiddlewareTemplate({ header, id, camel, pascal })
       : resourceMiddlewareTemplate({ header, id, camel, pascal });
 
@@ -106,7 +119,10 @@ export async function scaffoldArtifact({
   // Protect against overwriting existing files unless forced
   if (!force && fs.existsSync(filePath)) {
     throw new Error(
-      `Refusing to overwrite existing file: ${path.relative(cwd, filePath)} (use --force to override)`
+      `Refusing to overwrite existing file: ${path.relative(
+        cwd,
+        filePath
+      )} (use --force to override)`
     );
   }
   await fsp.writeFile(filePath, content, { encoding: "utf8" });

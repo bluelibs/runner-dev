@@ -101,9 +101,9 @@
     "zod-to-json-schema": "^3.23.5"
   },
   "peerDependencies": {
-    "@bluelibs/runner": "^4.3.0"
+    "@bluelibs/runner": "4.3.0"
   },
   "overrides": {
-    "@bluelibs/runner": "^4.3.0"
+    "@bluelibs/runner": "4.3.0"
   }
 }

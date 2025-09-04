@@ -1,5 +1,7 @@
 #!/usr/bin/env -S node --enable-source-maps
 import { c, alignRows, divider, indentLines } from "./cli/format";
+import fs from "fs";
+import path from "path";
 
 // Allow running the CLI directly via ts-node without a JS build.
 // Detect TS runtime by the current filename extension.
@@ -21,9 +23,34 @@ async function loadModule(basePath: string): Promise<any> {
   return await import(`${basePath}.js`);
 }
 
+function getPackageVersion(): string {
+  // Prefer npm-provided env when present (npm scripts)
+  if (process.env.npm_package_version) {
+    return process.env.npm_package_version;
+  }
+
+  // Resolve relative to the executed script (works for dist/cli.js and src/cli.ts)
+  try {
+    const scriptPath = process.argv[1] || __filename;
+    const pkgPath = path.resolve(path.dirname(scriptPath), "../package.json");
+    const raw = fs.readFileSync(pkgPath, "utf8");
+    const pkg = JSON.parse(raw);
+    if (pkg && typeof pkg.version === "string") return pkg.version;
+  } catch {}
+
+  return "unknown";
+}
+
 const subcommand = process.argv[2];
 
 async function run(): Promise<void> {
+  // Global version flags
+  if (["-v", "--version", "version"].includes(subcommand || "")) {
+    // eslint-disable-next-line no-console
+    console.log(getPackageVersion());
+    return;
+  }
+
   if (!subcommand || ["help", "-h", "--help"].includes(subcommand)) {
     const title = c.title("runner-dev CLI");
     const usage = alignRows(

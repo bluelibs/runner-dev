@@ -13,6 +13,7 @@ import { createSections } from "./config/documentationSections";
 import { DOCUMENTATION_CONSTANTS } from "./config/documentationConstants";
 import { ChatSidebar } from "./components/chat/ChatSidebar";
 import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
+import { useRef } from "react";
 
 export type Section =
   | "overview"
@@ -42,6 +43,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
   projectOverviewMd,
   graphqlSdl,
 }) => {
+  const didInitHashHandlerRef = useRef(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(() => {
     try {
       return (
@@ -238,7 +240,11 @@ export const Documentation: React.FC<DocumentationProps> = ({
     window.addEventListener("docs:layout-change", handleLayoutChange);
     window.addEventListener("docs:diagnostic-change", handleDiagnosticChange);
 
-    handleHashChange();
+    // Run once on initial mount only
+    if (!didInitHashHandlerRef.current) {
+      handleHashChange();
+      didInitHashHandlerRef.current = true;
+    }
 
     return () => {
       window.removeEventListener("hashchange", handleHashChange);

@@ -284,7 +284,7 @@ async function scaffold(opts: ScaffoldOptions): Promise<void> {
     type: "module",
     scripts: {
       dev: "tsx watch src/main.ts",
-      start: "node dist/main.js",
+      start: "node --enable-source-maps dist/main.js",
       build: "tsc -p tsconfig.json",
       test: "jest",
       "test:watch": "jest --watch",
@@ -300,7 +300,6 @@ async function scaffold(opts: ScaffoldOptions): Promise<void> {
       jest: "^29.7.0",
       "ts-jest": "^29.1.1",
       "@types/jest": "^29.5.12",
-      "source-map-support": "^0.5.21",
     },
   } as const;
 
@@ -353,7 +352,7 @@ module.exports = {
     include: ["src/**/*.ts", "src/**/*.tsx"],
   } as const;
 
-  const mainTs = `import 'source-map-support/register';
+  const mainTs = `
 import { run, resource } from '@bluelibs/runner';
 import { dev } from '@bluelibs/runner-dev';
 

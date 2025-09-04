@@ -1,5 +1,4 @@
-#!/usr/bin/env node
-import "source-map-support/register";
+#!/usr/bin/env -S node --enable-source-maps
 import { c, alignRows, divider, indentLines } from "./cli/format";
 
 // Allow running the CLI directly via ts-node without a JS build.

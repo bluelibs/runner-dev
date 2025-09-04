@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import "source-map-support/register";
 import { execRemote } from "./shared";
 
 function printHelp(): void {

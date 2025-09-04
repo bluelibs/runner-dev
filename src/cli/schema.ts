@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import "source-map-support/register";
 import { fetchIntrospectionJson } from "./shared";
 import { fetchSchemaSDL } from "../mcp/schema";
 

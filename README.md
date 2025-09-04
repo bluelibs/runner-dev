@@ -4,6 +4,8 @@ Runner Dev Tools provide introspection, live telemetry, and a GraphQL API to exp
 
 The way it works, is that this is a resource that opens a graphql server which opens your application to introspection.
 
+If you use `zod` for schemas of your runner primitives, you will get them beautifully transformed to JSON Schemas. This can be made to work with any schema that supports conversion to JSON Schemas.
+
 ## Install
 
 ```bash
@@ -41,14 +43,6 @@ Register the Dev resources in your Runner root:
 ```ts
 import { resource } from "@bluelibs/runner";
 import { dev } from "@bluelibs/runner-dev";
-
-const register = [
-  // rest of your app elements
-];
-
-if (process.env.DEV_MODE) {
-  register.push(dev);
-}
 
 export const app = resource({
   id: "app",
@@ -1351,4 +1345,4 @@ The hot-swapping system consists of:
 - **Error Handling**: Comprehensive validation and recovery mechanisms
 
 The implementation maintains 100% type safety and provides extensive test coverage with both unit tests and GraphQL integration tests.
- and GraphQL integration tests.
+and GraphQL integration tests.

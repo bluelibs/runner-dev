@@ -31,9 +31,12 @@ const app = resource({
 
 ## What you get
 
+- Fully-featured UI with AI assistance to explore your app, call tasks, emit events, diagnostics, logs and more.
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
 - Live: in-memory logs and event emissions
+- Live File Previews and Saving.
 - GraphQL server: deep graph navigation over your app’s topology and live data
+- CLI with scaffolding, query-ing capabilities on a live endpoint or via dry-run mode.
 - MCP server: allow your AI to do introspection for you.
 
 ## Quickstart
@@ -57,7 +60,7 @@ export const app = resource({
 });
 ```
 
-Add it as an MCP Server:
+Add it as an Model Context Protocol Server (for AIs) via normal socket:
 
 ```json
 {
@@ -65,7 +68,7 @@ Add it as an MCP Server:
     "mcp-graphql": {
       "description": "MCP Server for Active Running Context App",
       "command": "npx",
-      "args": ["runner-dev", "mcp"],
+      "args": ["@bluelibs/runner-dev", "mcp"],
       "env": {
         "ENDPOINT": "http://localhost:1337/graphql",
         "ALLOW_MUTATIONS": "true"
@@ -113,30 +116,17 @@ Prerequisites:
 Help:
 
 ```bash
-npx @bluelibs/runner-dev --help
-```
-
-Run CLI from TypeScript (no build):
-
-```bash
-# Using ts-node ESM loader
-node --loader ts-node/esm src/cli.ts query 'query { tasks { id } }' --entry-file ./src/main.ts
-
-# Or with tsx (recommended DX)
-npx tsx src/cli.ts query 'query { tasks { id } }' --entry-file ./src/main.ts
-
-# Or classic ts-node when configured
-npx ts-node src/cli.ts query 'query { tasks { id } }' --entry-file ./src/main.ts
+runner-dev --help
 ```
 
 Create new project:
 
 ```bash
 # Create a new Runner project
-npx @bluelibs/runner-dev new <project-name>
+runner-dev new <project-name>
 
 # Example
-npx @bluelibs/runner-dev new my-awesome-app
+runner-dev new my-awesome-app
 ```
 
 This command creates a new Runner project with:
@@ -157,25 +147,25 @@ Examples:
 
 ```bash
 # Create and auto-install dependencies, then run tests
-npx @bluelibs/runner-dev new my-awesome-app --install --run-tests
+new my-awesome-app --install --run-tests
 
 # Create and start the dev server immediately (blocks)
-npx @bluelibs/runner-dev new my-awesome-app --install --run
+new my-awesome-app --install --run
 ```
 
 Scaffold artifacts (resource | task | event | tag | taskMiddleware | resourceMiddleware):
 
 ```bash
 # General form
-npx @bluelibs/runner-dev new <kind> <name> [--ns app] [--dir src] [--export] [--dry]
+runner-dev new <kind> <name> [--ns app] [--dir src] [--export] [--dry]
 
 # Examples
-npx @bluelibs/runner-dev new resource user-service --ns app --dir src --export
-npx @bluelibs/runner-dev new task create-user --ns app.users --dir src --export
-npx @bluelibs/runner-dev new event user-registered --ns app.users --dir src --export
-npx @bluelibs/runner-dev new tag http --ns app.web --dir src --export
-npx @bluelibs/runner-dev new taskMiddleware auth --ns app --dir src --export
-npx @bluelibs/runner-dev new resourceMiddleware soft-delete --ns app --dir src --export
+runner-dev new resource user-service --ns app --dir src --export
+runner-dev new task create-user --ns app.users --dir src --export
+runner-dev new event user-registered --ns app.users --dir src --export
+runner-dev new tag http --ns app.web --dir src --export
+runner-dev new task-middleware auth --ns app --dir src --export
+runner-dev new resource-middleware soft-delete --ns app --dir src --export
 ```
 
 Flags for artifact scaffolding:
@@ -188,7 +178,7 @@ Flags for artifact scaffolding:
 
 Conventions:
 
-- Generated ids follow: `<namespace>.(resources|tasks|events|tags|middleware).<kebab-name>`
+- Generated ids follow: `<namespace>.(resources|tasks|events|tags|task-middleware|resource-middleware).<kebab-name>`
 - Folders:
   - resources: `src/resources`
   - tasks: `src/tasks`
@@ -213,38 +203,38 @@ After creation, follow the next steps:
 Ping endpoint:
 
 ```bash
-ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev ping
+ENDPOINT=http://localhost:1337/graphql runner-dev ping
 ```
 
 Run a query (two modes):
 
 ```bash
 # Remote mode (HTTP endpoint)
-ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }'
+ENDPOINT=http://localhost:1337/graphql runner-dev query 'query { tasks { id } }'
 
 # With variables and pretty output
 ENDPOINT=http://localhost:1337/graphql \
-  npx @bluelibs/runner-dev query \
+  runner-dev query \
   'query Q($ns: ID){ tasks(idIncludes: $ns) { id } }' \
   --variables '{"ns":"task."}' \
   --format pretty
 
 # Add a namespace sugar to inject idIncludes/filter automatically
-ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }' --namespace task.
+ENDPOINT=http://localhost:1337/graphql runner-dev query 'query { tasks { id } }' --namespace task.
 
 # Dry‑run mode (no server) — uses a TS entry file
-npx @bluelibs/runner-dev query 'query { tasks { id } }' --entry-file ./src/main.ts
+runner-dev query 'query { tasks { id } }' --entry-file ./src/main.ts
 ```
 
 Dry‑run (no server) details:
 
 ```bash
 # Using a TS entry file default export
-npx @bluelibs/runner-dev query 'query { tasks { id } }' \
+runner-dev query 'query { tasks { id } }' \
   --entry-file ./src/main.ts
 
 # Using a named export (e.g., exported as `app`)
-npx @bluelibs/runner-dev query 'query { tasks { id } }' \
+runner-dev query 'query { tasks { id } }' \
   --entry-file ./src/main.ts --export app
 
 # Notes
@@ -260,17 +250,17 @@ npx @bluelibs/runner-dev query 'query { tasks { id } }' \
 Project overview (Markdown):
 
 ```bash
-ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev overview --details 10 --include-live
+ENDPOINT=http://localhost:1337/graphql runner-dev overview --details 10 --include-live
 ```
 
 Schema tools:
 
 ```bash
 # SDL string
-ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema sdl
+ENDPOINT=http://localhost:1337/graphql runner-dev schema sdl
 
 # Introspection JSON
-ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema json
+ENDPOINT=http://localhost:1337/graphql runner-dev schema json
 ```
 
 Environment variables used by all commands:
@@ -339,37 +329,6 @@ npm test -- src/__tests__/component/cli.query.remote.test.ts src/__tests__/compo
 ```
 
 CI note: we prebuild before tests via `pretest` so the CLI binary `dist/cli.js` is available.
-
-## Programmatic Introspection (without GraphQL)
-
-```ts
-import { resource } from "@bluelibs/runner";
-import type { Introspector } from "@bluelibs/runner-dev/dist/resources/introspector.resource";
-import { introspector } from "@bluelibs/runner-dev/dist/resources/introspector.resource";
-
-export const probe = resource({
-  id: "probe",
-  dependencies: { introspector },
-  async init(_c, { introspector }: { introspector: Introspector }) {
-    const tasks = introspector.getTasks(); // Task[]
-    const hooks = introspector.getHooks(); // Hook[]
-    const resources = introspector.getResources(); // Resource[]
-    const events = introspector.getEvents(); // Event[]
-    const middlewares = introspector.getMiddlewares(); // Middleware[]
-
-    const deps = introspector.getDependencies(tasks[0]); // tasks/hooks/resources/emitters
-
-    // Diagnostics
-    const diagnostics = introspector.getDiagnostics();
-    // Or granular helpers
-    // introspector.getOrphanEvents();
-    // introspector.getUnemittedEvents();
-    // introspector.getUnusedMiddleware();
-    // introspector.getMissingFiles();
-    // introspector.getOverrideConflicts();
-  },
-});
-```
 
 ## GraphQL API Highlights
 
@@ -1024,57 +983,6 @@ query RecentDebugLogs {
       data
       correlationId
     }
-  }
-}
-```
-
-### Programmatic Usage
-
-Use the swap manager directly in your code:
-
-```ts
-import { resource } from "@bluelibs/runner";
-import type { SwapManager } from "@bluelibs/runner-dev/dist/resources/swap.resource";
-import { swapManager } from "@bluelibs/runner-dev/dist/resources/swap.resource";
-
-export const debugger = resource({
-  id: "my.debugger",
-  dependencies: { swapManager },
-  async init(_c, { swapManager }: { swapManager: SwapManager }) {
-    // Swap a task programmatically
-    const result = await swapManager.swap("user.create", `
-      async function run(input, deps) {
-        console.log("Debug: Enhanced user creation");
-        return { id: "debug-user", ...input };
-      }
-    `);
-
-    if (result.success) {
-      console.log(`Task ${result.taskId} swapped successfully`);
-    } else {
-      console.error(`Swap failed: ${result.error}`);
-    }
-
-    // Check what's currently swapped
-    const swappedTasks = swapManager.getSwappedTasks();
-    console.log(`Currently swapped: ${swappedTasks.map(t => t.taskId).join(', ')}`);
-
-    // Restore original function
-    await swapManager.unswap("user.create");
-  },
-});
-```
-
-### Error Handling
-
-The system provides comprehensive error handling:
-
-```graphql
-mutation {
-  swapTask(taskId: "nonexistent.task", runCode: "invalid javascript code {") {
-    success # false
-    error # "Task 'nonexistent.task' not found" or "Compilation failed: ..."
-    taskId # "nonexistent.task"
   }
 }
 ```

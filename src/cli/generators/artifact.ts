@@ -4,6 +4,7 @@ import path from "path";
 import { ArtifactKind, toCamelCase, toKebabCase, toPascalCase } from "./common";
 import {
   eventTemplate,
+  hookTemplate,
   resourceMiddlewareTemplate,
   resourceTemplate,
   tagTemplate,
@@ -52,6 +53,8 @@ export async function scaffoldArtifact({
         ? "tasks"
         : kind === "event"
         ? "events"
+        : kind === "hook"
+        ? "hooks"
         : kind === "tag"
         ? "tags"
         : kind === "task-middleware" || kind === "resource-middleware"
@@ -71,6 +74,8 @@ export async function scaffoldArtifact({
       ? "tasks"
       : kind === "event"
       ? "events"
+      : kind === "hook"
+      ? "hooks"
       : kind === "tag"
       ? "tags"
       : kind === "task-middleware"
@@ -87,6 +92,8 @@ export async function scaffoldArtifact({
       ? "task.ts"
       : kind === "event"
       ? "event.ts"
+      : kind === "hook"
+      ? "hook.ts"
       : kind === "tag"
       ? "tag.ts"
       : kind === "task-middleware"
@@ -105,6 +112,8 @@ export async function scaffoldArtifact({
       ? taskTemplate({ header, id, camel, pascal })
       : kind === "event"
       ? eventTemplate({ header, id, camel, pascal })
+      : kind === "hook"
+      ? hookTemplate({ header, id, camel, pascal })
       : kind === "tag"
       ? tagTemplate({ header, id, camel, pascal })
       : kind === "task-middleware"

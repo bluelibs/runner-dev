@@ -26,11 +26,11 @@ export const ${camel} = resource({
   id: '${id}',
   // tags: [],
   // dependencies: { /* other resources */ },
-  init: async (_config: ${pascal}Config, _deps): Promise<${pascal}Value> => {
+  init: async (config: ${pascal}Config, deps): Promise<${pascal}Value> => {
     // Initialize and return the resource value
     return {} as ${pascal}Value;
   },
-  // dispose: async (value, _config, _deps) => { /* clean up */ },
+  // dispose: async (value, config, deps) => { /* clean up */ },
 });
 `;
 }
@@ -56,7 +56,7 @@ export const ${camel} = task({
   id: '${id}',
   // middleware: [],
   // dependencies: { /* resources */ },
-  run: async (_input: ${pascal}Input, _deps): Promise<${pascal}Result> => {
+  run: async (_input: ${pascal}Input, deps): Promise<${pascal}Result> => {
     return {} as ${pascal}Result;
   },
   // inputSchema,
@@ -81,6 +81,30 @@ export interface ${pascal}Payload {
 export const ${camel} = event<${pascal}Payload>({
   id: '${id}',
   // tags: [],
+});
+`;
+}
+
+export function hookTemplate({
+  header,
+  id,
+  camel,
+  pascal,
+}: TemplateParams): string {
+  return `${header}
+import { hook } from '@bluelibs/runner';
+
+export interface ${pascal}Payload {
+  // The payload delivered to the hook from the event
+}
+
+export const ${camel} = hook({
+  id: '${id}',
+  // on: someEvent, // import your event and set it here
+  // dependencies: { /* resources */ },
+  run: async (event, deps) => {
+    // Implement hook reaction logic
+  },
 });
 `;
 }
@@ -136,7 +160,7 @@ export interface ${pascal}Output {
 export const ${camel} = taskMiddleware<${pascal}Config, ${pascal}Input, ${pascal}Output>({
   id: '${id}',
   // everywhere: true,
-  run: async ({ task, next }, _deps, _config) => {
+  run: async ({ task, next }, deps, config) => {
     // pre-process task.input
     const result = await next(task.input as ${pascal}Input);
     // post-process result
@@ -161,7 +185,7 @@ export interface ${pascal}Config {
 
 export const ${camel} = resourceMiddleware<${pascal}Config>({
   id: '${id}',
-  run: async ({ next }, _deps, _config) => {
+  run: async ({ next }, deps, config) => {
     const value = await next();
     // Wrap or augment the resource value here
     return value;

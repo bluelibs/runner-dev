@@ -3,6 +3,7 @@ export type ArtifactKind =
   | "resource"
   | "task"
   | "event"
+  | "hook"
   | "tag"
   | "task-middleware"
   | "resource-middleware";

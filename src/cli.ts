@@ -43,7 +43,7 @@ async function run(): Promise<void> {
         ],
         [
           c.cmd("runner-dev new"),
-          "Scaffold project or artifacts: project | resource | task | event | tag | task-middleware | resource-middleware",
+          "Scaffold project or artifacts: project | resource | task | event | hook | tag | task-middleware | resource-middleware",
         ],
         [c.cmd("runner-dev overview"), "Print Markdown project overview"],
         [c.cmd("runner-dev schema"), "Print SDL or introspection JSON"],
@@ -95,6 +95,9 @@ async function run(): Promise<void> {
         )}`,
         `${c.cmd(
           "runner-dev new event user-registered --ns app.users --dir src --export"
+        )}`,
+        `${c.cmd(
+          "runner-dev new hook send-welcome --ns app.users --dir src --export"
         )}`,
         `${c.cmd("runner-dev new tag http --ns app.web --dir src --export")}`,
         `${c.cmd(

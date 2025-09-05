@@ -31,6 +31,7 @@ export async function main(argv: string[]): Promise<void> {
     "resource",
     "task",
     "event",
+    "hook",
     "tag",
     "task-middleware",
     "resource-middleware",
@@ -515,6 +516,7 @@ function printNewHelp(): void {
           [c.cmd("runner-dev new resource <name>"), "Scaffold resource"],
           [c.cmd("runner-dev new task <name>"), "Scaffold task"],
           [c.cmd("runner-dev new event <name>"), "Scaffold event"],
+          [c.cmd("runner-dev new hook <name>"), "Scaffold hook"],
           [c.cmd("runner-dev new tag <name>"), "Scaffold tag"],
           [
             c.cmd("runner-dev new taskMiddleware <name>"),
@@ -560,6 +562,10 @@ function printNewHelp(): void {
           `${c.gray("# Event")}`,
           `${c.cmd(
             "runner-dev new event user-registered --ns app.users --dir src --export"
+          )}`,
+          `${c.gray("# Hook")}`,
+          `${c.cmd(
+            "runner-dev new hook send-welcome --ns app.users --dir src --export"
           )}`,
           `${c.gray("# Tag")}`,
           `${c.cmd("runner-dev new tag http --ns app.web --dir src --export")}`,

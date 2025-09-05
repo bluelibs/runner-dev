@@ -166,7 +166,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             className={`nav-node ${isFocused ? "nav-node--focused" : ""} ${
               !isFolder ? "nav-node--leaf" : ""
             }`}
-            style={{ paddingLeft: `${depth * 20 + 8}px` }}
+            style={{ paddingLeft: `${depth * 10 + 8}px` }}
             onClick={handleNodeClick}
             tabIndex={0}
             role="treeitem"

@@ -5,7 +5,10 @@ import { dev } from "../../resources/dev.resource";
 
 describe("HTTP routes via httpTag", () => {
   test("registers GET /api/file and returns content", async () => {
-    const app = resource({ id: "test.app", register: [dev.with({ port: 0 })] });
+    const app = resource({
+      id: "test.app",
+      register: [dev.with({ port: 20 })],
+    });
     const { dispose } = await run(app, { shutdownHooks: false });
     try {
       // the server resource exposes express app, but for test we simulate request

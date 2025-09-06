@@ -206,16 +206,14 @@ export function mapStoreResourceToResourceModel(
 
 export function buildEvents(store: Store): Event[] {
   const eventsCollection = Array.from(store.events.values()).map(
-    (e: any) => e.event
+    (e) => e.event
   );
   const allEventIds = eventsCollection.map((e) => e.id.toString());
   const hooks = Array.from(store.hooks.values()).map((h) => h.hook);
 
   return allEventIds.map((eventId) => {
-    const e = findById(eventsCollection, eventId);
-    const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
-      (e as any)?.tags
-    );
+    const e = findById(eventsCollection, eventId) as Event;
+    const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(e.tags);
     // Keep wildcard hooks in listenedToBy per design, but match specific listeners robustly
     const hooksListeningToEvent = hooks
       .filter((h) => {
@@ -239,14 +237,11 @@ export function buildEvents(store: Store): Event[] {
         tags: tagIds,
         tagsDetailed,
         filePath: sanitizePath(
-          (e && (e as any)[definitions.symbolFilePath]) ??
-            e?.filePath ??
-            e?.path ??
-            null
+          (e && (e as any)[definitions.symbolFilePath]) ?? e?.filePath ?? null
         ),
         listenedToBy: hooksListeningToEvent,
         registeredBy: null,
-        payloadSchema: formatSchemaIfZod((e as any)?.payloadSchema),
+        payloadSchema: formatSchemaIfZod(e.payloadSchema),
       },
       "EVENT"
     );

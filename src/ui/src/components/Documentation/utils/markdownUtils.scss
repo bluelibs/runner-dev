@@ -1,0 +1,213 @@
+// PrismJS syntax highlighting enhancements
+.markdown-content {
+  // Enhance code blocks with better styling
+  pre[class*="language-"] {
+    background: var(--docs-code-bg, #2d3748) !important;
+    border: 1px solid var(--docs-border-secondary, #4a5568);
+    border-radius: 8px;
+    margin: 1rem 0;
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    &::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+    }
+
+    code[class*="language-"] {
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      color: inherit;
+    }
+  }
+
+  // Inline code styling
+  p code,
+  li code,
+  td code {
+    background: var(--docs-code-inline-bg, rgba(255, 255, 255, 0.1)) !important;
+    border: 1px solid var(--docs-border-subtle, rgba(255, 255, 255, 0.2));
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    font-size: 0.9em;
+    color: var(--docs-code-inline-color, #e2e8f0);
+  }
+
+  // Custom token styling to override PrismJS defaults
+  .token {
+    &.comment,
+    &.prolog,
+    &.doctype,
+    &.cdata {
+      color: #8fa6b3;
+      font-style: italic;
+    }
+
+    &.punctuation {
+      color: #e2e8f0;
+    }
+
+    &.namespace {
+      opacity: 0.7;
+    }
+
+    &.property,
+    &.tag,
+    &.boolean,
+    &.number,
+    &.constant,
+    &.symbol,
+    &.deleted {
+      color: #f56565;
+    }
+
+    &.selector,
+    &.attr-name,
+    &.string,
+    &.char,
+    &.builtin,
+    &.inserted {
+      color: #68d391;
+    }
+
+    &.operator,
+    &.entity,
+    &.url,
+    .language-css &.string,
+    .style &.string {
+      color: #4fd1c7;
+    }
+
+    &.atrule,
+    &.attr-value,
+    &.keyword {
+      color: #9f7aea;
+    }
+
+    &.function,
+    &.class-name {
+      color: #fbd38d;
+    }
+
+    &.regex,
+    &.important,
+    &.variable {
+      color: #fc8181;
+    }
+
+    &.important,
+    &.bold {
+      font-weight: bold;
+    }
+
+    &.italic {
+      font-style: italic;
+    }
+
+    &.entity {
+      cursor: help;
+    }
+  }
+}
+
+// Dark mode enhancements
+[data-theme="dark"] {
+  .markdown-content {
+    pre[class*="language-"] {
+      --docs-code-bg: #1a202c;
+      --docs-border-secondary: #2d3748;
+      --docs-code-inline-bg: rgba(255, 255, 255, 0.05);
+      --docs-border-subtle: rgba(255, 255, 255, 0.1);
+      --docs-code-inline-color: #e2e8f0;
+    }
+  }
+}
+
+// Light mode enhancements
+[data-theme="light"] {
+  .markdown-content {
+    pre[class*="language-"] {
+      --docs-code-bg: #f7fafc;
+      --docs-border-secondary: #e2e8f0;
+      --docs-code-inline-bg: rgba(0, 0, 0, 0.05);
+      --docs-border-subtle: rgba(0, 0, 0, 0.1);
+      --docs-code-inline-color: #2d3748;
+      
+      background: var(--docs-code-bg) !important;
+      color: #2d3748 !important;
+
+      .token {
+        &.comment,
+        &.prolog,
+        &.doctype,
+        &.cdata {
+          color: #718096;
+        }
+
+        &.punctuation {
+          color: #2d3748;
+        }
+
+        &.property,
+        &.tag,
+        &.boolean,
+        &.number,
+        &.constant,
+        &.symbol,
+        &.deleted {
+          color: #c53030;
+        }
+
+        &.selector,
+        &.attr-name,
+        &.string,
+        &.char,
+        &.builtin,
+        &.inserted {
+          color: #38a169;
+        }
+
+        &.operator,
+        &.entity,
+        &.url {
+          color: #0987a0;
+        }
+
+        &.atrule,
+        &.attr-value,
+        &.keyword {
+          color: #805ad5;
+        }
+
+        &.function,
+        &.class-name {
+          color: #d69e2e;
+        }
+      }
+    }
+  }
+}

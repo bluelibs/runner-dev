@@ -1,11 +1,12 @@
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import path from "node:path";
 import fs from "fs/promises";
 import os from "os";
 
 function runCli(
   args: string[],
-  cwd: string
+  cwd: string,
+  envOverride: Record<string, string> = {}
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     const proc = spawn(
@@ -13,7 +14,7 @@ function runCli(
       [path.join(process.cwd(), "dist/cli.js"), ...args],
       {
         cwd,
-        env: process.env,
+        env: { ...process.env, ...envOverride },
         stdio: ["ignore", "pipe", "pipe"],
       }
     );
@@ -113,5 +114,132 @@ describe("CLI init", () => {
     // Should exit with an error code and the message printed on stderr
     expect(res.code).toBe(1);
     expect(res.stderr).toContain("already exists and is not empty");
+  });
+
+  test("scaffolds project and simulates --install (links node_modules)", async () => {
+    const projectName = "installed-project";
+    const projectDir = path.join(testProjectDir, projectName);
+
+    // Create a fake npm script in a temporary bin directory to simulate install
+    const fakeBinDir = path.join(tempDir, "fake-bin");
+    await fs.mkdir(fakeBinDir, { recursive: true });
+
+    // The fake npm will create a symlink from projectDir/node_modules to repo's node_modules
+    const fakeNpmPath = path.join(fakeBinDir, "npm");
+    const script = `#!/bin/sh
+echo "Fake npm install: linking node_modules"
+touch "$PWD/.fake-npm-ran"
+ln -s "${path.join(process.cwd(), "node_modules")}" "$PWD/node_modules" || true
+`;
+    await fs.writeFile(fakeNpmPath, script, { mode: 0o755 });
+
+    // Pre-create project dir parent to let CLI scaffold
+    // Run CLI with PATH overridden so our fake npm is picked up
+    const res = await runCli(
+      ["new", "project", projectName, "--install"],
+      testProjectDir,
+      {
+        PATH: `${fakeBinDir}:${process.env.PATH}`,
+        CI: "false",
+        RUNNER_DEV_FAST: "0",
+        RUNNER_DEV_SKIP_INSTALL: "0",
+      }
+    );
+
+    // Debug output to help diagnose CI/test environment issues
+    // eslint-disable-next-line no-console
+    console.log("CLI stdout:\n", res.stdout);
+    // eslint-disable-next-line no-console
+    console.log("CLI stderr:\n", res.stderr);
+    expect(res.code).toBe(0);
+    expect(res.stdout).toContain("Project created in");
+
+    // Check that node_modules was linked
+    // Check marker file created by fake npm to ensure it ran
+    const marker = await fs.readFile(
+      path.join(projectDir, ".fake-npm-ran"),
+      "utf-8"
+    );
+    expect(marker.length).toBeGreaterThanOrEqual(0);
+
+    // Verify package.json exists and name matches
+    const packageJson = await fs.readFile(
+      path.join(projectDir, "package.json"),
+      "utf-8"
+    );
+    const pkg = JSON.parse(packageJson);
+    expect(pkg.name).toBe(projectName);
+  });
+
+  test("scaffolds project and simulates --install and --run-tests", async () => {
+    const projectName = "installed-and-tested-project";
+    const projectDir = path.join(testProjectDir, projectName);
+
+    const fakeBinDir = path.join(tempDir, "fake-bin-2");
+    await fs.mkdir(fakeBinDir, { recursive: true });
+
+    const fakeNpmPath = path.join(fakeBinDir, "npm");
+    const script = `#!/bin/sh
+case "$1" in
+  install)
+    echo "Fake npm install: linking node_modules"
+    touch "$PWD/.fake-npm-ran"
+    ln -s "${path.join(
+      process.cwd(),
+      "node_modules"
+    )}" "$PWD/node_modules" 2>/dev/null || true
+    ;;
+  run)
+    if [ "$2" = "test" ]; then
+      echo "Fake npm test: touching marker"
+      touch "$PWD/.fake-tests-ran"
+    fi
+    ;;
+  *)
+    echo "Fake npm: args $@"
+    ;;
+esac
+exit 0
+`;
+    await fs.writeFile(fakeNpmPath, script, { mode: 0o755 });
+
+    const res = await runCli(
+      ["new", "project", projectName, "--install", "--run-tests"],
+      testProjectDir,
+      {
+        PATH: `${fakeBinDir}:${process.env.PATH}`,
+        CI: "false",
+        RUNNER_DEV_FAST: "0",
+        RUNNER_DEV_SKIP_INSTALL: "0",
+        RUNNER_DEV_SKIP_TESTS: "0",
+      }
+    );
+
+    // eslint-disable-next-line no-console
+    console.log("CLI stdout (install+tests):\n", res.stdout);
+    // eslint-disable-next-line no-console
+    console.log("CLI stderr (install+tests):\n", res.stderr);
+
+    expect(res.code).toBe(0);
+    expect(res.stdout).toContain("Project created in");
+
+    // Verify markers for install and tests
+    const installed = await fs.readFile(
+      path.join(projectDir, ".fake-npm-ran"),
+      "utf-8"
+    );
+    expect(installed.length).toBeGreaterThanOrEqual(0);
+
+    const tested = await fs.readFile(
+      path.join(projectDir, ".fake-tests-ran"),
+      "utf-8"
+    );
+    expect(tested.length).toBeGreaterThanOrEqual(0);
+
+    // Basic file presence check
+    const pkg = JSON.parse(
+      await fs.readFile(path.join(projectDir, "package.json"), "utf-8")
+    );
+    expect(pkg.name).toBe(projectName);
   });
 });

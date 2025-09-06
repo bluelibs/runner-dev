@@ -1,0 +1,13 @@
+export function tsconfigJest() {
+  return {
+    extends: "./tsconfig.json",
+    compilerOptions: {
+      module: "CommonJS",
+      moduleResolution: "node",
+      target: "ES2019",
+      esModuleInterop: true,
+      isolatedModules: false,
+    },
+    include: ["src/**/*.ts", "src/**/*.tsx"],
+  } as const;
+}

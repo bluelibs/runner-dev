@@ -111,8 +111,13 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
       <div className="tag-card__header">
         <div className="tag-card__header-content">
           <div className="main">
-            <h3 className="tag-card__title">{formatId(tag.id)}</h3>
-            <div className="tag-card__id">{tag.meta?.title || tag.id}</div>
+            <h3 className="tag-card__title">
+              {tag.meta?.title || formatId(tag.id)}
+            </h3>
+            <div className="tag-card__id">{tag.id}</div>
+            {tag.meta?.description && (
+              <p className="tag-card__description">{tag.meta.description}</p>
+            )}
           </div>
         </div>
       </div>

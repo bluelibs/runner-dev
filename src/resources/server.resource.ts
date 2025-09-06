@@ -24,6 +24,10 @@ export interface ServerConfig {
 
 export const serverResource = resource({
   id: "runner-dev.resources.server",
+  meta: {
+    title: "HTTP Server",
+    description: "Express server with GraphQL endpoint, Voyager UI, and static file serving for the Runner-Dev application",
+  },
   register: [coverage],
   dependencies: {
     store: globals.resources.store,

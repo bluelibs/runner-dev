@@ -35,6 +35,10 @@ export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
 
 export const domainTag = tag<{ domain: string }>({
   id: "app.tags.domain",
+  meta: {
+    title: "Domain",
+    description: "Tags related to the domain layer",
+  },
   configSchema: z.object({ domain: z.string() }),
 });
 

@@ -68,6 +68,10 @@ export interface ISwapManager {
 
 export const swapManager = resource({
   id: "runner-dev.resources.swap-manager",
+  meta: {
+    title: "Task Swap Manager",
+    description: "Enables runtime swapping of task implementations and provides task/event invocation capabilities for development",
+  },
   dependencies: {
     store: globals.resources.store,
     taskRunner: globals.resources.taskRunner,

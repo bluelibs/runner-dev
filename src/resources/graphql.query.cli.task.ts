@@ -26,7 +26,7 @@ export const graphqlQueryCliTask = task({
   },
   inputSchema: z.object({
     query: z.string().min(1, "Query is required"),
-    variables: z.record(z.unknown()).optional(),
+    variables: z.record(z.string(), z.unknown()).optional(),
     operationName: z.string().optional(),
   }),
   async run(

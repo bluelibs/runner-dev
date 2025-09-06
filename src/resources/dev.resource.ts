@@ -15,6 +15,10 @@ export type DevConfig = {
 
 export const dev = resource({
   id: "runner-dev.resources.dev",
+  meta: {
+    title: "Development Environment",
+    description: "Main development resource that registers all necessary components for Runner-Dev including server, GraphQL, telemetry, and HTTP routes",
+  },
   register: (config: DevConfig) => [
     introspector,
     telemetry,

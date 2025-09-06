@@ -5,6 +5,10 @@ import { serverResource } from "../server.resource";
 
 export const registerHttpRoutes = hook({
   id: "runner-dev.hooks.registerHttpRoutes",
+  meta: {
+    title: "HTTP Routes Registration",
+    description: "Automatically registers Express HTTP routes for tasks tagged with httpTag when the application becomes ready",
+  },
   on: globals.events.ready,
   dependencies: {
     store: globals.resources.store,

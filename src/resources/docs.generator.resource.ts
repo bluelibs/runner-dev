@@ -212,6 +212,10 @@ ${mdSchema("Config Schema", m.configSchema)}
 
 export const docsGenerator = resource({
   id: "runner-dev.resources.docs-generator",
+  meta: {
+    title: "Documentation Generator",
+    description: "Generates comprehensive markdown documentation for applications by analyzing tasks, resources, events, hooks, and middlewares",
+  },
   dependencies: {
     introspector,
   },

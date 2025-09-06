@@ -180,6 +180,10 @@ async function tryLoadCoverage(): Promise<LoadedCoverage | null> {
 
 export const coverage = resource({
   id: "runner-dev.resources.coverage",
+  meta: {
+    title: "Code Coverage Service",
+    description: "Loads and parses test coverage data from JSON or Clover XML files to provide coverage statistics",
+  },
   dependencies: {
     // Keep ability to access store if needed later
     store: globals.resources.store,

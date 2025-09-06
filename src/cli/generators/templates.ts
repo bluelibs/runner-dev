@@ -24,6 +24,10 @@ export interface ${pascal}Value {
 
 export const ${camel} = resource({
   id: '${id}',
+  meta: {
+    title: '${pascal} Resource',
+    description: 'TODO: Add description for ${pascal} resource',
+  },
   // tags: [],
   // dependencies: { /* other resources */ },
   init: async (config: ${pascal}Config, deps): Promise<${pascal}Value> => {
@@ -54,6 +58,10 @@ export interface ${pascal}Result {
 
 export const ${camel} = task({
   id: '${id}',
+  meta: {
+    title: '${pascal} Task',
+    description: 'TODO: Add description for ${pascal} task',
+  },
   // middleware: [],
   // dependencies: { /* resources */ },
   run: async (_input: ${pascal}Input, deps): Promise<${pascal}Result> => {
@@ -80,6 +88,10 @@ export interface ${pascal}Payload {
 
 export const ${camel} = event<${pascal}Payload>({
   id: '${id}',
+  meta: {
+    title: '${pascal} Event',
+    description: 'TODO: Add description for ${pascal} event',
+  },
   // tags: [],
 });
 `;
@@ -100,6 +112,10 @@ export interface ${pascal}Payload {
 
 export const ${camel} = hook({
   id: '${id}',
+  meta: {
+    title: '${pascal} Hook',
+    description: 'TODO: Add description for ${pascal} hook',
+  },
   // on: someEvent, // import your event and set it here
   // dependencies: { /* resources */ },
   run: async (event, deps) => {
@@ -132,6 +148,10 @@ export interface ${pascal}ResultContract {
 
 export const ${camel} = tag<${pascal}Config, ${pascal}InputContract, ${pascal}ResultContract>({
   id: '${id}',
+  meta: {
+    title: '${pascal} Tag',
+    description: 'TODO: Add description for ${pascal} tag',
+  },
 });
 `;
 }
@@ -159,6 +179,10 @@ export interface ${pascal}Output {
 
 export const ${camel} = taskMiddleware<${pascal}Config, ${pascal}Input, ${pascal}Output>({
   id: '${id}',
+  meta: {
+    title: '${pascal} Task Middleware',
+    description: 'TODO: Add description for ${pascal} task middleware',
+  },
   // everywhere: true,
   run: async ({ task, next }, deps, config) => {
     // pre-process task.input
@@ -185,6 +209,10 @@ export interface ${pascal}Config {
 
 export const ${camel} = resourceMiddleware<${pascal}Config>({
   id: '${id}',
+  meta: {
+    title: '${pascal} Resource Middleware',
+    description: 'TODO: Add description for ${pascal} resource middleware',
+  },
   run: async ({ next }, deps, config) => {
     const value = await next();
     // Wrap or augment the resource value here

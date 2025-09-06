@@ -22,6 +22,10 @@ const overrideEventManagerEmittor = resource({
 
 const hookInterceptors = resource({
   id: "runner-dev.telemetry.resources.hookInterceptors",
+  meta: {
+    title: "Hook Interceptors",
+    description: "Intercepts hook execution to record telemetry data including execution time, success/failure status, and correlation",
+  },
   dependencies: { live, eventManager: globals.resources.eventManager },
   async init(_, { live, eventManager }) {
     eventManager.interceptHook(async (next, hook, emission) => {
@@ -52,6 +56,10 @@ const hookInterceptors = resource({
 const telemetryMiddleware = taskMiddleware({
   everywhere: true,
   id: "runner-dev.telemetry.middleware",
+  meta: {
+    title: "Telemetry Task Middleware",
+    description: "Global middleware that tracks task execution metrics including duration, success/failure, and correlation data",
+  },
   dependencies: { live },
   async run({ task, next }, { live }) {
     const id = String(task.definition.id);
@@ -104,6 +112,10 @@ const telemetryMiddleware = taskMiddleware({
 
 export const telemetry = resource({
   id: "runner-dev.telemetry",
+  meta: {
+    title: "Telemetry System",
+    description: "Comprehensive telemetry system that intercepts tasks, hooks, and events to collect performance and execution data",
+  },
   register: [
     telemetryMiddleware,
     overrideEventManagerEmittor,

@@ -12,10 +12,10 @@ import express, { Request, Response } from "express";
 import path from "node:path";
 import fs from "node:fs";
 import { createUiStaticRouter } from "./ui.static";
-import { express as voyagerMiddleware } from "graphql-voyager/middleware";
 import { printSchema } from "graphql/utilities/printSchema";
 import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
 import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
+import voyagerHtml from "./templates/voyager.html";
 
 export interface ServerConfig {
   port?: number;
@@ -26,7 +26,8 @@ export const serverResource = resource({
   id: "runner-dev.resources.server",
   meta: {
     title: "HTTP Server",
-    description: "Express server with GraphQL endpoint, Voyager UI, and static file serving for the Runner-Dev application",
+    description:
+      "Express server with GraphQL endpoint, Voyager UI, and static file serving for the Runner-Dev application",
   },
   register: [coverage],
   dependencies: {
@@ -75,8 +76,12 @@ export const serverResource = resource({
       })
     );
 
-    // Voyager UI at /voyager (points to /graphql)
-    app.use("/voyager", voyagerMiddleware({ endpointUrl: "/graphql" }));
+    // Voyager UI at /voyager (simple CDN-based standalone page)
+    app.get("/voyager", (_req: Request, res: Response) => {
+      const html = voyagerHtml;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    });
 
     // Static UI (Vite build output) + runtime JS placeholder injection
     // Vite builds to dist/ui (see src/ui/vite.config.ts)

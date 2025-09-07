@@ -23,13 +23,18 @@ export async function main(argv: string[]): Promise<void> {
   // argv: [node, runner-dev, new, maybeKindOrName, maybeName, ...flags]
   const maybeKindOrName = argv[3];
   const maybeName = argv[4];
-  const flagArgs = argv.slice(5);
+  // Parse flags from the subcommand onward to support both:
+  // - runner-dev new project my-app --install
+  // - runner-dev new my-app --install (back-compat)
+  // We pass the whole tail; parseFlags ignores non --* tokens.
+  const flagArgs = argv.slice(3);
   const { flagSet, flagGet } = parseFlags(flagArgs);
   if (
     maybeKindOrName === "help" ||
     maybeKindOrName === "-h" ||
     maybeKindOrName === "--help" ||
-    flagSet.has("help")
+    flagSet.has("help") ||
+    !maybeKindOrName
   ) {
     printNewHelp();
     return;
@@ -47,7 +52,7 @@ export async function main(argv: string[]): Promise<void> {
 
   let kind: ArtifactKind;
   let nameOrProject: string | undefined;
-  if (!maybeKindOrName || maybeKindOrName === "project") {
+  if (maybeKindOrName === "project") {
     kind = "project";
     nameOrProject = maybeName || "my-runner-project";
   } else if ((knownKinds as string[]).includes(maybeKindOrName)) {

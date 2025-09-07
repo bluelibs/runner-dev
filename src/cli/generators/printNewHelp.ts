@@ -11,8 +11,8 @@ export function printNewHelp(): void {
       divider(),
       alignRows(
         [
-          [c.cmd("runner-dev new <name>"), "Scaffold a new project (default)"],
-          [c.cmd("runner-dev new project <name>"), "Scaffold project"],
+          [c.cmd("runner-dev new help"), "Show this help"],
+          [c.cmd("runner-dev new project <name>"), "Scaffold a new project"],
           [c.cmd("runner-dev new resource <name>"), "Scaffold resource"],
           [c.cmd("runner-dev new task <name>"), "Scaffold task"],
           [c.cmd("runner-dev new event <name>"), "Scaffold event"],
@@ -33,6 +33,12 @@ export function printNewHelp(): void {
       c.bold("Flags"),
       alignRows(
         [
+          [
+            c.yellow("--install"),
+            "Install dependencies after project scaffold",
+          ],
+          [c.yellow("--run"), "Run 'npm run dev' after project scaffold"],
+          [c.yellow("--run-tests"), "Run 'npm test' after project scaffold"],
           [
             c.yellow("--ns=<namespace>"),
             "Namespace for id (default: app). Also maps to path as <dir>/<ns>/<type>.",

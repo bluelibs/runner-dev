@@ -5,6 +5,7 @@ import {
   mapStoreResourceToResourceModel,
   buildEvents,
 } from "../../resources/models/initializeFromStore.utils";
+import { definitions } from "@bluelibs/runner";
 
 describe("Zod schema conversion", () => {
   test("formatSchemaIfZod returns JSON schema string", () => {
@@ -38,7 +39,7 @@ describe("Introspector mapping picks up Zod schemas", () => {
       dependencies: {},
       middleware: [],
       inputSchema: z.object({ q: z.string() }),
-    } as unknown as import("@bluelibs/runner").definitions.ITask;
+    } as unknown as definitions.ITask;
 
     const result = mapStoreTaskToTaskModel(fakeTask);
     expect(typeof result.inputSchema).toBe("string");
@@ -59,7 +60,7 @@ describe("Introspector mapping picks up Zod schemas", () => {
       register: [],
       context: null,
       configSchema: z.object({ ttlMs: z.number() }),
-    } as unknown as import("@bluelibs/runner").definitions.IResource;
+    } as unknown as definitions.IResource;
 
     const result = mapStoreResourceToResourceModel(fakeRes);
     expect(typeof result.configSchema).toBe("string");
@@ -69,24 +70,4 @@ describe("Introspector mapping picks up Zod schemas", () => {
     expect(root.type).toBe("object");
     expect(root.properties.ttlMs.type).toBe("number");
   });
-
-  // test("event payloadSchema is formatted when Zod provided", () => {
-  //   const eventsCollection = [
-  //     { id: "evt.zod", payloadSchema: z.object({ id: z.string() }) },
-  //   ] as unknown as import("@bluelibs/runner").definitions.IEvent[];
-  //   const tasks: any[] = [];
-  //   const hooks: any[] = [];
-  //   const resources: any[] = [];
-
-  //   const events = buildEvents(
-  //     store
-  //   );
-  //   const evt = events.find((e) => e.id === "evt.zod")!;
-  //   expect(typeof evt.payloadSchema).toBe("string");
-  //   const json = JSON.parse(String(evt.payloadSchema));
-  //   const defName = json.$ref.replace("#/definitions/", "");
-  //   const root = json.definitions[defName];
-  //   expect(root.type).toBe("object");
-  //   expect(root.properties.id.type).toBe("string");
-  // });
 });

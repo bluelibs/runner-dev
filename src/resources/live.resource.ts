@@ -135,7 +135,8 @@ const liveService = resource({
   id: "runner-dev.resources.live-service",
   meta: {
     title: "Live Telemetry Service",
-    description: "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
+    description:
+      "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
   },
   async init(c: { maxEntries?: number }): Promise<Live> {
     const maxEntries = c?.maxEntries ?? 10000;
@@ -399,7 +400,8 @@ export const live = resource({
   id: "runner-dev.resources.live",
   meta: {
     title: "Live Telemetry Manager",
-    description: "Aggregates telemetry data from logger and exposes it through the live service interface for real-time monitoring",
+    description:
+      "Aggregates telemetry data from logger and exposes it through the live service interface for real-time monitoring",
   },
   dependencies: {
     liveService,

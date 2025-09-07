@@ -8,6 +8,7 @@ import type {
   WithElementKind,
 } from "../../schema/model";
 import { elementKindSymbol } from "../../schema/model";
+
 import { definitions, Store } from "@bluelibs/runner";
 import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
@@ -74,9 +75,12 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const middlewareDetailed = (task.middleware || []).map((m: any) => ({
     id: String(m.id),
-    config: m[definitions.symbolMiddlewareConfigured]
-      ? stringifyIfObject(m.config)
-      : null,
+    // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
+    config:
+      (m && m[definitions.symbolMiddlewareConfigured]) ||
+      m?.config !== undefined
+        ? stringifyIfObject(m.config)
+        : null,
   }));
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
     (task as any)?.tags
@@ -168,9 +172,12 @@ export function mapStoreResourceToResourceModel(
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const middlewareDetailed = (resource.middleware || []).map((m: any) => ({
     id: String(m.id),
-    config: m[definitions.symbolMiddlewareConfigured]
-      ? stringifyIfObject(m.config)
-      : null,
+    // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
+    config:
+      (m && m[definitions.symbolMiddlewareConfigured]) ||
+      m?.config !== undefined
+        ? stringifyIfObject(m.config)
+        : null,
   }));
 
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
@@ -416,8 +423,20 @@ export function attachOverrides(
 export function normalizeDependencies(
   deps: unknown
 ): Record<string | symbol, unknown> {
-  if (deps && typeof deps === "object")
+  // dependencies can be provided as an object or as a function returning an object
+  try {
+    if (deps && typeof deps === "function") {
+      const evaluated = (deps as Function)();
+      if (evaluated && typeof evaluated === "object") {
+        return evaluated as Record<string | symbol, unknown>;
+      }
+    }
+  } catch {
+    // best-effort; if evaluation fails, fall through to empty object
+  }
+  if (deps && typeof deps === "object") {
     return deps as Record<string | symbol, unknown>;
+  }
   return {};
 }
 
@@ -436,9 +455,10 @@ export function extractEventIdsFromDependencies(
 ): string[] {
   const result: string[] = [];
   for (const value of Object.values(deps)) {
+    // Events can be objects or callable functions; check both
     if (
       value &&
-      typeof value === "object" &&
+      (typeof value === "object" || typeof value === "function") &&
       Reflect.get(value, definitions.symbolEvent) === true
     ) {
       result.push(readId(value));
@@ -454,7 +474,7 @@ export function extractResourceIdsFromDependencies(
   for (const value of Object.values(deps)) {
     if (
       value &&
-      typeof value === "object" &&
+      (typeof value === "object" || typeof value === "function") &&
       Reflect.get(value, definitions.symbolResource) === true
     ) {
       result.push(readId(value));
@@ -470,7 +490,7 @@ export function extractTaskIdsFromDependencies(
   for (const value of Object.values(deps)) {
     if (
       value &&
-      typeof value === "object" &&
+      (typeof value === "object" || typeof value === "function") &&
       Reflect.get(value, definitions.symbolTask) === true
     ) {
       result.push(readId(value));

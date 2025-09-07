@@ -62,7 +62,7 @@ describe("introspector (detailed helpers)", () => {
     // task.hello uses mw.log.task
     expect(snapshot.taskLikeUsages).toEqual(
       expect.arrayContaining([
-        { id: "mw.log.task", nodeId: "mw.log.task", config: null },
+        { id: "mw.log.task", nodeId: "mw.log.task", config: "{}" },
       ])
     );
 
@@ -71,17 +71,17 @@ describe("introspector (detailed helpers)", () => {
 
     // res.db uses mw.log
     expect(snapshot.resourceUsages).toEqual(
-      expect.arrayContaining([{ id: "mw.log", nodeId: "mw.log", config: null }])
+      expect.arrayContaining([{ id: "mw.log", nodeId: "mw.log", config: "{}" }])
     );
 
     // usedByTasksDetailed/usedByResourcesDetailed for mw.log(.task)
     expect(snapshot.usedByTasksDetailed).toEqual(
       expect.arrayContaining([
-        { id: "task.hello", nodeId: "task.hello", config: null },
+        { id: "task.hello", nodeId: "task.hello", config: "{}" },
       ])
     );
     expect(snapshot.usedByResourcesDetailed).toEqual(
-      expect.arrayContaining([{ id: "res.db", nodeId: "res.db", config: null }])
+      expect.arrayContaining([{ id: "res.db", nodeId: "res.db", config: "{}" }])
     );
 
     // resource emits

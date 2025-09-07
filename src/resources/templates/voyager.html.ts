@@ -167,40 +167,40 @@ export default `<!DOCTYPE html>
       
       /* Graph Nodes */
       #graph0 g.node polygon { 
-        fill: var(--accent-blue);
-        stroke: var(--border-primary);
+        fill: var(--bg-tertiary);
+        stroke: rgba(139, 92, 246, 0.3);
         stroke-width: 1;
         transition: all 0.3s ease;
       }
       #graph0 g.node:hover polygon { 
-        fill: var(--accent-blue-hover);
-        stroke: var(--accent-purple);
-        stroke-width: 2;
+        fill: rgba(139, 92, 246, 0.15);
+        stroke: rgba(139, 92, 246, 0.6);
+        stroke-width: 1.5;
       }
       #graph0 g.node.selected polygon { 
-        fill: var(--bg-secondary) !important;
-        stroke: var(--accent-purple) !important; 
-        stroke-width: 3 !important;
-        filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4)) !important;
+        fill: rgba(139, 92, 246, 0.25) !important;
+        stroke: rgba(139, 92, 246, 0.8) !important; 
+        stroke-width: 2 !important;
+        filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.2)) !important;
       }
       #graph0 g.node.selected text { 
         fill: var(--text-primary) !important;
         stroke: none !important;
-        font-weight: 700 !important;
-      }
-      #graph0 g.node.selected-reachable polygon {
-        fill: var(--bg-tertiary) !important;
-        stroke: var(--accent-blue) !important;
-        stroke-width: 2 !important;
-      }
-      #graph0 g.node.selected-reachable text { 
-        fill: var(--accent-purple) !important;
-        stroke: none !important;
         font-weight: 600 !important;
       }
+      #graph0 g.node.selected-reachable polygon {
+        fill: rgba(59, 130, 246, 0.15) !important;
+        stroke: rgba(59, 130, 246, 0.5) !important;
+        stroke-width: 1.5 !important;
+      }
+      #graph0 g.node.selected-reachable text { 
+        fill: rgba(167, 139, 250, 0.9) !important;
+        stroke: none !important;
+        font-weight: 500 !important;
+      }
       #graph0 text { 
-        fill: var(--text-primary); 
-        font-weight: 600; 
+        fill: var(--text-secondary); 
+        font-weight: 500; 
         stroke: none;
       }
 

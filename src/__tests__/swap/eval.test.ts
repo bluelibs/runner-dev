@@ -1,10 +1,10 @@
 import { run, resource } from "@bluelibs/runner";
 import { resources } from "../../index";
-import type { SwapManager } from "../../resources/swap.resource";
+import type { ISwapManager } from "../../resources/swap.resource";
 import { createDummyApp } from "../dummy/dummyApp";
 
 describe("SwapManager.eval", () => {
-  let swapManager: SwapManager;
+  let swapManager: ISwapManager;
 
   const probe = resource({
     id: "test.eval.probe",

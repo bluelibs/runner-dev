@@ -1,10 +1,10 @@
 import { run, task, resource } from "@bluelibs/runner";
 import { resources } from "../../index";
-import type { SwapManager } from "../../resources/swap.resource";
+import type { ISwapManager } from "../../resources/swap.resource";
 import { createDummyApp } from "../dummy/dummyApp";
 
 describe("SwapManager", () => {
-  let swapManager: SwapManager;
+  let swapManager: ISwapManager;
   let taskContainer: any;
 
   // Test task for swapping
@@ -122,7 +122,7 @@ describe("SwapManager", () => {
       const results = await swapManager.unswapAll();
 
       expect(results).toHaveLength(1);
-      expect(results.every((r) => r.success)).toBe(true);
+      expect(results.every((r: any) => r.success)).toBe(true);
       expect(swapManager.getSwappedTasks()).toHaveLength(0);
 
       // Verify original function is restored

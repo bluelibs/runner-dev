@@ -5,14 +5,15 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "jsx": "react-jsx",
-  "types": ["vite/client"],
-  "typeRoots": ["../../node_modules", "../../node_modules/@types"],
-  "skipLibCheck": true
+    "types": ["vite/client", "jest"],
+    "typeRoots": ["../../node_modules", "../../node_modules/@types"],
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "vite.config.ts"
+    "vite.config.ts",
+    "../__tests__/component/search-utils.test.ts"
   ],
   "exclude": []
 }

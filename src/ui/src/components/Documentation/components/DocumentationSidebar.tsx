@@ -85,7 +85,19 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       {/* Main Filters */}
       <div className="docs-main-filters">
         <div className="docs-namespace-input">
-          <label htmlFor="namespace-input">Filter by ID</label>
+          <label htmlFor="namespace-input">
+            <span className="docs-label-text">Filter by ID</span>
+            <span
+              className="docs-filter-help"
+              title="Search Syntax:
+• Comma for AND: task,resource (items with both task AND resource)
+• Pipe for OR: task|resource (items with task OR resource)  
+• Exclude with !: api,!test (items with api but NOT test)
+• Tags search: :api,debug (search tags for api AND debug)"
+            >
+              ?
+            </span>
+          </label>
           <input
             id="namespace-input"
             type="text"

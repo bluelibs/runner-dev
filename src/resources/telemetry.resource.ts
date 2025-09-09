@@ -3,7 +3,7 @@ import { live } from "./live.resource";
 import { deriveParentAndRoot, withTaskRunContext } from "./telemetry.chain";
 
 const overrideEventManagerEmittor = resource({
-  id: "runner-dev.telemetry.overrideEventManagerEmittor",
+  id: "runner-dev.telemetry.resources.overrideEventManagerEmittor",
   meta: {
     title: "Override event manager emittor",
     description:
@@ -58,7 +58,7 @@ const hookInterceptors = resource({
 
 const telemetryMiddleware = taskMiddleware({
   everywhere: true,
-  id: "runner-dev.telemetry.middleware",
+  id: "runner-dev.telemetry.middleware.task.telemetry",
   meta: {
     title: "Telemetry Task Middleware",
     description:
@@ -115,7 +115,7 @@ const telemetryMiddleware = taskMiddleware({
 });
 
 export const telemetry = resource({
-  id: "runner-dev.telemetry",
+  id: "runner-dev.telemetry.resources.telemetry",
   meta: {
     title: "Telemetry System",
     description:

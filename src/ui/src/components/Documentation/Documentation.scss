@@ -91,7 +91,7 @@ body {
   top: 0;
   width: 280px;
   height: 100vh;
-  background: linear-gradient(135deg, #1a1625, #0f0f23, #1a1a2e);
+  background: var(--docs-sidebar-bg);
   color: white;
   padding: $spacing-xxl $spacing-lg;
   padding-top: 0px;
@@ -424,16 +424,50 @@ body {
   min-width: 0; // Allow flex shrinking
 
   label {
-    display: block;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: $font-size-xs;
     color: rgba(255, 255, 255, 0.8);
     margin-bottom: $spacing-xs;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+
+    .docs-label-text {
+      flex: 1;
+    }
+
+    .docs-filter-help {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 11px;
+      font-weight: bold;
+      cursor: help;
+      transition: all 0.2s ease;
+      text-transform: none;
+      letter-spacing: normal;
+      flex-shrink: 0;
+
+      // Hide on mobile
+      @media (max-width: 768px) {
+        display: none;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.4);
+        color: rgba(255, 255, 255, 0.9);
+        transform: scale(1.05);
+      }
+    }
   }
 
   input {

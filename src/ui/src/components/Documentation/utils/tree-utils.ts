@@ -22,6 +22,11 @@ export interface Element {
   [key: string]: any;
 }
 
+import {
+  parseSearchQuery,
+  treeNodeMatchesParsed,
+} from "./search-utils";
+
 /**
  * Parse namespaced ID into parts (e.g., "app.tasks.createUser" -> ["app", "tasks", "createUser"])
  */
@@ -221,12 +226,14 @@ export function buildTypeFirstTree(elements: Element[]): TreeNode[] {
 export function filterTree(nodes: TreeNode[], searchTerm: string): TreeNode[] {
   if (!searchTerm.trim()) return nodes;
 
-  const term = searchTerm.toLowerCase();
+  // Advanced search: commas = AND, || = OR; leading ':' = tag search
+  const parsed = parseSearchQuery(searchTerm);
 
   const filterNode = (node: TreeNode): TreeNode | null => {
-    const matches =
-      node.label.toLowerCase().includes(term) ||
-      (node.elementId && node.elementId.toLowerCase().includes(term));
+    const matches = treeNodeMatchesParsed(
+      { label: node.label, elementId: node.elementId, element: node.element },
+      parsed
+    );
 
     const filteredChildren = node.children
       .map(filterNode)

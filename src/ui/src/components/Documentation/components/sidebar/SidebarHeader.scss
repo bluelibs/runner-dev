@@ -159,15 +159,6 @@
 .sidebar-header--chat {
   position: sticky;
   top: 0;
-  // Stronger frosted-glass effect with black tint
-  background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.05),
-      rgba(255, 255, 255, 0.0)
-    ),
-    rgba(0, 0, 0, 0.58);
-  -webkit-backdrop-filter: blur(18px) saturate(120%);
-  backdrop-filter: blur(18px) saturate(120%);
   z-index: 10;
   // Add horizontal padding because we are pulling this full-bleed
   padding: $spacing-md 0;
@@ -175,11 +166,11 @@
   padding-right: $spacing-lg;
   padding-bottom: 3px;
   border-top: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   // Pull the header out to the edges of the sidebar (full-bleed)
-  margin: (-$spacing-xl) calc(-1 * $spacing-lg) $spacing-sm calc(-1 * $spacing-lg);
+  margin: (-$spacing-xl) calc(-1 * $spacing-lg) $spacing-sm
+    calc(-1 * $spacing-lg);
+
+  margin-bottom: $spacing-lg;
   width: 100%;
   left: 0;
   right: 0;

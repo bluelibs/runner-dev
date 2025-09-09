@@ -24,7 +24,8 @@ const hookInterceptors = resource({
   id: "runner-dev.telemetry.resources.hookInterceptors",
   meta: {
     title: "Hook Interceptors",
-    description: "Intercepts hook execution to record telemetry data including execution time, success/failure status, and correlation",
+    description:
+      "Intercepts hook execution to record telemetry data including execution time, success/failure status, and correlation",
   },
   dependencies: { live, eventManager: globals.resources.eventManager },
   async init(_, { live, eventManager }) {
@@ -35,8 +36,10 @@ const hookInterceptors = resource({
       try {
         const result = await next(hook, emission);
         return result;
-      } catch (error) {
-        live.recordError(hook.id, "HOOK", error);
+      } catch (_error) {
+        live.recordError(hook.id, "HOOK", _error);
+        error = _error;
+        throw _error;
       } finally {
         const durationMs = Date.now() - startedAt;
         live.recordRun(
@@ -58,7 +61,8 @@ const telemetryMiddleware = taskMiddleware({
   id: "runner-dev.telemetry.middleware",
   meta: {
     title: "Telemetry Task Middleware",
-    description: "Global middleware that tracks task execution metrics including duration, success/failure, and correlation data",
+    description:
+      "Global middleware that tracks task execution metrics including duration, success/failure, and correlation data",
   },
   dependencies: { live },
   async run({ task, next }, { live }) {
@@ -114,7 +118,8 @@ export const telemetry = resource({
   id: "runner-dev.telemetry",
   meta: {
     title: "Telemetry System",
-    description: "Comprehensive telemetry system that intercepts tasks, hooks, and events to collect performance and execution data",
+    description:
+      "Comprehensive telemetry system that intercepts tasks, hooks, and events to collect performance and execution data",
   },
   register: [
     telemetryMiddleware,

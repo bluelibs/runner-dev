@@ -9,6 +9,9 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { run } from "@bluelibs/runner";
 import { graphqlCli } from "../resources/graphql.cli.resource";
+import { graphqlQueryCliTask } from "../resources/graphql.query.cli.task";
+import { loadEntryExport } from "./entryLoader";
+import { createGraphqlCliHarnessFromEntry } from "./harness";
 
 function printHelp(): void {
   // eslint-disable-next-line no-console
@@ -32,8 +35,9 @@ Options:
 
  Modes & selection:
   - If --entry-file is provided, dry-run mode is used (no server). A TS runtime (tsx or ts-node) must be available.
-   - Otherwise, a remote endpoint is used via --endpoint or ENDPOINT/GRAPHQL_ENDPOINT.
-   - If neither is provided, the command errors.
+  - Otherwise, a remote endpoint is used via --endpoint or ENDPOINT/GRAPHQL_ENDPOINT.
+  - Do not combine --entry-file and --endpoint (mutually exclusive).
+  - If neither is provided, the command errors.
 `);
 }
 
@@ -44,9 +48,20 @@ export async function main(argv: string[]): Promise<void> {
     return;
   }
 
-  let query = args[0];
+  // Support two styles:
+  // 1) positional query followed by flags: `query '<gql>' --variables ...`
+  // 2) flags-only first (e.g. --entry-file) where no positional query is provided
+  let query = args[0] ?? "";
+  let startIndex = 1;
+  const flagsFirst = Boolean(args[0] && args[0].startsWith("--"));
+  if (flagsFirst) {
+    query = "";
+    startIndex = 0;
+  }
+
   const opts = new Map<string, string | boolean>();
-  for (let i = 1; i < args.length; i++) {
+  const leftover: string[] = [];
+  for (let i = startIndex; i < args.length; i++) {
     const a = args[i];
     if (a.startsWith("--")) {
       const key = a.slice(2);
@@ -57,7 +72,19 @@ export async function main(argv: string[]): Promise<void> {
         opts.set(key, next);
         i++;
       }
+    } else {
+      // Track leftover positional tokens that appear when flags are first
+      leftover.push(a);
     }
+  }
+
+  if (flagsFirst && leftover.length > 0) {
+    // Provide a clear error: positional query must be first
+    throw new Error(
+      "Positional GraphQL query must be the first argument (index 0).\n" +
+        "When using flags before the query, do not pass a positional query after flags.\n" +
+        "Examples:\n  runner-dev query 'query { tasks { id } }' --entry-file ./src/main.ts\n  runner-dev query --entry-file ./src/main.ts --export app (dry-run without positional query)"
+    );
   }
 
   const endpoint = (opts.get("endpoint") as string) || undefined;
@@ -76,90 +103,27 @@ export async function main(argv: string[]): Promise<void> {
   const raw = Boolean(opts.get("raw"));
   const namespace = (opts.get("namespace") as string) || undefined;
 
-  if (namespace) {
+  if (namespace && query) {
     query = applyNamespaceFilter(query, namespace);
   }
 
   try {
+    // Mutual exclusivity: --entry-file and --endpoint cannot be combined
+    if (entryFile && endpoint) {
+      throw new Error(
+        "Invalid options: --entry-file and --endpoint are mutually exclusive.\n" +
+          "Use either a local entry (--entry-file) for dry-run or a remote endpoint (--endpoint), not both."
+      );
+    }
+
     // Prefer dry-run entry-file mode when provided
     if (entryFile) {
-      // Auto-load TypeScript runtime hooks: prefer tsx, fallback to ts-node
-      const tsLoaderErrors: string[] = [];
-      const loadedTsRuntime = (() => {
-        try {
-          // Try tsx (fast, no TS dependency). Optional.
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          require("tsx/cjs");
-          return "tsx";
-        } catch (e) {
-          tsLoaderErrors.push(`tsx: ${(e as Error).message}`);
-        }
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          require("ts-node/register/transpile-only");
-          return "ts-node/transpile-only";
-        } catch (e) {
-          tsLoaderErrors.push(
-            `ts-node/transpile-only: ${(e as Error).message}`
-          );
-        }
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          require("ts-node/register");
-          return "ts-node/register";
-        } catch (e) {
-          tsLoaderErrors.push(`ts-node/register: ${(e as Error).message}`);
-        }
-        return null;
-      })();
-      if (!loadedTsRuntime) {
-        throw new Error(
-          `TypeScript loader not available. Install one of: 'tsx' or 'ts-node'. Details: ${tsLoaderErrors.join(
-            "; "
-          )}`
-        );
-      }
-
-      const abs = path.isAbsolute(entryFile)
-        ? entryFile
-        : path.resolve(process.cwd(), entryFile);
-
-      // Prefer CJS require so ts-node's require hook can resolve .ts files and extension-less imports.
-      // Fall back to dynamic import if require fails (eg. pure ESM JS entry files).
-      let mod: any;
+      const harness = await createGraphqlCliHarnessFromEntry(
+        entryFile,
+        exportName
+      );
       try {
-        // Try as given
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        mod = require(abs);
-      } catch (_) {
-        try {
-          // Try adding .ts extension explicitly
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          mod = require(abs.endsWith(".ts") ? abs : `${abs}.ts`);
-        } catch {
-          // Last resort: dynamic import (works for JS/ESM with explicit extensions)
-          mod = await import(pathToFileURL(abs).href);
-        }
-      }
-      const entry =
-        (exportName ? mod?.[exportName] : mod?.default) ?? mod?.app ?? null;
-      if (!entry) {
-        throw new Error(
-          `Entry not found. Provide a default export or use --export <name>.`
-        );
-      }
-
-      // First pass: dry-run to get the Store
-      const dry = await run(entry, { dryRun: true });
-      const customStore = dry.store;
-      if (!customStore) {
-        throw new Error("Dry-run did not return a store.");
-      }
-
-      // Second pass: run the GraphQL harness with the custom store
-      const harness = await run(graphqlCli.with({ customStore }));
-      try {
-        const res = await harness.runTask("runner-dev.tasks.graphqlQueryCli", {
+        const res = await harness.runTask(graphqlQueryCliTask.id, {
           query,
           variables,
           operationName,

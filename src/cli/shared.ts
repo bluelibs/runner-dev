@@ -31,7 +31,7 @@ export function resolveEndpoint(explicit?: string): string {
   const endpoint = explicit || envEndpoint;
   if (!endpoint) {
     throw new Error(
-      "Endpoint not provided. Use --endpoint or set ENDPOINT/GRAPHQL_ENDPOINT."
+      "Endpoint not provided. Use --endpoint or set ENDPOINT/GRAPHQL_ENDPOINT.\nOr run with --entry-file <path> to use a local TS entry (dry-run) if you want to query a local project without a remote endpoint."
     );
   }
   return endpoint;

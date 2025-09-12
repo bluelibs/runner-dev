@@ -1,5 +1,5 @@
 import { dev } from '../../resources/dev.resource';
-import { run, stop } from '@bluelibs/runner';
+import { run } from '@bluelibs/runner';
 import path from 'path';
 import fs from 'fs';
 
@@ -16,8 +16,8 @@ describe('Dev Resource Database Integration', () => {
 
   afterEach(async () => {
     if (runningApp) {
-      await stop();
-      runningApp = null;
+      // Force exit since stop() is not available
+      process.exit(0);
     }
     // Clean up test database
     if (fs.existsSync(testDbPath)) {

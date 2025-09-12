@@ -24,6 +24,10 @@ const app = resource({
     dev.with({
       port: 1337, // default,
       maxEntries: 10000, // how many logs to keep in the store.
+      database: { // optional: enable SQLite persistence
+        driver: "sqlite",
+        options: { filePath: "./telemetry.db" }
+      }
     }),
   ],
 });
@@ -79,6 +83,91 @@ Add it as an Model Context Protocol Server (for AIs) via normal socket:
 ```
 
 Then start your app as usual. The Dev GraphQL server will be available at http://localhost:1337/graphql.
+
+## Database Persistence (Optional)
+
+Runner Dev Tools now supports optional database persistence for telemetry data using SQLite and MikroORM. This allows you to:
+
+- **Persist telemetry data** across application restarts
+- **Store schema information** so runner instances can connect to existing databases
+- **Query historical data** from previous runs
+- **Scale beyond memory limits** for long-running applications
+
+### Configuration
+
+Enable database persistence by adding a `database` configuration to your dev resource:
+
+```ts
+import { resource } from "@bluelibs/runner";
+import { dev } from "@bluelibs/runner-dev";
+
+export const app = resource({
+  id: "app",
+  register: [
+    dev.with({
+      port: 1337,
+      maxEntries: 1000, // Still applies for in-memory fallback
+      database: {
+        driver: "sqlite",
+        options: {
+          filePath: "./telemetry.db" // Path to SQLite database file
+        }
+      }
+    }),
+    // rest of your app.
+  ],
+});
+```
+
+### Database Schema
+
+When database persistence is enabled, the following tables are automatically created:
+
+- **`log_entry_entity`** - Stores all log entries with level, message, timestamp, and correlation data
+- **`emission_entry_entity`** - Stores event emissions with payload and emitter information  
+- **`error_entry_entity`** - Stores error records with stack traces and source information
+- **`run_record_entity`** - Stores task/hook execution records with timing and success data
+- **`schema_entity`** - Stores introspector schema snapshots for persistence across runs
+
+### Benefits
+
+**Persistence**: Telemetry data survives application restarts, allowing you to analyze behavior across multiple runs.
+
+**Schema Persistence**: When a runner instance connects to an existing database, it can read the stored schema information, making the GraphQL server self-sufficient without needing to re-introspect.
+
+**Scalability**: No longer limited by memory constraints for telemetry storage.
+
+**Analysis**: Query historical data to identify patterns, performance trends, and recurring issues.
+
+### Backward Compatibility
+
+Database persistence is completely **opt-in**. If no `database` configuration is provided, Runner Dev Tools continues to use in-memory storage as before, ensuring full backward compatibility.
+
+### GraphQL Queries
+
+All existing GraphQL queries work the same way, regardless of whether you're using in-memory or database persistence:
+
+```graphql
+query {
+  live {
+    logs(last: 100, filter: { levels: [error, warn] }) {
+      timestampMs
+      level
+      message
+      sourceId
+      correlationId
+    }
+    runs(filter: { ok: false, nodeKinds: [TASK] }) {
+      nodeId
+      durationMs
+      error
+      timestampMs
+    }
+  }
+}
+```
+
+The database-backed implementation provides the same filtering and querying capabilities as the in-memory version.
 
 ### CLI usage (MCP server)
 

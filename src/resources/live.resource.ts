@@ -1,5 +1,6 @@
 import { globals, resource, task, hook } from "@bluelibs/runner";
 import { deriveParentAndRoot, getCorrelationId } from "./telemetry.chain";
+import { DatabaseService, DatabaseConfig, DatabaseLive } from "../database";
 
 export type LogLevel =
   | "trace"
@@ -138,7 +139,15 @@ const liveService = resource({
     description:
       "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
   },
-  async init(c: { maxEntries?: number }): Promise<Live> {
+  async init(c: { maxEntries?: number; database?: DatabaseConfig }): Promise<Live> {
+    // If database configuration is provided, use database persistence
+    if (c?.database) {
+      const databaseService = new DatabaseService();
+      await databaseService.initialize(c.database);
+      return new DatabaseLive(databaseService);
+    }
+
+    // Otherwise, use in-memory storage (existing implementation)
     const maxEntries = c?.maxEntries ?? 10000;
     const logs: LogEntry[] = [];
     const emissions: EmissionEntry[] = [];
@@ -407,8 +416,8 @@ export const live = resource({
     liveService,
     logger: globals.resources.logger,
   },
-  register: (config: { maxEntries?: number }) => [
-    liveService.with({ maxEntries: config?.maxEntries }),
+  register: (config: { maxEntries?: number; database?: DatabaseConfig }) => [
+    liveService.with({ maxEntries: config?.maxEntries, database: config?.database }),
   ],
   async init(_config, { liveService, logger }) {
     logger.onLog((log) => {

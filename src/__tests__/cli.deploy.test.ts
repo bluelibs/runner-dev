@@ -125,7 +125,7 @@ describe("Deploy CLI command", () => {
       const argv = ["node", "cli.js", "deploy", "unknown"];
       
       // Mock process.exit to prevent actual exit
-      const mockExit = jest.spyOn(process, "exit").mockImplementation((code?: number) => {
+      const mockExit = jest.spyOn(process, "exit").mockImplementation((code?: string | number | null | undefined) => {
         throw new Error(`Process.exit called with code ${code}`);
       });
 

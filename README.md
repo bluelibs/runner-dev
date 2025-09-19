@@ -330,6 +330,514 @@ npm test -- src/__tests__/component/cli.query.remote.test.ts src/__tests__/compo
 
 CI note: we prebuild before tests via `pretest` so the CLI binary `dist/cli.js` is available.
 
+## Deployment
+
+Runner-Dev provides a comprehensive deployment system that makes it easy to deploy your Runner applications to remote servers using PM2, SSH, and NVM. The deployment system supports both single microservices and complex multi-service architectures with scaled deployments across multiple servers.
+
+### Quick Start
+
+Initialize deployment configuration:
+
+```bash
+runner-dev deploy init
+```
+
+This creates a `runner-dev.deploy.mjs` configuration file in your project root with examples for both single and multi-service deployments.
+
+Deploy to an environment:
+
+```bash
+runner-dev deploy run production
+```
+
+Deploy to a cluster:
+
+```bash
+runner-dev deploy run production-cluster
+```
+
+### Deployment Commands
+
+- `runner-dev deploy init` - Initialize deployment configuration file
+- `runner-dev deploy run <environment>` - Deploy to specified environment
+- `runner-dev deploy run <cluster>` - Deploy to specified cluster
+
+### Configuration Examples
+
+#### Single Microservice Deployment
+
+For applications with a single service:
+
+```javascript
+// runner-dev.deploy.mjs
+export default {
+  defaults: {
+    nodeVersion: "20",
+    buildCommand: "npm run build",
+    installCommand: "npm ci --production",
+    pm2Config: {
+      instances: 1,
+      maxMemoryRestart: "500M",
+      env: {
+        NODE_ENV: "production"
+      }
+    }
+  },
+  environments: {
+    production: {
+      ssh: {
+        host: "your-server.com",
+        username: "deploy",
+        keyFile: "~/.ssh/id_rsa"
+      },
+      paths: {
+        deployTo: "/var/www/my-app",
+        current: "/var/www/my-app/current",
+        releases: "/var/www/my-app/releases",
+        shared: "/var/www/my-app/shared"
+      },
+      services: [
+        {
+          name: "api",
+          script: "dist/main.js",
+          port: 3000,
+          env: {
+            PORT: 3000,
+            NODE_ENV: "production"
+          }
+        }
+      ]
+    }
+  }
+};
+```
+
+#### Multiple Microservices Deployment
+
+For applications with multiple services (API, workers, background jobs, etc.):
+
+```javascript
+// runner-dev.deploy.mjs
+export default {
+  defaults: {
+    nodeVersion: "20",
+    buildCommand: "npm run build",
+    installCommand: "npm ci --production",
+    pm2Config: {
+      instances: 1,
+      maxMemoryRestart: "500M",
+      env: {
+        NODE_ENV: "production"
+      }
+    }
+  },
+  environments: {
+    production: {
+      ssh: {
+        host: "your-server.com",
+        username: "deploy",
+        keyFile: "~/.ssh/id_rsa"
+      },
+      paths: {
+        deployTo: "/var/www/microservices-app",
+        current: "/var/www/microservices-app/current",
+        releases: "/var/www/microservices-app/releases",
+        shared: "/var/www/microservices-app/shared"
+      },
+      services: [
+        {
+          name: "api-gateway",
+          script: "dist/api-gateway.js",
+          port: 3000,
+          instances: 2, // Scale API gateway
+          env: {
+            PORT: 3000,
+            NODE_ENV: "production",
+            SERVICE_NAME: "api-gateway"
+          }
+        },
+        {
+          name: "user-service",
+          script: "dist/services/user-service.js",
+          port: 3001,
+          env: {
+            PORT: 3001,
+            NODE_ENV: "production",
+            SERVICE_NAME: "user-service",
+            DATABASE_URL: "postgresql://user:pass@localhost:5432/users"
+          }
+        },
+        {
+          name: "order-service",
+          script: "dist/services/order-service.js",
+          port: 3002,
+          env: {
+            PORT: 3002,
+            NODE_ENV: "production",
+            SERVICE_NAME: "order-service",
+            DATABASE_URL: "postgresql://user:pass@localhost:5432/orders"
+          }
+        },
+        {
+          name: "notification-worker",
+          script: "dist/workers/notification-worker.js",
+          instances: 3, // Scale background workers
+          env: {
+            NODE_ENV: "production",
+            SERVICE_NAME: "notification-worker",
+            REDIS_URL: "redis://localhost:6379",
+            QUEUE_NAME: "notifications"
+          }
+        },
+        {
+          name: "email-processor",
+          script: "dist/workers/email-processor.js",
+          env: {
+            NODE_ENV: "production",
+            SERVICE_NAME: "email-processor",
+            SMTP_HOST: "smtp.mailgun.org",
+            SMTP_PORT: "587"
+          }
+        }
+      ],
+      hooks: {
+        beforeDeploy: [
+          "echo 'Starting deployment of microservices...'",
+          "curl -X POST https://api.slack.com/webhooks/deploy-started"
+        ],
+        afterDeploy: [
+          "pm2 save",
+          "sudo nginx -s reload",
+          "curl -X POST https://api.slack.com/webhooks/deploy-completed"
+        ]
+      }
+    },
+    staging: {
+      ssh: {
+        host: "staging-server.com",
+        username: "deploy",
+        keyFile: "~/.ssh/id_rsa"
+      },
+      paths: {
+        deployTo: "/var/www/staging-app",
+        current: "/var/www/staging-app/current",
+        releases: "/var/www/staging-app/releases",
+        shared: "/var/www/staging-app/shared"
+      },
+      services: [
+        {
+          name: "staging-api",
+          script: "dist/api-gateway.js",
+          port: 3000,
+          env: {
+            PORT: 3000,
+            NODE_ENV: "staging"
+          }
+        },
+        {
+          name: "staging-worker",
+          script: "dist/workers/notification-worker.js",
+          env: {
+            NODE_ENV: "staging",
+            REDIS_URL: "redis://staging-redis:6379"
+          }
+        }
+      ]
+    }
+  }
+};
+```
+
+#### Multi-Server Cluster Deployment
+
+For applications that need to scale across multiple servers with role-based service allocation:
+
+```javascript
+// runner-dev.deploy.mjs
+export default {
+  defaults: {
+    nodeVersion: "20",
+    buildCommand: "npm run build",
+    installCommand: "npm ci --production",
+    pm2Config: {
+      instances: 1,
+      maxMemoryRestart: "1G",
+      env: {
+        NODE_ENV: "production"
+      }
+    }
+  },
+  environments: {
+    // Single server environments...
+  },
+  clusters: {
+    "production-cluster": {
+      servers: [
+        // Web servers for API services
+        {
+          host: "web1.company.com",
+          username: "deploy",
+          keyFile: "~/.ssh/id_rsa",
+          role: "web"
+        },
+        {
+          host: "web2.company.com",
+          username: "deploy",
+          keyFile: "~/.ssh/id_rsa",
+          role: "web"
+        },
+        // Dedicated worker servers
+        {
+          host: "worker1.company.com",
+          username: "deploy",
+          keyFile: "~/.ssh/id_rsa",
+          role: "worker"
+        },
+        {
+          host: "worker2.company.com",
+          username: "deploy",
+          keyFile: "~/.ssh/id_rsa",
+          role: "worker"
+        },
+        // Background processing server
+        {
+          host: "background1.company.com",
+          username: "deploy",
+          keyFile: "~/.ssh/id_rsa",
+          role: "background"
+        }
+      ],
+      // Define which services run on which server roles
+      servicesByRole: {
+        web: ["api-gateway", "user-service", "order-service"],
+        worker: ["notification-worker", "email-processor"],
+        background: ["data-sync-job", "report-generator"]
+      }
+    },
+    "development-cluster": {
+      servers: [
+        {
+          host: "dev1.company.com",
+          username: "deploy",
+          keyFile: "~/.ssh/id_rsa",
+          role: "all"
+        }
+      ],
+      servicesByRole: {
+        all: ["api-gateway", "user-service", "notification-worker"]
+      }
+    }
+  }
+};
+```
+
+### Deployment Process
+
+The deployment system handles the complete deployment workflow automatically:
+
+1. **Environment Setup**: Installs the specified Node.js version via NVM
+2. **Code Upload**: Uses rsync for efficient file transfer over SSH
+3. **Dependencies**: Installs production dependencies using the configured command
+4. **Build Process**: Runs the configured build command
+5. **Pre-deployment Hooks**: Executes any configured before-deploy commands
+6. **Service Management**: Manages PM2 processes for all configured services
+7. **Atomic Deployment**: Uses symlinks for zero-downtime deployments
+8. **Post-deployment Hooks**: Executes any configured after-deploy commands
+9. **Cleanup**: Maintains release history and cleans up old releases
+
+### Advanced Configuration
+
+#### Environment Variables per Service
+
+Each service can have its own environment variables:
+
+```javascript
+services: [
+  {
+    name: "user-api",
+    script: "dist/user-api.js",
+    port: 3001,
+    env: {
+      PORT: 3001,
+      DATABASE_URL: "postgresql://localhost:5432/users",
+      JWT_SECRET: "user-service-secret",
+      RATE_LIMIT: "100"
+    }
+  },
+  {
+    name: "payment-api", 
+    script: "dist/payment-api.js",
+    port: 3002,
+    env: {
+      PORT: 3002,
+      DATABASE_URL: "postgresql://localhost:5432/payments",
+      STRIPE_SECRET_KEY: "sk_live_...",
+      WEBHOOK_SECRET: "whsec_..."
+    }
+  }
+]
+```
+
+#### PM2 Scaling Configuration
+
+Control PM2 instances per service:
+
+```javascript
+services: [
+  {
+    name: "high-traffic-api",
+    script: "dist/api.js",
+    instances: 4, // Run 4 instances
+    env: { PORT: 3000 }
+  },
+  {
+    name: "background-job",
+    script: "dist/background.js",
+    instances: 1, // Single instance for background jobs
+    env: { WORKER_TYPE: "background" }
+  }
+]
+```
+
+#### Deployment Hooks
+
+Add custom commands before and after deployment:
+
+```javascript
+hooks: {
+  beforeDeploy: [
+    "echo 'Backing up database...'",
+    "pg_dump myapp > /backups/pre-deploy-$(date +%Y%m%d-%H%M%S).sql",
+    "curl -X POST https://hooks.slack.com/... -d '{\"text\":\"🚀 Starting deployment\"}''"
+  ],
+  afterDeploy: [
+    "pm2 save", // Save PM2 configuration
+    "sudo nginx -s reload", // Reload nginx
+    "curl -X POST https://hooks.slack.com/... -d '{\"text\":\"✅ Deployment completed\"}'",
+    "npm run db:migrate" // Run database migrations
+  ]
+}
+```
+
+### SSH Configuration
+
+#### Using SSH Keys (Recommended)
+
+```javascript
+ssh: {
+  host: "your-server.com",
+  username: "deploy",
+  keyFile: "~/.ssh/id_rsa", // Path to your private key
+  port: 22 // Optional, defaults to 22
+}
+```
+
+#### Using Password (Not Recommended)
+
+```javascript
+ssh: {
+  host: "your-server.com", 
+  username: "deploy",
+  password: "your-password"
+}
+```
+
+### Example Usage Scenarios
+
+#### Scenario 1: Simple Web Application
+
+A single Node.js web application with a database:
+
+```bash
+# Initialize configuration
+runner-dev deploy init
+
+# Edit runner-dev.deploy.mjs to configure your server
+# Deploy to production
+runner-dev deploy run production
+```
+
+#### Scenario 2: Microservices Architecture
+
+An e-commerce platform with multiple services:
+
+```bash
+# Services: API Gateway, User Service, Product Service, Order Service, Payment Service
+# Workers: Email notifications, Image processing, Order fulfillment
+
+# Deploy all services to production
+runner-dev deploy run production
+
+# Deploy to staging for testing
+runner-dev deploy run staging
+```
+
+#### Scenario 3: High-Availability Cluster
+
+A production system across multiple servers:
+
+```bash
+# Deploy to production cluster with load balancing
+runner-dev deploy run production-cluster
+
+# This deploys:
+# - API services to web servers (web1, web2)  
+# - Background workers to worker servers (worker1, worker2)
+# - Data processing jobs to background servers
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+**SSH Connection Failed:**
+- Verify SSH key permissions: `chmod 600 ~/.ssh/id_rsa`
+- Test SSH connection: `ssh deploy@your-server.com`
+- Check server hostname and port
+
+**Node.js Version Issues:**
+- Ensure NVM is installed on the server
+- Verify the specified Node.js version is available
+
+**PM2 Process Issues:**
+- Check PM2 status: `pm2 list`
+- View process logs: `pm2 logs service-name`
+- Restart services: `pm2 restart service-name`
+
+**Build Failures:**
+- Verify build command works locally
+- Check for missing dependencies
+- Ensure TypeScript compilation succeeds
+
+#### Debug Mode
+
+Monitor deployment progress and troubleshoot issues:
+
+```bash
+# The deploy command provides detailed output during deployment
+runner-dev deploy run production
+
+# Output includes:
+# 📁 Creating release directory
+# 📤 Uploading code
+# 🔧 Setting up Node.js environment
+# 📦 Installing dependencies  
+# 🏗️ Building application
+# ⚙️ Managing service: api-gateway
+# ✅ Service api-gateway is running
+```
+
+### Security Considerations
+
+- Use SSH keys instead of passwords
+- Restrict SSH access to deployment users
+- Keep deployment keys secure and rotate regularly
+- Use environment variables for sensitive configuration
+- Regularly update Node.js and PM2 versions
+- Monitor deployment logs for security issues
+
+The deployment system is designed to be secure, reliable, and easy to use for both simple single-service applications and complex multi-service architectures.
+
 ## GraphQL API Highlights
 
 All arrays are non-null lists with non-null items, and ids are complemented by resolved fields for deep traversal.

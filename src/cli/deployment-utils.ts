@@ -380,8 +380,35 @@ export class DeploymentManager {
 }
 
 export async function loadDeploymentConfig(configPath?: string): Promise<DeploymentConfig> {
-  const defaultConfigPath = path.join(process.cwd(), "runner-dev.deploy.mjs");
-  const finalConfigPath = configPath || defaultConfigPath;
+  const defaultConfigPaths = [
+    path.join(process.cwd(), "runner-dev.deploy.ts"),
+    path.join(process.cwd(), "runner-dev.deploy.mjs")
+  ];
+  
+  let finalConfigPath: string;
+  
+  if (configPath) {
+    finalConfigPath = configPath;
+  } else {
+    // Try to find an existing config file
+    let foundConfig: string | undefined;
+    for (const configPath of defaultConfigPaths) {
+      try {
+        await fs.access(configPath);
+        foundConfig = configPath;
+        break;
+      } catch {
+        // File doesn't exist, continue to next
+      }
+    }
+    
+    if (!foundConfig) {
+      const configOptions = defaultConfigPaths.map(p => path.basename(p)).join(" or ");
+      throw new Error(`Deployment configuration not found. Expected ${configOptions} in the current directory. Run 'runner-dev deploy init' to create it.`);
+    }
+    
+    finalConfigPath = foundConfig;
+  }
 
   try {
     // Check if file exists
@@ -394,9 +421,45 @@ export async function loadDeploymentConfig(configPath?: string): Promise<Deploym
   }
 
   try {
-    // Import the configuration
-    const configModule = await import(`file://${path.resolve(finalConfigPath)}`);
-    return configModule.default;
+    // Handle TypeScript files by converting them to JavaScript
+    if (finalConfigPath.endsWith('.ts')) {
+      // Read the TypeScript file
+      const tsContent = await fs.readFile(finalConfigPath, 'utf8');
+      
+      // Simple conversion: remove import statements and replace with require
+      // This is a basic approach for the deployment config use case
+      let jsContent = tsContent
+        .replace(/import\s+{[^}]+}\s+from\s+['"][^'"]+['"];?\s*/g, '') // Remove imports
+        .replace(/\/\/[^\n]*\n/g, '') // Remove single-line comments
+        .replace(/export\s+default\s+defineDeploymentConfig\s*\(/g, 'export default (') // Convert export
+        .replace(/PM2Presets\.single\(\)/g, '{ instances: 1, maxMemoryRestart: "500M", env: { NODE_ENV: "production" } }') // Replace preset
+        .replace(/PathPresets\.standard\("([^"]+)"\)/g, '{ deployTo: "/var/www/$1", current: "/var/www/$1/current", releases: "/var/www/$1/releases", shared: "/var/www/$1/shared" }') // Replace path preset
+        .replace(/defineServices\s*\(/g, '('); // Remove defineServices wrapper
+
+      // Write temporary JS file
+      const tempJsPath = finalConfigPath.replace('.ts', '.temp.mjs');
+      await fs.writeFile(tempJsPath, jsContent, 'utf8');
+      
+      try {
+        // Import the temporary JS file
+        const configModule = await import(`file://${path.resolve(tempJsPath)}`);
+        // Clean up temp file
+        await fs.unlink(tempJsPath);
+        return configModule;
+      } catch (importError) {
+        // Clean up temp file on error
+        try {
+          await fs.unlink(tempJsPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+        throw importError;
+      }
+    } else {
+      // Import JavaScript/MJS files normally
+      const configModule = await import(`file://${path.resolve(finalConfigPath)}`);
+      return configModule.default;
+    }
   } catch (error) {
     throw new Error(`Failed to load deployment configuration: ${error}`);
   }

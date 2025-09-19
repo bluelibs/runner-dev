@@ -63,7 +63,7 @@ This command helps you:
 }
 
 async function initDeployConfig(): Promise<void> {
-  const configPath = path.join(process.cwd(), "runner-dev.deploy.mjs");
+  const configPath = path.join(process.cwd(), "runner-dev.deploy.ts");
   
   // Check if config already exists
   try {
@@ -77,20 +77,21 @@ async function initDeployConfig(): Promise<void> {
     // File doesn't exist, proceed with creation
   }
 
-  const defaultConfig = `// Runner-dev deployment configuration
-export default {
+  const defaultConfig = `import { defineDeploymentConfig, defineServices, PathPresets, PM2Presets } from '@bluelibs/runner-dev';
+
+// Type-safe deployment configuration with full TypeScript support
+// Benefits:
+// - Full IntelliSense and autocompletion in your IDE
+// - Type checking to catch configuration errors early
+// - Helper functions and presets for common configurations
+// - Self-documenting code with TypeScript interfaces
+export default defineDeploymentConfig({
   // Default settings applied to all environments
   defaults: {
     nodeVersion: "20", // Node.js version to install via NVM
     buildCommand: "npm run build", // Command to build the application
     installCommand: "npm ci --production", // Command to install dependencies
-    pm2Config: {
-      instances: 1, // Number of PM2 instances per service
-      maxMemoryRestart: "500M",
-      env: {
-        NODE_ENV: "production"
-      }
-    }
+    pm2Config: PM2Presets.single() // Use predefined PM2 configuration
   },
 
   // Environment-specific configurations
@@ -107,16 +108,11 @@ export default {
         port: 22
       },
 
-      // Deployment paths on the server
-      paths: {
-        deployTo: "/var/www/my-app", // Main deployment directory
-        current: "/var/www/my-app/current", // Symlink to current release
-        releases: "/var/www/my-app/releases", // Directory for release history
-        shared: "/var/www/my-app/shared" // Shared files between releases
-      },
+      // Deployment paths on the server (using preset for convenience)
+      paths: PathPresets.standard("my-app"),
 
       // Services to deploy (supports multiple microservices)
-      services: [
+      services: defineServices([
         {
           name: "api",
           script: "dist/main.js", // Entry point relative to project root
@@ -134,7 +130,7 @@ export default {
             WORKER_CONCURRENCY: 5
           }
         }
-      ],
+      ]),
 
       // Optional: Pre and post deployment hooks
       hooks: {
@@ -155,13 +151,8 @@ export default {
         username: "deploy",
         keyFile: "~/.ssh/id_rsa"
       },
-      paths: {
-        deployTo: "/var/www/staging-app",
-        current: "/var/www/staging-app/current",
-        releases: "/var/www/staging-app/releases",
-        shared: "/var/www/staging-app/shared"
-      },
-      services: [
+      paths: PathPresets.standard("staging-app"),
+      services: defineServices([
         {
           name: "staging-api",
           script: "dist/main.js",
@@ -171,7 +162,7 @@ export default {
             NODE_ENV: "staging"
           }
         }
-      ]
+      ])
     }
   },
 
@@ -206,19 +197,27 @@ export default {
       }
     }
   }
-};
+});
 `;
 
   try {
     await fs.writeFile(configPath, defaultConfig, "utf8");
     // eslint-disable-next-line no-console
-    console.log(`${c.green("✓ Created deployment configuration:")} ${configPath}`);
+    console.log(`${c.green("✓ Created type-safe deployment configuration:")} ${configPath}`);
     // eslint-disable-next-line no-console
     console.log("\nNext steps:");
     // eslint-disable-next-line no-console
     console.log(`1. Edit ${c.bold(configPath)} with your server details`);
     // eslint-disable-next-line no-console
     console.log(`2. Run ${c.cmd("runner-dev deploy run production")} to deploy`);
+    // eslint-disable-next-line no-console
+    console.log(`\n${c.cyan("💡 Benefits of TypeScript configuration:")}`);
+    // eslint-disable-next-line no-console
+    console.log("   • Full IntelliSense and autocompletion in your IDE");
+    // eslint-disable-next-line no-console
+    console.log("   • Type checking to catch configuration errors early");
+    // eslint-disable-next-line no-console
+    console.log("   • Helper functions and presets for common configurations");
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(`${c.magenta("Failed to create config:")} ${error}`);

@@ -342,7 +342,7 @@ Initialize deployment configuration:
 runner-dev deploy init
 ```
 
-This creates a `runner-dev.deploy.mjs` configuration file in your project root with examples for both single and multi-service deployments.
+This creates a `runner-dev.deploy.ts` configuration file in your project root with TypeScript support for full type safety and IntelliSense.
 
 Deploy to an environment:
 
@@ -364,24 +364,20 @@ runner-dev deploy run production-cluster
 
 ### Configuration Examples
 
-#### Single Microservice Deployment
+#### Type-Safe Configuration with TypeScript
 
-For applications with a single service:
+The deployment system now supports TypeScript configuration files with full type safety and IntelliSense:
 
-```javascript
-// runner-dev.deploy.mjs
-export default {
+```typescript
+// runner-dev.deploy.ts
+import { defineDeploymentConfig, defineServices, PathPresets, PM2Presets } from '@bluelibs/runner-dev';
+
+export default defineDeploymentConfig({
   defaults: {
     nodeVersion: "20",
     buildCommand: "npm run build",
     installCommand: "npm ci --production",
-    pm2Config: {
-      instances: 1,
-      maxMemoryRestart: "500M",
-      env: {
-        NODE_ENV: "production"
-      }
-    }
+    pm2Config: PM2Presets.single() // Type-safe preset
   },
   environments: {
     production: {
@@ -390,12 +386,52 @@ export default {
         username: "deploy",
         keyFile: "~/.ssh/id_rsa"
       },
-      paths: {
-        deployTo: "/var/www/my-app",
-        current: "/var/www/my-app/current",
-        releases: "/var/www/my-app/releases",
-        shared: "/var/www/my-app/shared"
+      paths: PathPresets.standard("my-app"), // Helper for common patterns
+      services: defineServices([
+        {
+          name: "api",
+          script: "dist/main.js",
+          port: 3000,
+          env: {
+            PORT: 3000,
+            NODE_ENV: "production"
+          }
+        }
+      ])
+    }
+  }
+});
+```
+
+**Benefits of TypeScript configuration:**
+- 🚀 **Full IntelliSense**: Get autocompletion and inline documentation in your IDE
+- 🛡️ **Type Safety**: Catch configuration errors at compile time
+- 🎯 **Helper Functions**: Use presets and helpers for common configurations
+- 📚 **Better Documentation**: Self-documenting code with TypeScript interfaces
+
+#### Single Microservice Deployment
+
+For applications with a single service:
+
+```typescript
+// runner-dev.deploy.ts
+import { defineDeploymentConfig, PathPresets, PM2Presets } from '@bluelibs/runner-dev';
+
+export default defineDeploymentConfig({
+  defaults: {
+    nodeVersion: "20",
+    buildCommand: "npm run build",
+    installCommand: "npm ci --production",
+    pm2Config: PM2Presets.single()
+  },
+  environments: {
+    production: {
+      ssh: {
+        host: "your-server.com",
+        username: "deploy",
+        keyFile: "~/.ssh/id_rsa"
       },
+      paths: PathPresets.standard("my-app"),
       services: [
         {
           name: "api",
@@ -409,27 +445,23 @@ export default {
       ]
     }
   }
-};
+});
 ```
 
 #### Multiple Microservices Deployment
 
 For applications with multiple services (API, workers, background jobs, etc.):
 
-```javascript
-// runner-dev.deploy.mjs
-export default {
+```typescript
+// runner-dev.deploy.ts
+import { defineDeploymentConfig, defineServices, PathPresets, PM2Presets } from '@bluelibs/runner-dev';
+
+export default defineDeploymentConfig({
   defaults: {
     nodeVersion: "20",
     buildCommand: "npm run build",
     installCommand: "npm ci --production",
-    pm2Config: {
-      instances: 1,
-      maxMemoryRestart: "500M",
-      env: {
-        NODE_ENV: "production"
-      }
-    }
+    pm2Config: PM2Presets.single()
   },
   environments: {
     production: {
@@ -438,13 +470,8 @@ export default {
         username: "deploy",
         keyFile: "~/.ssh/id_rsa"
       },
-      paths: {
-        deployTo: "/var/www/microservices-app",
-        current: "/var/www/microservices-app/current",
-        releases: "/var/www/microservices-app/releases",
-        shared: "/var/www/microservices-app/shared"
-      },
-      services: [
+      paths: PathPresets.standard("microservices-app"),
+      services: defineServices([
         {
           name: "api-gateway",
           script: "dist/api-gateway.js",
@@ -499,7 +526,7 @@ export default {
             SMTP_PORT: "587"
           }
         }
-      ],
+      ]),
       hooks: {
         beforeDeploy: [
           "echo 'Starting deployment of microservices...'",
@@ -518,13 +545,8 @@ export default {
         username: "deploy",
         keyFile: "~/.ssh/id_rsa"
       },
-      paths: {
-        deployTo: "/var/www/staging-app",
-        current: "/var/www/staging-app/current",
-        releases: "/var/www/staging-app/releases",
-        shared: "/var/www/staging-app/shared"
-      },
-      services: [
+      paths: PathPresets.standard("staging-app"),
+      services: defineServices([
         {
           name: "staging-api",
           script: "dist/api-gateway.js",
@@ -542,10 +564,10 @@ export default {
             REDIS_URL: "redis://staging-redis:6379"
           }
         }
-      ]
+      ])
     }
   }
-};
+});
 ```
 
 #### Multi-Server Cluster Deployment

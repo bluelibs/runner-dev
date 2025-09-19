@@ -23,3 +23,6 @@ export const resources = {
 };
 
 export { dev };
+
+// Export deployment configuration helpers for type-safe deployment configs
+export * from "./deployment-config";

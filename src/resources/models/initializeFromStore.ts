@@ -40,6 +40,32 @@ export function initializeFromStore(
   // Build events
   introspector.events = buildEvents(store);
 
+  // Build errors
+  introspector.errors = Array.from(store.errors.values()).map((e: any) => ({
+    id: e.id,
+    meta: e.meta,
+    filePath: sanitizePath(e[definitions.symbolFilePath]),
+    dataSchema: e.dataSchema,
+    thrownBy: e.thrownBy || [],
+    registeredBy: e.registeredBy,
+    overriddenBy: e.overriddenBy,
+    tags: ensureStringArray(e.tags),
+  }));
+
+  // Build async contexts
+  introspector.asyncContexts = Array.from(store.asyncContexts.values()).map((c: any) => ({
+    id: c.id,
+    meta: c.meta,
+    filePath: sanitizePath(c[definitions.symbolFilePath]),
+    serialize: c.serialize,
+    parse: c.parse,
+    usedBy: c.usedBy || [],
+    providedBy: c.providedBy || [],
+    registeredBy: c.registeredBy,
+    overriddenBy: c.overriddenBy,
+    tags: ensureStringArray(c.tags),
+  }));
+
   // Build middlewares from both task and resource middleware collections
   introspector.taskMiddlewares = buildTaskMiddlewares(
     Array.from(s.taskMiddlewares.values()).map((v: any) => v.middleware),
@@ -80,6 +106,8 @@ export function initializeFromStore(
   introspector.resourceMap = buildIdMap(introspector.resources);
   introspector.eventMap = buildIdMap(introspector.events);
   introspector.middlewareMap = buildIdMap(introspector.middlewares);
+  introspector.errorMap = buildIdMap(introspector.errors);
+  introspector.asyncContextMap = buildIdMap(introspector.asyncContexts);
 
   // Tags
   const getTasksWithTag = (tagId: string) =>

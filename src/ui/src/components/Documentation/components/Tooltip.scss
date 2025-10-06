@@ -1,0 +1,127 @@
+// =============================================================================
+// TOOLTIP COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/_variables" as *;
+@use "../../../styles/_mixins" as *;
+
+.docs-tooltip-trigger {
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.docs-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  max-width: 300px;
+  word-wrap: break-word;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+
+  // Show the tooltip with animation
+  &--visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  // Arrow pointer
+  &::before {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 5px solid transparent;
+  }
+
+  // Top position arrow
+  &--top::before {
+    border-top-color: rgba(0, 0, 0, 0.9);
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  // Bottom position arrow
+  &--bottom::before {
+    border-bottom-color: rgba(0, 0, 0, 0.9);
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  // Left position arrow
+  &--left::before {
+    border-left-color: rgba(0, 0, 0, 0.9);
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  // Right position arrow
+  &--right::before {
+    border-right-color: rgba(0, 0, 0, 0.9);
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  // Support for formatted content
+  .tooltip-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #fff;
+  }
+
+  .tooltip-content {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      margin-bottom: 4px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      // Highlight syntax keywords
+      .keyword {
+        color: #60a5fa;
+        font-weight: 500;
+      }
+
+      // Highlight examples
+      .example {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 11px;
+      }
+    }
+  }
+
+  // Hide on mobile devices where tooltips are less practical
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+// Ensure the tooltip is visible when mounted
+.docs-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}

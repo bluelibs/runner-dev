@@ -30,3 +30,6 @@ export {
   EvalResultType,
 } from "./SwapType";
 export { CoverageInfoType } from "./CoverageType";
+export { ErrorType } from "./ErrorType";
+export { AsyncContextType } from "./AsyncContextType";
+export { TunnelInfoType, TunnelModeEnum, TunnelTransportEnum } from "./TunnelInfoType";

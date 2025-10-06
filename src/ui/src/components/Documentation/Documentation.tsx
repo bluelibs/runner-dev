@@ -22,6 +22,8 @@ export type Section =
   | "events"
   | "hooks"
   | "middlewares"
+  | "errors"
+  | "asyncContexts"
   | "tags"
   | "diagnostics"
   | "live";
@@ -169,6 +171,8 @@ export const Documentation: React.FC<DocumentationProps> = ({
     events: filterHook.events.length,
     hooks: filterHook.hooks.length,
     middlewares: filterHook.middlewares.length,
+    errors: introspector.getErrors().length,
+    asyncContexts: introspector.getAsyncContexts().length,
     tags: filterHook.tags.length,
   });
 
@@ -332,6 +336,8 @@ export const Documentation: React.FC<DocumentationProps> = ({
         events={filterHook.events}
         hooks={filterHook.hooks}
         middlewares={filterHook.middlewares}
+        errors={introspector.getErrors()}
+        asyncContexts={introspector.getAsyncContexts()}
         tags={filterHook.tags}
       />
 

@@ -18,7 +18,7 @@
     "dev:ui": "cd src/ui && vite",
     "preview:ui": "cd src/ui && vite preview --port 5173",
     "build:ui:watch": "cd src/ui && vite build --watch --clearScreen=false",
-    "play:server": "ts-node-dev --respawn src/__tests__/dummy/dummyServer.ts --watch src/**/*",
+    "play:server": "ts-node-dev --respawn --transpile-only src/__tests__/dummy/dummyServer.ts --watch src/**/*",
     "test": "jest --verbose --runInBand",
     "test:dev": "jest --verbose --watch",
     "coverage": "jest --verbose --coverage",
@@ -102,7 +102,7 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "peerDependencies": {
-    "@bluelibs/runner": "^4.5.9"
+    "@bluelibs/runner": "file:../runner"
   },
   "overrides": {
     "react": "18.3.1",

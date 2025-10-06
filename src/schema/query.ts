@@ -21,6 +21,8 @@ import {
   TaskType,
   LiveType,
   DiagnosticType,
+  ErrorType,
+  AsyncContextType,
 } from "./types/index";
 import { SwappedTaskType } from "./types/SwapType";
 import type {
@@ -320,6 +322,66 @@ export const QueryType = new GraphQLObjectType({
         if ((args as any)?.idIncludes) {
           const sub = String((args as any).idIncludes);
           result = result.filter((r) => String(r.id).includes(sub));
+        }
+        return result;
+      },
+    },
+    error: {
+      description: "Get a single error definition by its id.",
+      type: ErrorType,
+      args: {
+        id: {
+          description: "Error id",
+          type: new GraphQLNonNull(GraphQLID),
+        },
+      },
+      resolve: (_root, args: any, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getError(args.id),
+    },
+    errors: {
+      description: "Get all error definitions.",
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(ErrorType))),
+      args: {
+        idIncludes: {
+          description: "Return only errors whose id contains this substring.",
+          type: GraphQLID,
+        },
+      },
+      resolve: (_root, args: any, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getErrors();
+        if ((args as any)?.idIncludes) {
+          const sub = String((args as any).idIncludes);
+          result = result.filter((e) => String(e.id).includes(sub));
+        }
+        return result;
+      },
+    },
+    asyncContext: {
+      description: "Get a single async context definition by its id.",
+      type: AsyncContextType,
+      args: {
+        id: {
+          description: "Async context id",
+          type: new GraphQLNonNull(GraphQLID),
+        },
+      },
+      resolve: (_root, args: any, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getAsyncContext(args.id),
+    },
+    asyncContexts: {
+      description: "Get all async context definitions.",
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(AsyncContextType))),
+      args: {
+        idIncludes: {
+          description: "Return only async contexts whose id contains this substring.",
+          type: GraphQLID,
+        },
+      },
+      resolve: (_root, args: any, ctx: CustomGraphQLContext) => {
+        let result = ctx.introspector.getAsyncContexts();
+        if ((args as any)?.idIncludes) {
+          const sub = String((args as any).idIncludes);
+          result = result.filter((c) => String(c.id).includes(sub));
         }
         return result;
       },

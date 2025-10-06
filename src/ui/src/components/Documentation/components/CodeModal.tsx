@@ -6,6 +6,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import "./CodeModal.scss";
 import { graphqlRequest } from "../utils/graphqlClient";
 import { copyToClipboard } from "./chat/ChatUtils";
+import { CoverageVisualization, type CoverageData } from "./CoverageVisualization";
 
 export interface CodeModalProps {
   title: string;
@@ -15,6 +16,8 @@ export interface CodeModalProps {
   code: string | null | undefined;
   enableEdit?: boolean;
   saveOnFile?: string | null;
+  coverageData?: CoverageData | null;
+  showCoverage?: boolean;
 }
 
 export const CodeModal: React.FC<CodeModalProps> = ({
@@ -25,6 +28,8 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   code,
   enableEdit = false,
   saveOnFile,
+  coverageData,
+  showCoverage = false,
 }) => {
   // Always render the editor; track draft and last-saved baseline
   const [draft, setDraft] = useState<string>(code ?? "");
@@ -172,8 +177,20 @@ export const CodeModal: React.FC<CodeModalProps> = ({
           </div>
         </div>
         <div className="code-modal__content">
+          {showCoverage && coverageData && (
+            <div className="code-modal__coverage-section">
+              <CoverageVisualization
+                coverage={coverageData}
+                filePath={subtitle}
+                compact={false}
+              />
+            </div>
+          )}
+
           <div
-            className="code-modal__editor-wrap"
+            className={`code-modal__editor-wrap${
+              showCoverage ? " code-modal__editor-wrap--with-coverage" : ""
+            }`}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             onKeyDownCapture={(e) => {

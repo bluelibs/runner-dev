@@ -1,8 +1,9 @@
 import React from "react";
 import { Event } from "../../../../../../schema/model";
 import { Introspector } from "../../../../../../resources/models/Introspector";
-import { formatId, formatSchema } from "../../utils/formatting";
+import { formatId } from "../../utils/formatting";
 import SchemaRenderer from "../SchemaRenderer";
+import { CardSection } from "../common/ElementCard";
 
 export interface HookTargetEventsProps {
   isGlobal: boolean;
@@ -17,59 +18,58 @@ export const HookTargetEvents: React.FC<HookTargetEventsProps> = ({
 }) => {
   if (isGlobal) {
     return (
-      <div className="hook-card__section">
-        <h4 className="hook-card__section__title">🌐 Global Hook Details</h4>
-        <div className="hook-card__global-info">
-          <div className="hook-card__global-message">
-            <div className="hook-card__global-message__header">
-              <span className="icon">🌐</span>
-              <h5 className="title">Universal Event Listener</h5>
-            </div>
-            <div className="hook-card__global-message__content">
-              This hook is triggered by <strong>every event</strong> that occurs
-              in the system. It acts as a universal listener that can respond to
-              any event type.
-            </div>
+      <CardSection
+        prefix="hook-card"
+        title="🌐 Global Hook Details"
+        contentClassName="hook-card__global-info"
+      >
+        <div className="hook-card__global-message">
+          <div className="hook-card__global-message__header">
+            <span className="icon">🌐</span>
+            <h5 className="title">Universal Event Listener</h5>
           </div>
+          <div className="hook-card__global-message__content">
+            This hook is triggered by <strong>every event</strong> that occurs in the
+            system. It acts as a universal listener that can respond to any event
+            type.
+          </div>
+        </div>
 
-          <div className="hook-card__schema-block">
-            <div className="title">Global Hook Benefits</div>
-            <div className="hook-card__global-benefits">
-              <div className="benefit">
-                <span className="icon">🔍</span>
-                <span className="text">Monitor all system activity</span>
-              </div>
-              <div className="benefit">
-                <span className="icon">📊</span>
-                <span className="text">Collect comprehensive metrics</span>
-              </div>
-              <div className="benefit">
-                <span className="icon">🛡️</span>
-                <span className="text">Implement cross-cutting concerns</span>
-              </div>
+        <div className="hook-card__schema-block">
+          <div className="title">Global Hook Benefits</div>
+          <div className="hook-card__global-benefits">
+            <div className="benefit">
+              <span className="icon">🔍</span>
+              <span className="text">Monitor all system activity</span>
+            </div>
+            <div className="benefit">
+              <span className="icon">📊</span>
+              <span className="text">Collect comprehensive metrics</span>
+            </div>
+            <div className="benefit">
+              <span className="icon">🛡️</span>
+              <span className="text">Implement cross-cutting concerns</span>
             </div>
           </div>
         </div>
-      </div>
+      </CardSection>
     );
   }
 
   if (!targetEvents || targetEvents.length === 0) {
     return (
-      <div className="hook-card__section">
-        <h4 className="hook-card__section__title">📡 Target Event Details</h4>
+      <CardSection prefix="hook-card" title="📡 Target Event Details">
         <div className="hook-card__not-found">
           <div className="icon">❌</div>
           <h5 className="title">Event Not Found</h5>
           <p className="message">No target events found for this hook.</p>
         </div>
-      </div>
+      </CardSection>
     );
   }
 
   return (
-    <div className="hook-card__section">
-      <h4 className="hook-card__section__title">📡 Target Event Details</h4>
+    <CardSection prefix="hook-card" title="📡 Target Event Details">
       {targetEvents.map((evt) => (
         <div key={evt.id}>
           <a href={`#element-${evt.id}`}>
@@ -113,6 +113,6 @@ export const HookTargetEvents: React.FC<HookTargetEventsProps> = ({
           </div>
         </div>
       ))}
-    </div>
+    </CardSection>
   );
 };

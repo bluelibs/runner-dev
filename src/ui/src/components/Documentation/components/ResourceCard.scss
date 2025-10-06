@@ -308,3 +308,107 @@
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// Tunnel Badge
+// -----------------------------------------------------------------------------
+.resource-card__tunnel-badge {
+  margin-left: $spacing-sm;
+  font-size: $font-size-lg;
+  opacity: 0.8;
+}
+
+// -----------------------------------------------------------------------------
+// Tunnel Configuration
+// -----------------------------------------------------------------------------
+.resource-card__tunnel {
+  .resource-card__tunnel__overview {
+    margin-bottom: $spacing-lg;
+  }
+
+  .resource-card__tunnel__mode {
+    background: var(--docs-bg-tertiary);
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .resource-card__tunnel__routes {
+    h5 {
+      margin: 0 0 $spacing-md 0;
+      font-size: $font-size-lg;
+      font-weight: 600;
+      color: var(--docs-text-primary);
+    }
+  }
+
+  .resource-card__tunnel__elements {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .resource-card__tunnel__category {
+    h6 {
+      margin: 0 0 $spacing-sm 0;
+      font-size: $font-size-base;
+      font-weight: 600;
+      color: var(--docs-text-secondary);
+    }
+  }
+
+  .resource-card__tunnel__list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .resource-card__tunnel__item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+    background: var(--docs-bg-secondary);
+    border-radius: $border-radius-md;
+    text-decoration: none;
+    color: var(--docs-text-primary);
+    border: 1px solid var(--docs-border-primary);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--docs-bg-tertiary);
+      border-color: var(--docs-border-hover);
+      transform: translateY(-1px);
+    }
+
+    .title {
+      font-weight: 600;
+      font-size: $font-size-sm;
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      opacity: 0.7;
+      font-family: $font-family-mono;
+    }
+
+    &--task {
+      border-left: 3px solid #2196f3;
+
+      &:hover {
+        border-left-color: #1976d2;
+      }
+    }
+
+    &--event {
+      border-left: 3px solid #ff9800;
+
+      &:hover {
+        border-left-color: #f57c00;
+      }
+    }
+  }
+}

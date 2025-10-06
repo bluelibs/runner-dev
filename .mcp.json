@@ -5,9 +5,13 @@
       "command": "ts-node",
       "args": ["src/mcp.ts"],
       "env": {
-        "ENDPOINT": "http://localhost:1337/graphql",
+        "ENDPOINT": "http://localhost:31337/graphql",
         "ALLOW_MUTATIONS": "true"
       }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
     }
   }
 }

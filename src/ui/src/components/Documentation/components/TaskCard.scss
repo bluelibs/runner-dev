@@ -299,6 +299,11 @@
     border-left-color: var(--docs-warning);
   }
 
+  &--error {
+    background: var(--docs-error-bg);
+    border-left-color: var(--docs-error);
+  }
+
   .title {
     font-weight: 600;
     margin-bottom: $spacing-xs;
@@ -311,6 +316,10 @@
     }
     &--event {
       color: var(--docs-warning);
+    }
+
+    &--error {
+      color: var(--docs-error);
     }
   }
 
@@ -349,6 +358,11 @@
       background: var(--docs-warning-bg);
       box-shadow: 0 4px 12px var(--docs-warning-light);
     }
+
+    &.task-card__relation-item--error {
+      background: var(--docs-error-hover-bg);
+      box-shadow: 0 4px 12px var(--docs-error-light);
+    }
   }
 
   &:focus {
@@ -374,6 +388,45 @@
 
   &:hover::after {
     opacity: 0.6;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Error Dependencies Section
+// -----------------------------------------------------------------------------
+.task-card__error-dependencies {
+  display: grid;
+  gap: $spacing-md;
+
+  .task-card__relation-item {
+    background: var(--docs-bg-secondary);
+    border: 1px solid var(--docs-error-border, #ff6b6b);
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    text-decoration: none;
+    color: inherit;
+    transition: all $transition-fast;
+    position: relative;
+
+    &:hover {
+      background: var(--docs-error-bg, rgba(255, 107, 107, 0.1));
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.15);
+    }
+
+    .title--error {
+      color: var(--docs-error-color, #ff6b6b);
+      font-weight: 600;
+    }
+
+    .id {
+      font-size: $font-size-xs;
+      color: var(--docs-text-tertiary);
+      font-family: $font-family-mono;
+    }
   }
 }
 
@@ -433,5 +486,100 @@
       line-height: 1.4;
       font-family: $font-family-mono;
     }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Tunnel Badge
+// -----------------------------------------------------------------------------
+.task-card__tunnel-badge {
+  margin-left: $spacing-sm;
+  font-size: $font-size-lg;
+  opacity: 0.8;
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Tunnel Information
+// -----------------------------------------------------------------------------
+.task-card__tunnel-info {
+  margin-top: $spacing-lg;
+  padding: $spacing-lg;
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-md;
+
+  .task-card__section__title {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: var(--docs-text-primary);
+  }
+
+  .task-card__tunnel-info__content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+}
+
+.task-card__tunnel-link {
+  color: var(--docs-text-primary);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px dotted var(--docs-border-hover);
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--docs-link-color);
+    border-bottom-color: var(--docs-link-color);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Context Information
+// -----------------------------------------------------------------------------
+.task-card__context-info {
+  margin-top: $spacing-lg;
+  padding: $spacing-lg;
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-md;
+
+  .task-card__section__title {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: var(--docs-text-primary);
+  }
+
+  .task-card__context-info__content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+}
+
+.task-card__contexts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.task-card__context-link {
+  display: inline-block;
+  padding: $spacing-xs $spacing-sm;
+  background: var(--docs-bg-tertiary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-sm;
+  color: var(--docs-text-primary);
+  text-decoration: none;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--docs-bg-primary);
+    border-color: var(--docs-border-hover);
+    transform: translateY(-1px);
   }
 }

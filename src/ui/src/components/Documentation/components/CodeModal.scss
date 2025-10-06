@@ -279,3 +279,23 @@
   color: var(--docs-error);
   font-size: $font-size-sm;
 }
+
+// Coverage section styles
+.code-modal__coverage-section {
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md;
+  background: var(--docs-bg-primary);
+  border-radius: $border-radius-lg;
+  border: 1px solid var(--docs-border-primary);
+}
+
+.code-modal__editor-wrap {
+  position: relative;
+  // Don't flex; allow content to control height so parent scrolls
+  min-height: 400px;
+
+  &--with-coverage {
+    // Reduce minimum height when coverage is shown to save space
+    min-height: 300px;
+  }
+}

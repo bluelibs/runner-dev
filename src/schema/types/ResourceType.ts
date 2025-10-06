@@ -151,6 +151,22 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       description: "Serialized context (if any)",
       type: GraphQLString,
     },
+    tunnelInfo: {
+      description: "Tunnel configuration (present when resource has tunnel tag)",
+      type: require("./TunnelInfoType").TunnelInfoType,
+      resolve: (resource, _args, ctx: CustomGraphQLContext) => {
+        // Check if this resource has the tunnel tag
+        const tunnelTag = ctx.introspector.getTag("runner-dev.tunnel");
+        if (!tunnelTag) return null;
+
+        const hasTunnelTag = (resource.tags || []).includes("runner-dev.tunnel");
+        if (!hasTunnelTag) return null;
+
+        // For now, return null - this will be populated by the introspector
+        // when it parses tunnel configurations from source code
+        return resource.tunnelInfo || null;
+      },
+    },
     coverage: {
       description:
         "Coverage summary for this resource's file (percentage is always resolvable if coverage report is present).",

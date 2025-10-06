@@ -1,0 +1,338 @@
+// =============================================================================
+// ASYNC CONTEXT CARD COMPONENT STYLES
+// =============================================================================
+@use "../../../styles/variables" as *;
+
+// -----------------------------------------------------------------------------
+// Async Context Card Base
+// -----------------------------------------------------------------------------
+.async-context-card {
+  background: var(--docs-bg-primary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  margin-bottom: $spacing-lg;
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Header
+// -----------------------------------------------------------------------------
+.async-context-card__header {
+  background: $gradient-info;
+  color: var(--docs-text-primary);
+  padding: $spacing-xl;
+}
+
+.async-context-card__header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  .main {
+    flex: 1;
+  }
+}
+
+.async-context-card__title {
+  margin: 0 0 10px 0;
+  font-size: $font-size-xl;
+  font-weight: 700;
+}
+
+.async-context-card__id {
+  font-size: $font-size-base;
+  opacity: 0.9;
+  font-family: $font-family-mono;
+  margin-bottom: $spacing-md;
+}
+
+.async-context-card__description {
+  margin: 0;
+  font-size: $font-size-base;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Content
+// -----------------------------------------------------------------------------
+.async-context-card__content {
+  padding: $spacing-xl;
+}
+
+.async-context-card__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-xl;
+  margin-bottom: $spacing-xl;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: $spacing-lg;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Sections
+// -----------------------------------------------------------------------------
+.async-context-card__section {
+  margin-bottom: $spacing-lg;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.async-context-card__section__title {
+  margin: 0 0 $spacing-md 0;
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: var(--docs-text-primary);
+  border-bottom: 2px solid var(--docs-border-primary);
+  padding-bottom: $spacing-sm;
+}
+
+.async-context-card__section__content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Info Blocks
+// -----------------------------------------------------------------------------
+.async-context-card__info-block {
+  .label {
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: var(--docs-text-secondary);
+    margin-bottom: $spacing-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .value {
+    font-size: $font-size-base;
+    color: var(--docs-text-primary);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Serialization
+// -----------------------------------------------------------------------------
+.async-context-card__serialization {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.async-context-card__method {
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-md;
+  overflow: hidden;
+}
+
+.async-context-card__method__header {
+  background: var(--docs-bg-tertiary);
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid var(--docs-border-primary);
+
+  h5 {
+    margin: 0;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: var(--docs-text-primary);
+  }
+}
+
+.async-context-card__method__code {
+  background: var(--docs-bg-primary);
+  padding: $spacing-md;
+  margin: 0;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+  font-family: $font-family-mono;
+  color: var(--docs-text-primary);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.async-context-card__no-methods {
+  color: var(--docs-text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: $spacing-lg;
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-md;
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Relations
+// -----------------------------------------------------------------------------
+.async-context-card__relations {
+  margin-top: $spacing-xl;
+  padding-top: $spacing-xl;
+  border-top: 1px solid var(--docs-border-primary);
+}
+
+.async-context-card__relations__title {
+  margin: 0 0 $spacing-lg 0;
+  font-size: $font-size-lg;
+  font-weight: 600;
+  color: var(--docs-text-primary);
+}
+
+.async-context-card__relations__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-lg;
+}
+
+.async-context-card__relations__category {
+  h5 {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: var(--docs-text-secondary);
+  }
+}
+
+.async-context-card__relations__items {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.async-context-card__relation-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  background: var(--docs-bg-secondary);
+  border-radius: $border-radius-md;
+  text-decoration: none;
+  color: var(--docs-text-primary);
+  border: 1px solid var(--docs-border-primary);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--docs-bg-tertiary);
+    border-color: var(--docs-border-hover);
+    transform: translateY(-1px);
+  }
+
+  .title {
+    font-weight: 600;
+    font-size: $font-size-sm;
+  }
+
+  .id {
+    font-size: $font-size-xs;
+    opacity: 0.7;
+    font-family: $font-family-mono;
+  }
+
+  &--provider {
+    border-left: 3px solid #9c27b0;
+
+    &:hover {
+      border-left-color: #7b1fa2;
+    }
+
+    .title--provider {
+      color: #9c27b0;
+    }
+  }
+
+  &--task {
+    border-left: 3px solid #2196f3;
+
+    &:hover {
+      border-left-color: #1976d2;
+    }
+
+    .title--task {
+      color: #2196f3;
+    }
+  }
+
+  &--resource {
+    border-left: 3px solid #4caf50;
+
+    &:hover {
+      border-left-color: #388e3c;
+    }
+
+    .title--resource {
+      color: #4caf50;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Alerts
+// -----------------------------------------------------------------------------
+.async-context-card__alert {
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  margin-top: $spacing-md;
+
+  .title {
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+  }
+
+  .content {
+    font-size: $font-size-sm;
+  }
+
+  &--warning {
+    background: var(--docs-warning-bg);
+    border: 1px solid var(--docs-warning-border);
+    color: var(--docs-warning-text);
+  }
+
+  &--error {
+    background: var(--docs-error-bg);
+    border: 1px solid var(--docs-error-border);
+    color: var(--docs-error-text);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Links
+// -----------------------------------------------------------------------------
+.async-context-card__registrar-link {
+  color: var(--docs-text-primary);
+  text-decoration: none;
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+  border-bottom: 1px dotted var(--docs-border-hover);
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--docs-link-color);
+    border-bottom-color: var(--docs-link-color);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Tags
+// -----------------------------------------------------------------------------
+.async-context-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+// -----------------------------------------------------------------------------
+// Async Context Card Tags Section
+// -----------------------------------------------------------------------------
+.async-context-card__tags-section {
+  margin-top: $spacing-xl;
+  padding-top: $spacing-xl;
+  border-top: 1px solid var(--docs-border-primary);
+}

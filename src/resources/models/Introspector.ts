@@ -5,6 +5,8 @@ import type {
   Hook,
   Middleware,
   Tag,
+  Error as ErrorModel,
+  AsyncContext as AsyncContextModel,
 } from "../../schema";
 import type { DiagnosticItem } from "../../schema";
 import {
@@ -26,6 +28,8 @@ export type SerializedIntrospector = {
   events: Event[];
   middlewares: Middleware[];
   tags: Tag[];
+  errors?: ErrorModel[];
+  asyncContexts?: AsyncContextModel[];
   diagnostics?: DiagnosticItem[];
   orphanEvents?: { id: string }[];
   unemittedEvents?: { id: string }[];
@@ -44,6 +48,8 @@ export class Introspector {
   public resourceMiddlewares: Middleware[] = [];
   public middlewares: Middleware[] = [];
   public tags: Tag[] = [];
+  public errors: ErrorModel[] = [];
+  public asyncContexts: AsyncContextModel[] = [];
   public store: unknown | null = null;
   public rootId: string | null = null;
 
@@ -53,6 +59,8 @@ export class Introspector {
   public eventMap: Map<string, Event> = new Map();
   public middlewareMap: Map<string, Middleware> = new Map();
   public tagMap: Map<string, Tag> = new Map();
+  public errorMap: Map<string, ErrorModel> = new Map();
+  public asyncContextMap: Map<string, AsyncContextModel> = new Map();
 
   constructor(input: { store: unknown } | { data: SerializedIntrospector }) {
     if ("store" in input) {
@@ -72,6 +80,8 @@ export class Introspector {
     this.taskMiddlewares = [];
     this.resourceMiddlewares = [];
     this.middlewares = Array.isArray(data.middlewares) ? data.middlewares : [];
+    this.errors = Array.isArray(data.errors) ? data.errors : [];
+    this.asyncContexts = Array.isArray(data.asyncContexts) ? data.asyncContexts : [];
     this.rootId = data.rootId ?? null;
 
     // Maps
@@ -80,6 +90,11 @@ export class Introspector {
     this.resourceMap = buildIdMap(this.resources);
     this.eventMap = buildIdMap(this.events);
     this.middlewareMap = buildIdMap(this.middlewares);
+    this.errorMap = buildIdMap(this.errors);
+    this.asyncContextMap = buildIdMap(this.asyncContexts);
+
+    // Populate thrownBy for errors based on dependencies (after maps are built)
+    this.populateErrorThrownBy();
 
     // Tags
     const getTasksWithTag = (tagId: string) =>
@@ -140,14 +155,68 @@ export class Introspector {
     return stampElementKind(this.resourceMap.get(String(id))!, "RESOURCE");
   }
 
-  getAll(): (Task | Hook | Resource | Event | Middleware)[] {
+  getAll(): (Task | Hook | Resource | Event | Middleware | ErrorModel | AsyncContextModel)[] {
     return [
       ...this.tasks,
       ...this.hooks,
       ...this.resources,
       ...this.events,
       ...this.middlewares,
+      ...this.errors,
+      ...this.asyncContexts,
     ];
+  }
+
+  private populateErrorThrownBy(): void {
+    // Create error ID map for quick lookup
+    const errorIds = new Set(this.errors.map(e => e.id));
+
+    // Clear existing thrownBy arrays
+    this.errors.forEach(error => {
+      error.thrownBy = [];
+    });
+
+    // Check tasks
+    this.tasks.forEach(task => {
+      const depends = ensureStringArray(task.dependsOn);
+      depends.forEach(depId => {
+        if (errorIds.has(depId)) {
+          const error = this.errorMap.get(depId);
+          if (error && !error.thrownBy.includes(task.id)) {
+            error.thrownBy.push(task.id);
+          }
+        }
+      });
+    });
+
+    // Check hooks
+    this.hooks.forEach(hook => {
+      const depends = ensureStringArray(hook.dependsOn);
+      depends.forEach(depId => {
+        if (errorIds.has(depId)) {
+          const error = this.errorMap.get(depId);
+          if (error && !error.thrownBy.includes(hook.id)) {
+            error.thrownBy.push(hook.id);
+          }
+        }
+      });
+    });
+
+    // Check resources
+    this.resources.forEach(resource => {
+      const depends = ensureStringArray(resource.dependsOn);
+      depends.forEach(depId => {
+        if (errorIds.has(depId)) {
+          const error = this.errorMap.get(depId);
+          if (error && !error.thrownBy.includes(resource.id)) {
+            error.thrownBy.push(resource.id);
+          }
+        }
+      });
+    });
+
+    // Note: Middleware doesn't have dependsOn field, so it can't depend on errors
+    // Middlewares are referenced by tasks/resources via the middleware field
   }
 
   getEvents(): Event[] {
@@ -198,23 +267,29 @@ export class Introspector {
     return this.resourceMap.get(id) ?? null;
   }
 
-  getDependencies(node: Task | Hook): {
+  getDependencies(node: Task | Hook | Resource): {
     tasks: Task[];
     hooks: Hook[];
     resources: Resource[];
     emitters: Event[];
+    errors: ErrorModel[];
   } {
     const depends = ensureStringArray(node.dependsOn);
     const tasksDeps = this.tasks.filter((t) => depends.includes(t.id));
     const hooksDeps = this.hooks.filter((l) => depends.includes(l.id));
     const resourcesDeps = this.resources.filter((r) => depends.includes(r.id));
+    const errorDeps = this.errors.filter((e) => depends.includes(e.id));
+
+    // Only Task and Hook have emits, Resource doesn't
     const emitIds = ensureStringArray((node as any).emits);
     const emitEvents = this.events.filter((e) => emitIds.includes(e.id));
+
     return {
       tasks: tasksDeps,
       hooks: hooksDeps,
       resources: resourcesDeps,
       emitters: emitEvents,
+      errors: errorDeps,
     };
   }
 
@@ -491,6 +566,142 @@ export class Introspector {
     return this.buildRunsOptions(hookId, args);
   }
 
+  // Error-related methods
+  getErrors(): ErrorModel[] {
+    return this.errors;
+  }
+
+  getError(id: string): ErrorModel | null {
+    return this.errorMap.get(id) ?? null;
+  }
+
+  getTasksUsingError(errorId: string): Task[] {
+    const error = this.errorMap.get(errorId);
+    if (!error?.thrownBy) return [];
+
+    return this.tasks.filter(task => error.thrownBy.includes(task.id));
+  }
+
+  getResourcesUsingError(errorId: string): Resource[] {
+    const error = this.errorMap.get(errorId);
+    if (!error?.thrownBy) return [];
+
+    return this.resources.filter(resource => error.thrownBy.includes(resource.id));
+  }
+
+  getHooksUsingError(errorId: string): Hook[] {
+    const error = this.errorMap.get(errorId);
+    if (!error?.thrownBy) return [];
+
+    return this.hooks.filter(hook => error.thrownBy.includes(hook.id));
+  }
+
+  getMiddlewaresUsingError(errorId: string): Middleware[] {
+    const error = this.errorMap.get(errorId);
+    if (!error?.thrownBy) return [];
+
+    return this.middlewares.filter(middleware => error.thrownBy.includes(middleware.id));
+  }
+
+  getAllUsingError(errorId: string): (Task | Hook | Resource | Middleware)[] {
+    return [
+      ...this.getTasksUsingError(errorId),
+      ...this.getHooksUsingError(errorId),
+      ...this.getResourcesUsingError(errorId),
+      ...this.getMiddlewaresUsingError(errorId)
+    ];
+  }
+
+  // Async Context-related methods
+  getAsyncContexts(): AsyncContextModel[] {
+    return this.asyncContexts;
+  }
+
+  getAsyncContext(id: string): AsyncContextModel | null {
+    return this.asyncContextMap.get(id) ?? null;
+  }
+
+  getTasksUsingContext(contextId: string): Task[] {
+    const context = this.asyncContextMap.get(contextId);
+    if (!context?.usedBy) return [];
+
+    return this.tasks.filter(task => context.usedBy.includes(task.id));
+  }
+
+  getResourcesUsingContext(contextId: string): Resource[] {
+    const context = this.asyncContextMap.get(contextId);
+    if (!context?.usedBy) return [];
+
+    return this.resources.filter(resource => context.usedBy.includes(resource.id));
+  }
+
+  getResourcesProvidingContext(contextId: string): Resource[] {
+    const context = this.asyncContextMap.get(contextId);
+    if (!context?.providedBy) return [];
+
+    return this.resources.filter(resource => context.providedBy.includes(resource.id));
+  }
+
+  getHooksUsingContext(contextId: string): Hook[] {
+    const context = this.asyncContextMap.get(contextId);
+    if (!context?.usedBy) return [];
+
+    return this.hooks.filter(hook => context.usedBy.includes(hook.id));
+  }
+
+  getMiddlewaresUsingContext(contextId: string): Middleware[] {
+    const context = this.asyncContextMap.get(contextId);
+    if (!context?.usedBy) return [];
+
+    return this.middlewares.filter(middleware => context.usedBy.includes(middleware.id));
+  }
+
+  getAllUsingContext(contextId: string): (Task | Hook | Resource | Middleware)[] {
+    return [
+      ...this.getTasksUsingContext(contextId),
+      ...this.getHooksUsingContext(contextId),
+      ...this.getResourcesUsingContext(contextId),
+      ...this.getMiddlewaresUsingContext(contextId)
+    ];
+  }
+
+  // Tunnel-related methods (enhance existing methods)
+  getTunnelResources(): Resource[] {
+    // Resources with tunnel tag
+    return this.resources.filter((resource) =>
+      ensureStringArray(resource.tags).includes("runner-dev.tunnel")
+    );
+  }
+
+  getTunneledTasks(tunnelResourceId: string): Task[] {
+    const tunnel = this.getResource(tunnelResourceId);
+    if (!tunnel?.tunnelInfo?.tasks) return [];
+    return this.getTasksByIds(tunnel.tunnelInfo.tasks);
+  }
+
+  getTunneledEvents(tunnelResourceId: string): Event[] {
+    const tunnel = this.getResource(tunnelResourceId);
+    if (!tunnel?.tunnelInfo?.events) return [];
+    return this.getEventsByIds(tunnel.tunnelInfo.events);
+  }
+
+  getTunnelForTask(taskId: string): Resource | null {
+    const task = this.getTask(taskId);
+    if (!task) return null;
+
+    // Find tunnel resource that owns this task
+    return this.getTunnelResources().find((tunnel) =>
+      tunnel.tunnelInfo?.tasks?.includes(taskId)
+    ) ?? null;
+  }
+
+  getTunnelForEvent(eventId: string): Resource | null {
+    // Find tunnel resource that tunnels this event
+    return this.getTunnelResources().find((tunnel) =>
+      tunnel.tunnelInfo?.events?.includes(eventId)
+    ) ?? null;
+  }
+
   // Serialization API
   serialize(): SerializedIntrospector {
     return {
@@ -500,6 +711,8 @@ export class Introspector {
       events: this.events,
       middlewares: this.middlewares,
       tags: this.tags,
+      errors: this.errors,
+      asyncContexts: this.asyncContexts,
       diagnostics: this.getDiagnostics(),
       orphanEvents: this.getOrphanEvents(),
       unemittedEvents: this.getUnemittedEvents(),

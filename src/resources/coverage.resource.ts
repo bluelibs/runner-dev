@@ -11,7 +11,18 @@ export type CoverageSummary = {
   percentage: number; // 0..100 rounded
 };
 
-type CoverageDetails = unknown;
+export interface LineCoverage {
+  line: number;
+  hits: number;
+  covered: boolean;
+}
+
+export type CoverageDetails = {
+  statements?: Record<string, number>;
+  functions?: Record<string, number>;
+  branches?: Record<string, number>;
+  lines?: LineCoverage[];
+};
 
 type LoadedCoverage = {
   kind: "json" | "clover";
@@ -84,6 +95,8 @@ async function loadCoverageFromJson(jsonPath: string): Promise<LoadedCoverage> {
       const abs = normalizeAbs(
         path.isAbsolute(fileKey) ? fileKey : path.join(cwd, fileKey)
       );
+
+      // Parse statement coverage
       const s: Record<string, number> = metrics?.s || {};
       const totalStatements = Object.keys(s).length;
       const coveredStatements = Object.values(s).filter(
@@ -93,14 +106,45 @@ async function loadCoverageFromJson(jsonPath: string): Promise<LoadedCoverage> {
         totalStatements > 0
           ? roundPct((coveredStatements / totalStatements) * 100)
           : 0;
+
+      // Extract line coverage from statement map
+      const lines: LineCoverage[] = [];
+      for (const [statementKey, hits] of Object.entries(s)) {
+        // Istanbul statement keys are in format "startLine:startColumn-endLine:endColumn"
+        const match = statementKey.match(/^(\d+):\d+-\d+:\d+$/);
+        if (match) {
+          const line = parseInt(match[1], 10);
+          const hitCount = Number(hits) || 0;
+          lines.push({
+            line,
+            hits: hitCount,
+            covered: hitCount > 0,
+          });
+        }
+      }
+
+      // Sort lines by line number and remove duplicates
+      const uniqueLines = lines
+        .sort((a, b) => a.line - b.line)
+        .filter((line, index, array) =>
+          index === 0 || line.line !== array[index - 1].line
+        );
+
       summariesByAbsPath.set(abs, {
         filePath: abs,
         totalStatements,
         coveredStatements,
         percentage,
       });
-      // Store raw per-file metrics as details
-      detailsByAbsPath.set(abs, metrics);
+
+      // Store enhanced coverage details
+      const details: CoverageDetails = {
+        statements: s,
+        functions: metrics?.f || {},
+        branches: metrics?.b || {},
+        lines: uniqueLines,
+      };
+      detailsByAbsPath.set(abs, details);
     }
   }
 
@@ -144,16 +188,31 @@ async function loadCoverageFromClover(
         : path.join(cwd, filePathAttr)
     );
 
+    // Parse line coverage from Clover XML
+    const lines: LineCoverage[] = [];
+    const lineMatches = [...inner.matchAll(/<line[^>]*num="(\d+)"[^>]*count="(\d+)"/g)];
+    for (const lineMatch of lineMatches) {
+      const lineNum = parseInt(lineMatch[1], 10);
+      const count = parseInt(lineMatch[2], 10);
+      lines.push({
+        line: lineNum,
+        hits: count,
+        covered: count > 0,
+      });
+    }
+
     summariesByAbsPath.set(abs, {
       filePath: abs,
       totalStatements,
       coveredStatements,
       percentage,
     });
-    detailsByAbsPath.set(abs, {
-      statements: totalStatements,
-      coveredStatements,
-    });
+
+    const details: CoverageDetails = {
+      statements: { total: totalStatements, covered: coveredStatements },
+      lines: lines.sort((a, b) => a.line - b.line),
+    };
+    detailsByAbsPath.set(abs, details);
   }
 
   return {

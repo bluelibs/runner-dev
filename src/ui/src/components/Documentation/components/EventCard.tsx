@@ -1,7 +1,7 @@
 import React from "react";
 import { Event } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import { formatSchema, formatFilePath, formatId } from "../utils/formatting";
+import { formatFilePath, formatId } from "../utils/formatting";
 import { TagsSection } from "./TagsSection";
 import "./EventCard.scss";
 import { CodeModal } from "./CodeModal";
@@ -11,6 +11,7 @@ import {
 } from "../utils/graphqlClient";
 import SchemaRenderer from "./SchemaRenderer";
 import ExecuteModal from "./ExecuteModal";
+import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 
 export interface EventCardProps {
   event: Event;
@@ -48,14 +49,6 @@ export const EventCard: React.FC<EventCardProps> = ({
     }
   }
 
-  const getEventIcon = () => {
-    if (isGlobalEvent) return "Global";
-    if (hooks.length > 0 && emitters.length > 0) return "Active";
-    if (emitters.length > 0) return "Emit";
-    if (hooks.length > 0) return "Listen";
-    return "Event";
-  };
-
   const getEventStatus = () => {
     if (emitters.length === 0 && hooks.length === 0)
       return { text: "Unused", className: "status-unused" };
@@ -83,315 +76,288 @@ export const EventCard: React.FC<EventCardProps> = ({
   }, [event.id]);
 
   return (
-    <div id={`element-${event.id}`} className="event-card">
-      <div className="event-card__header">
-        <div className="event-card__header-content">
-          <div className="main">
-            <h3 className="event-card__title">
-              {isGlobalEvent
-                ? event.meta?.title || "Global Event"
-                : event.meta?.title || formatId(event.id)}
-              {isGlobalEvent && (
-                <span className="event-card__global-badge">GLOBAL</span>
-              )}
-            </h3>
-            {!isGlobalEvent && <div className="event-card__id">{event.id}</div>}
-            {event.meta?.description && (
-              <p className="event-card__description">
-                {event.meta.description}
-              </p>
-            )}
+    <ElementCard
+      prefix="event-card"
+      elementId={event.id}
+      title={
+        <>
+          {isGlobalEvent
+            ? event.meta?.title || "Global Event"
+            : event.meta?.title || formatId(event.id)}
+          {isGlobalEvent && (
+            <span className="event-card__global-badge">GLOBAL</span>
+          )}
+        </>
+      }
+      id={!isGlobalEvent ? event.id : undefined}
+      description={event.meta?.description}
+      meta={
+        <div className="event-card__stats">
+          <div className="event-card__stat-badge">
+            <span className="icon">Emit</span>
+            <span className="count">Emitters: {emitters.length}</span>
           </div>
-          <div className="meta">
-            <div className="event-card__stats">
-              <div className="event-card__stat-badge">
-                <span className="icon">Emit</span>
-                <span className="count">Emitters: {emitters.length}</span>
-              </div>
-              <div className="event-card__stat-badge">
-                <span className="icon">Hook</span>
-                <span className="count">Hooks: {hooks.length}</span>
-              </div>
-              <div className="event-card__run">
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => setIsExecuteOpen(true)}
-                  title="Invoke Event"
-                >
-                  Emit
-                </button>
-              </div>
-            </div>
+          <div className="event-card__stat-badge">
+            <span className="icon">Hook</span>
+            <span className="count">Hooks: {hooks.length}</span>
+          </div>
+          <div className="event-card__run">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setIsExecuteOpen(true)}
+              title="Invoke Event"
+            >
+              Emit
+            </button>
           </div>
         </div>
+      }
+    >
+      <div className="event-card__grid">
+        <CardSection prefix="event-card" title="Overview">
+          {isGlobalEvent && (
+            <div className="event-card__global-message">
+              <div className="event-card__global-message__header">
+                <span className="icon">Global</span>
+                <h5 className="title">Global/System Event</h5>
+              </div>
+              <div className="event-card__global-message__content">
+                This event is part of the global/system namespace and can be
+                used across the entire application lifecycle.
+              </div>
+            </div>
+          )}
+
+          <InfoBlock prefix="event-card" label="File Path:">
+            {event.filePath ? (
+              <a
+                type="button"
+                onClick={openFileModal}
+                title="View file contents"
+              >
+                {formatFilePath(event.filePath)}
+              </a>
+            ) : (
+              formatFilePath(event.filePath)
+            )}
+          </InfoBlock>
+
+          {event.registeredBy && (
+            <InfoBlock prefix="event-card" label="Registered By:">
+              <a
+                href={`#element-${event.registeredBy}`}
+                className="event-card__registrar-link"
+              >
+                {event.registeredBy}
+              </a>
+            </InfoBlock>
+          )}
+
+          <InfoBlock
+            prefix="event-card"
+            label="Event Status:"
+            valueClassName={`value--status ${status.className}`}
+          >
+            {status.text}
+          </InfoBlock>
+
+          {event.listenedToBy && event.listenedToBy.length > 0 && (
+            <InfoBlock prefix="event-card" label="Listened To By:">
+              <div className="event-card__listeners-list">
+                {event.listenedToBy.map((id) => (
+                  <a
+                    key={id}
+                    href={`#element-${id}`}
+                    className="event-card__listener-item"
+                  >
+                    <div className="event-card__listener-item__content">
+                      <div className="title">{formatId(id)}</div>
+                      <div className="id">{id}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </InfoBlock>
+          )}
+
+          {event.tags && event.tags.length > 0 && (
+            <InfoBlock prefix="event-card" label="Tags:">
+              <div className="event-card__tags">
+                {introspector.getTagsByIds(event.tags).map((tag) => (
+                  <a
+                    href={`#element-${tag.id}`}
+                    key={tag.id}
+                    className="clean-button"
+                  >
+                    {formatId(tag.id)}
+                  </a>
+                ))}
+              </div>
+            </InfoBlock>
+          )}
+
+          {((!isGlobalEvent && emitters.length === 0) || hooks.length === 0) && (
+            <div
+              className={`event-card__alert ${
+                emitters.length === 0
+                  ? "event-card__alert--danger"
+                  : "event-card__alert--warning"
+              }`}
+            >
+              <div className="title">
+                {!isGlobalEvent && emitters.length === 0
+                  ? "No Emitters Found"
+                  : "No Listeners Found"}
+              </div>
+              <div className="content">
+                {!isGlobalEvent && emitters.length === 0
+                  ? "This event is not emitted by any tasks, hooks, or resources."
+                  : "This event has no hooks listening to it."}
+              </div>
+            </div>
+          )}
+        </CardSection>
+
+        <CardSection
+          prefix="event-card"
+          title="Payload Schema"
+          contentClassName="event-card__config"
+        >
+          <SchemaRenderer schemaString={event.payloadSchema} />
+        </CardSection>
       </div>
 
-      <div className="event-card__content">
-        <div className="event-card__grid">
-          <div>
-            <div className="event-card__section">
-              <h4 className="event-card__section__title">Overview</h4>
-              <div className="event-card__section__content">
-                {isGlobalEvent && (
-                  <div className="event-card__global-message">
-                    <div className="event-card__global-message__header">
-                      <span className="icon">Global</span>
-                      <h5 className="title">Global/System Event</h5>
-                    </div>
-                    <div className="event-card__global-message__content">
-                      This event is part of the global/system namespace and can
-                      be used across the entire application lifecycle.
-                    </div>
-                  </div>
-                )}
-                <div className="event-card__info-block">
-                  <div className="label">File Path:</div>
-                  <div className="value">
-                    {event.filePath ? (
-                      <a
-                        type="button"
-                        onClick={openFileModal}
-                        title="View file contents"
-                      >
-                        {formatFilePath(event.filePath)}
-                      </a>
-                    ) : (
-                      formatFilePath(event.filePath)
-                    )}
-                  </div>
-                </div>
-
-                {event.registeredBy && (
-                  <div className="event-card__info-block">
-                    <div className="label">Registered By:</div>
-                    <div className="value">
-                      <a
-                        href={`#element-${event.registeredBy}`}
-                        className="event-card__registrar-link"
-                      >
-                        {event.registeredBy}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                <div className="event-card__info-block">
-                  <div className="label">Event Status:</div>
-                  <div className={`value value--status ${status.className}`}>
-                    {status.text}
-                  </div>
-                </div>
-
-                {event.listenedToBy && event.listenedToBy.length > 0 && (
-                  <div className="event-card__info-block">
-                    <div className="label">Listened To By:</div>
-                    <div className="event-card__listeners-list">
-                      {event.listenedToBy.map((id) => (
-                        <a
-                          key={id}
-                          href={`#element-${id}`}
-                          className="event-card__listener-item"
-                        >
-                          <div className="event-card__listener-item__content">
-                            <div className="title">{formatId(id)}</div>
-                            <div className="id">{id}</div>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {event.tags && event.tags.length > 0 && (
-                  <div className="event-card__info-block">
-                    <div className="label">Tags:</div>
-                    <div className="value">
-                      <div className="event-card__tags">
-                        {introspector.getTagsByIds(event.tags).map((tag) => (
-                          <a
-                            href={`#element-${tag.id}`}
-                            key={tag.id}
-                            className="clean-button"
-                          >
-                            {formatId(tag.id)}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {((!isGlobalEvent && emitters.length === 0) ||
-                  hooks.length === 0) && (
-                  <div
-                    className={`event-card__alert ${
-                      emitters.length === 0
-                        ? "event-card__alert--danger"
-                        : "event-card__alert--warning"
-                    }`}
-                  >
-                    <div className="title">
-                      {!isGlobalEvent && emitters.length === 0
-                        ? "No Emitters Found"
-                        : "No Listeners Found"}
-                    </div>
-                    <div className="content">
-                      {!isGlobalEvent && emitters.length === 0
-                        ? "This event is not emitted by any tasks, hooks, or resources."
-                        : "This event has no hooks listening to it."}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+      <div className="event-card__flow">
+        <h4 className="event-card__flow__title">Event Flow & Statistics</h4>
+        <div className="event-card__metrics">
+          <div
+            className={`event-card__metric ${
+              emitters.length > 0
+                ? "event-card__metric--active"
+                : "event-card__metric--danger"
+            }`}
+          >
+            <div className="value">{emitters.length}</div>
+            <div className="label">Emitters</div>
           </div>
-
-          <div>
-            <div className="event-card__section">
-              <h4 className="event-card__section__title">Payload Schema</h4>
-              <div className="event-card__config">
-                <SchemaRenderer schemaString={event.payloadSchema} />
-              </div>
-            </div>
+          <div
+            className={`event-card__metric ${
+              hooks.length > 0
+                ? "event-card__metric--active"
+                : "event-card__metric--warning"
+            }`}
+          >
+            <div className="value">{hooks.length}</div>
+            <div className="label">Listeners</div>
           </div>
         </div>
 
-        <div className="event-card__flow">
-          <h4 className="event-card__flow__title">Event Flow & Statistics</h4>
-          <div className="event-card__metrics">
-            <div
-              className={`event-card__metric ${
-                emitters.length > 0
-                  ? "event-card__metric--active"
-                  : "event-card__metric--danger"
-              }`}
-            >
-              <div className="value">{emitters.length}</div>
-              <div className="label">Emitters</div>
-            </div>
-            <div
-              className={`event-card__metric ${
-                hooks.length > 0
-                  ? "event-card__metric--active"
-                  : "event-card__metric--warning"
-              }`}
-            >
-              <div className="value">{hooks.length}</div>
-              <div className="label">Listeners</div>
-            </div>
-          </div>
+        <div className="event-card__participants">
+          {emitters.length > 0 && (
+            <div className="event-card__participant-section">
+              <h5>Event Emitters</h5>
+              <div className="event-card__participant-section__items">
+                {emitters.map((emitter) => {
+                  let className = "event-card__emitter";
+                  let icon = "📤";
 
-          <div className="event-card__participants">
-            {emitters.length > 0 && (
-              <div className="event-card__participant-section">
-                <h5>Event Emitters</h5>
-                <div className="event-card__participant-section__items">
-                  {emitters.map((emitter) => {
-                    let className = "event-card__emitter";
-                    let icon = "📤";
-
-                    // Determine the type of emitter
-                    if ("emits" in emitter && Array.isArray(emitter.emits)) {
-                      if ("dependsOn" in emitter && "middleware" in emitter) {
-                        // It's a Task
-                        className += " event-card__emitter--task";
-                        icon = "Task";
-                      } else if ("event" in emitter) {
-                        // It's a Hook
-                        className += " event-card__emitter--hook";
-                        icon = "Hook";
-                      }
-                    } else if ("config" in emitter) {
-                      // It's a Resource
-                      className += " event-card__emitter--resource";
-                      icon = "Resource";
+                  if ("emits" in emitter && Array.isArray(emitter.emits)) {
+                    if ("dependsOn" in emitter && "middleware" in emitter) {
+                      className += " event-card__emitter--task";
+                      icon = "Task";
+                    } else if ("event" in emitter) {
+                      className += " event-card__emitter--hook";
+                      icon = "Hook";
                     }
+                  } else if ("config" in emitter) {
+                    className += " event-card__emitter--resource";
+                    icon = "Resource";
+                  }
 
-                    return (
-                      <a
-                        key={emitter.id}
-                        href={`#element-${emitter.id}`}
-                        className={`${className} event-card__emitter-link`}
-                      >
-                        <div className="event-card__emitter__content">
-                          <span>{icon}</span>
-                          <div className="event-card__emitter__info">
-                            <div
-                              className={`title ${
-                                className.includes("--task")
-                                  ? "title--task"
-                                  : className.includes("--hook")
-                                  ? "title--hook"
-                                  : "title--resource"
-                              }`}
-                            >
-                              {emitter.meta?.title || formatId(emitter.id)}
-                            </div>
-                            <div className="id">{emitter.id}</div>
-                          </div>
-                        </div>
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {hooks.length > 0 && (
-              <div className="event-card__participant-section">
-                <h5>Event Listeners</h5>
-                <div className="event-card__participant-section__items">
-                  {hooks.map((hook) => (
+                  return (
                     <a
-                      key={hook.id}
-                      href={`#element-${hook.id}`}
-                      className="event-card__listener event-card__listener-link"
+                      key={emitter.id}
+                      href={`#element-${emitter.id}`}
+                      className={`${className} event-card__emitter-link`}
                     >
-                      <div className="event-card__listener__content">
-                        <div className="main">
-                          <div className="event-card__listener__info">
-                            <span>Hook</span>
-                            <div className="details">
-                              <div className="title">
-                                {hook.meta?.title || formatId(hook.id)}
-                              </div>
-                              <div className="id">{hook.id}</div>
-                            </div>
+                      <div className="event-card__emitter__content">
+                        <span>{icon}</span>
+                        <div className="event-card__emitter__info">
+                          <div
+                            className={`title ${
+                              className.includes("--task")
+                                ? "title--task"
+                                : className.includes("--hook")
+                                ? "title--hook"
+                                : "title--resource"
+                            }`}
+                          >
+                            {emitter.meta?.title || formatId(emitter.id)}
                           </div>
-                          {hook.meta?.description && (
-                            <div className="event-card__listener__description">
-                              {hook.meta.description}
-                            </div>
-                          )}
+                          <div className="id">{emitter.id}</div>
                         </div>
-                        {hook.hookOrder !== null &&
-                          hook.hookOrder !== undefined && (
-                            <span className="event-card__listener__order-badge">
-                              Order: {hook.hookOrder}
-                            </span>
-                          )}
                       </div>
                     </a>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {emitters.length === 0 && hooks.length === 0 && (
-            <div className="event-card__empty-state">
-              This event has no emitters or listeners.
+          {hooks.length > 0 && (
+            <div className="event-card__participant-section">
+              <h5>Event Listeners</h5>
+              <div className="event-card__participant-section__items">
+                {hooks.map((hook) => (
+                  <a
+                    key={hook.id}
+                    href={`#element-${hook.id}`}
+                    className="event-card__listener event-card__listener-link"
+                  >
+                    <div className="event-card__listener__content">
+                      <div className="main">
+                        <div className="event-card__listener__info">
+                          <span>Hook</span>
+                          <div className="details">
+                            <div className="title">
+                              {hook.meta?.title || formatId(hook.id)}
+                            </div>
+                            <div className="id">{hook.id}</div>
+                          </div>
+                        </div>
+                        {hook.meta?.description && (
+                          <div className="event-card__listener__description">
+                            {hook.meta.description}
+                          </div>
+                        )}
+                      </div>
+                      {hook.hookOrder !== null &&
+                        hook.hookOrder !== undefined && (
+                          <span className="event-card__listener__order-badge">
+                            Order: {hook.hookOrder}
+                          </span>
+                        )}
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        <TagsSection
-          element={event}
-          introspector={introspector}
-          className="event-card__tags-section"
-        />
+        {emitters.length === 0 && hooks.length === 0 && (
+          <div className="event-card__empty-state">
+            This event has no emitters or listeners.
+          </div>
+        )}
       </div>
+
+      <TagsSection
+        element={event}
+        introspector={introspector}
+        className="event-card__tags-section"
+      />
 
       <CodeModal
         title={
@@ -447,6 +413,6 @@ export const EventCard: React.FC<EventCardProps> = ({
           }
         }}
       />
-    </div>
+    </ElementCard>
   );
 };

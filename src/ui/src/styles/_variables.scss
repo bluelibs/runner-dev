@@ -79,6 +79,8 @@ $shadow-lg: 0 8px 32px rgba(0, 122, 204, 0.3);
 // -----------------------------------------------------------------------------
 $gradient-primary: linear-gradient(135deg, $primary-blue, $primary-blue-dark);
 $gradient-success: linear-gradient(135deg, $success-green, $success-green-dark);
+$gradient-info: linear-gradient(135deg, $info-blue, $info-teal);
+$gradient-danger: linear-gradient(135deg, $danger-red, #c62828);
 $gradient-warning: linear-gradient(
   135deg,
   $warning-orange,

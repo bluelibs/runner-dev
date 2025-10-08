@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm install
-          npm install @rollup/rollup-linux-x64-gnu
+          npm install @rollup/rollup-linux-x64-gnu sass-embedded-linux-x64
 
       # Run tests with enforced 100% coverage
       - name: Run tests with coverage enforcement

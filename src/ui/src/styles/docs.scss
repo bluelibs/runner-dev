@@ -22,11 +22,6 @@
 @use "../components/Documentation/components/ResourceCard";
 @use "../components/Documentation/components/MiddlewareCard";
 
-// Hook components
-@use "../components/Documentation/components/hook/HookOverview";
-@use "../components/Documentation/components/hook/HookRelations";
-@use "../components/Documentation/components/hook/HookTargetEvents";
-
 // Live components
 @use "../components/Documentation/components/LivePanel";
 @use "../components/Documentation/components/live/LiveRuns";
@@ -63,6 +58,7 @@
 @use "../components/Documentation/components/ElementTable";
 @use "../components/Documentation/components/CodeModal";
 @use "../components/Documentation/components/ExecuteModal";
+@use "../components/Documentation/components/CoverageVisualization";
 @use "../components/Documentation/components/overview/OverviewStatsPanel";
 
 // =============================================================================

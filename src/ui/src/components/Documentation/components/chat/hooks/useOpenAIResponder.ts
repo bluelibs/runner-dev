@@ -1,4 +1,14 @@
 import { useRef, useCallback } from "react";
+
+/**
+ * @deprecated This hook is part of the legacy React hooks chat implementation.
+ * Use useChatStateSmart instead, which includes all AI responder functionality internally.
+ *
+ * The Smart implementation provides better state management and eliminates the need
+ * for separate responder hooks.
+ *
+ * @see useChatStateSmart for the modern implementation
+ */
 import { SYSTEM_PROMPT } from "../ai.systemPrompt";
 import {
   streamChatCompletion,
@@ -21,6 +31,14 @@ type UseOpenAIResponderParams = {
   getDocsBundle?: () => DocsBundle;
 };
 
+/**
+ * @deprecated useOpenAIResponder is deprecated. Use useChatStateSmart instead.
+ *
+ * This hook is part of the legacy chat implementation and has been replaced
+ * by the Smart-based architecture which handles AI responses internally.
+ *
+ * Migration: Replace useOpenAIResponder usage with useChatStateSmart.
+ */
 export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
   const abortController = useRef<AbortController | null>(null);
 

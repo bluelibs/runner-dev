@@ -295,7 +295,148 @@
   min-height: 400px;
 
   &--with-coverage {
-    // Reduce minimum height when coverage is shown to save space
-    min-height: 300px;
+    // Add more space for coverage indicators
+    min-height: 400px;
+  }
+}
+
+// Coverage-specific editor styles
+.code-modal__editor--with-coverage {
+  .cm-editor {
+    .cm-gutters {
+      // Make more room for coverage indicators
+      padding-left: 5px;
+      background: linear-gradient(
+        135deg,
+        rgba(5, 8, 15, 0.95) 0%,
+        rgba(12, 16, 28, 0.98) 50%,
+        rgba(8, 12, 22, 0.95) 100%
+      ) !important;
+    }
+
+    .cm-lineNumbers {
+      .cm-gutterElement {
+        padding-left: 28px; // Space for coverage indicators
+        position: relative;
+      }
+    }
+
+    // Enhance line visibility with coverage indicators
+    .cm-line {
+      position: relative;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+      }
+    }
+  }
+}
+
+// Coverage line highlighting styles (enhanced for dark theme)
+.cm-coverage-line-covered {
+  background: linear-gradient(
+    90deg,
+    rgba(76, 175, 80, 0.12) 0%,
+    rgba(76, 175, 80, 0.08) 100%
+  ) !important;
+  border-left: 4px solid #4caf50 !important;
+  position: relative;
+  transition: all 0.2s ease;
+
+  &::before {
+    content: "✓" !important;
+    position: absolute !important;
+    left: -22px !important;
+    top: 2px !important;
+    color: #4caf50 !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    z-index: 10 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  &:hover {
+    background: linear-gradient(
+      90deg,
+      rgba(76, 175, 80, 0.18) 0%,
+      rgba(76, 175, 80, 0.12) 100%
+    ) !important;
+    border-left-color: #66bb6a !important;
+  }
+}
+
+.cm-coverage-line-uncovered {
+  background: linear-gradient(
+    90deg,
+    rgba(244, 67, 54, 0.12) 0%,
+    rgba(244, 67, 54, 0.08) 100%
+  ) !important;
+  border-left: 4px solid #f44336 !important;
+  position: relative;
+  transition: all 0.2s ease;
+
+  &::before {
+    content: "✗" !important;
+    position: absolute !important;
+    left: -22px !important;
+    top: 2px !important;
+    color: #f44336 !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    z-index: 10 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  &:hover {
+    background: linear-gradient(
+      90deg,
+      rgba(244, 67, 54, 0.18) 0%,
+      rgba(244, 67, 54, 0.12) 100%
+    ) !important;
+    border-left-color: #ef5350 !important;
+  }
+}
+
+// Add a coverage legend in the modal header when coverage is shown
+.code-modal__coverage-legend {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: 6px 12px;
+  background: var(--docs-bg-tertiary, rgba(45, 55, 72, 0.8));
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--docs-text-secondary, #a0aec0);
+  border: 1px solid var(--docs-border-primary, rgba(74, 85, 104, 0.5));
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border-left: 3px solid currentColor;
+    }
+
+    &--covered {
+      &::before {
+        background: rgba(76, 175, 80, 0.15);
+        border-left-color: #4caf50;
+      }
+      color: #4caf50;
+    }
+
+    &--uncovered {
+      &::before {
+        background: rgba(244, 67, 54, 0.15);
+        border-left-color: #f44336;
+      }
+      color: #f44336;
+    }
   }
 }

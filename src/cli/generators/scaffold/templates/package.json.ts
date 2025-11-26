@@ -3,7 +3,7 @@ export function packageJson(projectName: string) {
     name: projectName,
     version: "0.1.0",
     private: true,
-    type: "module",
+    type: "commonjs",
     scripts: {
       dev: "tsx watch src/main.ts",
       start: "node --enable-source-maps dist/main.js",

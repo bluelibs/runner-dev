@@ -48,6 +48,7 @@ async function run(): Promise<void> {
         [c.cmd("runner-dev overview"), "Print Markdown project overview"],
         [c.cmd("runner-dev schema"), "Print SDL or introspection JSON"],
         [c.cmd("runner-dev ping"), "Ping GraphQL endpoint"],
+        [c.cmd("runner-dev deploy"), "Deploy application using PM2, SSH, and NVM"],
       ],
       { gap: 3, indent: 2 }
     );
@@ -106,6 +107,12 @@ async function run(): Promise<void> {
         `${c.cmd(
           "runner-dev new resource-middleware soft-delete --ns app --dir src --export"
         )}`,
+        `${c.gray("# Initialize deployment configuration")}`,
+        `${c.cmd("runner-dev deploy init")}`,
+        `${c.gray("# Deploy to production environment")}`,
+        `${c.cmd("runner-dev deploy run production")}`,
+        `${c.gray("# Deploy to a cluster")}`,
+        `${c.cmd("runner-dev deploy run production-cluster")}`,
       ].join("\n"),
       2
     );
@@ -161,6 +168,12 @@ async function run(): Promise<void> {
 
   if (subcommand === "ping") {
     const mod = await loadModule("./cli/ping");
+    await mod.main(process.argv);
+    return;
+  }
+
+  if (subcommand === "deploy") {
+    const mod = await loadModule("./cli/deploy");
     await mod.main(process.argv);
     return;
   }

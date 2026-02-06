@@ -7,6 +7,7 @@ import type {
   Tag,
   Error as ErrorModel,
   AsyncContext as AsyncContextModel,
+  TunnelInfo,
 } from "../../schema";
 import type { DiagnosticItem } from "../../schema";
 import {
@@ -20,6 +21,7 @@ import {
   ensureStringArray,
   stringifyIfObject,
 } from "./introspector.tools";
+import { extractTunnelInfo } from "./initializeFromStore.utils";
 
 export type SerializedIntrospector = {
   tasks: Task[];
@@ -667,10 +669,8 @@ export class Introspector {
 
   // Tunnel-related methods (enhance existing methods)
   getTunnelResources(): Resource[] {
-    // Resources with tunnel tag
-    return this.resources.filter((resource) =>
-      ensureStringArray(resource.tags).includes("runner-dev.tunnel")
-    );
+    // Resources with populated tunnelInfo (set during store initialization)
+    return this.resources.filter((resource) => resource.tunnelInfo != null);
   }
 
   getTunneledTasks(tunnelResourceId: string): Task[] {
@@ -701,6 +701,46 @@ export class Introspector {
       tunnel.tunnelInfo?.events?.includes(eventId)
     ) ?? null;
   }
+
+  /**
+   * Populates tunnelInfo for resources with the tunnel tag.
+   * Call this method after all resources have been initialized to ensure
+   * tunnel resource values are available.
+   */
+  populateTunnelInfo(): void {
+    const s = this.store as { resources: Map<string, { resource: { id: unknown; tags?: unknown[] }; value: unknown }> } | null;
+    if (!s?.resources) return;
+
+    const allTaskIds = this.tasks.map((t) => t.id);
+    const allEventIds = this.events.map((e) => e.id);
+
+    for (const storeEntry of s.resources.values()) {
+      const resourceDef = storeEntry.resource;
+      const resourceValue = storeEntry.value;
+      const resourceId = String(resourceDef.id);
+
+      // Find the corresponding model resource
+      const modelResource = this.resources.find((r) => r.id === resourceId);
+      if (!modelResource) continue;
+
+      // Check if resource has tunnel tag using the already-normalized tags
+      const hasTunnelTag = (modelResource.tags || []).some((tagId) => {
+        const tagStr = String(tagId);
+        return (
+          tagStr === "globals.tags.tunnel" ||
+          (tagStr.includes("tunnel") && !tagStr.includes("tunnelPolicy"))
+        );
+      });
+
+      if (hasTunnelTag && resourceValue) {
+        const tunnelInfo = extractTunnelInfo(resourceValue, allTaskIds, allEventIds);
+        if (tunnelInfo) {
+          modelResource.tunnelInfo = tunnelInfo;
+        }
+      }
+    }
+  }
+
 
   // Serialization API
   serialize(): SerializedIntrospector {

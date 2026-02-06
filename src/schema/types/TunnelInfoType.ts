@@ -28,6 +28,17 @@ export const TunnelTransportEnum = new GraphQLEnumType({
   },
 });
 
+export const TunnelEventDeliveryModeEnum = new GraphQLEnumType({
+  name: "TunnelEventDeliveryMode",
+  description: "How events are delivered between local and remote runtimes",
+  values: {
+    local_only: { value: "local-only" },
+    remote_only: { value: "remote-only" },
+    remote_first: { value: "remote-first" },
+    mirror: { value: "mirror" },
+  },
+});
+
 export const TunnelInfoType = new GraphQLObjectType({
   name: "TunnelInfo",
   description: "Tunnel configuration and routing information",
@@ -71,6 +82,10 @@ export const TunnelInfoType = new GraphQLObjectType({
     auth: {
       description: "Authentication method used by the tunnel",
       type: GraphQLString,
+    },
+    eventDeliveryMode: {
+      description: "How events are delivered between local and remote runtimes",
+      type: TunnelEventDeliveryModeEnum,
     },
   },
 });

@@ -32,4 +32,4 @@ export {
 export { CoverageInfoType } from "./CoverageType";
 export { ErrorType } from "./ErrorType";
 export { AsyncContextType } from "./AsyncContextType";
-export { TunnelInfoType, TunnelModeEnum, TunnelTransportEnum } from "./TunnelInfoType";
+export { TunnelInfoType, TunnelModeEnum, TunnelTransportEnum, TunnelEventDeliveryModeEnum } from "./TunnelInfoType";

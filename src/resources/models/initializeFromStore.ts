@@ -19,6 +19,9 @@ export function initializeFromStore(
   introspector: Introspector,
   store: Store
 ): void {
+  // Set store reference for methods that need it (e.g., populateTunnelInfo)
+  introspector.store = store;
+  
   // Build tasks
   introspector.tasks = [];
   introspector.hooks = [];
@@ -39,6 +42,10 @@ export function initializeFromStore(
 
   // Build events
   introspector.events = buildEvents(store);
+
+  // NOTE: Tunnel info population is handled by Introspector.populateTunnelInfo()
+  // which must be called after all resources have been initialized.
+  // Resource values are not available at this stage.
 
   // Build errors
   introspector.errors = Array.from(store.errors.values()).map((e: any) => ({

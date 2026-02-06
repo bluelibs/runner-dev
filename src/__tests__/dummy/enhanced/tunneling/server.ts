@@ -123,7 +123,7 @@ export const generateReportTask = r
       endDate: z.date(),
     }),
     format: z.enum(["pdf", "excel", "csv"]).default("pdf"),
-    filters: z.record(z.any()).optional(),
+    filters: z.record(z.unknown()).optional(),
     includeCharts: z.boolean().optional().default(false),
   }))
   .resultSchema(z.object({

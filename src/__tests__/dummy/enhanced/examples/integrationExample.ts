@@ -246,8 +246,8 @@ export const contextPropagationDemoTask = r
   )
   .resultSchema(
     z.object({
-      initialContexts: z.record(z.any()),
-      propagatedContexts: z.record(z.any()),
+      initialContexts: z.record(z.unknown()),
+      propagatedContexts: z.record(z.unknown()),
       contextModifications: z.array(
         z.object({
           context: z.string(),
@@ -274,9 +274,12 @@ export const contextPropagationDemoTask = r
   })
   .build();
 
+/**
+ * Helper to simulate nested task execution and verify context propagation
+ */
 async function simulateNestedTaskExecution(
-  deps: any,
-  contextModifications: any[]
+  deps: Record<string, unknown>,
+  contextModifications: Array<{ context: string; modification: string; propagated: boolean }>
 ): Promise<void> {
   // Empty function - no implementation
 }

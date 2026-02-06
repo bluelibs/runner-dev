@@ -52,6 +52,9 @@ export async function runCommand(
       cwd,
       stdio: "inherit",
       env: process.env,
+      // On Windows, commands like `npm` are exposed as `npm.cmd`.
+      // Using a shell ensures those command shims resolve correctly.
+      shell: process.platform === "win32",
     });
     child.on("close", (code) => {
       if (code === 0) resolve();

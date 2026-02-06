@@ -1,7 +1,83 @@
-import { spawn, spawnSync } from "child_process";
+import { spawn } from "child_process";
 import path from "node:path";
 import fs from "fs/promises";
 import os from "os";
+
+async function writeFakeNpm(
+  fakeBinDir: string,
+  opts: { supportsRunTest: boolean; repoNodeModulesPath: string }
+): Promise<void> {
+  const npmJsPath = path.join(fakeBinDir, "npm.js");
+  const js = `
+const fs = require("fs/promises");
+const path = require("node:path");
+
+async function touch(filePath) {
+  await fs.writeFile(filePath, "", { encoding: "utf8" });
+}
+
+async function ensureNodeModulesLinkOrDir(cwd, repoNodeModulesPath) {
+  const nodeModulesPath = path.join(cwd, "node_modules");
+  try {
+    await fs.symlink(repoNodeModulesPath, nodeModulesPath, "dir");
+  } catch {
+    // On Windows or restricted environments, symlinks may not be allowed.
+    await fs.mkdir(nodeModulesPath, { recursive: true });
+  }
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const cmd = args[0];
+  const cwd = process.cwd();
+  const repoNodeModulesPath = process.env.__FAKE_REPO_NODE_MODULES || "";
+
+  if (cmd === "install") {
+    process.stdout.write("Fake npm install: linking node_modules\\n");
+    await touch(path.join(cwd, ".fake-npm-ran"));
+    if (repoNodeModulesPath) {
+      await ensureNodeModulesLinkOrDir(cwd, repoNodeModulesPath);
+    }
+    process.exit(0);
+  }
+
+  if (${opts.supportsRunTest ? "true" : "false"} && cmd === "run" && args[1] === "test") {
+    process.stdout.write("Fake npm test: touching marker\\n");
+    await touch(path.join(cwd, ".fake-tests-ran"));
+    process.exit(0);
+  }
+
+  process.stdout.write("Fake npm: args " + args.join(" ") + "\\n");
+  process.exit(0);
+}
+
+main().catch((e) => {
+  process.stderr.write(String((e && e.stack) || e) + "\\n");
+  process.exit(1);
+});
+`.trimStart();
+  await fs.writeFile(npmJsPath, js, { mode: 0o755 });
+
+  const nodePath = process.execPath;
+  const scriptEnvLine = `set "__FAKE_REPO_NODE_MODULES=${opts.repoNodeModulesPath}"`;
+
+  // Unix-like: an executable "npm" file is enough.
+  const npmShPath = path.join(fakeBinDir, "npm");
+  const sh = `#!/bin/sh
+export __FAKE_REPO_NODE_MODULES="${opts.repoNodeModulesPath}"
+exec "${nodePath}" "${npmJsPath}" "$@"
+`;
+  await fs.writeFile(npmShPath, sh, { mode: 0o755 });
+
+  // Windows: create npm.cmd because spawn("npm") typically resolves to npm.cmd.
+  const npmCmdPath = path.join(fakeBinDir, "npm.cmd");
+  const cmd = `@echo off
+${scriptEnvLine}
+"${nodePath}" "${npmJsPath}" %*
+exit /b %errorlevel%
+`;
+  await fs.writeFile(npmCmdPath, cmd, { mode: 0o755 });
+}
 
 function runCli(
   args: string[],
@@ -103,11 +179,6 @@ describe("CLI init", () => {
 
     const res = await runCli(["new", projectName], testProjectDir);
 
-    // Log the output for debugging
-    console.log("Exit code:", res.code);
-    console.log("Stdout:", res.stdout);
-    console.log("Stderr:", res.stderr);
-
     // Should exit with an error code and the message printed on stderr
     expect(res.code).toBe(1);
     const existing = await fs.readFile(
@@ -125,14 +196,10 @@ describe("CLI init", () => {
     const fakeBinDir = path.join(tempDir, "fake-bin");
     await fs.mkdir(fakeBinDir, { recursive: true });
 
-    // The fake npm will create a symlink from projectDir/node_modules to repo's node_modules
-    const fakeNpmPath = path.join(fakeBinDir, "npm");
-    const script = `#!/bin/sh
-echo "Fake npm install: linking node_modules"
-touch "$PWD/.fake-npm-ran"
-ln -s "${path.join(process.cwd(), "node_modules")}" "$PWD/node_modules" || true
-`;
-    await fs.writeFile(fakeNpmPath, script, { mode: 0o755 });
+    await writeFakeNpm(fakeBinDir, {
+      supportsRunTest: false,
+      repoNodeModulesPath: path.join(process.cwd(), "node_modules"),
+    });
 
     // Pre-create project dir parent to let CLI scaffold
     // Run CLI with PATH overridden so our fake npm is picked up
@@ -140,18 +207,12 @@ ln -s "${path.join(process.cwd(), "node_modules")}" "$PWD/node_modules" || true
       ["new", "project", projectName, "--install"],
       testProjectDir,
       {
-        PATH: `${fakeBinDir}:${process.env.PATH}`,
+        PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ""}`,
         CI: "false",
         RUNNER_DEV_FAST: "0",
         RUNNER_DEV_SKIP_INSTALL: "0",
       }
     );
-
-    // Debug output to help diagnose CI/test environment issues
-    // eslint-disable-next-line no-console
-    console.log("CLI stdout:\n", res.stdout);
-    // eslint-disable-next-line no-console
-    console.log("CLI stderr:\n", res.stderr);
     expect(res.code).toBe(0);
 
     // Check that node_modules was linked
@@ -178,48 +239,22 @@ ln -s "${path.join(process.cwd(), "node_modules")}" "$PWD/node_modules" || true
     const fakeBinDir = path.join(tempDir, "fake-bin-2");
     await fs.mkdir(fakeBinDir, { recursive: true });
 
-    const fakeNpmPath = path.join(fakeBinDir, "npm");
-    const script = `#!/bin/sh
-case "$1" in
-  install)
-    echo "Fake npm install: linking node_modules"
-    touch "$PWD/.fake-npm-ran"
-    ln -s "${path.join(
-      process.cwd(),
-      "node_modules"
-    )}" "$PWD/node_modules" 2>/dev/null || true
-    ;;
-  run)
-    if [ "$2" = "test" ]; then
-      echo "Fake npm test: touching marker"
-      touch "$PWD/.fake-tests-ran"
-    fi
-    ;;
-  *)
-    echo "Fake npm: args $@"
-    ;;
-esac
-exit 0
-`;
-    await fs.writeFile(fakeNpmPath, script, { mode: 0o755 });
+    await writeFakeNpm(fakeBinDir, {
+      supportsRunTest: true,
+      repoNodeModulesPath: path.join(process.cwd(), "node_modules"),
+    });
 
     const res = await runCli(
       ["new", "project", projectName, "--install", "--run-tests"],
       testProjectDir,
       {
-        PATH: `${fakeBinDir}:${process.env.PATH}`,
+        PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ""}`,
         CI: "false",
         RUNNER_DEV_FAST: "0",
         RUNNER_DEV_SKIP_INSTALL: "0",
         RUNNER_DEV_SKIP_TESTS: "0",
       }
     );
-
-    // eslint-disable-next-line no-console
-    console.log("CLI stdout (install+tests):\n", res.stdout);
-    // eslint-disable-next-line no-console
-    console.log("CLI stderr (install+tests):\n", res.stderr);
-
     expect(res.code).toBe(0);
 
     // Verify markers for install and tests

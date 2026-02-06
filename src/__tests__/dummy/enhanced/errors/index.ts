@@ -1,11 +1,11 @@
-import { r } from "@bluelibs/runner";
+import { r, IErrorDefinition, IErrorHelper } from "@bluelibs/runner";
 import { z } from "zod";
 
 // ====================
 // USER DOMAIN ERRORS
 // ====================
 
-export const UserNotFoundError: any = r
+export const UserNotFoundError = r
   .error<{
     userId: string;
     message: string;
@@ -18,7 +18,7 @@ export const UserNotFoundError: any = r
   )
   .build();
 
-export const InvalidCredentialsError: any = r
+export const InvalidCredentialsError = r
   .error<{
     email: string;
     attempts: number;
@@ -33,7 +33,7 @@ export const InvalidCredentialsError: any = r
   )
   .build();
 
-export const EmailAlreadyExistsError: any = r
+export const EmailAlreadyExistsError = r
   .error<{
     email: string;
     existingUserId: string;
@@ -48,7 +48,7 @@ export const EmailAlreadyExistsError: any = r
   )
   .build();
 
-export const AccountLockedError: any = r
+export const AccountLockedError = r
   .error<{
     userId: string;
     lockedUntil: Date;
@@ -69,7 +69,7 @@ export const AccountLockedError: any = r
 // PRODUCT DOMAIN ERRORS
 // ====================
 
-export const ProductNotFoundError: any = r
+export const ProductNotFoundError = r
   .error<{
     productId: string;
     message: string;
@@ -82,7 +82,7 @@ export const ProductNotFoundError: any = r
   )
   .build();
 
-export const InsufficientStockError: any = r
+export const InsufficientStockError = r
   .error<{
     productId: string;
     requestedQuantity: number;
@@ -99,7 +99,7 @@ export const InsufficientStockError: any = r
   )
   .build();
 
-export const InvalidPriceError: any = r
+export const InvalidPriceError = r
   .error<{
     productId: string;
     providedPrice: number;
@@ -118,7 +118,7 @@ export const InvalidPriceError: any = r
   )
   .build();
 
-export const CategoryNotFoundError: any = r
+export const CategoryNotFoundError = r
   .error<{
     categoryId: string;
     message: string;
@@ -135,7 +135,7 @@ export const CategoryNotFoundError: any = r
 // ORDER DOMAIN ERRORS
 // ====================
 
-export const PaymentFailedError: any = r
+export const PaymentFailedError = r
   .error<{
     orderId: string;
     paymentMethod: string;
@@ -156,7 +156,7 @@ export const PaymentFailedError: any = r
   )
   .build();
 
-export const OrderNotFoundError: any = r
+export const OrderNotFoundError = r
   .error<{
     orderId: string;
     userId?: string;
@@ -171,7 +171,7 @@ export const OrderNotFoundError: any = r
   )
   .build();
 
-export const InvalidOrderStatusError: any = r
+export const InvalidOrderStatusError = r
   .error<{
     orderId: string;
     currentStatus: string;
@@ -190,7 +190,7 @@ export const InvalidOrderStatusError: any = r
   )
   .build();
 
-export const OrderExpiredError: any = r
+export const OrderExpiredError = r
   .error<{
     orderId: string;
     expiredAt: Date;
@@ -209,7 +209,7 @@ export const OrderExpiredError: any = r
 // SYSTEM ERRORS
 // ====================
 
-export const DatabaseConnectionError: any = r
+export const DatabaseConnectionError = r
   .error<{
     service: string;
     host: string;
@@ -228,7 +228,7 @@ export const DatabaseConnectionError: any = r
   )
   .build();
 
-export const ServiceUnavailableError: any = r
+export const ServiceUnavailableError = r
   .error<{
     service: string;
     endpoint: string;
@@ -247,7 +247,7 @@ export const ServiceUnavailableError: any = r
   )
   .build();
 
-export const RateLimitExceededError: any = r
+export const RateLimitExceededError = r
   .error<{
     clientId: string;
     endpoint: string;
@@ -268,51 +268,56 @@ export const RateLimitExceededError: any = r
   )
   .build();
 
-export const ValidationError: any = r
+export const ValidationError = r
   .error<{
     field: string;
-    value: any;
+    value: unknown;
     constraint: string;
     message: string;
   }>("app.system.errors.validation")
   .dataSchema({
-    parse: (value: any) => value,
-  } as any)
+    parse: (value: any) => value as {
+      field: string;
+      value: unknown;
+      constraint: string;
+      message: string;
+    }
+  })
   .build();
 
 // ====================
 // ERROR COLLECTIONS
 // ====================
 
-export const UserDomainErrors: Record<string, any> = {
+export const UserDomainErrors: Record<string, IErrorHelper<any>> = {
   UserNotFoundError,
   InvalidCredentialsError,
   EmailAlreadyExistsError,
   AccountLockedError,
 } as const;
 
-export const ProductDomainErrors: Record<string, any> = {
+export const ProductDomainErrors: Record<string, IErrorHelper<any>> = {
   ProductNotFoundError,
   InsufficientStockError,
   InvalidPriceError,
   CategoryNotFoundError,
 } as const;
 
-export const OrderDomainErrors: Record<string, any> = {
+export const OrderDomainErrors: Record<string, IErrorHelper<any>> = {
   PaymentFailedError,
   OrderNotFoundError,
   InvalidOrderStatusError,
   OrderExpiredError,
 } as const;
 
-export const SystemErrors: Record<string, any> = {
+export const SystemErrors: Record<string, IErrorHelper<any>> = {
   DatabaseConnectionError,
   ServiceUnavailableError,
   RateLimitExceededError,
   ValidationError,
 } as const;
 
-export const AllErrors: Record<string, any> = {
+export const AllErrors: Record<string, IErrorHelper<any>> = {
   ...UserDomainErrors,
   ...ProductDomainErrors,
   ...OrderDomainErrors,

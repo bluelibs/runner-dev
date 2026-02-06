@@ -1,4 +1,4 @@
-import { r, run, globals } from "@bluelibs/runner";
+import { r, run, globals, ITask, IResource } from "@bluelibs/runner";
 
 // ====================
 // TUNNEL CLIENT CONFIGURATION
@@ -11,7 +11,7 @@ export const tunnelClient = r
   .init(async (_config, { clientFactory }) => ({
     mode: "client" as const,
     transport: "http" as const,
-    tasks: (task: any) => task.id.startsWith("remote.tasks."),
+    tasks: (task: ITask<any, any, any>) => task.id.startsWith("remote.tasks."),
     client: clientFactory({
       baseUrl:
         process.env.REMOTE_RUNNER_URL ||
@@ -24,7 +24,7 @@ export const tunnelClient = r
 export const enhancedRegisterUserTask = r
   .task("app.tasks.enhancedRegisterUser")
   .dependencies({ tunnelClient })
-  .run(async (input: any, { tunnelClient }) => {
+  .run(async (_input: unknown, { tunnelClient }) => {
     const tunnel = tunnelClient.client;
     await tunnel.task("remote.tasks.fraudDetection", {});
     return { userId: `user_${Date.now()}` };
@@ -34,7 +34,7 @@ export const enhancedRegisterUserTask = r
 export const enhancedProductSyncTask = r
   .task("app.tasks.enhancedProductSync")
   .dependencies({ tunnelClient })
-  .run(async (input: any, { tunnelClient }) => {
+  .run(async (_input: unknown, { tunnelClient }) => {
     const tunnel = tunnelClient.client;
     await tunnel.task("remote.tasks.fetchExternalInventory", {});
     return { syncedProducts: 1, totalAvailable: 100 };
@@ -43,13 +43,13 @@ export const enhancedProductSyncTask = r
 
 export const enhancedProcessOrderTask = r
   .task("app.tasks.enhancedProcessOrder")
-  .run(async (input: any) => ({ orderId: input.orderId, paymentStatus: "approved" }))
+  .run(async (input: { orderId: string }) => ({ orderId: input.orderId, paymentStatus: "approved" }))
   .build();
 
 export const generateBusinessReportTask = r
   .task("app.tasks.generateBusinessReport")
   .dependencies({ tunnelClient })
-  .run(async (input: any, { tunnelClient }) => {
+  .run(async (_input: unknown, { tunnelClient }) => {
     const tunnel = tunnelClient.client;
     await tunnel.task("remote.tasks.generateReport", {});
     return { reportId: `report_${Date.now()}`, downloadUrl: "#" };

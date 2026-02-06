@@ -33,7 +33,8 @@
     "play:cli": "npm run play:server",
     "demo:ping": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js ping",
     "demo:query": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js query 'query { tasks { id } }' --format pretty",
-    "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5"
+    "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5",
+    "fetch:ai": "node scripts/fetch-runner-ai.js"
   },
   "bin": {
     "runner-dev": "dist/cli.js"

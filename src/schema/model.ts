@@ -53,6 +53,7 @@ export interface TunnelInfo {
   events?: string[]; // tunneled event IDs
   endpoint?: string; // for client tunnels
   auth?: string; // auth method
+  eventDeliveryMode?: string; // e.g., "mirror", "remote-only", "local-only", "remote-first"
 }
 
 export interface Tag extends BaseElement {

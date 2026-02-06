@@ -75,7 +75,7 @@ export {
   runIntegrationDemo,
 } from "./examples/integrationExample";
 
-import { r, run, globals } from "@bluelibs/runner";
+import { r, run, globals, RegisterableItems } from "@bluelibs/runner";
 import { z } from "zod";
 import {
   CoreContexts,
@@ -123,7 +123,7 @@ import {
 // MAIN ENHANCED APPLICATION
 // ====================
 
-export const createEnhancedSuperApp = (extra: any[] = []) => {
+export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
   return r
     .resource("enhanced.superapp")
     .meta({
@@ -295,11 +295,12 @@ export async function quickErrorDemo() {
     });
 
     console.log("\n📊 Error Handling Results:");
-    results?.results?.forEach((result: any) => {
+    results?.results?.forEach((result: unknown) => {
+      const res = result as { scenario: string; handled: boolean; errorType: string };
       console.log(
-        `  ${result.scenario}: ${
-          result.handled ? "✅ Handled" : "❌ Failed"
-        } - ${result.errorType}`
+        `  ${res.scenario}: ${
+          res.handled ? "✅ Handled" : "❌ Failed"
+        } - ${res.errorType}`
       );
     });
   } finally {

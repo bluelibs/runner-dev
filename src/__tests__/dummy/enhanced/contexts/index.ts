@@ -15,7 +15,15 @@ export const RequestContext = r
     ipAddress?: string;
     timestamp: Date;
   }>("app.contexts.request")
-  .parse((value) => value as any)
+  .parse((value) => JSON.parse(value) as {
+    requestId: string;
+    userId?: string;
+    sessionId?: string;
+    correlationId?: string;
+    userAgent?: string;
+    ipAddress?: string;
+    timestamp: Date;
+  })
   .serialize((data) => JSON.stringify(data))
   .build();
 
@@ -31,7 +39,7 @@ export const TenantContext = r
     currency: string;
     locale: string;
     features: Record<string, boolean>;
-    settings: Record<string, any>;
+    settings: Record<string, unknown>;
   }>("app.contexts.tenant")
   .parse((raw) => JSON.parse(raw))
   .serialize((data) => JSON.stringify(data))
@@ -48,7 +56,7 @@ export const AuditContext = r
     startTime: Date;
     operation: string;
     userId?: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
     tags: string[];
   }>("app.contexts.audit")
   .parse((raw) => JSON.parse(raw))
@@ -105,7 +113,7 @@ export const PerformanceContext = r
       name: string;
       timestamp: Date;
       duration: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }>;
     memoryUsage?: {
       initial: number;

@@ -81,7 +81,8 @@ export async function main(argv: string[]): Promise<void> {
       console.error(
         "Invalid project name. Use only letters, numbers, dashes and underscores."
       );
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     const targetDir = path.resolve(process.cwd(), projectName);
@@ -216,7 +217,8 @@ export async function main(argv: string[]): Promise<void> {
     console.error(
       `Please provide a name. Usage: runner-dev new ${kind} <name> [--ns app] [--dir src] [--dry]`
     );
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
   const nsArg = flagGet("ns") || flagGet("namespace") || "app";
@@ -241,8 +243,8 @@ export async function main(argv: string[]): Promise<void> {
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error((e as Error)?.message || String(e));
-    process.exit(1);
-    return; // for type narrowing
+    process.exitCode = 1;
+    return;
   }
 
   if (dryRun && res.content) {

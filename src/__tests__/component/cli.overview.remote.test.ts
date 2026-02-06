@@ -1,59 +1,52 @@
-import { run } from "@bluelibs/runner";
-import { dev } from "../../resources/dev.resource";
-import { createDummyApp } from "../dummy/dummyApp";
-import { spawn } from "child_process";
-import path from "node:path";
-import { serverResource } from "../../resources/server.resource";
+import { main } from "../../cli/overview";
+import { callGraphQL } from "../../mcp/http";
 
-function runCli(
-  args: string[],
-  env: Record<string, string> = {}
-): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolve) => {
-    const proc = spawn(
-      process.execPath,
-      [path.join(process.cwd(), "dist/cli.js"), ...args],
-      {
-        env: { ...process.env, ...env },
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
-    let stdout = "";
-    let stderr = "";
-    proc.stdout.on("data", (d) => (stdout += String(d)));
-    proc.stderr.on("data", (d) => (stderr += String(d)));
-    proc.on("close", (code) => resolve({ code: code ?? 0, stdout, stderr }));
-  });
-}
+jest.mock("../../mcp/http", () => {
+  const actual = jest.requireActual("../../mcp/http");
+  return {
+    ...actual,
+    callGraphQL: jest.fn(),
+  };
+});
 
 describe("CLI overview (remote)", () => {
-  const port = 31339;
-  const endpoint = `http://localhost:${port}/graphql`;
-  let runner: any;
+  const mockedCallGraphQL = callGraphQL as jest.MockedFunction<
+    typeof callGraphQL
+  >;
+  let logSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
 
-  beforeAll(async () => {
-    const app = createDummyApp([dev.with({ port })]);
-    runner = await run(app);
+  beforeEach(() => {
+    process.env.ENDPOINT = "http://example.test/graphql";
+    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    mockedCallGraphQL.mockReset();
   });
 
-  afterAll(async () => {
-    if (runner && runner.getResourceValue) {
-      try {
-        const srv = await runner.getResourceValue(serverResource);
-        await srv.apolloServer.stop();
-        await new Promise<void>((resolve) =>
-          srv.httpServer.close(() => resolve())
-        );
-      } catch {}
-    }
+  afterEach(() => {
+    delete process.env.ENDPOINT;
+    logSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   test("prints markdown with counts", async () => {
-    const res = await runCli(["overview", "--details", "5"], {
-      ENDPOINT: endpoint,
+    mockedCallGraphQL.mockResolvedValueOnce({
+      data: {
+        tasks: [{ id: "task.a", meta: {} }],
+        hooks: [{ id: "hook.a", meta: {} }],
+        resources: [{ id: "resource.a", meta: {} }],
+        middlewares: [{ id: "mw.a", meta: {} }],
+        events: [{ id: "event.a", meta: {}, emittedBy: [], listenedToBy: [] }],
+        diagnostics: [],
+        live: { logs: [], emissions: [], errors: [], runs: [] },
+      },
     });
-    expect(res.code).toBe(0);
-    const out = res.stdout;
+
+    await main(["node", "dist/cli.js", "overview", "--details", "5"]);
+
+    expect(mockedCallGraphQL).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    const out = String(logSpy.mock.calls[0][0]);
     expect(out).toContain("# Runner Dev Project Overview");
     expect(out).toMatch(/Tasks: \d+/);
     expect(out).toMatch(/Hooks: \d+/);

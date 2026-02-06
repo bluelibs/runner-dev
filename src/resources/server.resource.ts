@@ -19,6 +19,7 @@ import voyagerHtml from "./templates/voyager.html";
 
 export interface ServerConfig {
   port?: number;
+  host?: string;
   apollo?: StartStandaloneServerOptions<CustomGraphQLContext>;
 }
 
@@ -48,6 +49,7 @@ export const serverResource = resource({
     });
     const server = new ApolloServer({ schema: graphql.getSchema() });
     const port = config.port ?? 1337;
+    const host = config.host;
     const apolloConfig = config.apollo ?? {};
 
     await server.start();
@@ -96,7 +98,9 @@ export const serverResource = resource({
       candidateUiDirs.find((dir) => fs.existsSync(dir)) || candidateUiDirs[0];
 
     // Compute base URL and expose via token replacement in JS
-    const baseUrl = `http://localhost:${port}`;
+    const baseHost =
+      host && host !== "0.0.0.0" && host !== "::" ? host : "localhost";
+    const baseUrl = `http://${baseHost}:${port}`;
     process.env.API_URL = process.env.API_URL || baseUrl;
 
     app.use(createUiStaticRouter(uiDir));
@@ -131,7 +135,7 @@ export const serverResource = resource({
       reject = _reject;
     });
 
-    const httpServer = await app.listen(port, (e) => {
+    const httpServer = await app.listen(port, host, (e) => {
       if (e) {
         logger.error("Server error", {
           error: e,

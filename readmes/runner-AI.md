@@ -1,30 +1,22 @@
 # BlueLibs Runner: Fluent Builder Field Guide
 
-> Token-friendly (<5000 tokens). This guide spotlights the fluent builder API (`r.*`) that ships with Runner 4.x. Classic `defineX` / `resource({...})` remain supported for backwards compatibility, but fluent builders are the default throughout.
+> Token-friendly guide spotlighting the fluent builder API (`r.*`). Classic `defineX` / `resource({...})` remain supported for backwards compatibility.
 
-## Table of Contents
+For the landing overview, see [README.md](../README.md). For the complete guide, see [FULL_GUIDE.md](./FULL_GUIDE.md).
 
-- [BlueLibs Runner: Fluent Builder Field Guide](#bluelibs-runner-fluent-builder-field-guide)
-  - [Table of Contents](#table-of-contents)
-  - [Install](#install)
-  - [Resources](#resources)
-    - [Tasks](#tasks)
-    - [Events and Hooks](#events-and-hooks)
-    - [Middleware](#middleware)
-    - [Tags](#tags)
-    - [Async Context](#async-context)
-    - [Errors](#errors)
-  - [HTTP \& Tunnels](#http--tunnels)
-  - [Serialization](#serialization)
-  - [Testing](#testing)
-  - [Observability \& Debugging](#observability--debugging)
-  - [Advanced Patterns](#advanced-patterns)
-  - [Interop With Classic APIs](#interop-with-classic-apis)
+**Durable Workflows (Node-only):** For persistence and crash recovery, see `DURABLE_WORKFLOWS.md`.
 
-## Install
+## Serializer Safety
 
-```bash
-npm install @bluelibs/runner
+When deserializing untrusted payloads, configure the serializer to restrict
+symbol handling so payloads cannot grow the global Symbol registry.
+
+```ts
+import { Serializer, SymbolPolicy } from "@bluelibs/runner";
+
+const serializer = new Serializer({
+  symbolPolicy: SymbolPolicy.WellKnownOnly,
+});
 ```
 
 ## Resources
@@ -84,26 +76,32 @@ await runtime.runTask(createUser, { name: "Ada" });
 ```
 
 - `r.*.with(config)` produces a configured copy of the definition.
-- `run(root)` wires dependencies, runs `init`, emits lifecycle events, and returns helpers such as `runTask`, `getResourceValue`, and `dispose`.
+- `r.*.fork(newId, { register: "keep" | "drop" | "deep", reId })` creates a new resource with a different id but the same definition. Use `register: "drop"` to avoid re-registering nested items, or `register: "deep"` to deep-fork **registered resources** with new ids via `reId` (other registerables are not kept; resource dependencies pointing to deep-forked resources are remapped to those forks). Export forked resources to use as dependencies.
+- `run(root)` wires dependencies, runs `init`, emits lifecycle events, and returns helpers such as `runTask`, `getResourceValue`, `getResourceConfig`, and `dispose`.
 - Enable verbose logging with `run(root, { debug: "verbose" })`.
 
-### Tasks
+### Resource Forking
+
+Use `.fork(newId, { register, reId })` to clone a resource definition under a new id (handy for multi-instance patterns).
+Forks keep the same implementation/types but get separate runtime instances (no shared state). Use `register: "drop"` to clear registered items, or `register: "deep"` to deep-fork **registered resources** (resource tree) with new ids (non-resource registerables are not cloned/kept).
+Prefer exporting forks so other tasks/resources can depend on them.
+Forked resources also expose provenance at `[definitions.symbolResourceForkedFrom]` (`fromId`, `forkedAtFilePath`) for tooling/debugging.
+
+## Tasks
 
 Tasks are your business actions. They are plain async functions with DI, middleware, and validation.
 
 ```ts
 import { r } from "@bluelibs/runner";
 
+// Assuming: userService, loggingMiddleware, and tracingMiddleware are defined elsewhere
 const sendEmail = r
   .task("app.tasks.sendEmail")
   .inputSchema<{ to: string; subject: string; body: string }>({
     parse: (value) => value,
   })
   .dependencies({ emailer: userService })
-  .middleware((config) => [
-    loggingMiddleware.with({ label: "email" }),
-    tracingMiddleware,
-  ])
+  .middleware([loggingMiddleware.with({ label: "email" }), tracingMiddleware])
   .run(async (input, { emailer }) => {
     await emailer.send(input);
     return { delivered: true };
@@ -111,12 +109,15 @@ const sendEmail = r
   .build();
 ```
 
-- `.dependencies()` accepts a literal map or a function `(config) => deps`.
-- `.middleware()` appends by default; pass `{ override: true }` to replace. `.tags()` replaces the list each time.
-- `.dependencies()` appends (shallow-merge) by default on resources, tasks, hooks, and middleware; pass `{ override: true }` to replace. Functions and objects are merged consistently.
-- Provide result validation with `.resultSchema()` when the function returns structured data.
+**Builder composition rules (applies to tasks, resources, hooks, middleware):**
 
-### Events and Hooks
+- `.dependencies()` accepts a literal map or function `(config) => deps`; appends (shallow-merge) by default
+- `.middleware()` appends by default
+- `.tags()` appends by default
+- Pass `{ override: true }` to any of these methods to replace instead of append
+- Provide result validation with `.resultSchema()` when the function returns structured data
+
+## Events and Hooks
 
 Events are strongly typed signals. Hooks listen to them with predictable execution order.
 
@@ -128,6 +129,10 @@ const userRegistered = r
   .payloadSchema<{ userId: string; email: string }>({ parse: (v) => v })
   .build();
 
+// Type-only alternative (no runtime payload validation):
+// const userRegistered = r.event<{ userId: string; email: string }>("app.events.userRegistered").build();
+
+// Assuming: userService and sendEmail are defined elsewhere
 const registerUser = r
   .task("app.tasks.registerUser")
   .dependencies({ userRegistered, userService })
@@ -143,7 +148,11 @@ const sendWelcomeEmail = r
   .on(userRegistered)
   .dependencies({ mailer: sendEmail })
   .run(async (event, { mailer }) => {
-    await mailer({ to: event.data.email, subject: "Welcome", body: "🎉" });
+    await mailer({
+      to: event.data.email,
+      subject: "Welcome",
+      body: "Welcome!",
+    });
   })
   .build();
 ```
@@ -151,8 +160,14 @@ const sendWelcomeEmail = r
 - Use `.on(onAnyOf(...))` to listen to several events while keeping inference.
 - Hooks can set `.order(priority)`; lower numbers run first. Call `event.stopPropagation()` inside `run` to cancel downstream hooks.
 - Wildcard hooks use `.on("*")` and receive every emission except events tagged with `globals.tags.excludeFromGlobalHooks`.
+- Use `.parallel(true)` on event definitions to enable batched parallel execution:
+  - Listeners with the same `order` run concurrently within a batch
+  - Batches execute sequentially in ascending order priority
+  - All listeners in a failing batch run to completion; if multiple fail, an `AggregateError` with all errors is thrown
+  - Propagation is checked between batches only (not mid-batch since parallel listeners can't be stopped mid-flight)
+  - If any listener throws, subsequent batches will not run
 
-### Middleware
+## Middleware
 
 Middleware wraps tasks or resources. Fluent builders live under `r.middleware`.
 
@@ -189,7 +204,59 @@ const cacheResources = r.middleware
 
 Attach middleware using `.middleware([auditTasks])` on the definition that owns it, and register the middleware alongside the target resource or task at the root.
 
-### Tags
+- Contract middleware: middleware can declare `Config`, `Input`, `Output` generics; tasks using it must conform (contracts intersect across `.middleware([...])` and `.tags([...])`). Collisions surface as `InputContractViolationError` / `OutputContractViolationError` in TypeScript; if you add `.inputSchema()`, ensure the schema’s inferred type includes the contract shape.
+
+```ts
+type AuthConfig = { requiredRole: string };
+type AuthInput = { user: { role: string } };
+type AuthOutput = { ok: true };
+
+const auth = r.middleware
+  .task<AuthConfig, AuthInput, AuthOutput>("app.middleware.auth")
+  .run(async ({ task, next }) => next(task.input))
+  .build();
+```
+
+### ExecutionJournal
+
+**ExecutionJournal** is a typed key-value store scoped to a single task execution, enabling middleware and tasks to share state. It has **fail-fast semantics**: calling `set()` on an existing key throws an error (prevents silent bugs from middleware clobbering each other). Use `{ override: true }` to intentionally update.
+
+```ts
+import { r, globals, journal } from "@bluelibs/runner";
+
+const abortControllerKey =
+  globals.middleware.task.timeout.journalKeys.abortController;
+
+// Middleware accesses journal via execution input
+const auditMiddleware = r.middleware
+  .task("app.middleware.audit")
+  .run(async ({ task, next, journal }) => {
+    // Access typed values from journal
+    const ctrl = journal.get(abortControllerKey);
+    if (journal.has(abortControllerKey)) {
+      /* ... */
+    }
+    return next(task.input);
+  })
+  .build();
+
+// Task accesses journal via context
+const myTask = r
+  .task("app.tasks.myTask")
+  .run(async (input, deps, { journal }) => {
+    journal.set(abortControllerKey, new AbortController());
+    // To update existing: journal.set(key, newValue, { override: true });
+    return "done";
+  })
+  .build();
+
+// Create custom keys
+const myKey = journal.createKey<{ startedAt: Date }>("app.middleware.timing");
+```
+
+**Built-in Middleware Journal Keys**: Global middlewares (`retry`, `cache`, `circuitBreaker`, `rateLimit`, `fallback`, `timeout`) expose runtime state via typed journal keys at `globals.middleware.task.<name>.journalKeys`. For example, `retry` exposes `attempt` and `lastError`; `cache` exposes `hit`; `circuitBreaker` exposes `state` and `failures`. Access these via `journal.get(key)` without deep imports.
+
+## Tags
 
 Tags let you annotate definitions with metadata that can be queried later.
 
@@ -212,9 +279,26 @@ const getHealth = r
 
 Retrieve tagged items by using `globals.resources.store` inside a hook or resource and calling `store.getTasksWithTag(tag)`.
 
-### Async Context
+- Contract tags (a “smart tag”): define type contracts for task input/output (or resource config/value) via `r.tag<TConfig, TInputContract, TOutputContract>(id)`. They don’t change runtime behavior; they shape the inferred types and compose with contract middleware.
+- Smart tags: built-in tags like `globals.tags.system`, `globals.tags.debug`, and `globals.tags.excludeFromGlobalHooks` change framework behavior; use them for per-component debug or to opt out of global hooks.
+
+```ts
+type Input = { id: string };
+type Output = { name: string };
+const userContract = r.tag<void, Input, Output>("contract.user").build();
+
+const getUser = r
+  .task("app.tasks.getUser")
+  .tags([userContract])
+  .run(async (input) => ({ name: input.id }))
+  .build();
+```
+
+## Async Context
 
 Async Context provides per-request/thread-local state via the platform's `AsyncLocalStorage` (Node). Use the fluent builder under `r.asyncContext` or the classic `asyncContext({ ... })` export.
+
+> **Platform Note**: `AsyncLocalStorage` is Node.js-only. Async Context is unavailable in browsers/edge runtimes.
 
 ```ts
 import { r } from "@bluelibs/runner";
@@ -223,6 +307,7 @@ const requestContext = r
   .asyncContext<{ requestId: string }>("app.ctx.request")
   // below is optional
   .configSchema(z.object({ ... }))
+  // for tunnels mostly
   .serialize((data) => JSON.stringify(data))
   .parse((raw) => JSON.parse(raw))
   .build();
@@ -233,11 +318,14 @@ await requestContext.provide({ requestId: "abc" }, async () => {
 });
 
 // Require middleware for tasks that need the context
-r.task('task').middleware([requestContext.require()]);
+r.task("task").middleware([requestContext.require()]);
 ```
 
-- If you don't provide `serialize`/`parse`, Runner uses its default EJSON serializer to preserve Dates, RegExp, etc.
+- Recommended ids: `{domain}.ctx.{noun}` (for example: `app.ctx.request`).
+- `.configSchema(schema)` (optional) validates the value passed to `provide(...)`.
+- If you don't provide `serialize`/`parse`, Runner uses its default serializer to preserve Dates, RegExp, etc.
 - You can also inject async contexts as dependencies; the injected value is the helper itself. Contexts must be registered to be used.
+- Optional dependencies: `dependencies({ requestContext: requestContext.optional() })` injects `undefined` if the context isn’t registered.
 
 ```ts
 const whoAmI = r
@@ -249,9 +337,9 @@ const whoAmI = r
 const app = r.resource("app").register([requestContext, whoAmI]).build();
 ```
 
-### Errors
+## Errors
 
-Define typed, namespaced errors with a fluent builder. Built helpers expose `throw`, `is`, and `toString`:
+Define typed, namespaced errors with a fluent builder. Built helpers expose `throw` and `is`:
 
 ```ts
 import { r } from "@bluelibs/runner";
@@ -259,7 +347,7 @@ import { r } from "@bluelibs/runner";
 // Fluent builder
 const AppError = r
   .error<{ code: number; message: string }>("app.errors.AppError")
-  .dataSchema(zod) // or { parse(obj) => obj }
+  .dataSchema({ parse: (value) => value })
   .build();
 
 try {
@@ -271,109 +359,110 @@ try {
 }
 ```
 
-- Error data must include a `message: string`. The thrown `Error` has `name = id` and `message = data.message` for predictable matching and logging.
+- Recommended ids: `{domain}.errors.{PascalCaseName}` (for example: `app.errors.InvalidCredentials`).
+- The thrown `Error` has `name = id` and `message = format(data)`. If you don’t provide `.format(...)`, the default is `JSON.stringify(data)`.
+- `message` is not required in the data unless your custom formatter expects it.
+- Declare a task/resource error contract with `.throws([AppError])` (or ids). This is declarative only and does not imply DI.
+- For HTTP/tunnel clients, pass an `errorRegistry` to rethrow remote errors as your typed helpers:
+  ```ts
+  import { createHttpClient, getDefaultSerializer } from "@bluelibs/runner";
+
+  const client = createHttpClient({
+    baseUrl: "http://localhost:3000/__runner",
+    serializer: getDefaultSerializer(),
+    errorRegistry: new Map([[AppError.id, AppError]]),
+  });
+  ```
+
+## Overrides
+
+Override a task/resource/hook/middleware while preserving `id`. Use the helper or the fluent override builder:
+
+```ts
+const mockMailer = r
+  .override(realMailer)
+  .init(async () => new MockMailer())
+  .build();
+
+const app = r
+  .resource("app")
+  .register([realMailer])
+  .overrides([mockMailer])
+  .build();
+```
+
+- `r.override(base)` starts from the base definition and applies fluent mutations using the same composition rules as the base builder.
+- Hook overrides keep the same `.on` target; only behavior/metadata is overridable.
+- The `override(base, patch)` helper remains for direct, shallow patches.
+
+## Runtime & Lifecycle
+
+- `run(root, options)` wires dependencies, initializes resources, and returns helpers: `runTask`, `emitEvent`, `getResourceValue`, `getResourceConfig`, `store`, `logger`, and `dispose`.
+- Run options highlights: `debug` (normal/verbose or custom config), `logs` (printThreshold/strategy/buffer), `errorBoundary` and `onUnhandledError`, `shutdownHooks`, `dryRun`.
+- Task interceptors: inside resource init, call `deps.someTask.intercept(async (next, input) => next(input))` to wrap a single task execution at runtime (runs inside middleware; won’t run if middleware short-circuits).
+- Shutdown hooks: install signal listeners to call `dispose` (default in `run`).
+- Unhandled errors: `onUnhandledError` receives a structured context (kind and source) for telemetry or controlled shutdown.
+
+## Reliability & Performance
+
+- **Concurrency**: Limit parallel execution using a shared or local `Semaphore`.
+  ```ts
+  .middleware([globals.middleware.task.concurrency.with({ limit: 5 })])
+  ```
+- **Circuit Breaker**: Trip after failures to prevent cascading downstream pressure.
+  ```ts
+  .middleware([globals.middleware.task.circuitBreaker.with({ failureThreshold: 5, resetTimeout: 30000 })])
+  ```
+- **Rate Limit**: Protect APIs with fixed-window request counting.
+  ```ts
+  .middleware([globals.middleware.task.rateLimit.with({ windowMs: 60000, max: 100 })])
+  ```
+- **Temporal (Debounce/Throttle)**: Control execution frequency.
+  ```ts
+  .middleware([globals.middleware.task.debounce.with({ ms: 300 })])
+  ```
+- **Fallback**: Provide a Plan B (value, function, or another task) when the primary fails.
+  ```ts
+  // Recommended: Fallback should be outer (on top) of Retry to catch final failures
+  .middleware([
+    globals.middleware.task.fallback.with({ fallback: "Guest User" }),
+    globals.middleware.task.retry.with({ attempts: 3 })
+  ])
+  ```
+- **Retry/Backoff**: `globals.middleware.task.retry` and `globals.middleware.resource.retry` for transient failures.
+  ```ts
+  .middleware([globals.middleware.task.retry.with({ retries: 3 })])
+  ```
+- **Caching**: `globals.middleware.task.cache` plus `globals.resources.cache`.
+  ```ts
+  .middleware([globals.middleware.task.cache.with({ ttl: 60000 })])
+  ```
+- **Timeouts**: `globals.middleware.task.timeout` / `globals.middleware.resource.timeout` using `AbortController`.
+  ```ts
+  .middleware([globals.middleware.task.timeout.with({ ttl: 5000 })])
+  ```
+- **Logging & Debug**: `globals.resources.logger` and `globals.resources.debug`.
+  ```ts
+  // Verbose debug logging for a specific task
+  .tags([globals.tags.debug])
+  ```
 
 ## HTTP & Tunnels
 
-Run Node exposures and connect to remote Runners with fluent resources.
+Tunnels let you call Runner tasks/events across a process boundary over a small HTTP surface (Node-only exposure via `nodeExposure`), while preserving task ids, middleware, validation, typed errors, and async context.
 
-```ts
-import { r, globals } from "@bluelibs/runner";
-import { nodeExposure } from "@bluelibs/runner/node";
+For “no call-site changes”, register a client-mode tunnel resource tagged with `globals.tags.tunnel` plus phantom tasks for the remote ids; the tunnel middleware auto-routes selected tasks/events to an HTTP client. For explicit boundaries, create a client once and call `client.task(id, input)` / `client.event(id, payload)` directly. Full guide: `readmes/TUNNELS.md`.
 
-const httpExposure = nodeExposure.with({
-  http: {
-    basePath: "/__runner",
-    listen: { host: "0.0.0.0", port: 7070 },
-    auth: { token: process.env.RUNNER_TOKEN },
-  },
-});
-
-const tunnelClient = r
-  .resource("app.tunnels.http")
-  .tags([globals.tags.tunnel])
-  .init(async () => ({
-    mode: "client" as const,
-    transport: "http" as const,
-    tasks: (task) => task.id.startsWith("remote.tasks."),
-    client: globals.tunnels.http.createClient({
-      url: process.env.REMOTE_URL ?? "http://127.0.0.1:7070/__runner",
-      auth: { token: process.env.RUNNER_TOKEN },
-    }),
-  }))
-  .build();
-
-const root = r
-  .resource("app")
-  .register([httpExposure, tunnelClient, getHealth])
-  .build();
-```
-
-### HTTP Client Factory (Recommended)
-
-The `globals.resources.httpClientFactory` automatically injects serializer, error registry, and async contexts from the store:
-
-```ts
-import { r, globals } from "@bluelibs/runner";
-
-const myTask = r
-  .task("app.tasks.callRemote")
-  .dependencies({ clientFactory: globals.resources.httpClientFactory })
-  .run(async (input, { clientFactory }) => {
-    // Client automatically has serializer, errors, and contexts injected
-    const client = clientFactory({
-      baseUrl: process.env.API_URL,
-      auth: { token: process.env.API_TOKEN },
-    });
-
-    return await client.task("remote.task", input);
-  })
-  .build();
-
-// Node streaming clients via Node DI factories
-import { globals as nodeGlobals } from "@bluelibs/runner/node";
-
-const nodeTask = r
-  .task("app.tasks.streamingCall")
-  .dependencies({ smartFactory: nodeGlobals.resources.httpSmartClientFactory })
-  .run(async (input, { smartFactory }) => {
-    const client = smartFactory({
-      baseUrl: process.env.API_URL,
-    });
-    // Supports duplex streams and multipart uploads
-    return await client.task("remote.streaming.task", input);
-  })
-  .build();
-```
-
-### Direct Client Creation (Legacy)
-
-You can also create clients directly without DI (manual serializer/error/context passing):
-
-```ts
-import { createHttpClient } from "@bluelibs/runner";
-import { createFile as createWebFile } from "@bluelibs/runner/platform/createFile";
-
-const client = createHttpClient({
-  baseUrl: "/__runner",
-  auth: { token: "secret" },
-  serializer: JSON,
-});
-
-await client.task("app.tasks.getHealth");
-
-const file = createWebFile({ name: "notes.txt" }, new Blob(["Hello"]));
-await client.task("app.tasks.upload", { file });
-```
-
-- `createHttpSmartClient` (Node only) supports duplex streams.
-- For Node-specific features such as `useExposureContext` for handling aborts and streaming in exposed tasks, see TUNNELS.md.
-- Register authentication middleware or rate limiting on the exposure via middleware tags and filters.
-- Single-owner policy: a task may be tunneled by exactly one tunnel resource. Runner enforces exclusivity at init time and throws if two tunnels select the same task. This is tracked via an internal symbol on the task linking it to the owning tunnel.
+Node client note: prefer `createHttpMixedClient` (it uses the serialized-JSON path via Runner `Serializer` + `fetch` when possible and switches to the streaming-capable Smart path when needed). If a task may return a stream even for plain JSON inputs (ex: downloads), set `forceSmart` on Mixed (or use `createHttpSmartClient` directly).
 
 ## Serialization
 
-Runner ships with an EJSON serializer that round-trips Dates, RegExp, binary, and custom shapes across Node and web.
+Runner ships with a serializer that round-trips Dates, RegExp, binary, and custom shapes across Node and web.
+
+It also supports:
+
+- `bigint` (encoded as a decimal string under `__type: "BigInt"`)
+- `symbol` for `Symbol.for(key)` and well-known symbols like `Symbol.iterator` (unique `Symbol("...")` values are rejected because identity cannot be preserved)
 
 ```ts
 import { r, globals } from "@bluelibs/runner";
@@ -383,7 +472,10 @@ const serializerSetup = r
   .dependencies({ serializer: globals.resources.serializer })
   .init(async (_config, { serializer }) => {
     class Distance {
-      constructor(public value: number, public unit: string) {}
+      constructor(
+        public value: number,
+        public unit: string,
+      ) {}
       typeName() {
         return "Distance";
       }
@@ -400,17 +492,15 @@ const serializerSetup = r
   .build();
 ```
 
-Use `getDefaultSerializer()` when you need a standalone instance outside DI.
+Use `new Serializer()` when you need a standalone instance outside DI.
 
-Note on files: The “File” you see in tunnels is not an EJSON custom type. Runner uses a dedicated $ejson: "File" sentinel in inputs which the tunnel client/server convert to multipart streams via a manifest. We intentionally do not call `EJSON.addType("File", ...)` by default, because file handling is performed by the tunnel layer (manifest hydration and multipart), not by the serializer. Keep using `createWebFile`/`createNodeFile` for uploads; use `EJSON.addType` only for your own domain types.
+Note on files: The “File” you see in tunnels is not a custom serializer type. Runner uses a dedicated `$runnerFile: "File"` sentinel in inputs which the tunnel client/server convert to multipart streams via a manifest. File handling is performed by the tunnel layer (manifest hydration and multipart), not by the serializer. Keep using `createWebFile`/`createNodeFile` for uploads.
 
 ## Testing
 
-- Use `npm run coverage:ai` to execute the full Jest suite in a token-friendly format. Focused tests can run via `npm run test -- task-name`.
-- In unit tests, prefer running a minimal root resource and call `await run(root)` to get `runTask`, `emitEvent`, or `getResourceValue`.
-- `createTestResource` is available for legacy suites but new code should compose fluent resources directly.
-
-Example:
+- In unit tests, prefer running a minimal root resource and call `await run(root)` to get `runTask`, `emitEvent`, `getResourceValue`, or `getResourceConfig`.
+- The Jest runner has a watchdog (`JEST_WATCHDOG_MS`, default 10 minutes) to avoid "hung test run" situations.
+- For durable workflow tests, use `createDurableTestSetup` from `@bluelibs/runner/node` for fast, in-memory execution.
 
 ```ts
 import { run } from "@bluelibs/runner";
@@ -432,13 +522,21 @@ test("sends welcome email", async () => {
 - `globals.resources.logger` exposes the framework logger; register your own logger resource and override it at the root to capture logs centrally.
 - Hooks and tasks emit metadata through `globals.resources.store`. Query it for dashboards or editor plugins.
 - Use middleware for tracing (`r.middleware.task("...").run(...)`) to wrap every task call.
+- `Semaphore` and `Queue` publish local lifecycle events through isolated `EventManager` instances (`on/once`). These are separate from the global EventManager used for business-level application events. Event names: semaphore → `queued/acquired/released/timeout/aborted/disposed`; queue → `enqueue/start/finish/error/cancel/disposed`.
+
+## Metadata & Namespacing
+
+- Meta: `.meta({ title, description })` on tasks/resources/events/middleware for human-friendly docs and tooling; extend meta types via module augmentation when needed.
+- Namespacing: keep ids consistent with `domain.resources.name`, `domain.tasks.name`, `domain.events.name`, `domain.hooks.on-name`, `domain.middleware.{task|resource}.name`, `domain.errors.ErrorName`, and `domain.ctx.name`.
+- Runtime validation: `inputSchema`, `resultSchema`, `payloadSchema`, `configSchema` share the same `parse(input)` contract; config validation happens on `.with()`, task/event validation happens on call/emit.
 
 ## Advanced Patterns
 
 - **Optional dependencies:** mark dependencies as optional (`analytics: analyticsService.optional()`) so the builder injects `null` when the resource is absent.
 - **Conditional registration:** `.register((config) => (config.enableFeature ? [featureResource] : []))`.
-- **Async coordination:** `Semaphore` and `Queue` live in the main package.
+- **Async coordination:** `Semaphore` (O(1) linked queue for heavy contention) and `Queue` live in the main package. Both use isolated EventManagers internally for their lifecycle events, separate from the global EventManager used for business-level application events.
 - **Event safety:** Runner detects event emission cycles and throws an `EventCycleError` with the offending chain.
+- **Internal services:** access `globals.resources.store`, `globals.resources.taskRunner`, and `globals.resources.eventManager` for advanced introspection or custom tooling.
 
 ## Interop With Classic APIs
 
@@ -450,5 +548,3 @@ import { r, resource as classicResource } from "@bluelibs/runner";
 const classic = classicResource({ id: "legacy", init: async () => "ok" });
 const modern = r.resource("modern").register([classic]).build();
 ```
-
-Fluent builders produce the exact same runtime definitions, so you can mix both styles within one project.

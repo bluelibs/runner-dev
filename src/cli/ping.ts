@@ -59,11 +59,21 @@ export async function main(argv: string[]): Promise<void> {
     console.error(
       JSON.stringify({ ok: false, error: (e as Error).message }, null, 2)
     );
-    // eslint-disable-next-line no-process-exit
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 }
 
 if (require.main === module) {
-  void main(process.argv);
+  main(process.argv).catch((error: unknown) => {
+    // eslint-disable-next-line no-console
+    console.error(
+      JSON.stringify(
+        { ok: false, error: (error as Error)?.message || String(error) },
+        null,
+        2
+      )
+    );
+    process.exitCode = 1;
+  });
 }

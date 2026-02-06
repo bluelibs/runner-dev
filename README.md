@@ -1,3 +1,10 @@
+# @bluelibs/runner-dev
+
+[![npm version](https://img.shields.io/npm/v/@bluelibs/runner-dev.svg)](https://www.npmjs.com/package/@bluelibs/runner-dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> DevTools for [@bluelibs/runner](https://runner.bluelibs.com) — introspection, live telemetry, hot-swapping, and a GraphQL API for your running app.
+
 ## Welcome
 
 Runner Dev Tools provide introspection, live telemetry, and a GraphQL API to explore and query your running Runner app.
@@ -38,6 +45,15 @@ const app = resource({
 - GraphQL server: deep graph navigation over your app’s topology and live data
 - CLI with scaffolding, query-ing capabilities on a live endpoint or via dry-run mode.
 - MCP server: allow your AI to do introspection for you.
+
+## Table of Contents
+
+- [Quickstart](#quickstart)
+- [GraphQL API Highlights](#graphql-api-highlights)
+- [Live Telemetry](#live-telemetry)
+- [Emitting Events (Runner-native)](#emitting-events-runner-native)
+- [Hot-Swapping Debugging System](#-hot-swapping-debugging-system)
+- [Development](#development)
 
 ## Quickstart
 
@@ -741,7 +757,7 @@ export const logSomething = task({
 
 ## Development
 
-- Library targets `@bluelibs/runner` v4+
+- Library targets `@bluelibs/runner` v5+
 - GraphQL built with Apollo Server 5
 - Tests cover:
   - Node discovery, dependencies, and emissions
@@ -1253,4 +1269,3 @@ The hot-swapping system consists of:
 - **Error Handling**: Comprehensive validation and recovery mechanisms
 
 The implementation maintains 100% type safety and provides extensive test coverage with both unit tests and GraphQL integration tests.
-and GraphQL integration tests.

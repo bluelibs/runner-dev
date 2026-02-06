@@ -318,33 +318,8 @@ body {
 
 .docs-nav-container {
   margin-bottom: $spacing-xl;
-  overflow-y: auto;
-  overflow-x: hidden; // standardize hidden horizontal overflow
-  overscroll-behavior: contain;
+  overflow-x: hidden; // prevent horizontal overflow
   padding-right: 5px;
-
-  // Custom scrollbar styling for navigation container
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.4);
-    }
-  }
-
-  scrollbar-width: thin;
-  overflow-x: hidden;
 
   .docs-navigation {
     // Override navigation view colors for dark sidebar

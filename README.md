@@ -48,12 +48,14 @@ const app = resource({
 
 ## Table of Contents
 
-- [Quickstart](#quickstart)
-- [GraphQL API Highlights](#graphql-api-highlights)
-- [Live Telemetry](#live-telemetry)
-- [Emitting Events (Runner-native)](#emitting-events-runner-native)
+- [Quickstart Guide](#quickstart)
+- [Model Context Protocol (MCP) Server](#cli-usage-mcp-server)
+- [CLI Tooling & Scaffolding](#cli-usage-direct)
+- [Live Telemetry & Correlation](#live-telemetry)
 - [Hot-Swapping Debugging System](#-hot-swapping-debugging-system)
-- [Development](#development)
+- [GraphQL API Examples](#example-queries)
+- [API Reference](API_REFERENCE.md)
+- [Contributing & Local Dev](CONTRIBUTING.md)
 
 ## Quickstart
 
@@ -75,6 +77,18 @@ export const app = resource({
   ],
 });
 ```
+
+### Accessing the UI
+
+Once your application is running with the `dev` resource, you can access the visual DevTools UI:
+
+🚀 **Open [http://localhost:1337](http://localhost:1337) in your browser.**
+
+Inside the UI, you can:
+- Explore the resource graph.
+- Manually invoke tasks with custom inputs.
+- Inspect live logs and event emissions in real-time.
+- View and edit files directly via the browser.
 
 Add it as an Model Context Protocol Server (for AIs) via normal socket:
 
@@ -301,153 +315,23 @@ Precedence:
 - If `--entry-file` is present, dry‑run mode is used.
 - Otherwise, remote mode via `--endpoint`/`ENDPOINT` is used.
 
-### Local dev playbook
+### CLI Summary
 
-Quickly boot the dummy server and UI, then exercise the CLI against it.
+| Category | Description |
+| --- | --- |
+| **New Project** | `runner-dev new <project-name>` |
+| **Scaffolding** | `runner-dev new <resource\|task\|event\|tag\|middleware>` |
+| **Queries** | `runner-dev query 'query { ... }'` |
+| **Overview** | `runner-dev overview --details 10` |
+| **Schema** | `runner-dev schema sdl` |
 
-1. Start dev play (UI + Server):
+---
 
-```bash
-npm run play
-```
+## GraphQL API Examples
 
-This starts:
+For a full list of types and fields, see the [API Reference](API_REFERENCE.md).
 
-- UI watcher (`vite build --watch`)
-- Dummy GraphQL server with Dev resources on port 31337
-
-2. In another terminal, build the CLI and run demo commands:
-
-```bash
-npm run build
-npm run demo:ping
-npm run demo:query
-npm run demo:overview
-```
-
-Alternatively, you can keep a server-only process:
-
-```bash
-npm run play:cli
-# Then:
-npm run demo:query
-```
-
-### Testing
-
-- Unit/integration tests are executed via Jest: `npm test`.
-- CLI remote tests spin up the dummy app on ephemeral ports and dispose cleanly.
-
-Run only the CLI tests:
-
-```bash
-npm test -- src/__tests__/component/cli.query.remote.test.ts src/__tests__/component/cli.overview.remote.test.ts
-```
-
-CI note: we prebuild before tests via `pretest` so the CLI binary `dist/cli.js` is available.
-
-## GraphQL API Highlights
-
-All arrays are non-null lists with non-null items, and ids are complemented by resolved fields for deep traversal.
-
-- Common
-
-  - `BaseElement`: `id: ID!`, `meta: Meta`, `filePath: String`, `markdownDescription: String!`, `fileContents(startLine: Int, endLine: Int): String`
-  - `Meta`: `title: String`, `description: String`, `tags: [MetaTagUsage!]!`
-  - `MetaTagUsage`: `id: ID!`, `config: String`
-
-- Query root
-
-  - `all(idIncludes: ID): [BaseElement!]!`
-  - `event(id: ID!): Event`, `events(filter: EventFilterInput): [Event!]!`
-  - `task(id: ID!): Task`, `tasks(idIncludes: ID): [Task!]!`
-  - `hooks(idIncludes: ID): [Hook!]!`
-  - `middleware(id: ID!): Middleware`, `middlewares(idIncludes: ID): [Middleware!]!`
-  - `taskMiddlewares(idIncludes: ID): [TaskMiddleware!]!`
-  - `resourceMiddlewares(idIncludes: ID): [ResourceMiddleware!]!`
-  - `resource(id: ID!): Resource`, `resources(idIncludes: ID): [Resource!]!`
-  - `root: Resource`
-  - `swappedTasks: [SwappedTask!]!`
-  - `live: Live!`
-  - `diagnostics: [Diagnostic!]!`
-  - `tag(id: ID!): Tag`
-  - `tags: [Tag!]!`
-
-- All
-
-  - `id`, `meta`, `filePath`, `fileContents`, `markdownDescription`, `tags: [Tag!]!`
-
-- Tasks/Hooks
-
-  - Shared: `emits: [String!]!`, `emitsResolved: [Event!]!`, `runs: [RunRecord!]!`, `tags: [Tag!]!`
-  - Shared: `dependsOn: [String!]!`
-  - Shared: `middleware: [String!]!`, `middlewareResolved: [TaskMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
-  - Shared: `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
-  - Task-specific: `inputSchema: String`, `inputSchemaReadable: String`, `dependsOnResolved { tasks { id } hooks { id } resources { id } emitters { id } }`
-  - Hook-specific: `event: String!`, `hookOrder: Int`, `inputSchema: String`, `inputSchemaReadable: String`
-
-- Resources
-
-  - `config: String`, `context: String`, `configSchema: String`, `configSchemaReadable: String`
-  - `middleware`, `middlewareResolved: [ResourceMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
-  - `overrides`, `overridesResolved`
-  - `registers`, `registersResolved`
-  - `usedBy: [Task!]!`
-  - `emits: [Event!]!` (inferred from task/hook emissions)
-  - `dependsOn: [String!]!`, `dependsOnResolved: [Resource!]!`
-  - `registeredBy: String`, `registeredByResolved: Resource`
-  - `tags: [Tag!]!`
-
-- Events
-
-  - `emittedBy: [String!]!`, `emittedByResolved: [BaseElement!]!`
-  - `listenedToBy: [String!]!`, `listenedToByResolved: [Hook!]!`
-  - `payloadSchema: String`, `payloadSchemaReadable: String`
-  - `registeredBy: String`, `registeredByResolved: Resource`
-  - `tags: [Tag!]!`
-
-- TaskMiddleware
-
-  - `global: GlobalMiddleware`
-  - `usedBy: [Task!]!`, `usedByDetailed: [MiddlewareTaskUsage!]!`
-  - `emits: [Event!]!`
-  - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
-  - `configSchema: String`, `configSchemaReadable: String`
-  - `tags: [Tag!]!`
-
-- ResourceMiddleware
-
-  - `global: GlobalMiddleware`
-  - `usedBy: [Resource!]!`, `usedByDetailed: [MiddlewareResourceUsage!]!`
-  - `emits: [Event!]!`
-  - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
-  - `configSchema: String`, `configSchemaReadable: String`
-  - `tags: [Tag!]!`
-
-- Live
-
-  - `logs(afterTimestamp: Float, last: Int, filter: LogFilterInput): [LogEntry!]!`
-    - `LogEntry { timestampMs, level, message, data, correlationId }`
-    - `LogFilterInput { levels: [LogLevelEnum!], messageIncludes: String, correlationIds: [String!] }`
-  - `emissions(afterTimestamp: Float, last: Int, filter: EmissionFilterInput): [EmissionEntry!]!`
-    - `EmissionEntry { timestampMs, eventId, emitterId, payload, correlationId, emitterResolved: BaseElement, eventResolved: Event }`
-    - `EmissionFilterInput { eventIds: [String!], emitterIds: [String!], correlationIds: [String!] }`
-  - `errors(afterTimestamp: Float, last: Int, filter: ErrorFilterInput): [ErrorEntry!]!`
-    - `ErrorEntry { timestampMs, sourceId, sourceKind, message, stack, data, correlationId, sourceResolved: BaseElement }`
-    - `ErrorFilterInput { sourceKinds: [SourceKindEnum!], sourceIds: [ID!], messageIncludes: String, correlationIds: [String!] }`
-  - `runs(afterTimestamp: Float, last: Int, filter: RunFilterInput): [RunRecord!]!`
-    - `RunRecord { timestampMs, nodeId, nodeKind, durationMs, ok, error, parentId, rootId, correlationId, nodeResolved: BaseElement }`
-    - `RunFilterInput { nodeKinds: [NodeKindEnum!], nodeIds: [String!], ok: Boolean, parentIds: [String!], rootIds: [String!], correlationIds: [String!] }`
-
-  Enums: `LogLevelEnum` = `trace|debug|info|warn|error|fatal|log`, `SourceKindEnum` = `TASK|HOOK|RESOURCE|MIDDLEWARE|INTERNAL`, `NodeKindEnum` = `TASK|HOOK`.
-
-- Diagnostics
-
-  - `Diagnostic { severity: String!, code: String!, message: String!, nodeId: ID, nodeKind: String }`
-  - Exposed via `diagnostics: [Diagnostic!]!` on the root query; diagnostics are computed from the in-memory introspected graph with safe filesystem checks.
-  - Example codes: `ORPHAN_EVENT`, `UNEMITTED_EVENT`, `UNUSED_MIDDLEWARE`, `MISSING_FILE`, `OVERRIDE_CONFLICT`.
-
-### Example Queries
+### Explore tasks and dependencies deeply
 
 - Explore tasks and dependencies deeply
 
@@ -746,35 +630,14 @@ export const logSomething = task({
 - If a resource overrides another registerable, the overridden node remains discoverable but marked with `overriddenBy`.
 - Only the active definition exists; we do not retain a shadow copy of the original.
 
-## Guarantees and DX
+## Guidelines & DX
 
 - No `any` in APIs; strong types for nodes and relations
 - Non-null lists with non-null items (`[T!]!`) in GraphQL
 - Deep “resolved” fields for easy graph traversal
-- File-aware enhancements:
-  - `filePath` everywhere
-  - `fileContents` and `markdownDescription` on `all` (computed on demand)
+- File-aware enhancements (`filePath`, `fileContents`, etc.)
 
-## Development
-
-- Library targets `@bluelibs/runner` v5+
-- GraphQL built with Apollo Server 5
-- Tests cover:
-  - Node discovery, dependencies, and emissions
-  - Overrides, middleware usage, and deep traversal
-  - Live logs and emissions (with timestamp filtering)
-- Contributions welcome!
-
-### Type-safe GraphQL resolvers
-
-- We generate resolver arg types from the schema using GraphQL Code Generator.
-- Run this after any schema change:
-
-```bash
-npm run codegen
-```
-
-- Generated types are in `src/generated/resolvers-types.ts` and used in schema resolvers (for example `LiveLogsArgs`, `QueryEventArgs`).
+For full details on development, testing, and codegen, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 🔥 Hot-Swapping Debugging System
 

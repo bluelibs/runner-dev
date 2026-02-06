@@ -144,3 +144,23 @@ export const SAMPLE_TAG_FILE_QUERY = `
     }
   }
 `;
+
+export const SAMPLE_ERROR_FILE_QUERY = `
+  query ErrorFile($id: ID!, $startLine: Int, $endLine: Int) {
+    error(id: $id) {
+      id
+      filePath
+      fileContents(startLine: $startLine, endLine: $endLine)
+    }
+  }
+`;
+
+export const SAMPLE_ASYNC_CONTEXT_FILE_QUERY = `
+  query AsyncContextFile($id: ID!, $startLine: Int, $endLine: Int) {
+    asyncContext(id: $id) {
+      id
+      filePath
+      fileContents(startLine: $startLine, endLine: $endLine)
+    }
+  }
+`;

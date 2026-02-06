@@ -1,15 +1,14 @@
 import React from "react";
 import { Hook, Event } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
+import { formatId } from "../utils/formatting";
 import { TagsSection } from "./TagsSection";
 import "./HookCard.scss";
-import { HookHeader } from "./hook/HookHeader";
 import { HookOverview } from "./hook/HookOverview";
 import { HookTargetEvents } from "./hook/HookTargetEvents";
-import { HookRelations } from "./hook/HookRelations";
-import { CodeModal } from "./CodeModal";
-import { graphqlRequest, SAMPLE_HOOK_FILE_QUERY } from "../utils/graphqlClient";
-import { formatFilePath, formatId } from "../utils/formatting";
+import { DependenciesSection } from "./common/DependenciesSection";
+import "./common/DependenciesSection.scss";
+import { ElementCard } from "./common/ElementCard";
 
 export interface HookCardProps {
   hook: Hook;
@@ -24,13 +23,31 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
   const isGlobalHook = hook.events.includes("*");
 
   return (
-    <div id={`element-${hook.id}`} className="hook-card">
-      <HookHeader
-        hook={hook}
-        emittedEventsCount={emittedEvents.length}
-        isGlobal={isGlobalHook}
-      />
-
+    <ElementCard
+      prefix="hook-card"
+      elementId={hook.id}
+      title={
+        <>
+          {isGlobalHook ? "🌐" : "🪝"} {hook.meta?.title || formatId(hook.id)}
+          {isGlobalHook && (
+            <span className="hook-card__global-badge">GLOBAL</span>
+          )}
+        </>
+      }
+      id={hook.id}
+      description={hook.meta?.description}
+      meta={
+        <div className="hook-card__stats">
+          {hook.hookOrder !== null && hook.hookOrder !== undefined && (
+            <div className="hook-card__order-badge">#{hook.hookOrder}</div>
+          )}
+          <div className="hook-card__stat-badge">
+            <span className="icon">📤</span>
+            <span className="count">{emittedEvents.length}</span>
+          </div>
+        </div>
+      }
+    >
       <div className="hook-card__content">
         <div className="hook-card__grid">
           <div>
@@ -51,9 +68,10 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
           </div>
         </div>
 
-        <HookRelations
+        <DependenciesSection
           dependencies={dependencies}
           emittedEvents={emittedEvents}
+          className="hook-card__relations"
         />
 
         <TagsSection
@@ -62,6 +80,6 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
           className="hook-card__tags-section"
         />
       </div>
-    </div>
+    </ElementCard>
   );
 };

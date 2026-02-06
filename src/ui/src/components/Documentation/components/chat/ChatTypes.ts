@@ -199,3 +199,39 @@ export interface DeepImplState {
     tasks?: Array<{ id: string; title: string; md: string }>;
   };
 }
+
+// Token usage reported by the model
+export type TokenUsage = {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+};
+
+// Token estimate for context calculation
+export type TokenEstimate = {
+  system: number;
+  history: number;
+  input: number;
+  total: number;
+  tokens: number; // Alias for total for compatibility
+  breakdown: { system: number; history: number; input: number };
+};
+
+// Tool call information for UI visualization
+export type ToolCallInfo = {
+  id: string;
+  name?: string;
+  argsPreview?: string;
+  status: "pending" | "running" | "done" | "error";
+  resultPreview?: string;
+};
+
+// Available elements for tagging
+export type AvailableElements = {
+  tasks: Array<{ id: string; name: string }>;
+  resources: Array<{ id: string; name: string }>;
+  events: Array<{ id: string; name: string }>;
+  hooks: Array<{ id: string; name: string }>;
+  middlewares: Array<{ id: string; name: string }>;
+  tags: Array<{ id: string; name: string }>;
+};

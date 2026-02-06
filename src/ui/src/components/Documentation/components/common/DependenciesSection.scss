@@ -1,0 +1,168 @@
+// =============================================================================
+// DEPENDENCIES SECTION COMPONENT STYLES
+// =============================================================================
+@use "../../../../styles/variables" as *;
+@use "../../../../styles/mixins" as *;
+
+.dependencies-section {
+  margin-top: $spacing-xxl;
+
+  &__title {
+    margin: 0 0 $spacing-lg 0;
+    color: var(--docs-text-primary);
+    font-size: $font-size-lg;
+    border-bottom: 2px solid var(--docs-border-primary);
+    padding-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: $spacing-xl;
+  }
+
+  &__category {
+    h5 {
+      margin: 0 0 $spacing-md 0;
+      color: var(--docs-text-secondary);
+      font-size: $font-size-md;
+    }
+  }
+
+  &__items {
+    display: grid;
+    gap: 10px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Dependency Items
+// -----------------------------------------------------------------------------
+.dependencies-section__item {
+  padding: $spacing-sm $font-size-md;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid;
+  display: block;
+
+  &--task {
+    background: var(--docs-primary-bg);
+    border-left-color: var(--docs-primary);
+  }
+
+  &--hook {
+    background: var(--docs-info-bg);
+    border-left-color: var(--docs-info);
+  }
+
+  &--resource {
+    background: var(--docs-success-bg);
+    border-left-color: var(--docs-success);
+  }
+
+  &--error {
+    background: var(--docs-error-bg);
+    border-left-color: var(--docs-error);
+  }
+
+  &--event {
+    background: var(--docs-warning-bg);
+    border-left-color: var(--docs-warning);
+  }
+
+  .title {
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+
+    &--task {
+      color: var(--docs-primary);
+    }
+
+    &--hook {
+      color: var(--docs-info);
+    }
+
+    &--resource {
+      color: var(--docs-success);
+    }
+
+    &--error {
+      color: var(--docs-error);
+    }
+
+    &--event {
+      color: var(--docs-warning);
+    }
+  }
+
+  .id {
+    font-size: $font-size-xs;
+    color: var(--docs-text-muted);
+    font-family: $font-family-mono;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Dependency Link Styles
+// -----------------------------------------------------------------------------
+.dependencies-section__link {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+
+    &.dependencies-section__item--task {
+      background: var(--docs-primary-hover-bg);
+      box-shadow: 0 4px 12px var(--docs-primary-light);
+    }
+
+    &.dependencies-section__item--hook {
+      background: var(--docs-info-hover-bg);
+      box-shadow: 0 4px 12px var(--docs-info-light);
+    }
+
+    &.dependencies-section__item--resource {
+      background: var(--docs-success-hover-bg);
+      box-shadow: 0 4px 12px var(--docs-success-light);
+    }
+
+    &.dependencies-section__item--error {
+      background: var(--docs-error-hover-bg);
+      box-shadow: 0 4px 12px var(--docs-error-light);
+    }
+
+    &.dependencies-section__item--event {
+      background: var(--docs-warning-bg);
+      box-shadow: 0 4px 12px var(--docs-warning-light);
+    }
+  }
+
+  &:focus {
+    outline: 2px solid var(--docs-primary);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  // Add a subtle click indicator
+  &::after {
+    content: "🔗";
+    position: absolute;
+    top: 50%;
+    right: $spacing-sm;
+    transform: translateY(-50%);
+    opacity: 0;
+    font-size: $font-size-xs;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover::after {
+    opacity: 0.6;
+  }
+}

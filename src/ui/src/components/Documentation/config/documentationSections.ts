@@ -13,6 +13,8 @@ export const createSections = (counts: {
   hooks: number;
   middlewares: number;
   tags: number;
+  errors: number;
+  asyncContexts: number;
 }): SectionConfig[] => {
   const sections = [
     {
@@ -70,6 +72,20 @@ export const createSections = (counts: {
       icon: "🔗",
       count: counts.middlewares,
       hasContent: counts.middlewares > 0,
+    },
+    {
+      id: "errors",
+      label: "Errors",
+      icon: "❌",
+      count: counts.errors,
+      hasContent: counts.errors > 0,
+    },
+    {
+      id: "asyncContexts",
+      label: "Async Contexts",
+      icon: "🔄",
+      count: counts.asyncContexts,
+      hasContent: counts.asyncContexts > 0,
     },
     {
       id: "tags",

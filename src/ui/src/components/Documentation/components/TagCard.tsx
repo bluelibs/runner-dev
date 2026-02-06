@@ -1,7 +1,7 @@
 import React from "react";
 import { Tag } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import { formatSchema, formatId, formatFilePath } from "../utils/formatting";
+import { formatId, formatFilePath } from "../utils/formatting";
 import "./TagCard.scss";
 import { CodeModal } from "./CodeModal";
 import {
@@ -15,6 +15,7 @@ import {
 
 import { TaggedElements } from "./tag/TaggedElements";
 import { SchemaRenderer } from "./SchemaRenderer";
+import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 
 export interface TagCardProps {
   tag: Tag;
@@ -107,99 +108,70 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
   }
 
   return (
-    <div id={`element-${tag.id}`} className="tag-card">
-      <div className="tag-card__header">
-        <div className="tag-card__header-content">
-          <div className="main">
-            <h3 className="tag-card__title">
-              {tag.meta?.title || formatId(tag.id)}
-            </h3>
-            <div className="tag-card__id">{tag.id}</div>
-            {tag.meta?.description && (
-              <p className="tag-card__description">{tag.meta.description}</p>
+    <ElementCard
+      prefix="tag-card"
+      elementId={tag.id}
+      title={tag.meta?.title || formatId(tag.id)}
+      id={tag.id}
+      description={tag.meta?.description}
+    >
+      <div className="tag-card__grid">
+        <CardSection prefix="tag-card" title="Overview">
+          <div className="tag-card__summary">
+            <div className="tag-card__total">
+              <span className="value">{allTaggedElements.length}</span>
+              <span className="label">Total Tagged Elements</span>
+            </div>
+          </div>
+
+          <div className="tag-card__stats">
+            <div className="tag-card__stat tag-card__stat--tasks">
+              <div className="tag-card__stat__value">{tag.tasks.length}</div>
+              <div className="tag-card__stat__label">Tasks</div>
+            </div>
+            <div className="tag-card__stat tag-card__stat--resources">
+              <div className="tag-card__stat__value">{tag.resources.length}</div>
+              <div className="tag-card__stat__label">Resources</div>
+            </div>
+            <div className="tag-card__stat tag-card__stat--events">
+              <div className="tag-card__stat__value">{tag.events.length}</div>
+              <div className="tag-card__stat__label">Events</div>
+            </div>
+            <div className="tag-card__stat tag-card__stat--middlewares">
+              <div className="tag-card__stat__value">{tag.middlewares.length}</div>
+              <div className="tag-card__stat__label">Middlewares</div>
+            </div>
+            <div className="tag-card__stat tag-card__stat--hooks">
+              <div className="tag-card__stat__value">{tag.hooks.length}</div>
+              <div className="tag-card__stat__label">Hooks</div>
+            </div>
+          </div>
+
+          <InfoBlock prefix="tag-card" label="File Path:">
+            {tag.filePath ? (
+              <a
+                type="button"
+                onClick={openTagFileModal}
+                title="View file contents"
+              >
+                {formatFilePath(tag.filePath)}
+              </a>
+            ) : (
+              formatFilePath(tag.filePath)
             )}
-          </div>
-        </div>
+          </InfoBlock>
+        </CardSection>
+
+        <CardSection
+          prefix="tag-card"
+          title="Configuration Schema"
+          contentClassName="tag-card__config"
+        >
+          <SchemaRenderer schemaString={tag.configSchema} />
+        </CardSection>
       </div>
 
-      <div className="tag-card__content">
-        <div className="tag-card__grid">
-          <div>
-            <div className="tag-card__section">
-              <h4 className="tag-card__section__title">Overview</h4>
-              <div className="tag-card__section__content">
-                <div className="tag-card__summary">
-                  <div className="tag-card__total">
-                    <span className="value">{allTaggedElements.length}</span>
-                    <span className="label">Total Tagged Elements</span>
-                  </div>
-                </div>
-                <div className="tag-card__stats">
-                  <div className="tag-card__stat tag-card__stat--tasks">
-                    <div className="tag-card__stat__value">
-                      {tag.tasks.length}
-                    </div>
-                    <div className="tag-card__stat__label">Tasks</div>
-                  </div>
-                  <div className="tag-card__stat tag-card__stat--resources">
-                    <div className="tag-card__stat__value">
-                      {tag.resources.length}
-                    </div>
-                    <div className="tag-card__stat__label">Resources</div>
-                  </div>
-                  <div className="tag-card__stat tag-card__stat--events">
-                    <div className="tag-card__stat__value">
-                      {tag.events.length}
-                    </div>
-                    <div className="tag-card__stat__label">Events</div>
-                  </div>
-                  <div className="tag-card__stat tag-card__stat--middlewares">
-                    <div className="tag-card__stat__value">
-                      {tag.middlewares.length}
-                    </div>
-                    <div className="tag-card__stat__label">Middlewares</div>
-                  </div>
-                  <div className="tag-card__stat tag-card__stat--hooks">
-                    <div className="tag-card__stat__value">
-                      {tag.hooks.length}
-                    </div>
-                    <div className="tag-card__stat__label">Hooks</div>
-                  </div>
-                </div>
-                <div className="tag-card__info-block">
-                  <div className="label">File Path:</div>
-                  <div className="value">
-                    {tag.filePath ? (
-                      <a
-                        type="button"
-                        onClick={openTagFileModal}
-                        title="View file contents"
-                      >
-                        {formatFilePath(tag.filePath)}
-                      </a>
-                    ) : (
-                      formatFilePath(tag.filePath)
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="tag-card__section">
-              <h4 className="tag-card__section__title">
-                Configuration Schema
-              </h4>
-              <div className="tag-card__config">
-                <SchemaRenderer schemaString={tag.configSchema} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <TaggedElements tag={tag} introspector={introspector} />
-      </div>
+      <TaggedElements tag={tag} introspector={introspector} />
 
       <CodeModal
         title={modalTitle}
@@ -210,6 +182,6 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
         enableEdit={Boolean(saveOnFile)}
         saveOnFile={saveOnFile}
       />
-    </div>
+    </ElementCard>
   );
 };

@@ -3,6 +3,7 @@ import { NavigationView } from "./NavigationView";
 import { TreeNode } from "../utils/tree-utils";
 import { ViewMode, TreeType } from "../hooks/useViewMode";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
+import { Tooltip } from "./Tooltip";
 
 export interface DocumentationSidebarProps {
   sidebarWidth: number;
@@ -87,16 +88,23 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
         <div className="docs-namespace-input">
           <label htmlFor="namespace-input">
             <span className="docs-label-text">Filter by ID</span>
-            <span
-              className="docs-filter-help"
-              title="Search Syntax:
-• Comma for AND: task,resource (items with both task AND resource)
-• Pipe for OR: task|resource (items with task OR resource)  
-• Exclude with !: api,!test (items with api but NOT test)
-• Tags search: :api,debug (search tags for api AND debug)"
+            <Tooltip
+              content={
+                <div>
+                  <div className="tooltip-title">Search Syntax</div>
+                  <ul className="tooltip-content">
+                    <li><span className="keyword">Comma for AND:</span> <span className="example">task,resource</span> (items with both task AND resource)</li>
+                    <li><span className="keyword">Pipe for OR:</span> <span className="example">task|resource</span> (items with task OR resource)</li>
+                    <li><span className="keyword">Exclude with !:</span> <span className="example">api,!test</span> (items with api but NOT test)</li>
+                    <li><span className="keyword">Tags search:</span> <span className="example">:api,debug</span> (search tags for api AND debug)</li>
+                  </ul>
+                </div>
+              }
+              position="right"
+              delay={200}
             >
-              ?
-            </span>
+              <span className="docs-filter-help">?</span>
+            </Tooltip>
           </label>
           <input
             id="namespace-input"

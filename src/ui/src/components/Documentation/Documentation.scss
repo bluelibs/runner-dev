@@ -1305,3 +1305,26 @@ body {
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// Overview Card Styles for New Element Types
+// -----------------------------------------------------------------------------
+.overview-grid {
+  .card--errors {
+    background: linear-gradient(135deg, #f44336, #e91e63);
+
+    &:hover {
+      background: linear-gradient(135deg, #e53935, #d81b60);
+      transform: translateY(-5px) scale(1.02);
+    }
+  }
+
+  .card--async-contexts {
+    background: linear-gradient(135deg, #9c27b0, #673ab7);
+
+    &:hover {
+      background: linear-gradient(135deg, #8e24aa, #5e35b1);
+      transform: translateY(-5px) scale(1.02);
+    }
+  }
+}

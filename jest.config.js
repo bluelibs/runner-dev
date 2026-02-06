@@ -18,4 +18,20 @@ module.exports = {
       lines: 100,
     },
   },
+  projects: [
+    {
+      displayName: "node",
+      testEnvironment: "node",
+      testMatch: ["<rootDir>/src/**/*.test.ts"],
+      testPathIgnorePatterns: ["<rootDir>/src/ui/src/components/Documentation/components/chat/"],
+      preset: "ts-jest",
+    },
+    {
+      displayName: "jsdom",
+      testEnvironment: "jsdom",
+      testMatch: ["<rootDir>/src/ui/src/components/Documentation/components/chat/**/*.test.ts"],
+      preset: "ts-jest",
+      setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+    },
+  ],
 };

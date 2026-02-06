@@ -73,6 +73,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
+  const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
   const middlewareDetailed = (task.middleware || []).map((m: any) => ({
     id: String(m.id),
     // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
@@ -98,7 +99,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
           (task as any)?.path ??
           null
       ),
-      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
+      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps, ...errorIdsFromDeps],
       middleware: task.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
       registeredBy: null,
@@ -125,6 +126,7 @@ export function mapStoreHookToHookModel(
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
+  const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(hk.tags);
 
   const eventIds = Array.isArray(hk.on)
@@ -144,7 +146,7 @@ export function mapStoreHookToHookModel(
           null
       ),
       emits: eventIdsFromDeps,
-      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
+      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps, ...errorIdsFromDeps],
       middleware: [],
       middlewareDetailed: [],
       overriddenBy: null,
@@ -170,6 +172,7 @@ export function mapStoreResourceToResourceModel(
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
+  const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
   const middlewareDetailed = (resource.middleware || []).map((m: any) => ({
     id: String(m.id),
     // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
@@ -190,7 +193,7 @@ export function mapStoreResourceToResourceModel(
       tags: tagIds,
       tagsDetailed,
       emits: eventIdsFromDeps,
-      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps],
+      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps, ...errorIdsFromDeps],
       filePath: sanitizePath(
         (resource as any)?.[definitions.symbolFilePath] ??
           (resource as any)?.filePath ??
@@ -447,6 +450,7 @@ export function extractAllDependenciesFromDependencies(
     ...extractEventIdsFromDependencies(deps),
     ...extractResourceIdsFromDependencies(deps),
     ...extractTaskIdsFromDependencies(deps),
+    ...extractErrorIdsFromDependencies(deps),
   ];
 }
 
@@ -494,6 +498,44 @@ export function extractTaskIdsFromDependencies(
       Reflect.get(value, definitions.symbolTask) === true
     ) {
       result.push(readId(value));
+    }
+  }
+  return Array.from(new Set(result));
+}
+
+export function extractErrorIdsFromDependencies(
+  deps: Record<string | symbol, unknown>
+): string[] {
+  const result: string[] = [];
+  for (const value of Object.values(deps)) {
+    if (
+      value &&
+      (typeof value === "object" || typeof value === "function")
+    ) {
+      // Check if this value has error-specific properties or methods
+      // Try multiple approaches to identify errors
+
+      // 1. Check for common error methods/properties
+      const hasErrorMethods =
+        typeof (value as any).throw === 'function' ||
+        typeof (value as any).is === 'function' ||
+        typeof (value as any).dataSchema === 'string' ||
+        (value as any).kind === 'ERROR';
+
+      // 2. Check for symbol-based identification (if it exists)
+      const hasErrorSymbol =
+        Reflect.get(value, (definitions as any).symbolError) === true;
+
+      // 3. Check for error ID pattern (ends with .error or .errors)
+      const id = readId(value);
+      const hasErrorIdPattern =
+        id.endsWith('.error') ||
+        id.endsWith('.errors') ||
+        id.includes('.errors.');
+
+      if (hasErrorSymbol || hasErrorMethods || hasErrorIdPattern) {
+        result.push(id);
+      }
     }
   }
   return Array.from(new Set(result));

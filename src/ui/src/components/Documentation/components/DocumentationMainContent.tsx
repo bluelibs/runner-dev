@@ -6,6 +6,8 @@ import { MiddlewareCard } from "./MiddlewareCard";
 import { EventCard } from "./EventCard";
 import { HookCard } from "./HookCard";
 import { TagCard } from "./TagCard";
+import { ErrorCard } from "./ErrorCard";
+import { AsyncContextCard } from "./AsyncContextCard";
 import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { LivePanel } from "./LivePanel";
 import { ElementTable } from "./ElementTable";
@@ -26,6 +28,8 @@ export interface DocumentationMainContentProps {
   events: any[];
   hooks: any[];
   middlewares: any[];
+  errors: any[];
+  asyncContexts: any[];
   tags: any[];
 }
 
@@ -46,6 +50,8 @@ export const DocumentationMainContent: React.FC<
   events,
   hooks,
   middlewares,
+  errors,
+  asyncContexts,
   tags,
 }) => {
   const rootResource = introspector.getRoot();
@@ -121,6 +127,18 @@ export const DocumentationMainContent: React.FC<
               <h3>Hooks</h3>
               <div className="count">{hooks.length}</div>
             </a>
+            {errors.length > 0 && (
+              <a href="#errors" className="card card--errors">
+                <h3>Errors</h3>
+                <div className="count">{errors.length}</div>
+              </a>
+            )}
+            {asyncContexts.length > 0 && (
+              <a href="#asyncContexts" className="card card--async-contexts">
+                <h3>Async Contexts</h3>
+                <div className="count">{asyncContexts.length}</div>
+              </a>
+            )}
             <a href="#tags" className="card card--tags">
               <h3>Tags</h3>
               <div className="count">{tags.length}</div>
@@ -233,6 +251,52 @@ export const DocumentationMainContent: React.FC<
                 <HookCard
                   key={hook.id}
                   hook={hook}
+                  introspector={introspector}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {errors.length > 0 && (
+          <ElementTable
+            elements={errors}
+            title="Errors Overview"
+            icon="❌"
+            id="errors"
+          />
+        )}
+        {errors.length > 0 && (
+          <section className="docs-section">
+            <h2>❌ Errors ({errors.length})</h2>
+            <div className="docs-component-grid">
+              {errors.map((error) => (
+                <ErrorCard
+                  key={error.id}
+                  error={error}
+                  introspector={introspector}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {asyncContexts.length > 0 && (
+          <ElementTable
+            elements={asyncContexts}
+            title="Async Contexts Overview"
+            icon="🔄"
+            id="asyncContexts"
+          />
+        )}
+        {asyncContexts.length > 0 && (
+          <section className="docs-section">
+            <h2>🔄 Async Contexts ({asyncContexts.length})</h2>
+            <div className="docs-component-grid">
+              {asyncContexts.map((asyncContext) => (
+                <AsyncContextCard
+                  key={asyncContext.id}
+                  asyncContext={asyncContext}
                   introspector={introspector}
                 />
               ))}

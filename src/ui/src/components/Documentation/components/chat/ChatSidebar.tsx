@@ -8,6 +8,7 @@ import React, {
 import { CodeModal } from "../CodeModal";
 import { CodeModalState, FileReference, FileDiff } from "./ChatTypes";
 import { useChatState } from "./useChatState";
+import { useChatStateSmart } from "./useChatStateSmart";
 import { ChatSettingsForm } from "../ChatSettingsForm";
 import { ChatInput } from "../ChatInput";
 import { generateUnifiedDiff } from "./ChatUtils";
@@ -80,6 +81,34 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   graphqlSdl,
   availableElements,
 }) => {
+  // Feature flag for Smart-based chat implementation
+  // Note: useChatStateSmart is the preferred implementation. useChatState is deprecated.
+  // To use Smart implementation by default, set REACT_APP_USE_SMART_CHAT=true or NEXT_PUBLIC_USE_SMART_CHAT=true
+  // Or use URL parameter: ?useSmartChat=true
+  const useSmartChat = process.env.REACT_APP_USE_SMART_CHAT === 'true' ||
+                       process.env.NEXT_PUBLIC_USE_SMART_CHAT === 'true' ||
+                       window.location.search.includes('useSmartChat=true');
+
+  const chatHookData = useSmartChat
+    ? useChatStateSmart({
+        availableElements,
+        docs: {
+          runnerAiMd,
+          graphqlSdl,
+          runnerDevMd,
+          projectOverviewMd,
+        },
+      })
+    : useChatState({
+        availableElements,
+        docs: {
+          runnerAiMd,
+          graphqlSdl,
+          runnerDevMd,
+          projectOverviewMd,
+        },
+      });
+
   const {
     chatState,
     setChatState,
@@ -91,15 +120,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     stopRequest,
     retryLastResponse,
     tokenStatus,
-  } = useChatState({
-    availableElements,
-    docs: {
-      runnerAiMd,
-      graphqlSdl,
-      runnerDevMd,
-      projectOverviewMd,
-    },
-  });
+  } = chatHookData;
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [codeModal, setCodeModal] = useState<CodeModalState>({

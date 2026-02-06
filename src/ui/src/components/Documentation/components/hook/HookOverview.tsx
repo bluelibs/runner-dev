@@ -7,6 +7,7 @@ import {
   SAMPLE_HOOK_FILE_QUERY,
 } from "../../utils/graphqlClient";
 import { Introspector } from "../../../../../../resources/models/Introspector";
+import { CardSection, InfoBlock } from "../common/ElementCard";
 
 export interface HookOverviewProps {
   hook: Hook;
@@ -51,92 +52,81 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
   }
 
   return (
-    <div className="hook-card__section">
-      <h4 className="hook-card__section__title">📋 Overview</h4>
-      <div className="hook-card__section__content">
-        <div className="hook-card__info-block">
-          <div className="label">File Path:</div>
-          <div className="value">
-            <a onClick={openFileModal}>{formatFilePath(hook.filePath)}</a>
-          </div>
-        </div>
+    <>
+      <CardSection
+        prefix="hook-card"
+        title="📋 Overview"
+        contentClassName="hook-card__section__content"
+      >
+        <InfoBlock prefix="hook-card" label="File Path:">
+          <a onClick={openFileModal}>{formatFilePath(hook.filePath)}</a>
+        </InfoBlock>
 
         {hook.registeredBy && (
-          <div className="hook-card__info-block">
-            <div className="label">Registered By:</div>
-            <div className="value">
-              <a
-                href={`#element-${hook.registeredBy}`}
-                className="hook-card__registrar-link"
-              >
-                {hook.registeredBy}
-              </a>
-            </div>
-          </div>
+          <InfoBlock prefix="hook-card" label="Registered By:">
+            <a
+              href={`#element-${hook.registeredBy}`}
+              className="hook-card__registrar-link"
+            >
+              {hook.registeredBy}
+            </a>
+          </InfoBlock>
         )}
 
-        <div className="hook-card__info-block">
-          <div className="label">Target Events:</div>
-          <div className="value">
-            {isGlobal ? (
-              <div className="hook-card__global-event">
-                <span className="global-indicator">🌐 ALL EVENTS</span>
-                <div className="global-description">
-                  This hook listens to every event in the system
-                </div>
+        <InfoBlock prefix="hook-card" label="Target Events:">
+          {isGlobal ? (
+            <div className="hook-card__global-event">
+              <span className="global-indicator">🌐 ALL EVENTS</span>
+              <div className="global-description">
+                This hook listens to every event in the system
               </div>
-            ) : (
-              <>
-                {targetEvents.map((evt) => (
-                  <div key={evt.id}>
-                    <a
-                      href={`#element-${evt.id}`}
-                      className="hook-card__event-link"
-                    >
-                      {formatId(evt.id)}
-                    </a>
-                    {evt.meta?.title && <div>({evt.meta.title})</div>}
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="hook-card__info-block">
-          <div className="label">Execution Order:</div>
-          <div className="value value--order">
-            {getHookOrderDisplay()}
-            <div className="order-description">
-              {hook.hookOrder === null || hook.hookOrder === undefined
-                ? "Uses default ordering"
-                : `Priority level ${hook.hookOrder}`}
             </div>
-          </div>
-        </div>
+          ) : (
+            targetEvents.map((evt) => (
+              <div key={evt.id}>
+                <a
+                  href={`#element-${evt.id}`}
+                  className="hook-card__event-link"
+                >
+                  {formatId(evt.id)}
+                </a>
+                {evt.meta?.title && <div>({evt.meta.title})</div>}
+              </div>
+            ))
+          )}
+        </InfoBlock>
 
-        <div className="hook-card__info-block">
-          <div className="label">Emits Events:</div>
-          <div className="value">{formatArray(hook.emits)}</div>
-        </div>
+        <InfoBlock
+          prefix="hook-card"
+          label="Execution Order:"
+          valueClassName="value--order"
+        >
+          {getHookOrderDisplay()}
+          <div className="order-description">
+            {hook.hookOrder === null || hook.hookOrder === undefined
+              ? "Uses default ordering"
+              : `Priority level ${hook.hookOrder}`}
+          </div>
+        </InfoBlock>
+
+        <InfoBlock prefix="hook-card" label="Emits Events:">
+          {formatArray(hook.emits)}
+        </InfoBlock>
 
         {hook.tags && hook.tags.length > 0 && (
-          <div className="hook-card__info-block">
-            <div className="label">Tags:</div>
-            <div className="value">
-              <div className="hook-card__tags">
-                {introspector.getTagsByIds(hook.tags).map((tag) => (
-                  <a
-                    href={`#element-${tag.id}`}
-                    key={tag.id}
-                    className="clean-button"
-                  >
-                    {formatId(tag.id)}
-                  </a>
-                ))}
-              </div>
+          <InfoBlock prefix="hook-card" label="Tags:">
+            <div className="hook-card__tags">
+              {introspector.getTagsByIds(hook.tags).map((tag) => (
+                <a
+                  href={`#element-${tag.id}`}
+                  key={tag.id}
+                  className="clean-button"
+                >
+                  {formatId(tag.id)}
+                </a>
+              ))}
             </div>
-          </div>
+          </InfoBlock>
         )}
 
         {hook.overriddenBy && (
@@ -145,7 +135,7 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
             <div className="content">{hook.overriddenBy}</div>
           </div>
         )}
-      </div>
+      </CardSection>
 
       <CodeModal
         title={hook.meta?.title || formatId(hook.id)}
@@ -156,6 +146,6 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
         enableEdit={Boolean(hook.filePath)}
         saveOnFile={hook.filePath || null}
       />
-    </div>
+    </>
   );
 };

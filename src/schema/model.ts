@@ -46,6 +46,15 @@ export interface TagUsage {
   configSchema?: string | null;
 }
 
+export interface TunnelInfo {
+  mode: "client" | "server" | "both";
+  transport: "http" | "other";
+  tasks?: string[]; // tunneled task IDs
+  events?: string[]; // tunneled event IDs
+  endpoint?: string; // for client tunnels
+  auth?: string; // auth method
+}
+
 export interface Tag extends BaseElement {
   id: string;
   configSchema?: string | null;
@@ -131,6 +140,32 @@ export interface Resource extends BaseElement {
   overrides: string[];
   registers: string[];
   context?: string | null;
+  // Tunnel information (populated when resource has globals.tags.tunnel)
+  tunnelInfo?: TunnelInfo | null;
+}
+
+export interface Error extends BaseElement {
+  id: string;
+  meta?: Meta | null;
+  filePath?: string | null;
+  // Prettified Zod schema for the error data if provided
+  dataSchema?: string | null;
+  // Task/resource IDs that throw this error
+  thrownBy: string[];
+}
+
+export interface AsyncContext extends BaseElement {
+  id: string;
+  meta?: Meta | null;
+  filePath?: string | null;
+  // Serialization method signature if provided
+  serialize?: string | null;
+  // Parse method signature if provided
+  parse?: string | null;
+  // Task/resource IDs that use this context
+  usedBy: string[];
+  // Resource IDs that provide this context
+  providedBy: string[];
 }
 
 // Diagnostics

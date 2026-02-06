@@ -1,4 +1,16 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+
+/**
+ * @deprecated Use useChatStateSmart instead. This hook is replaced by the Smart-based implementation.
+ * The new implementation provides better state management, testability, and code organization.
+ *
+ * To migrate:
+ * 1. Replace `useChatState(opts)` with `useChatStateSmart(opts)`
+ * 2. The API is 100% compatible - no other changes needed
+ * 3. Consider using the feature flag `useSmartChat=true` for gradual migration
+ *
+ * @see useChatStateSmart for the modern implementation
+ */
 import {
   ChatState,
   ChatMessage,
@@ -91,6 +103,25 @@ type AvailableElements = {
   tags: Array<{ id: string; name: string }>;
 };
 
+/**
+ * @deprecated useChatState is deprecated. Use useChatStateSmart instead.
+ *
+ * Migration Path:
+ * ```typescript
+ * // Old (deprecated)
+ * const chatHook = useChatState(options);
+ *
+ * // New (recommended)
+ * const chatHook = useChatStateSmart(options);
+ * ```
+ *
+ * Benefits of the new implementation:
+ * - Better state management with @bluelibs/smart
+ * - Improved testability (700 lines vs 1152 lines)
+ * - Cleaner separation of concerns
+ * - Automatic React re-renders
+ * - Feature flag support for gradual migration
+ */
 export const useChatState = (opts?: {
   availableElements?: AvailableElements;
   docs?: DocsBundle;

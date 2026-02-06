@@ -18,6 +18,11 @@ import {
   DiagnosticType,
   SwapResultType,
   SwappedTaskType,
+  ErrorType,
+  AsyncContextType,
+  TunnelInfoType,
+  TunnelModeEnum,
+  TunnelTransportEnum,
 } from "./types/index";
 
 export const createSchema = (swapManager?: ISwapManager) => {
@@ -40,6 +45,11 @@ export const createSchema = (swapManager?: ISwapManager) => {
       DiagnosticType,
       SwapResultType,
       SwappedTaskType,
+      ErrorType,
+      AsyncContextType,
+      TunnelInfoType,
+      TunnelModeEnum,
+      TunnelTransportEnum,
     ],
   });
 };
@@ -63,6 +73,11 @@ export const schema = new GraphQLSchema({
     DiagnosticType,
     SwapResultType,
     SwappedTaskType,
+    ErrorType,
+    AsyncContextType,
+    TunnelInfoType,
+    TunnelModeEnum,
+    TunnelTransportEnum,
   ],
 });
 

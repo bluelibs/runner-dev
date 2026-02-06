@@ -8,8 +8,9 @@ import { graphql } from "../../resources/graphql-accumulator.resource";
 import { swapManager } from "../../resources/swap.resource";
 import { dev } from "../../resources/dev.resource";
 import { createDummySuperApp } from "./dummySuperApp";
+import { createEnhancedSuperApp } from "./enhanced";
 
-const app = createDummySuperApp([
+const app = createEnhancedSuperApp([
   dev.with({
     port: 31337,
   }),

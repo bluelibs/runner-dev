@@ -114,11 +114,15 @@ export async function main(argv: string[]): Promise<void> {
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error((e as Error).message);
-    // eslint-disable-next-line no-process-exit
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 }
 
 if (require.main === module) {
-  void main(process.argv);
+  main(process.argv).catch((error: unknown) => {
+    // eslint-disable-next-line no-console
+    console.error((error as Error)?.message || String(error));
+    process.exitCode = 1;
+  });
 }

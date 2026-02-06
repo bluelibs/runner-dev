@@ -24,7 +24,7 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
       "schema:sdl": "runner-dev schema sdl",
     },
     dependencies: {
-      "@bluelibs/runner": "^4.0.0",
+      "@bluelibs/runner": "^5.0.0",
     },
     devDependencies: {
       "@bluelibs/runner-dev": "^4.0.0",

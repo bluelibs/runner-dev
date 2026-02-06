@@ -1,6 +1,7 @@
 #!/usr/bin/env -S node --enable-source-maps
 import { c, alignRows, divider, indentLines } from "./cli/format";
 import version from "./version";
+import { writeSync } from "node:fs";
 
 // Allow running the CLI directly via ts-node without a JS build.
 // Detect TS runtime by the current filename extension.
@@ -18,8 +19,14 @@ async function loadModule(basePath: string): Promise<any> {
       return await import(`${basePath}.ts`);
     }
   }
-  // Built JS path
-  return await import(`${basePath}.js`);
+  // Built JS path: prefer sync require to avoid early process exit
+  // when stdout/stderr are piped and the entrypoint is fire-and-forget.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require(`${basePath}.js`);
+  } catch {
+    return await import(`${basePath}.js`);
+  }
 }
 
 const subcommand = process.argv[2];
@@ -27,8 +34,7 @@ const subcommand = process.argv[2];
 async function run(): Promise<void> {
   // Global version flags
   if (["-v", "--version", "version"].includes(subcommand || "")) {
-    // eslint-disable-next-line no-console
-    console.log(version);
+    writeSync(1, `${version}\n`);
     return;
   }
 
@@ -167,7 +173,11 @@ async function run(): Promise<void> {
 
   // eslint-disable-next-line no-console
   console.error(`Unknown command: ${subcommand}`);
-  process.exit(1);
+  process.exitCode = 1;
 }
 
-void run();
+run().catch((error: unknown) => {
+  // eslint-disable-next-line no-console
+  console.error((error as Error)?.message || String(error));
+  process.exitCode = 1;
+});

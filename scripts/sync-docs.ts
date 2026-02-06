@@ -5,16 +5,20 @@ async function copyDocs() {
   console.log("sync-docs: starting");
   const filesToCopy = [
     {
-      src: path.join("..", "runner", "AI.md"),
+      src: path.join("..", "runner", "readmes", "AI.md"),
       dest: path.join("readmes", "runner-AI.md"),
     },
     {
       src: path.join("..", "runner", "readmes", "TUNNELS.md"),
-      dest: path.join("readmes", "TUNNELS.md"),
+      dest: path.join("readmes", "runner-tunnels.md"),
+    },   
+     {
+      src: path.join("..", "runner", "readmes", "DURABLE_WORKFLOWS.md"),
+      dest: path.join("readmes", "runner-durable-workflows.md"),
     },
     {
-      src: path.join("..", "runner", "README.md"),
-      dest: path.join("readmes", "runner-README.md"),
+      src: path.join("..", "runner", "readmes", "FULL_GUIDE.md"),
+      dest: path.join("readmes", "runner-full-guide.md"),
     },
   ];
 

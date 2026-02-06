@@ -11,6 +11,7 @@ import z from "zod";
 
 export type DevConfig = {
   port?: number;
+  host?: string;
   maxEntries?: number;
 };
 
@@ -23,6 +24,7 @@ export const dev = resource({
   },
   configSchema: z.object({
     port: z.number().min(1).max(65535).optional(),
+    host: z.string().min(1).optional(),
     maxEntries: z.number().min(1).optional(),
   }),
   register: (config: DevConfig) => [
@@ -30,6 +32,7 @@ export const dev = resource({
     telemetry,
     serverResource.with({
       port: config.port,
+      host: config.host,
     }),
     graphql,
     swapManager,

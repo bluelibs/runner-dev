@@ -7,13 +7,11 @@ export async function ensureEmptyDir(dir: string): Promise<void> {
   if (fs.existsSync(dir)) {
     const entries = await fsp.readdir(dir);
     if (entries.length > 0) {
-      // eslint-disable-next-line no-console
-      console.error(
+      throw new Error(
         `Target directory '${path.basename(
           dir
         )}' already exists and is not empty.`
       );
-      process.exit(1);
     }
     return;
   }

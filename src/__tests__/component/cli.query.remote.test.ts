@@ -1,72 +1,66 @@
-import { run, resource } from "@bluelibs/runner";
-import { dev } from "../../resources/dev.resource";
-import { createDummyApp } from "../dummy/dummyApp";
-import { spawn } from "child_process";
-import path from "node:path";
-import { serverResource } from "../../resources/server.resource";
+import { main } from "../../cli/query";
+import { callGraphQL } from "../../mcp/http";
 
-function runCli(
-  args: string[],
-  env: Record<string, string> = {}
-): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolve) => {
-    const proc = spawn(
-      process.execPath,
-      [path.join(process.cwd(), "dist/cli.js"), ...args],
-      {
-        env: { ...process.env, ...env },
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
-    let stdout = "";
-    let stderr = "";
-    proc.stdout.on("data", (d) => (stdout += String(d)));
-    proc.stderr.on("data", (d) => (stderr += String(d)));
-    proc.on("close", (code) => resolve({ code: code ?? 0, stdout, stderr }));
-  });
-}
+jest.mock("../../mcp/http", () => {
+  const actual = jest.requireActual("../../mcp/http");
+  return {
+    ...actual,
+    callGraphQL: jest.fn(),
+  };
+});
 
 describe("CLI query (remote)", () => {
-  const port = 31338;
-  const endpoint = `http://localhost:${port}/graphql`;
-  let runner: any;
+  const mockedCallGraphQL = callGraphQL as jest.MockedFunction<
+    typeof callGraphQL
+  >;
+  let logSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
 
-  beforeAll(async () => {
-    const app = createDummyApp([dev.with({ port })]);
-    runner = await run(app);
+  beforeEach(() => {
+    process.env.ENDPOINT = "http://example.test/graphql";
+    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    mockedCallGraphQL.mockReset();
   });
 
-  afterAll(async () => {
-    if (runner && runner.getResourceValue) {
-      try {
-        const srv = await runner.getResourceValue(serverResource);
-        await srv.apolloServer.stop();
-        await new Promise<void>((resolve) =>
-          srv.httpServer.close(() => resolve())
-        );
-      } catch {}
-    }
+  afterEach(() => {
+    delete process.env.ENDPOINT;
+    logSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   test("runs a simple query", async () => {
-    const res = await runCli(["query", "query { tasks { id } }"], {
-      ENDPOINT: endpoint,
+    mockedCallGraphQL.mockResolvedValueOnce({
+      data: { tasks: [{ id: "task.alpha" }] },
     });
-    expect(res.code).toBe(0);
-    const parsed = JSON.parse(res.stdout || "null");
+
+    await main(["node", "dist/cli.js", "query", "query { tasks { id } }"]);
+
+    expect(mockedCallGraphQL).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    const parsed = JSON.parse(String(logSpy.mock.calls[0][0]));
     expect(Array.isArray(parsed.tasks)).toBe(true);
   });
 
   test("namespace filter adds idIncludes", async () => {
-    const res = await runCli(
-      ["query", "query { tasks { id } }", "--namespace", "task."],
-      { ENDPOINT: endpoint }
-    );
-    expect(res.code).toBe(0);
-    const data = JSON.parse(res.stdout || "null");
-    expect(Array.isArray(data.tasks)).toBe(true);
-    // result should include tasks starting with task.
-    expect(data.tasks.some((t: any) => String(t.id).startsWith("task."))).toBe(
+    mockedCallGraphQL.mockResolvedValueOnce({
+      data: { tasks: [{ id: "task.alpha" }] },
+    });
+
+    await main([
+      "node",
+      "dist/cli.js",
+      "query",
+      "query { tasks { id } }",
+      "--namespace",
+      "task.",
+    ]);
+
+    expect(mockedCallGraphQL).toHaveBeenCalledTimes(1);
+    expect(mockedCallGraphQL.mock.calls[0][0].query).toContain("idIncludes");
+    const parsed = JSON.parse(String(logSpy.mock.calls[0][0]));
+    expect(Array.isArray(parsed.tasks)).toBe(true);
+    expect(parsed.tasks.some((t: any) => String(t.id).startsWith("task."))).toBe(
       true
     );
   });

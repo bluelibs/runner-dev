@@ -25,7 +25,7 @@
     "test:clean": "jest --config config/jest/jest.config.js --clearCache",
     "testonly": "npm test",
     "test:ci": "npm run build && npm run test",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "node scripts/check-runner-dependency.mjs && npm run build",
     "typedoc": "typedoc --options config/typedoc/typedoc.json",
     "lint": "eslint src --config config/eslint/eslint.config.mjs",
     "lint:fix": "eslint src --config config/eslint/eslint.config.mjs --fix",

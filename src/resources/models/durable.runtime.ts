@@ -54,9 +54,7 @@ export async function describeDurableTaskFromStore(
     // @bluelibs/runner and @bluelibs/runner/node ship separate .d.ts bundles.
     // Their task brands use different `unique symbol`s, so TS treats them as incompatible
     // even though the runtime object is the same task. Cast only at this API boundary.
-    return await durable.describe(
-      storeTask.task as unknown as NodeDescribeTask
-    );
+    return await durable.describe(storeTask.task);
   } catch {
     return null;
   }

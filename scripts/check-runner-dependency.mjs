@@ -39,9 +39,10 @@ async function main() {
     for (const [depName, depSpec] of Object.entries(section)) {
       if (isLocalRunnerSpecifier(depSpec)) {
         problems.push(
-          `Found local runner reference at ${formatLocation(sectionName, depName)} = ${JSON.stringify(
-            depSpec
-          )}`
+          `Found local runner reference at ${formatLocation(
+            sectionName,
+            depName
+          )} = ${JSON.stringify(depSpec)}`
         );
       }
     }
@@ -61,7 +62,9 @@ async function main() {
     );
   } else if (isLocalRunnerSpecifier(effectiveSpec)) {
     problems.push(
-      `${JSON.stringify(TARGET_PACKAGE)} must not point to ../runner when publishing (found ${JSON.stringify(
+      `${JSON.stringify(
+        TARGET_PACKAGE
+      )} must not point to ../runner when publishing (found ${JSON.stringify(
         effectiveSpec
       )}).`
     );

@@ -1,9 +1,7 @@
 import { globals, resource, type Store } from "@bluelibs/runner";
-import {
-  describeFlow as runnerDescribeFlow,
-  type DurableFlowShape,
-} from "@bluelibs/runner/node";
+import { type DurableFlowShape } from "@bluelibs/runner/node";
 import { getCorrelationId } from "./telemetry.chain";
+import { describeDurableTaskFromStore } from "./models/durable.runtime";
 
 export type LogLevel =
   | "trace"
@@ -143,9 +141,14 @@ const liveService = resource({
     description:
       "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
   },
-  async init(c: { maxEntries?: number; store?: Store }): Promise<Live> {
+  dependencies: {
+    store: globals.resources.store,
+  },
+  async init(
+    c: { maxEntries?: number },
+    { store }: { store: Store }
+  ): Promise<Live> {
     const maxEntries = c?.maxEntries ?? 10000;
-    const store = c?.store;
     const logs: LogEntry[] = [];
     const emissions: EmissionEntry[] = [];
     const errors: ErrorEntry[] = [];
@@ -380,16 +383,7 @@ const liveService = resource({
         return sliceLast(result, options.last);
       },
       async describeFlow(taskId: string): Promise<DurableFlowShape | null> {
-        if (!store) return null;
-        const storeElement = store.tasks.get(taskId);
-        if (!storeElement?.task) return null;
-        try {
-          // Type assertion needed due to ITask brand symbol differences between packages
-          return await runnerDescribeFlow(storeElement.task as any);
-        } catch {
-          // Task may not be a durable workflow or describeFlow not available
-          return null;
-        }
+        return describeDurableTaskFromStore(store, taskId);
       },
     };
   },

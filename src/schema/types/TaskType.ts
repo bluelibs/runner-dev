@@ -23,7 +23,7 @@ import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
 import { DurableFlowShapeType } from "./DurableFlowTypes";
-import { describeFlow as runnerDescribeFlow } from "@bluelibs/runner/node";
+import { describeDurableTaskFromStore } from "../../resources/models/durable.runtime";
 
 // Extracted to avoid inline self-referential initializer issues
 export const TaskDependsOnType: GraphQLObjectType<
@@ -263,17 +263,8 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
       description:
         "The workflow structure (steps, sleeps, signals, etc.) for durable tasks",
       type: DurableFlowShapeType,
-      resolve: async (node: Task, _args, ctx: CustomGraphQLContext) => {
-        if (!ctx.introspector.isDurableTask(node.id)) return null;
-        const storeElement = ctx.store?.tasks?.get(node.id);
-        if (!storeElement?.task) return null;
-        try {
-          // Type assertion needed due to ITask brand symbol differences
-          return await runnerDescribeFlow(storeElement.task as any);
-        } catch {
-          return null;
-        }
-      },
+      resolve: async (node: Task, _args, ctx: CustomGraphQLContext) =>
+        describeDurableTaskFromStore(ctx.store, node.id),
     },
 
     ...baseElementCommonFields(),

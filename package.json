@@ -29,7 +29,7 @@
     "typedoc": "typedoc --options config/typedoc/typedoc.json",
     "lint": "eslint src --config config/eslint/eslint.config.mjs",
     "lint:fix": "eslint src --config config/eslint/eslint.config.mjs --fix",
-    "qa": "npm run lint && npm run build && npm run test && npm run typedoc",
+    "qa": "npm run lint:fix && npm run build && npm run test && npm run typedoc",
     "coverage:ai": "jest --config config/jest/jest.config.js --coverage --coverageReporters=text-summary",
     "codegen": "graphql-codegen --config config/codegen.ts",
     "prebuild": "ts-node --project config/ts/tsconfig.json scripts/sync-version.ts && npm run codegen",

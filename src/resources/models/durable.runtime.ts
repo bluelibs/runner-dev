@@ -6,7 +6,6 @@ import type {
 import { type DurableFlowShape, DurableResource } from "@bluelibs/runner/node";
 
 type StoreSlice = Pick<Store, "tasks" | "resources">;
-type NodeDescribeTask = Parameters<DurableResource["describe"]>[0];
 
 export function hasDurableIdPattern(depId: string): boolean {
   return depId.includes(".durable") || depId.startsWith("base.durable.");

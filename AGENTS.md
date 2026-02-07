@@ -5,8 +5,7 @@
 - Keep functions small, decouple early on. Make code be read like a story.
 - When doing a tasks, first think about the contracts and interfaces, then think about the acceptance criteria, and only then think about implementation.
 - Type-strictness is a must, avoid type casting unless forced to
-- Use `npm run coverage:ai` to test the full suite and see coverage in a token-friendly way. 
-- Use `npm run coverage:ai` and avoid `npm run coverage`.
+- Use `npm run qa` to test the full suite, linting, etc and see coverage in a token-friendly way.
 - You can speed up process by running individual/focused tests instead of the full suite. For those (`npm run test -- searchKey`) is fine
 - If there's global under 100% coverage on files/concerns you didn't work on, ignore those files.
 - Always run the tests, don't assume that you're fixed work.

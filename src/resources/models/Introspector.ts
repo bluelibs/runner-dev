@@ -8,6 +8,7 @@ import type {
   Error as ErrorModel,
   AsyncContext as AsyncContextModel,
 } from "../../schema";
+import type { Store } from "@bluelibs/runner";
 import type { DiagnosticItem } from "../../schema";
 import {
   computeOrphanEvents,
@@ -19,6 +20,7 @@ import {
   buildIdMap,
   ensureStringArray,
 } from "./introspector.tools";
+import { hasDurableIdPattern } from "./durable.tools";
 import { extractTunnelInfo } from "./initializeFromStore.utils";
 
 export type SerializedIntrospector = {
@@ -50,7 +52,7 @@ export class Introspector {
   public tags: Tag[] = [];
   public errors: ErrorModel[] = [];
   public asyncContexts: AsyncContextModel[] = [];
-  public store: unknown | null = null;
+  public store: Pick<Store, "tasks" | "resources" | "root"> | null = null;
   public rootId: string | null = null;
 
   public taskMap: Map<string, Task> = new Map();
@@ -62,7 +64,11 @@ export class Introspector {
   public errorMap: Map<string, ErrorModel> = new Map();
   public asyncContextMap: Map<string, AsyncContextModel> = new Map();
 
-  constructor(input: { store: unknown } | { data: SerializedIntrospector }) {
+  constructor(
+    input:
+      | { store: Pick<Store, "tasks" | "resources" | "root"> }
+      | { data: SerializedIntrospector }
+  ) {
     if ("store" in input) {
       // this.store = input.store;
       // this.initializeFromStore();
@@ -777,15 +783,16 @@ export class Introspector {
   // Durable workflow-related methods
   /**
    * Checks if a task is a durable workflow task.
-   * A task is durable if it depends on a resource with 'durable' in its ID.
+   * A task is durable if it depends on a resource id matching the durable id pattern.
+   *
+   * Note: This method is used in the browser (docs UI) where the runtime Store and
+   * durable resource instances are not available.
    */
   isDurableTask(taskId: string): boolean {
     const task = this.taskMap.get(taskId);
     if (!task) return false;
     const deps = ensureStringArray(task.dependsOn);
-    return deps.some(
-      (depId) => depId.includes(".durable") || depId.startsWith("base.durable.")
-    );
+    return deps.some((depId) => hasDurableIdPattern(depId));
   }
 
   /**
@@ -802,9 +809,7 @@ export class Introspector {
     const task = this.taskMap.get(taskId);
     if (!task) return null;
     const deps = ensureStringArray(task.dependsOn);
-    const durableDepId = deps.find(
-      (depId) => depId.includes(".durable") || depId.startsWith("base.durable.")
-    );
+    const durableDepId = deps.find((depId) => hasDurableIdPattern(depId));
     return durableDepId ? this.getResource(durableDepId) : null;
   }
 

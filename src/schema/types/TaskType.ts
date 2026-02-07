@@ -264,7 +264,7 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
         "The workflow structure (steps, sleeps, signals, etc.) for durable tasks",
       type: DurableFlowShapeType,
       resolve: async (node: Task, _args, ctx: CustomGraphQLContext) =>
-        describeDurableTaskFromStore(ctx.store, node.id),
+        describeDurableTaskFromStore(ctx.store, node.id, { timeoutMs: 800 }),
     },
 
     ...baseElementCommonFields(),

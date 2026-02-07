@@ -15,6 +15,17 @@ import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 
+function hasTunnelTag(tags: string[] | null | undefined): boolean {
+  return (tags || []).some((tagId) => {
+    const tag = String(tagId);
+    return (
+      tag === "runner-dev.tunnel" ||
+      tag === "globals.tags.tunnel" ||
+      (tag.includes("tunnel") && !tag.includes("tunnelPolicy"))
+    );
+  });
+}
+
 export interface ResourceCardProps {
   resource: Resource;
   introspector: Introspector;
@@ -38,7 +49,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   ];
 
   // Check if this is a tunnel resource
-  const isTunnel = resource.tags?.includes("runner-dev.tunnel") || false;
+  const isTunnel = hasTunnelTag(resource.tags || null);
   const tunneledTasks = isTunnel
     ? introspector.getTunneledTasks(resource.id)
     : [];

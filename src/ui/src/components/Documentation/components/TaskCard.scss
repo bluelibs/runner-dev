@@ -107,8 +107,20 @@
 
 .task-card__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: $spacing-xl;
+
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 980px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.task-card__grid-section {
+  min-width: 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -502,6 +514,7 @@
 // Task Card Tunnel Information
 // -----------------------------------------------------------------------------
 .task-card__tunnel-info {
+  grid-column: 1 / -1;
   margin-top: $spacing-lg;
   padding: $spacing-lg;
   background: var(--docs-bg-secondary);
@@ -532,6 +545,106 @@
   &:hover {
     color: var(--docs-link-color);
     border-bottom-color: var(--docs-link-color);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Task Card Durable Workflow
+// -----------------------------------------------------------------------------
+.task-card__durable-info {
+  grid-column: 1 / -1;
+  margin-top: $spacing-lg;
+  padding: $spacing-lg;
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-md;
+
+  .task-card__section__title {
+    margin: 0 0 $spacing-md 0;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: var(--docs-text-primary);
+  }
+
+  .task-card__durable-info__content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+}
+
+.task-card__durable-link {
+  color: var(--docs-text-primary);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px dotted var(--docs-border-hover);
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--docs-link-color);
+    border-bottom-color: var(--docs-link-color);
+  }
+}
+
+.task-card__durable-preview-btn {
+  border: 1px solid var(--docs-border-primary);
+  background: var(--docs-bg-tertiary);
+  color: var(--docs-text-primary);
+  border-radius: $border-radius-sm;
+  padding: $spacing-xs $spacing-sm;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--docs-primary-bg);
+    border-color: var(--docs-primary-border);
+    color: var(--docs-primary);
+  }
+}
+
+.task-card__durable-steps {
+  display: grid;
+  gap: $spacing-xs;
+  color: var(--docs-text-secondary);
+  font-size: $font-size-sm;
+  font-family: $font-family-mono;
+}
+
+.task-card__durable-mermaid {
+  background: var(--docs-bg-primary);
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  border: 1px solid var(--docs-border-primary);
+  color: var(--docs-text-primary);
+  font-size: initial;
+  line-height: normal;
+  margin: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  font-family: inherit;
+
+  svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  svg text,
+  svg tspan {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+    font-family: var(--docs-font-family, $font-family-base) !important;
+  }
+
+  svg .nodeLabel,
+  svg .label {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
   }
 }
 

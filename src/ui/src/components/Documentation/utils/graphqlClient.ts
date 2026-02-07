@@ -32,6 +32,13 @@ export async function graphqlRequest<T>(
   });
   const json = (await res.json()) as GraphQLResponse<T>;
   if (!res.ok) {
+    if (json.errors && json.errors.length > 0) {
+      throw new Error(
+        `GraphQL HTTP ${res.status}: ${json.errors
+          .map((e) => e.message)
+          .join("\n")}`
+      );
+    }
     throw new Error(`GraphQL HTTP ${res.status}`);
   }
   if (json.errors && json.errors.length > 0) {
@@ -79,6 +86,50 @@ export const TASK_COVERAGE_DETAILS_QUERY = `
         totalStatements
         coveredStatements
         details
+      }
+    }
+  }
+`;
+
+export const TASK_DURABLE_FLOW_QUERY = `
+  query TaskDurableFlow($id: ID!) {
+    task(id: $id) {
+      id
+      flowShape {
+        nodes {
+          __typename
+          ... on FlowStepNode {
+            kind
+            stepIdStep: stepId
+            hasCompensation
+          }
+          ... on FlowSleepNode {
+            kind
+            durationMs
+            stepIdSleep: stepId
+          }
+          ... on FlowSignalNode {
+            kind
+            signalId
+            timeoutMs
+            stepIdSignal: stepId
+          }
+          ... on FlowEmitNode {
+            kind
+            eventId
+            stepIdEmit: stepId
+          }
+          ... on FlowSwitchNode {
+            kind
+            stepIdSwitch: stepId
+            branchIds
+            hasDefault
+          }
+          ... on FlowNoteNode {
+            kind
+            message
+          }
+        }
       }
     }
   }

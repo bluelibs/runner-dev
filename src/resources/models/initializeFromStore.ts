@@ -43,9 +43,10 @@ export function initializeFromStore(
   // Build events
   introspector.events = buildEvents(store);
 
-  // NOTE: Tunnel info population is handled by Introspector.populateTunnelInfo()
-  // which must be called after all resources have been initialized.
-  // Resource values are not available at this stage.
+  // Best effort: when resource values are available, this populates tunnel metadata.
+  // In early init phases values may not exist yet; callers can invoke populateTunnelInfo()
+  // again later (for example on demand in resolvers or docs routes).
+  introspector.populateTunnelInfo();
 
   // Build errors
   introspector.errors = Array.from(store.errors.values()).map((e: any) => ({

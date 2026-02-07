@@ -38,6 +38,21 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
     initializeFromStore(introspector, config.store);
     const data = (introspector as unknown as Introspector).serialize();
 
+    // Enrich tasks with durable metadata for docs UI.
+    if (Array.isArray((data as any).tasks)) {
+      for (const task of (data as any).tasks) {
+        const taskId = String(task?.id || "");
+        if (!taskId) continue;
+
+        const isDurable = introspector.isDurableTask(taskId);
+        task.isDurable = isDurable;
+        task.durableResourceId = isDurable
+          ? introspector.getDurableResourceForTask(taskId)?.id || null
+          : null;
+        task.flowShape = null;
+      }
+    }
+
     // Attach pre-fetched coverage percentages when coverage is available.
     if (config.coverage) {
       const attach = async (

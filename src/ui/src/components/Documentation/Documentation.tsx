@@ -273,10 +273,6 @@ export const Documentation: React.FC<DocumentationProps> = ({
     introspector,
   ]);
 
-  if (window !== undefined) {
-    console.log(introspector.serialize());
-  }
-
   // Consider layout busy whenever dragging resizers or debounced widths are catching up
   const isLayoutBusy =
     sidebarHook.isResizing ||
@@ -347,6 +343,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
         errors={introspector.getErrors()}
         asyncContexts={introspector.getAsyncContexts()}
         tags={filterHook.tags}
+        sections={sections}
       />
 
       {/* "Open Stats" button moved next to the Overview header inside main content */}

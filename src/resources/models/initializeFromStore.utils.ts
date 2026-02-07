@@ -108,6 +108,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
       // Emits any events present in its dependencies
       emits: eventIdsFromDeps,
       inputSchema: formatSchemaIfZod(task.inputSchema),
+      resultSchema: formatSchemaIfZod(task.resultSchema),
     },
     "TASK"
   );

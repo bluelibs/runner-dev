@@ -20,6 +20,17 @@ import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { CoverageInfoType } from "./CoverageType";
 
+function hasTunnelTag(tags: string[] | null | undefined): boolean {
+  return (tags || []).some((tagId) => {
+    const tag = String(tagId);
+    return (
+      tag === "runner-dev.tunnel" ||
+      tag === "globals.tags.tunnel" ||
+      (tag.includes("tunnel") && !tag.includes("tunnelPolicy"))
+    );
+  });
+}
+
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
   interfaces: () => [BaseElementInterface],
@@ -155,18 +166,15 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       type: require("./TunnelInfoType").TunnelInfoType,
       resolve: (resource, _args, ctx: CustomGraphQLContext) => {
-        // Check if this resource has the tunnel tag
-        const tunnelTag = ctx.introspector.getTag("runner-dev.tunnel");
-        if (!tunnelTag) return null;
+        if (!hasTunnelTag(resource.tags || null)) return null;
 
-        const hasTunnelTag = (resource.tags || []).includes(
-          "runner-dev.tunnel"
+        // Refresh from live store-backed values when available.
+        ctx.introspector.populateTunnelInfo();
+        return (
+          ctx.introspector.getResource(resource.id)?.tunnelInfo ||
+          resource.tunnelInfo ||
+          null
         );
-        if (!hasTunnelTag) return null;
-
-        // For now, return null - this will be populated by the introspector
-        // when it parses tunnel configurations from source code
-        return resource.tunnelInfo || null;
       },
     },
     coverage: {

@@ -6,6 +6,9 @@ import type {
 import { type DurableFlowShape, DurableResource } from "@bluelibs/runner/node";
 
 type StoreSlice = Pick<Store, "tasks" | "resources">;
+interface DescribeDurableTaskOptions {
+  timeoutMs?: number;
+}
 
 export function hasDurableIdPattern(depId: string): boolean {
   return depId.includes(".durable") || depId.startsWith("base.durable.");
@@ -41,7 +44,8 @@ export function getDurableDependencyForTask(
 
 export async function describeDurableTaskFromStore(
   store: StoreSlice | null | undefined,
-  taskId: string
+  taskId: string,
+  options: DescribeDurableTaskOptions = {}
 ): Promise<DurableFlowShape | null> {
   const storeTask = getStoreTask(store, taskId);
   if (!storeTask) return null;
@@ -50,10 +54,27 @@ export async function describeDurableTaskFromStore(
   if (!durable) return null;
 
   try {
-    // @bluelibs/runner and @bluelibs/runner/node ship separate .d.ts bundles.
-    // Their task brands use different `unique symbol`s, so TS treats them as incompatible
-    // even though the runtime object is the same task. Cast only at this API boundary.
-    return await durable.describe(storeTask.task);
+    const describePromise = durable.describe(storeTask.task).catch(() => null);
+    const timeoutMs = options.timeoutMs ?? 0;
+    if (timeoutMs <= 0) {
+      // @bluelibs/runner and @bluelibs/runner/node ship separate .d.ts bundles.
+      // Their task brands use different `unique symbol`s, so TS treats them as incompatible
+      // even though the runtime object is the same task. Cast only at this API boundary.
+      return await describePromise;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<null>((resolve) => {
+      timeoutId = setTimeout(() => resolve(null), timeoutMs);
+    });
+
+    const flowShape = (await Promise.race([
+      describePromise,
+      timeoutPromise,
+    ])) as DurableFlowShape | null;
+
+    if (timeoutId) clearTimeout(timeoutId);
+    return flowShape;
   } catch {
     return null;
   }

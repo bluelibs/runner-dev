@@ -31,6 +31,13 @@ export interface DocumentationMainContentProps {
   errors: any[];
   asyncContexts: any[];
   tags: any[];
+  sections: Array<{
+    id: string;
+    label: string;
+    icon: string;
+    count: number | null;
+    hasContent: boolean;
+  }>;
 }
 
 export const DocumentationMainContent: React.FC<
@@ -53,6 +60,7 @@ export const DocumentationMainContent: React.FC<
   errors,
   asyncContexts,
   tags,
+  sections,
 }) => {
   const rootResource = introspector.getRoot();
   const rootTitle =
@@ -60,6 +68,101 @@ export const DocumentationMainContent: React.FC<
   const rootDescription =
     rootResource?.meta?.description ||
     "Complete overview of your application's architecture and components";
+
+  const resolveSectionFromHash = React.useCallback(
+    (hash: string): string => {
+      const availableSections = new Set(sections.map((section) => section.id));
+      const rawHash = hash.startsWith("#") ? hash.slice(1) : hash;
+      const cleanHash = (() => {
+        try {
+          return decodeURIComponent(rawHash);
+        } catch {
+          return rawHash;
+        }
+      })();
+      const pickSection = (sectionId: string): string =>
+        availableSections.has(sectionId)
+          ? sectionId
+          : availableSections.has("overview")
+          ? "overview"
+          : sections[0]?.id || "overview";
+
+      if (!cleanHash || cleanHash === "top" || cleanHash === "overview-stats") {
+        return pickSection("overview");
+      }
+
+      if (availableSections.has(cleanHash)) return cleanHash;
+
+      if (cleanHash.startsWith("element-")) {
+        const elementId = cleanHash.slice("element-".length);
+        if (introspector.getTask(elementId)) return pickSection("tasks");
+        if (introspector.getResource(elementId))
+          return pickSection("resources");
+        if (introspector.getEvent(elementId)) return pickSection("events");
+        if (introspector.getHook(elementId)) return pickSection("hooks");
+        if (introspector.getMiddleware(elementId))
+          return pickSection("middlewares");
+        if (introspector.getError(elementId)) return pickSection("errors");
+        if (introspector.getAsyncContext(elementId))
+          return pickSection("asyncContexts");
+        if (introspector.getTag(elementId)) return pickSection("tags");
+      }
+
+      return pickSection("overview");
+    },
+    [sections, introspector]
+  );
+
+  const scrollToHashTarget = React.useCallback(() => {
+    const hash = window.location.hash;
+    if (!hash || hash.length <= 1) return;
+
+    const targetId = (() => {
+      try {
+        return decodeURIComponent(hash.slice(1));
+      } catch {
+        return hash.slice(1);
+      }
+    })();
+
+    const target = document.getElementById(targetId);
+    target?.scrollIntoView({ behavior: "instant", block: "start" });
+  }, []);
+
+  const [activeSection, setActiveSection] = React.useState<string>(() =>
+    resolveSectionFromHash(
+      typeof window !== "undefined" ? window.location.hash : "#overview"
+    )
+  );
+
+  React.useEffect(() => {
+    const updateFromHash = () => {
+      setActiveSection(resolveSectionFromHash(window.location.hash));
+    };
+
+    window.addEventListener("hashchange", updateFromHash);
+    updateFromHash();
+    return () => window.removeEventListener("hashchange", updateFromHash);
+  }, [resolveSectionFromHash]);
+
+  React.useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      scrollToHashTarget();
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      scrollToHashTarget();
+    }, 80);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [activeSection, scrollToHashTarget]);
+
+  const handleTabClick = React.useCallback((sectionId: string) => {
+    window.location.hash = `#${sectionId}`;
+  }, []);
 
   return (
     <div
@@ -82,73 +185,100 @@ export const DocumentationMainContent: React.FC<
           <p>{rootDescription}</p>
         </header>
 
-        <section id="live" className="docs-section">
-          <h2>📡 Live Telemetry</h2>
-          <LivePanel detailed introspector={introspector} />
-        </section>
+        <div className="docs-section-tabs" role="tablist" aria-label="Sections">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              role="tab"
+              aria-selected={activeSection === section.id}
+              className={`docs-section-tab ${
+                activeSection === section.id ? "docs-section-tab--active" : ""
+              }`}
+              onClick={() => handleTabClick(section.id)}
+            >
+              <span className="docs-section-tab__icon">{section.icon}</span>
+              <span className="docs-section-tab__label">{section.label}</span>
+              {section.count !== null && (
+                <span className="docs-section-tab__count">{section.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
 
-        <section id="diagnostics" className="docs-section">
-          <h2>🔍 Diagnostics</h2>
-          <DiagnosticsPanel introspector={introspector} detailed />
-        </section>
+        {activeSection === "live" && (
+          <section id="live" className="docs-section">
+            <h2>📡 Live Telemetry</h2>
+            <LivePanel detailed introspector={introspector} />
+          </section>
+        )}
 
-        <section id="overview" className="docs-section">
-          <div className="overview-header">
-            <h2>📋 Overview</h2>
-            <div>
-              <button
-                onClick={openStats}
-                aria-label="Open Stats"
-                title="Open Stats"
-                className="clean-button"
-              >
-                📊
-              </button>
+        {activeSection === "diagnostics" && (
+          <section id="diagnostics" className="docs-section">
+            <h2>🔍 Diagnostics</h2>
+            <DiagnosticsPanel introspector={introspector} detailed />
+          </section>
+        )}
+
+        {activeSection === "overview" && (
+          <section id="overview" className="docs-section">
+            <div className="overview-header">
+              <h2>📋 Overview</h2>
+              <div>
+                <button
+                  onClick={openStats}
+                  aria-label="Open Stats"
+                  title="Open Stats"
+                  className="clean-button"
+                >
+                  📊
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="overview-grid">
-            <a href="#tasks" className="card card--tasks">
-              <h3>Tasks</h3>
-              <div className="count">{tasks.length}</div>
-            </a>
-            <a href="#resources" className="card card--resources">
-              <h3>Resources</h3>
-              <div className="count">{resources.length}</div>
-            </a>
-            <a href="#events" className="card card--events">
-              <h3>Events</h3>
-              <div className="count">{events.length}</div>
-            </a>
-            <a href="#middlewares" className="card card--middlewares">
-              <h3>Middlewares</h3>
-              <div className="count">{middlewares.length}</div>
-            </a>
-            <a href="#hooks" className="card card--hooks">
-              <h3>Hooks</h3>
-              <div className="count">{hooks.length}</div>
-            </a>
-            {errors.length > 0 && (
-              <a href="#errors" className="card card--errors">
-                <h3>Errors</h3>
-                <div className="count">{errors.length}</div>
+            <div className="overview-grid">
+              <a href="#tasks" className="card card--tasks">
+                <h3>Tasks</h3>
+                <div className="count">{tasks.length}</div>
               </a>
-            )}
-            {asyncContexts.length > 0 && (
-              <a href="#asyncContexts" className="card card--async-contexts">
-                <h3>Async Contexts</h3>
-                <div className="count">{asyncContexts.length}</div>
+              <a href="#resources" className="card card--resources">
+                <h3>Resources</h3>
+                <div className="count">{resources.length}</div>
               </a>
-            )}
-            <a href="#tags" className="card card--tags">
-              <h3>Tags</h3>
-              <div className="count">{tags.length}</div>
-            </a>
-          </div>
-        </section>
+              <a href="#events" className="card card--events">
+                <h3>Events</h3>
+                <div className="count">{events.length}</div>
+              </a>
+              <a href="#middlewares" className="card card--middlewares">
+                <h3>Middlewares</h3>
+                <div className="count">{middlewares.length}</div>
+              </a>
+              <a href="#hooks" className="card card--hooks">
+                <h3>Hooks</h3>
+                <div className="count">{hooks.length}</div>
+              </a>
+              {errors.length > 0 && (
+                <a href="#errors" className="card card--errors">
+                  <h3>Errors</h3>
+                  <div className="count">{errors.length}</div>
+                </a>
+              )}
+              {asyncContexts.length > 0 && (
+                <a href="#asyncContexts" className="card card--async-contexts">
+                  <h3>Async Contexts</h3>
+                  <div className="count">{asyncContexts.length}</div>
+                </a>
+              )}
+              <a href="#tags" className="card card--tags">
+                <h3>Tags</h3>
+                <div className="count">{tags.length}</div>
+              </a>
+            </div>
+          </section>
+        )}
 
         {/* Inline stats panel is no longer rendered here; overlay is handled by parent */}
 
-        {tasks.length > 0 && (
+        {activeSection === "tasks" && tasks.length > 0 && (
           <ElementTable
             elements={tasks}
             title="Tasks Overview"
@@ -165,7 +295,7 @@ export const DocumentationMainContent: React.FC<
             }}
           />
         )}
-        {tasks.length > 0 && (
+        {activeSection === "tasks" && tasks.length > 0 && (
           <section className="docs-section">
             <h2>⚙️ Tasks ({tasks.length})</h2>
             <div className="docs-component-grid">
@@ -180,7 +310,7 @@ export const DocumentationMainContent: React.FC<
           </section>
         )}
 
-        {resources.length > 0 && (
+        {activeSection === "resources" && resources.length > 0 && (
           <ElementTable
             elements={resources}
             title="Resources Overview"
@@ -188,7 +318,7 @@ export const DocumentationMainContent: React.FC<
             id="resources"
           />
         )}
-        {resources.length > 0 && (
+        {activeSection === "resources" && resources.length > 0 && (
           <section className="docs-section">
             <h2>🔧 Resources ({resources.length})</h2>
             <div className="docs-component-grid">
@@ -203,7 +333,7 @@ export const DocumentationMainContent: React.FC<
           </section>
         )}
 
-        {events.length > 0 && (
+        {activeSection === "events" && events.length > 0 && (
           <ElementTable
             elements={events}
             title="Events Overview"
@@ -220,7 +350,7 @@ export const DocumentationMainContent: React.FC<
             }}
           />
         )}
-        {events.length > 0 && (
+        {activeSection === "events" && events.length > 0 && (
           <section className="docs-section">
             <h2>📡 Events ({events.length})</h2>
             <div className="docs-component-grid">
@@ -235,7 +365,7 @@ export const DocumentationMainContent: React.FC<
           </section>
         )}
 
-        {hooks.length > 0 && (
+        {activeSection === "hooks" && hooks.length > 0 && (
           <ElementTable
             elements={hooks}
             title="Hooks Overview"
@@ -243,7 +373,7 @@ export const DocumentationMainContent: React.FC<
             id="hooks"
           />
         )}
-        {hooks.length > 0 && (
+        {activeSection === "hooks" && hooks.length > 0 && (
           <section className="docs-section">
             <h2>🪝 Hooks ({hooks.length})</h2>
             <div className="docs-component-grid">
@@ -258,7 +388,7 @@ export const DocumentationMainContent: React.FC<
           </section>
         )}
 
-        {errors.length > 0 && (
+        {activeSection === "errors" && errors.length > 0 && (
           <ElementTable
             elements={errors}
             title="Errors Overview"
@@ -266,7 +396,7 @@ export const DocumentationMainContent: React.FC<
             id="errors"
           />
         )}
-        {errors.length > 0 && (
+        {activeSection === "errors" && errors.length > 0 && (
           <section className="docs-section">
             <h2>❌ Errors ({errors.length})</h2>
             <div className="docs-component-grid">
@@ -281,7 +411,7 @@ export const DocumentationMainContent: React.FC<
           </section>
         )}
 
-        {asyncContexts.length > 0 && (
+        {activeSection === "asyncContexts" && asyncContexts.length > 0 && (
           <ElementTable
             elements={asyncContexts}
             title="Async Contexts Overview"
@@ -289,7 +419,7 @@ export const DocumentationMainContent: React.FC<
             id="asyncContexts"
           />
         )}
-        {asyncContexts.length > 0 && (
+        {activeSection === "asyncContexts" && asyncContexts.length > 0 && (
           <section className="docs-section">
             <h2>🔄 Async Contexts ({asyncContexts.length})</h2>
             <div className="docs-component-grid">
@@ -304,7 +434,7 @@ export const DocumentationMainContent: React.FC<
           </section>
         )}
 
-        {middlewares.length > 0 && (
+        {activeSection === "middlewares" && middlewares.length > 0 && (
           <ElementTable
             elements={middlewares}
             title="Middlewares Overview"
@@ -312,7 +442,7 @@ export const DocumentationMainContent: React.FC<
             id="middlewares"
           />
         )}
-        {middlewares.length > 0 && (
+        {activeSection === "middlewares" && middlewares.length > 0 && (
           <section className="docs-section">
             <h2>🔗 Middlewares ({middlewares.length})</h2>
             <div className="docs-component-grid">
@@ -327,7 +457,7 @@ export const DocumentationMainContent: React.FC<
           </section>
         )}
 
-        {tags.length > 0 && (
+        {activeSection === "tags" && tags.length > 0 && (
           <ElementTable
             elements={tags}
             title="Tags Overview"
@@ -335,7 +465,7 @@ export const DocumentationMainContent: React.FC<
             id="tags"
           />
         )}
-        {tags.length > 0 && (
+        {activeSection === "tags" && tags.length > 0 && (
           <section className="docs-section">
             <h2>Tags ({tags.length})</h2>
             <div className="docs-tags-grid">

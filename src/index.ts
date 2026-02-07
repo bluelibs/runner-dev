@@ -8,6 +8,34 @@ import { dev } from "./resources/dev.resource";
 import { coverage } from "./resources/coverage.resource";
 
 export type { ServerConfig, ServerInstance } from "./resources/server.resource";
+export type { CustomGraphQLContext } from "./schema/context";
+export type {
+  CoverageDetails,
+  CoverageService,
+  CoverageSummary,
+  LineCoverage,
+} from "./resources/coverage.resource";
+export type {
+  EmissionEntry,
+  ErrorEntry,
+  Live,
+  LogEntry,
+  LogLevel,
+  RunRecord,
+} from "./resources/live.resource";
+export type {
+  EvalResult,
+  InvokeEventResult,
+  InvokeResult,
+  ISwapManager,
+  SwapResult,
+  SwappedTask,
+} from "./resources/swap.resource";
+export {
+  Introspector,
+  type SerializedIntrospector,
+} from "./resources/models/Introspector";
+export * from "./schema/model";
 
 Error.stackTraceLimit = Infinity;
 

@@ -5,6 +5,7 @@
   "exclude": ["**/__tests__/**/*"],
   "includeVersion": true,
   "plugin": ["typedoc-material-theme"],
+  "highlightLanguages": ["bash", "graphql", "json"],
   "themeColor": "#cb9820",
   "readme": "../../README.md",
   "customCss": "typedoc.custom.css"

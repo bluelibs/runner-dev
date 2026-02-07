@@ -25,6 +25,8 @@ import { definitions } from "@bluelibs/runner";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
+import { DurableFlowShapeType } from "./DurableFlowTypes";
+import { describeFlow as runnerDescribeFlow } from "@bluelibs/runner/node";
 
 // Forward declaration to allow self-referencing within field thunks
 export let TaskType: GraphQLObjectType<Task, CustomGraphQLContext>;
@@ -246,6 +248,35 @@ TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
       resolve: (node: Task, args: any, ctx: CustomGraphQLContext) => {
         const opts = ctx.introspector.buildRunOptionsForTask(node.id, args);
         return ctx.live.getRuns(opts);
+      },
+    },
+
+    // Durable workflow fields
+    isDurable: {
+      description: "Whether this task is a durable workflow (depends on a durable resource)",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.isDurableTask(node.id),
+    },
+    durableResource: {
+      description: "The durable resource this task depends on (if any)",
+      type: ResourceType,
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getDurableResourceForTask(node.id),
+    },
+    flowShape: {
+      description: "The workflow structure (steps, sleeps, signals, etc.) for durable tasks",
+      type: DurableFlowShapeType,
+      resolve: async (node: Task, _args, ctx: CustomGraphQLContext) => {
+        if (!ctx.introspector.isDurableTask(node.id)) return null;
+        const storeElement = ctx.store?.tasks?.get(node.id);
+        if (!storeElement?.task) return null;
+        try {
+          // Type assertion needed due to ITask brand symbol differences
+          return await runnerDescribeFlow(storeElement.task as any);
+        } catch {
+          return null;
+        }
       },
     },
 

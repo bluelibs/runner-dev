@@ -9,8 +9,12 @@ import { graphql } from "./resources/graphql-accumulator.resource";
 import { dev } from "./resources/dev.resource";
 import { coverage } from "./resources/coverage.resource";
 
+export type { ServerConfig, ServerInstance } from "./resources/server.resource";
+
 Error.stackTraceLimit = Infinity;
 
+// Explicit type prevents TS2742 when @bluelibs/runner is linked locally
+// (duplicate @types/express-serve-static-core in the runner package)
 export const resources = {
   server: serverResource,
   introspector,

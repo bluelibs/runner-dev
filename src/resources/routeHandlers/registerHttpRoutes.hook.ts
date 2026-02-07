@@ -3,11 +3,13 @@ import { globals, hook } from "@bluelibs/runner";
 import { httpTag } from "../http.tag";
 import { serverResource } from "../server.resource";
 
+// @ts-ignore TS2742 - express-serve-static-core type portability issue with linked @bluelibs/runner
 export const registerHttpRoutes = hook({
   id: "runner-dev.hooks.registerHttpRoutes",
   meta: {
     title: "HTTP Routes Registration",
-    description: "Automatically registers Express HTTP routes for tasks tagged with httpTag when the application becomes ready",
+    description:
+      "Automatically registers Express HTTP routes for tasks tagged with httpTag when the application becomes ready",
   },
   on: globals.events.ready,
   dependencies: {

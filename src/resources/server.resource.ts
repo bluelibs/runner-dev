@@ -9,8 +9,9 @@ import { swapManager } from "./swap.resource";
 import { expressMiddleware } from "@as-integrations/express5";
 import { coverage } from "./coverage.resource";
 import express, { Request, Response } from "express";
-import path from "node:path";
-import fs from "node:fs";
+import type http from "node:http";
+import * as path from "node:path";
+import * as fs from "node:fs";
 import { createUiStaticRouter } from "./ui.static";
 import { printSchema } from "graphql/utilities/printSchema";
 import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
@@ -21,6 +22,13 @@ export interface ServerConfig {
   port?: number;
   host?: string;
   apollo?: StartStandaloneServerOptions<CustomGraphQLContext>;
+}
+
+/** The resolved value exposed by the server resource. */
+export interface ServerInstance {
+  apolloServer: ApolloServer;
+  httpServer: http.Server;
+  app: express.Express;
 }
 
 export const serverResource = resource({
@@ -43,7 +51,7 @@ export const serverResource = resource({
   async init(
     config: ServerConfig,
     { store, logger, introspector, live, swapManager, graphql, coverage }
-  ) {
+  ): Promise<ServerInstance> {
     logger = logger.with({
       source: serverResource.id,
     });
@@ -135,7 +143,7 @@ export const serverResource = resource({
       reject = _reject;
     });
 
-    const httpServer = await app.listen(port, host, (e) => {
+    const listenCallback = (e: Error | undefined) => {
       if (e) {
         logger.error("Server error", {
           error: e,
@@ -146,9 +154,13 @@ export const serverResource = resource({
         logger.info(`Voyager UI ready at ${baseUrl}/voyager`);
         logger.info(`Project Documentation ready at ${baseUrl}/docs`);
       }
-    });
+    };
 
-    httpServer.on("error", (err) => {
+    const httpServer = host
+      ? await app.listen(port, host, listenCallback)
+      : await app.listen(port, listenCallback);
+
+    httpServer.on("error", (err: Error) => {
       logger.error("Server error", {
         error: err,
         source: serverResource.id,
@@ -157,7 +169,7 @@ export const serverResource = resource({
 
     return { apolloServer: server, httpServer, app };
   },
-  async dispose(instance) {
+  async dispose(instance: ServerInstance) {
     console.log("Disposing server");
     await instance.apolloServer.stop();
     await new Promise<void>((resolve) =>

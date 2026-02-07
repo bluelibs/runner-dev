@@ -3,7 +3,7 @@
     "runner_dev": {
       "description": "BlueLibs Runner Dev GraphQL MCP server",
       "command": "ts-node",
-      "args": ["src/mcp.ts"],
+      "args": ["--project", "config/ts/tsconfig.json", "src/mcp.ts"],
       "env": {
         "ENDPOINT": "http://localhost:31337/graphql",
         "ALLOW_MUTATIONS": "true"

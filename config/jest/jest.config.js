@@ -1,14 +1,17 @@
+const path = require("path");
+const rootDir = path.resolve(__dirname, "../../");
+
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
+  rootDir: rootDir,
   testMatch: ["<rootDir>/src/**/*.test.ts"],
-  // testPathIgnorePatterns: ["<rootDir>/src/__tests__/benchmark/"],
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
     "!src/**/__tests__/**",
   ],
-  coverageDirectory: "coverage",
+  coverageDirectory: "<rootDir>/coverage",
   coverageReporters: ["text", "lcov", "html"],
   coverageThreshold: {
     global: {
@@ -20,18 +23,34 @@ module.exports = {
   },
   projects: [
     {
+      rootDir: rootDir,
       displayName: "node",
       testEnvironment: "node",
       testMatch: ["<rootDir>/src/**/*.test.ts"],
       testPathIgnorePatterns: ["<rootDir>/src/ui/src/components/Documentation/components/chat/"],
-      preset: "ts-jest",
+      transform: {
+        "^.+\\.tsx?$": [
+          "ts-jest",
+          {
+            tsconfig: "config/ts/tsconfig.json",
+          },
+        ],
+      },
     },
     {
+      rootDir: rootDir,
       displayName: "jsdom",
       testEnvironment: "jsdom",
       testMatch: ["<rootDir>/src/ui/src/components/Documentation/components/chat/**/*.test.ts"],
-      preset: "ts-jest",
-      setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+      transform: {
+        "^.+\\.tsx?$": [
+          "ts-jest",
+          {
+            tsconfig: "config/ts/tsconfig.json",
+          },
+        ],
+      },
+      setupFilesAfterEnv: [path.join(rootDir, "config/jest/jest.setup.js")],
     },
   ],
 };

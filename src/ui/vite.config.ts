@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   base: "/",
   build: {
+    // Runner-dev UI is intentionally a single large bundle; avoid noisy warnings.
+    chunkSizeWarningLimit: 2000,
     outDir: "../../dist/ui",
     emptyOutDir: true,
     manifest: true,

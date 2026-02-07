@@ -21,7 +21,7 @@ import {
   ensureStringArray,
 } from "./introspector.tools";
 import { hasDurableIdPattern } from "./durable.tools";
-import { extractTunnelInfo } from "./initializeFromStore.utils";
+import { extractTunnelInfo } from "./extractTunnelInfo";
 
 export type SerializedIntrospector = {
   tasks: Task[];

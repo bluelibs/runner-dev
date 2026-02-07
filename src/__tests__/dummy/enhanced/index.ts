@@ -75,18 +75,9 @@ export {
   runIntegrationDemo,
 } from "./examples/integrationExample";
 
-import { r, run, globals, RegisterableItems } from "@bluelibs/runner";
-import { z } from "zod";
-import {
-  CoreContexts,
-  BusinessContexts,
-  SystemContexts,
-  AllContexts,
-  ContextMiddleware,
-} from "./contexts";
-import {
-  AllErrors,
-} from "./errors";
+import { r, run, RegisterableItems } from "@bluelibs/runner";
+import { AllContexts, ContextMiddleware } from "./contexts";
+import { AllErrors } from "./errors";
 import {
   enhancedUserDatabaseResource,
   userSecurityServiceResource,
@@ -296,11 +287,15 @@ export async function quickErrorDemo() {
 
     console.log("\n📊 Error Handling Results:");
     results?.results?.forEach((result: unknown) => {
-      const res = result as { scenario: string; handled: boolean; errorType: string };
+      const res = result as {
+        scenario: string;
+        handled: boolean;
+        errorType: string;
+      };
       console.log(
-        `  ${res.scenario}: ${
-          res.handled ? "✅ Handled" : "❌ Failed"
-        } - ${res.errorType}`
+        `  ${res.scenario}: ${res.handled ? "✅ Handled" : "❌ Failed"} - ${
+          res.errorType
+        }`
       );
     });
   } finally {
@@ -365,7 +360,7 @@ export async function runAllDemos() {
     console.log("\n3️⃣ Tunneling Demo");
     try {
       await quickTunnelingDemo();
-    } catch (error) {
+    } catch (_error) {
       console.log("⚠️  Tunneling demo skipped (requires environment setup)");
     }
 

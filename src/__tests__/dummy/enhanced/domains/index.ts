@@ -18,7 +18,7 @@ export {
   productPriceChangeRequestedEvent,
   enhancedProductDatabaseResource,
   productPricingEngineResource,
-    enhancedCreateProductTask,
+  enhancedCreateProductTask,
   enhancedUpdateInventoryTask,
   productPriceOptimizationHook,
   productInventoryRestockHook,
@@ -42,7 +42,7 @@ export {
   OrderNotFoundError,
   InsufficientStockError,
   PaymentFailedError,
-    AllErrors,
+  AllErrors,
 } from "../errors";
 
 export {

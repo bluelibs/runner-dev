@@ -8,7 +8,10 @@ export interface TaggedElementsProps {
   introspector: Introspector;
 }
 
-export const TaggedElements: React.FC<TaggedElementsProps> = ({ tag, introspector }) => {
+export const TaggedElements: React.FC<TaggedElementsProps> = ({
+  tag,
+  _introspector,
+}) => {
   const allTaggedElements = [
     ...tag.tasks,
     ...tag.resources,
@@ -30,7 +33,9 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({ tag, introspecto
             <h5>Tasks</h5>
             <div className="tag-card__relations__items">
               {tag.tasks.map((task) => {
-                const config = task.tagsDetailed?.find((t) => t.id === tag.id)?.config;
+                const config = task.tagsDetailed?.find(
+                  (t) => t.id === tag.id
+                )?.config;
                 return (
                   <div
                     key={task.id}
@@ -63,7 +68,9 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({ tag, introspecto
             <h5>Resources</h5>
             <div className="tag-card__relations__items">
               {tag.resources.map((resource) => {
-                const config = resource.tagsDetailed?.find((t) => t.id === tag.id)?.config;
+                const config = resource.tagsDetailed?.find(
+                  (t) => t.id === tag.id
+                )?.config;
                 return (
                   <div
                     key={resource.id}
@@ -96,7 +103,9 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({ tag, introspecto
             <h5>Middlewares</h5>
             <div className="tag-card__relations__items">
               {tag.middlewares.map((middleware) => {
-                const config = middleware.tagsDetailed?.find((t) => t.id === tag.id)?.config;
+                const config = middleware.tagsDetailed?.find(
+                  (t) => t.id === tag.id
+                )?.config;
                 return (
                   <div
                     key={middleware.id}
@@ -129,7 +138,9 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({ tag, introspecto
             <h5>Events</h5>
             <div className="tag-card__relations__items">
               {tag.events.map((event) => {
-                const config = event.tagsDetailed?.find((t) => t.id === tag.id)?.config;
+                const config = event.tagsDetailed?.find(
+                  (t) => t.id === tag.id
+                )?.config;
                 return (
                   <div
                     key={event.id}
@@ -162,7 +173,9 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({ tag, introspecto
             <h5>Hooks</h5>
             <div className="tag-card__relations__items">
               {tag.hooks.map((hook) => {
-                const config = hook.tagsDetailed?.find((t) => t.id === tag.id)?.config;
+                const config = hook.tagsDetailed?.find(
+                  (t) => t.id === tag.id
+                )?.config;
                 return (
                   <div
                     key={hook.id}

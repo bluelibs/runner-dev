@@ -5,8 +5,6 @@ import {
   hook,
   event,
   tag,
-  resourceMiddleware,
-  globals,
 } from "@bluelibs/runner";
 import { z } from "zod";
 import { dev } from "../../resources/dev.resource";
@@ -910,7 +908,7 @@ export const onProductOutOfStockEventHook = hook({
   id: "app.notifications.hooks.onProductOutOfStockEvent",
   on: productOutOfStockEvent,
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
-  async run(event, { sendWelcomeEmail }) {
+  async run(event, { sendWelcomeEmail: _sendWelcomeEmail }) {
     console.log(`Product out of stock: ${event.data.productId}`);
   },
 });
@@ -919,7 +917,7 @@ export const multiHookEvent = hook({
   id: "app.notifications.hooks.multiHookEvent",
   on: [userRegisteredEvent, productOutOfStockEvent],
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
-  async run(event, { sendWelcomeEmail }) {
+  async run(event, { sendWelcomeEmail: _sendWelcomeEmail }) {
     console.log(`Multi-hook event: ${event.id}`);
   },
 });
@@ -1292,7 +1290,9 @@ export function createRandomApp(config: RandomAppConfig = {}) {
           if (key.startsWith("emit")) {
             try {
               await deps[key]({ seq: i + 1, payload: { id, input } });
-            } catch {}
+            } catch {
+              /* intentionally empty */
+            }
           }
         }
         const took = Date.now() - t0;

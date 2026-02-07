@@ -4,11 +4,8 @@ import type {
   Resource,
   Event,
   Middleware,
-  ElementKind,
-  WithElementKind,
   TunnelInfo,
 } from "../../schema/model";
-import { elementKindSymbol } from "../../schema/model";
 
 import { definitions, Store } from "@bluelibs/runner";
 import { formatSchemaIfZod } from "../../utils/zod";
@@ -109,7 +106,6 @@ export function extractTunnelInfo(
   };
 }
 
-
 export function normalizeTags(
   tags: Array<string | definitions.ITagDefinition> | null | undefined
 ): {
@@ -189,7 +185,11 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
           (task as any)?.path ??
           null
       ),
-      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps, ...errorIdsFromDeps],
+      dependsOn: [
+        ...resourceIdsFromDeps,
+        ...taskIdsFromDeps,
+        ...errorIdsFromDeps,
+      ],
       middleware: task.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
       registeredBy: null,
@@ -203,7 +203,7 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
 }
 
 export function mapStoreTaskToHookModel(
-  task: definitions.ITask<any, any, any>
+  _task: definitions.ITask<any, any, any>
 ): Hook {
   throw new Error("deprecated");
 }
@@ -236,7 +236,11 @@ export function mapStoreHookToHookModel(
           null
       ),
       emits: eventIdsFromDeps,
-      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps, ...errorIdsFromDeps],
+      dependsOn: [
+        ...resourceIdsFromDeps,
+        ...taskIdsFromDeps,
+        ...errorIdsFromDeps,
+      ],
       middleware: [],
       middlewareDetailed: [],
       overriddenBy: null,
@@ -283,7 +287,11 @@ export function mapStoreResourceToResourceModel(
       tags: tagIds,
       tagsDetailed,
       emits: eventIdsFromDeps,
-      dependsOn: [...resourceIdsFromDeps, ...taskIdsFromDeps, ...errorIdsFromDeps],
+      dependsOn: [
+        ...resourceIdsFromDeps,
+        ...taskIdsFromDeps,
+        ...errorIdsFromDeps,
+      ],
       filePath: sanitizePath(
         (resource as any)?.[definitions.symbolFilePath] ??
           (resource as any)?.filePath ??
@@ -519,7 +527,7 @@ export function normalizeDependencies(
   // dependencies can be provided as an object or as a function returning an object
   try {
     if (deps && typeof deps === "function") {
-      const evaluated = (deps as Function)();
+      const evaluated = (deps as (...args: any[]) => any)();
       if (evaluated && typeof evaluated === "object") {
         return evaluated as Record<string | symbol, unknown>;
       }
@@ -598,19 +606,16 @@ export function extractErrorIdsFromDependencies(
 ): string[] {
   const result: string[] = [];
   for (const value of Object.values(deps)) {
-    if (
-      value &&
-      (typeof value === "object" || typeof value === "function")
-    ) {
+    if (value && (typeof value === "object" || typeof value === "function")) {
       // Check if this value has error-specific properties or methods
       // Try multiple approaches to identify errors
 
       // 1. Check for common error methods/properties
       const hasErrorMethods =
-        typeof (value as any).throw === 'function' ||
-        typeof (value as any).is === 'function' ||
-        typeof (value as any).dataSchema === 'string' ||
-        (value as any).kind === 'ERROR';
+        typeof (value as any).throw === "function" ||
+        typeof (value as any).is === "function" ||
+        typeof (value as any).dataSchema === "string" ||
+        (value as any).kind === "ERROR";
 
       // 2. Check for symbol-based identification (if it exists)
       const hasErrorSymbol =
@@ -619,9 +624,9 @@ export function extractErrorIdsFromDependencies(
       // 3. Check for error ID pattern (ends with .error or .errors)
       const id = readId(value);
       const hasErrorIdPattern =
-        id.endsWith('.error') ||
-        id.endsWith('.errors') ||
-        id.includes('.errors.');
+        id.endsWith(".error") ||
+        id.endsWith(".errors") ||
+        id.includes(".errors.");
 
       if (hasErrorSymbol || hasErrorMethods || hasErrorIdPattern) {
         result.push(id);

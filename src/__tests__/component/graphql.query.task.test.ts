@@ -1,4 +1,4 @@
-import { run, resource } from "@bluelibs/runner";
+import { run } from "@bluelibs/runner";
 import { createDummyApp } from "../dummy/dummyApp";
 import { resources } from "../../index";
 import { graphqlQueryTask } from "../../resources/graphql.query.task";

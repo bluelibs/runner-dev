@@ -1,19 +1,7 @@
-import { r, run, globals } from "@bluelibs/runner";
+import { r, run } from "@bluelibs/runner";
 import { z } from "zod";
+import { AllErrors, ServiceUnavailableError } from "../errors";
 import {
-  // Errors
-  UserDomainErrors,
-  ProductDomainErrors,
-  OrderDomainErrors,
-  SystemErrors,
-  AllErrors,
-  ValidationError,
-  DatabaseConnectionError,
-  ServiceUnavailableError,
-  RateLimitExceededError,
-} from "../errors";
-import {
-  // Contexts
   RequestContext,
   AuditContext,
   SecurityContext,
@@ -23,13 +11,10 @@ import {
   ContextMiddleware,
 } from "../contexts";
 import {
-  // Enhanced domains
   enhancedUserDatabaseResource,
   enhancedRegisterUserTask,
-  enhancedAuthenticateUserTask,
   enhancedProductDatabaseResource,
   enhancedCreateProductTask,
-  enhancedUpdateInventoryTask,
 
   // Tunneling
   tunnelClient,
@@ -137,7 +122,7 @@ export const completeUserJourneyTask = r
       }),
     })
   )
-  .run(async (input, deps) => {
+  .run(async (_input, _deps) => {
     return {
       userId: "demo_user",
       productId: "demo_product",
@@ -197,7 +182,7 @@ export const errorHandlingDemoTask = r
       ),
     })
   )
-  .run(async (input, deps) => {
+  .run(async (_input, _deps) => {
     return {
       results: [
         {
@@ -261,7 +246,7 @@ export const contextPropagationDemoTask = r
       }),
     })
   )
-  .run(async (input, deps) => {
+  .run(async (_input, _deps) => {
     return {
       initialContexts: {},
       propagatedContexts: {},
@@ -277,9 +262,14 @@ export const contextPropagationDemoTask = r
 /**
  * Helper to simulate nested task execution and verify context propagation
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function simulateNestedTaskExecution(
-  deps: Record<string, unknown>,
-  contextModifications: Array<{ context: string; modification: string; propagated: boolean }>
+  _deps: Record<string, unknown>,
+  _contextModifications: Array<{
+    context: string;
+    modification: string;
+    propagated: boolean;
+  }>
 ): Promise<void> {
   // Empty function - no implementation
 }

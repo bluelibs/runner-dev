@@ -46,7 +46,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
     try {
       const json = JSON.parse(jsonString);
       return typeof json === "object" && json !== null ? json : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   };

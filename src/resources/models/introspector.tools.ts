@@ -1,16 +1,7 @@
-import type {
-  Task,
-  Hook,
-  Resource,
-  Event,
-  Middleware,
-  ElementKind,
-  WithElementKind,
-} from "../../schema/model";
+import type { ElementKind, WithElementKind } from "../../schema/model";
 import { elementKindSymbol } from "../../schema/model";
 import type { Introspector } from "./Introspector";
 import type { DiagnosticItem } from "../../schema/model";
-import { sanitizePath } from "../../utils/path";
 
 export function buildIdMap<T extends { id: string }>(
   items: T[]
@@ -123,7 +114,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
   const diags: DiagnosticItem[] = [];
 
   // Anonymous (Symbol) IDs
-  const collections: Array<{
+  const _collections: Array<{
     kind: "RESOURCE" | "TASK" | "HOOK" | "EVENT" | "MIDDLEWARE";
     nodes: Array<{ id: string }>;
   }> = [

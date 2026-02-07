@@ -5,6 +5,7 @@ import {
   valuePreview,
   formatGraphQLResultAsMarkdown,
 } from "../../mcp/format";
+import { formatFilePath } from "../../ui/src/components/Documentation/utils/formatting";
 
 describe("Format Utilities", () => {
   describe("isRecord", () => {
@@ -410,10 +411,6 @@ describe("Format Utilities", () => {
   });
 
   test("formatFilePath preserves sanitize prefixes and truncates tail", () => {
-    const {
-      formatFilePath,
-    } = require("../../ui/src/components/Documentation/utils/formatting");
-
     expect(formatFilePath(null)).toBe("Unknown location");
     expect(formatFilePath("workspace:src/index.ts")).toBe(
       "workspace:src/index.ts"

@@ -69,7 +69,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     return () => clearTimeout(timer);
   }, [elements]);
 
-  const copyToClipboard = async (text: string) => {
+  const _copyToClipboard = async (text: string) => {
     try {
       if (
         typeof navigator !== "undefined" &&
@@ -78,7 +78,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
       ) {
         await navigator.clipboard.writeText(text);
       }
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
   };

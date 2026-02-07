@@ -38,14 +38,14 @@ export const ChatMessages: React.FC<
       () =>
         messages.map((m) => ({
           m,
-          time: formatRelativeTime(m.timestamp),
+          _time: formatRelativeTime(m.timestamp),
         })),
       [messages]
     );
 
     return (
       <>
-        {messagesWithTime.map(({ m, time }) => (
+        {messagesWithTime.map(({ m }) => (
           <div key={m.id}>
             <MessageItem
               message={m}

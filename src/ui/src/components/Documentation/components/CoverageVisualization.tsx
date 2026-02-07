@@ -16,9 +16,9 @@ export interface CoverageVisualizationProps {
 }
 
 const getCoverageColor = (percentage: number) => {
-  if (percentage >= 100) return '#66bb6a'; // Lighter green for dark theme
-  if (percentage >= 80) return '#ffa726'; // Lighter orange for dark theme
-  return '#ef5350'; // Lighter red for dark theme
+  if (percentage >= 100) return "#66bb6a"; // Lighter green for dark theme
+  if (percentage >= 80) return "#ffa726"; // Lighter orange for dark theme
+  return "#ef5350"; // Lighter red for dark theme
 };
 
 const getCoverageLevel = (percentage: number) => {
@@ -37,7 +37,9 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
     return (
       <div className="coverage-visualization coverage-visualization--no-data">
         <div className="coverage-visualization__no-data-icon">📊</div>
-        <span className="coverage-visualization__label">No coverage data available</span>
+        <span className="coverage-visualization__label">
+          No coverage data available
+        </span>
       </div>
     );
   }
@@ -49,16 +51,14 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
   const coverageColor = getCoverageColor(percentage);
   const coverageLevel = getCoverageLevel(percentage);
 
-  const coveredLines = lines.filter(line => line.covered).length;
+  const coveredLines = lines.filter((line) => line.covered).length;
 
   if (compact) {
     return (
       <div className="coverage-visualization coverage-visualization--compact">
         <div className="coverage-visualization__percentage-compact">
           <span>{coverageLevel.icon}</span>
-          <span style={{ color: coverageColor }}>
-            {percentage}%
-          </span>
+          <span style={{ color: coverageColor }}>{percentage}%</span>
         </div>
         <div className="coverage-visualization__bar-container">
           <div className="coverage-visualization__bar-backdrop">
@@ -82,13 +82,13 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
     <div className="coverage-visualization">
       <div className="coverage-visualization__header">
         <h4 className="coverage-visualization__title">
-          <span className="coverage-visualization__title-icon">{coverageLevel.icon}</span>
+          <span className="coverage-visualization__title-icon">
+            {coverageLevel.icon}
+          </span>
           Code Coverage
         </h4>
         {filePath && (
-          <div className="coverage-visualization__file-path">
-            {filePath}
-          </div>
+          <div className="coverage-visualization__file-path">{filePath}</div>
         )}
       </div>
 
@@ -116,7 +116,9 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
             <div className="coverage-visualization__metric coverage-visualization__metric--primary">
               <div className="coverage-visualization__metric-header">
                 <span className="coverage-visualization__metric-icon">✓</span>
-                <span className="coverage-visualization__metric-label">Covered</span>
+                <span className="coverage-visualization__metric-label">
+                  Covered
+                </span>
               </div>
               <span className="coverage-visualization__metric-value">
                 {coveredStatements}
@@ -126,7 +128,9 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
             <div className="coverage-visualization__metric coverage-visualization__metric--danger">
               <div className="coverage-visualization__metric-header">
                 <span className="coverage-visualization__metric-icon">✗</span>
-                <span className="coverage-visualization__metric-label">Missed</span>
+                <span className="coverage-visualization__metric-label">
+                  Missed
+                </span>
               </div>
               <span className="coverage-visualization__metric-value">
                 {totalStatements - coveredStatements}
@@ -137,8 +141,12 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
               <>
                 <div className="coverage-visualization__metric">
                   <div className="coverage-visualization__metric-header">
-                    <span className="coverage-visualization__metric-icon">L</span>
-                    <span className="coverage-visualization__metric-label">Lines</span>
+                    <span className="coverage-visualization__metric-icon">
+                      L
+                    </span>
+                    <span className="coverage-visualization__metric-label">
+                      Lines
+                    </span>
                   </div>
                   <span className="coverage-visualization__metric-value">
                     {coveredLines}/{lines.length}
@@ -147,8 +155,12 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
 
                 <div className="coverage-visualization__metric">
                   <div className="coverage-visualization__metric-header">
-                    <span className="coverage-visualization__metric-icon">T</span>
-                    <span className="coverage-visualization__metric-label">Total</span>
+                    <span className="coverage-visualization__metric-icon">
+                      T
+                    </span>
+                    <span className="coverage-visualization__metric-label">
+                      Total
+                    </span>
                   </div>
                   <span className="coverage-visualization__metric-value">
                     {totalStatements}
@@ -194,8 +206,8 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
                 key={line.line}
                 className={`coverage-visualization__line ${
                   line.covered
-                    ? 'coverage-visualization__line--covered'
-                    : 'coverage-visualization__line--uncovered'
+                    ? "coverage-visualization__line--covered"
+                    : "coverage-visualization__line--uncovered"
                 }`}
                 title={`Line ${line.line}: ${line.hits} hits`}
               >
@@ -203,7 +215,7 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
                   {line.line}
                 </span>
                 <span className="coverage-visualization__line-status">
-                  {line.covered ? '✓' : '✗'}
+                  {line.covered ? "✓" : "✗"}
                 </span>
                 <span className="coverage-visualization__line-hits">
                   {line.hits}

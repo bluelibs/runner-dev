@@ -60,8 +60,8 @@ describe("CLI query (remote)", () => {
     expect(mockedCallGraphQL.mock.calls[0][0].query).toContain("idIncludes");
     const parsed = JSON.parse(String(logSpy.mock.calls[0][0]));
     expect(Array.isArray(parsed.tasks)).toBe(true);
-    expect(parsed.tasks.some((t: any) => String(t.id).startsWith("task."))).toBe(
-      true
-    );
+    expect(
+      parsed.tasks.some((t: any) => String(t.id).startsWith("task."))
+    ).toBe(true);
   });
 });

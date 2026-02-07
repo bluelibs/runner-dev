@@ -5,8 +5,6 @@ import {
   hook,
   event,
   tag,
-  resourceMiddleware,
-  globals,
 } from "@bluelibs/runner";
 import { z } from "zod";
 
@@ -913,7 +911,7 @@ export const onProductOutOfStockEventHook = hook({
   id: "app.notifications.hooks.onProductOutOfStockEvent",
   on: productOutOfStockEvent,
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
-  async run(event, { sendWelcomeEmail }) {
+  async run(event, { sendWelcomeEmail: _sendWelcomeEmail }) {
     console.log(`Product out of stock: ${event.data.productId}`);
   },
 });
@@ -922,7 +920,7 @@ export const multiHookEvent = hook({
   id: "app.notifications.hooks.multiHookEvent",
   on: [userRegisteredEvent, productOutOfStockEvent],
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
-  async run(event, { sendWelcomeEmail }) {
+  async run(event, { sendWelcomeEmail: _sendWelcomeEmail }) {
     console.log(`Multi-hook event: ${event.id}`);
   },
 });

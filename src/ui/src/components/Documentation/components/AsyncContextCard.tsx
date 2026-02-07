@@ -1,10 +1,7 @@
 import React from "react";
 import { AsyncContext } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import {
-  formatFilePath,
-  formatId,
-} from "../utils/formatting";
+import { formatFilePath, formatId } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
@@ -23,11 +20,22 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
   introspector,
 }) => {
   const usedByTasks = introspector.getTasksUsingContext(asyncContext.id);
-  const usedByResources = introspector.getResourcesUsingContext(asyncContext.id);
+  const usedByResources = introspector.getResourcesUsingContext(
+    asyncContext.id
+  );
   const usedByHooks = introspector.getHooksUsingContext(asyncContext.id);
-  const usedByMiddlewares = introspector.getMiddlewaresUsingContext(asyncContext.id);
-  const providedByResources = introspector.getResourcesProvidingContext(asyncContext.id);
-  const allUsers = [...usedByTasks, ...usedByResources, ...usedByHooks, ...usedByMiddlewares];
+  const usedByMiddlewares = introspector.getMiddlewaresUsingContext(
+    asyncContext.id
+  );
+  const providedByResources = introspector.getResourcesProvidingContext(
+    asyncContext.id
+  );
+  const allUsers = [
+    ...usedByTasks,
+    ...usedByResources,
+    ...usedByHooks,
+    ...usedByMiddlewares,
+  ];
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [fileContent, setFileContent] = React.useState<string | null>(null);
@@ -112,15 +120,17 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
                     <div className="label">Tags:</div>
                     <div className="value">
                       <div className="async-context-card__tags">
-                        {introspector.getTagsByIds(asyncContext.tags).map((tag) => (
-                          <a
-                            href={`#element-${tag.id}`}
-                            key={tag.id}
-                            className="clean-button"
-                          >
-                            {formatId(tag.id)}
-                          </a>
-                        ))}
+                        {introspector
+                          .getTagsByIds(asyncContext.tags)
+                          .map((tag) => (
+                            <a
+                              href={`#element-${tag.id}`}
+                              key={tag.id}
+                              className="clean-button"
+                            >
+                              {formatId(tag.id)}
+                            </a>
+                          ))}
                       </div>
                     </div>
                   </div>
@@ -145,7 +155,9 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
 
           <div>
             <div className="async-context-card__section">
-              <h4 className="async-context-card__section__title">Serialization Methods</h4>
+              <h4 className="async-context-card__section__title">
+                Serialization Methods
+              </h4>
               <div className="async-context-card__serialization">
                 {asyncContext.serialize && (
                   <div className="async-context-card__method">
@@ -171,7 +183,8 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
 
                 {!asyncContext.serialize && !asyncContext.parse && (
                   <div className="async-context-card__no-methods">
-                    No custom serialization methods defined. Using default EJSON serialization.
+                    No custom serialization methods defined. Using default EJSON
+                    serialization.
                   </div>
                 )}
               </div>
@@ -300,7 +313,13 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
         subtitle={asyncContext.filePath || undefined}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        code={loading ? "Loading..." : errorState ? `Error: ${errorState}` : fileContent}
+        code={
+          loading
+            ? "Loading..."
+            : errorState
+            ? `Error: ${errorState}`
+            : fileContent
+        }
         enableEdit={Boolean(asyncContext.filePath)}
         saveOnFile={asyncContext.filePath || null}
       />

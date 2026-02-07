@@ -39,9 +39,7 @@ export const Card: React.FC<CardProps> = ({
               {icon} {title}
             </h3>
             <div className="card__id">{id}</div>
-            {description && (
-              <p className="card__description">{description}</p>
-            )}
+            {description && <p className="card__description">{description}</p>}
           </div>
           {headerMeta && <div className="meta">{headerMeta}</div>}
         </div>

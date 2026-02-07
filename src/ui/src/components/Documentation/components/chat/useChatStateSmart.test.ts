@@ -6,7 +6,15 @@ import type { DocsBundle, AvailableElements } from "./ChatTypes";
 jest.mock("@bluelibs/smart", () => ({
   Smart: class MockSmart {
     constructor() {
-      this.messages = [{ id: "welcome", author: "bot", type: "text", text: "Welcome", timestamp: Date.now() }];
+      this.messages = [
+        {
+          id: "welcome",
+          author: "bot",
+          type: "text",
+          text: "Welcome",
+          timestamp: Date.now(),
+        },
+      ];
       this.isTyping = false;
       this.thinkingStage = "none";
       this.inputValue = "";
@@ -16,11 +24,39 @@ jest.mock("@bluelibs/smart", () => ({
       this.settings = { model: "gpt-5-mini", openaiApiKey: null };
       this.canStop = false;
       this.toolCalls = [];
-      this.chatContext = { include: { runner: false, schema: false, projectOverview: false, runnerDev: false } };
+      this.chatContext = {
+        include: {
+          runner: false,
+          schema: false,
+          projectOverview: false,
+          runnerDev: false,
+        },
+      };
       this.lastUsage = null;
       this.preflightContext = null;
-      this.stickyDocs = { runner: false, schema: false, projectOverview: false, runnerDev: false };
-      this.deepImpl = { enabled: false, flowId: null, flowStage: "idle", answers: {}, todo: [], logs: [], patch: null, budget: { totalTokens: 65500, reserveOutput: 2000, reserveSafety: 1500, usedApprox: 0 }, auto: { running: false }, docs: {} };
+      this.stickyDocs = {
+        runner: false,
+        schema: false,
+        projectOverview: false,
+        runnerDev: false,
+      };
+      this.deepImpl = {
+        enabled: false,
+        flowId: null,
+        flowStage: "idle",
+        answers: {},
+        todo: [],
+        logs: [],
+        patch: null,
+        budget: {
+          totalTokens: 65500,
+          reserveOutput: 2000,
+          reserveSafety: 1500,
+          usedApprox: 0,
+        },
+        auto: { running: false },
+        docs: {},
+      };
     }
 
     inform = jest.fn();
@@ -42,16 +78,26 @@ jest.mock("@bluelibs/smart", () => ({
     continueDeepImplFlow = jest.fn();
     persistChatHistory = jest.fn();
 
-    get canRetry() { return false; }
-    get tokenStatus() { return { mode: "tokens", total: 0, breakdown: { system: 0, history: 0, input: 0 } }; }
-    get liveEstimate() { return { system: 0, history: 0, input: 0, total: 0 }; }
+    get canRetry() {
+      return false;
+    }
+    get tokenStatus() {
+      return {
+        mode: "tokens",
+        total: 0,
+        breakdown: { system: 0, history: 0, input: 0 },
+      };
+    }
+    get liveEstimate() {
+      return { system: 0, history: 0, input: 0, total: 0 };
+    }
   },
   useNewSmart: jest.fn((SmartClass, ...args) => {
     const instance = new SmartClass(...args);
     const MockProvider = ({ children }) => children;
     return [instance, MockProvider];
   }),
-  useSmart: jest.fn((factory, deps) => {
+  useSmart: jest.fn((factory, _deps) => {
     const instance = new factory();
     return instance;
   }),
@@ -209,7 +255,9 @@ describe("useChatStateSmart", () => {
         })
       );
 
-      const mockInstance = require("@bluelibs/smart").useNewSmart.mock.results[0].value[0];
+      const mockInstance =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("@bluelibs/smart").useNewSmart.mock.results[0].value[0];
 
       act(() => {
         result.current.sendMessage("test");
@@ -221,13 +269,15 @@ describe("useChatStateSmart", () => {
         result.current.updateSettings({ model: "gpt-4" });
       });
 
-      expect(mockInstance.updateSettings).toHaveBeenCalledWith({ model: "gpt-4" });
+      expect(mockInstance.updateSettings).toHaveBeenCalledWith({
+        model: "gpt-4",
+      });
     });
   });
 
   describe("Dependency Management", () => {
     test("should recreate Smart instance when docs change", () => {
-      const { rerender, result } = renderHook(
+      const { rerender, result: _result } = renderHook(
         ({ docs, availableElements }) =>
           useChatStateSmart({
             availableElements,
@@ -241,14 +291,18 @@ describe("useChatStateSmart", () => {
         }
       );
 
-      const firstInstance = require("@bluelibs/smart").useNewSmart.mock.results[0].value[0];
+      const firstInstance =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("@bluelibs/smart").useNewSmart.mock.results[0].value[0];
 
       rerender({
         docs: { ...mockDocsBundle, runnerAiMd: "Updated docs" },
         availableElements: mockAvailableElements,
       });
 
-      const secondInstance = require("@bluelibs/smart").useNewSmart.mock.results[1].value[0];
+      const secondInstance =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("@bluelibs/smart").useNewSmart.mock.results[1].value[0];
 
       expect(firstInstance).not.toBe(secondInstance);
     });
@@ -268,17 +322,24 @@ describe("useChatStateSmart", () => {
         }
       );
 
-      const firstInstance = require("@bluelibs/smart").useNewSmart.mock.results[0].value[0];
+      const firstInstance =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("@bluelibs/smart").useNewSmart.mock.results[0].value[0];
 
       rerender({
         docs: mockDocsBundle,
         availableElements: {
           ...mockAvailableElements,
-          tasks: [...mockAvailableElements.tasks, { id: "task-2", name: "New Task" }],
+          tasks: [
+            ...mockAvailableElements.tasks,
+            { id: "task-2", name: "New Task" },
+          ],
         },
       });
 
-      const secondInstance = require("@bluelibs/smart").useNewSmart.mock.results[1].value[0];
+      const secondInstance =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("@bluelibs/smart").useNewSmart.mock.results[1].value[0];
 
       expect(firstInstance).not.toBe(secondInstance);
     });

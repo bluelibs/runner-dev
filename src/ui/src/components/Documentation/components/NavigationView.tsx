@@ -66,7 +66,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             setFocusedNodeId(allNodes[currentIndex - 1].id);
           }
           break;
-        case "ArrowRight":
+        case "ArrowRight": {
           e.preventDefault();
           const currentNode = allNodes[currentIndex];
           if (
@@ -77,15 +77,17 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             onToggleExpansion?.(currentNode.id, true);
           }
           break;
-        case "ArrowLeft":
+        }
+        case "ArrowLeft": {
           e.preventDefault();
           const currentNodeLeft = allNodes[currentIndex];
           if (currentNodeLeft.type === "folder" && currentNodeLeft.isExpanded) {
             onToggleExpansion?.(currentNodeLeft.id, false);
           }
           break;
+        }
         case "Enter":
-        case " ":
+        case " ": {
           e.preventDefault();
           const nodeToClick = allNodes[currentIndex];
           if (nodeToClick.type === "folder") {
@@ -94,6 +96,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             onNodeClick(nodeToClick);
           }
           break;
+        }
       }
     };
 

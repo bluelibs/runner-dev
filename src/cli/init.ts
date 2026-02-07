@@ -1,13 +1,5 @@
 import path from "path";
-import {
-  ensureEmptyDir,
-  ensureDir,
-  writeJson,
-  writeFile,
-  writeGitignore,
-  runCommand,
-  parseFlags,
-} from "./generators/initUtils";
+import { ensureEmptyDir, runCommand, parseFlags } from "./generators/initUtils";
 import { c, alignRows, divider, indentLines } from "./format";
 import type { ArtifactKind } from "./generators/common";
 import { scaffoldArtifact } from "./generators/artifact";
@@ -77,7 +69,6 @@ export async function main(argv: string[]): Promise<void> {
   if (kind === "project") {
     const projectName = (nameOrProject || "my-runner-project").trim();
     if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
-      // eslint-disable-next-line no-console
       console.error(
         "Invalid project name. Use only letters, numbers, dashes and underscores."
       );
@@ -91,7 +82,6 @@ export async function main(argv: string[]): Promise<void> {
     const options: ScaffoldOptions = { projectName, targetDir };
     await scaffold(options);
 
-    // eslint-disable-next-line no-console
     console.log(`\n${c.green("Project created in")} ${c.bold(targetDir)}.`);
 
     // Helpful options & commands
@@ -128,7 +118,6 @@ export async function main(argv: string[]): Promise<void> {
       { gap: 4, indent: 2 }
     );
 
-    // eslint-disable-next-line no-console
     console.log(
       [
         "",
@@ -146,7 +135,6 @@ export async function main(argv: string[]): Promise<void> {
       ].join("\n")
     );
 
-    // eslint-disable-next-line no-console
     console.log(
       [
         c.bold("Endpoints"),
@@ -196,7 +184,6 @@ export async function main(argv: string[]): Promise<void> {
       console.log("\nSkipping dev server start due to RUNNER_DEV_* env.\n");
     }
 
-    // eslint-disable-next-line no-console
     console.log(
       `\n${c.bold("Next steps")}\n${alignRows(
         [
@@ -213,7 +200,6 @@ export async function main(argv: string[]): Promise<void> {
   // Artifact scaffolding in existing project
   const nameRaw = (nameOrProject || "").trim();
   if (!nameRaw) {
-    // eslint-disable-next-line no-console
     console.error(
       `Please provide a name. Usage: runner-dev new ${kind} <name> [--ns app] [--dir src] [--dry]`
     );
@@ -241,21 +227,18 @@ export async function main(argv: string[]): Promise<void> {
       force,
     });
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error((e as Error)?.message || String(e));
     process.exitCode = 1;
     return;
   }
 
   if (dryRun && res.content) {
-    // eslint-disable-next-line no-console
     console.log(`\n${c.title("Dry run (no files written)")}`);
-    // eslint-disable-next-line no-console
+
     console.log(["Path:", res.filePath, "\n\n", res.content].join("\n"));
     return;
   }
 
-  // eslint-disable-next-line no-console
   console.log(
     `\n${c.green("Created")} ${c.bold(
       path.relative(process.cwd(), res.filePath)

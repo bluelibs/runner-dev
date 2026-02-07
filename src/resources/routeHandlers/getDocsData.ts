@@ -4,8 +4,7 @@ import { Store } from "@bluelibs/runner";
 import { initializeFromStore } from "../models/initializeFromStore";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { readDocContent, readPackageDoc } from "../../mcp/help";
-import { parse, print } from "graphql";
+import { readPackageDoc } from "../../mcp/help";
 
 export interface DocsRouteConfig {
   uiDir: string;
@@ -52,7 +51,9 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
             if (s && typeof s.percentage === "number") {
               (el as any).coverage = { percentage: s.percentage };
             }
-          } catch {}
+          } catch {
+            /* best-effort coverage attachment */
+          }
         }
       };
 
@@ -62,7 +63,9 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
         await attach((data as any).hooks || []);
         await attach((data as any).middlewares || []);
         await attach((data as any).events || []);
-      } catch {}
+      } catch {
+        /* best-effort coverage attachment */
+      }
     }
 
     // Try to read framework and runner-dev AI.md from node_modules
@@ -70,7 +73,7 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
       "@bluelibs/runner",
       "AI.md"
     ).catch(() => ({ content: "" } as any));
-    let runnerFrameworkAiMd = runnerFrameworkDoc.content || "";
+    const runnerFrameworkAiMd = runnerFrameworkDoc.content || "";
 
     // Runner-Dev AI.md (when this package is a dependency)
     const runnerDevDoc = await readPackageDoc(
@@ -87,7 +90,9 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
           "utf8"
         );
         runnerDevAiMd = fallback || runnerDevAiMd;
-      } catch {}
+      } catch {
+        /* best-effort fallback */
+      }
     }
 
     // Expose framework and dev docs separately
@@ -98,7 +103,7 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
     let graphqlSdl: string | undefined;
     try {
       graphqlSdl = config.getGraphqlSdl?.();
-    } catch (e) {
+    } catch (_e) {
       logger.warn?.("Failed to generate GraphQL SDL for /docs/data");
     }
 
@@ -162,7 +167,9 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
         }
         overviewLines.push("");
       }
-    } catch {}
+    } catch {
+      /* best-effort overview generation */
+    }
     const projectOverviewMd = overviewLines.join("\n");
 
     res.setHeader("Content-Type", "application/json");

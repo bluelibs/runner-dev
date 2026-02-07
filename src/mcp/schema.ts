@@ -21,5 +21,3 @@ export async function fetchSchemaSDL(): Promise<string> {
   const schema = buildClientSchema(result.data);
   return printSchema(schema);
 }
-
-

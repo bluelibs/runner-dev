@@ -315,7 +315,6 @@ if (typeof require !== "undefined" && require.main === module) {
       if (c.text) process.stdout.write(c.text + "\n");
     },
     onError: (e) => {
-      // eslint-disable-next-line no-console
       console.error(e);
     },
     onExit: () => {
@@ -323,7 +322,6 @@ if (typeof require !== "undefined" && require.main === module) {
     },
   });
   terminal.start().catch((err) => {
-    // eslint-disable-next-line no-console
     console.error(err);
     process.exitCode = 1;
   });
@@ -422,7 +420,7 @@ export function buildAsyncCompleter(_state: AgentTerminalState) {
 
       // default: no suggestions
       cb(null, [["/help", "@<pattern>"], line]);
-    } catch (e) {
+    } catch (_e) {
       cb(null, [["/help"], line]);
     }
   };

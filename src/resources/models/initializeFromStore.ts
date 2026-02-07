@@ -12,7 +12,7 @@ import {
 } from "./initializeFromStore.utils";
 import { Introspector } from "./Introspector";
 import { buildIdMap, ensureStringArray } from "./introspector.tools";
-import { formatSchemaIfZod, isZodSchema } from "../../utils/zod";
+import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
 
 export function initializeFromStore(
@@ -21,7 +21,7 @@ export function initializeFromStore(
 ): void {
   // Set store reference for methods that need it (e.g., populateTunnelInfo)
   introspector.store = store;
-  
+
   // Build tasks
   introspector.tasks = [];
   introspector.hooks = [];
@@ -60,18 +60,20 @@ export function initializeFromStore(
   }));
 
   // Build async contexts
-  introspector.asyncContexts = Array.from(store.asyncContexts.values()).map((c: any) => ({
-    id: c.id,
-    meta: c.meta,
-    filePath: sanitizePath(c[definitions.symbolFilePath]),
-    serialize: c.serialize,
-    parse: c.parse,
-    usedBy: c.usedBy || [],
-    providedBy: c.providedBy || [],
-    registeredBy: c.registeredBy,
-    overriddenBy: c.overriddenBy,
-    tags: ensureStringArray(c.tags),
-  }));
+  introspector.asyncContexts = Array.from(store.asyncContexts.values()).map(
+    (c: any) => ({
+      id: c.id,
+      meta: c.meta,
+      filePath: sanitizePath(c[definitions.symbolFilePath]),
+      serialize: c.serialize,
+      parse: c.parse,
+      usedBy: c.usedBy || [],
+      providedBy: c.providedBy || [],
+      registeredBy: c.registeredBy,
+      overriddenBy: c.overriddenBy,
+      tags: ensureStringArray(c.tags),
+    })
+  );
 
   // Build middlewares from both task and resource middleware collections
   introspector.taskMiddlewares = buildTaskMiddlewares(

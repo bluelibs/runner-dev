@@ -20,6 +20,7 @@ import {
 } from "./UsageTypes";
 import { TaskType } from "../TaskType";
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 export const MiddlewareGlobalType = new (require("graphql").GraphQLObjectType)({
   name: "GlobalMiddleware",
   fields: (): GraphQLFieldConfigMap<any, any> => ({

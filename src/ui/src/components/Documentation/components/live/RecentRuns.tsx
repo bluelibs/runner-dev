@@ -41,7 +41,7 @@ interface RecentRunsProps {
 export const RecentRuns: React.FC<RecentRunsProps> = ({
   runs,
   errors,
-  detailed = false,
+  _detailed,
 }) => {
   const [selectedErrorStack, setSelectedErrorStack] = useState<string | null>(
     null

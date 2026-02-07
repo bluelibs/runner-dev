@@ -12,7 +12,9 @@ export function createDocsServeHandler(uiDir: string, logger: Logger) {
       const manifestPathVite = path.resolve(uiDir, ".vite/manifest.json");
       try {
         manifestRaw = await fs.readFile(manifestPathVite, "utf8");
-      } catch {}
+      } catch {
+        /* ignored – fallback manifest path used below */
+      }
       if (!manifestRaw) {
         const manifestPath = path.resolve(uiDir, "manifest.json");
         manifestRaw = await fs.readFile(manifestPath, "utf8");
@@ -28,17 +30,17 @@ export function createDocsServeHandler(uiDir: string, logger: Logger) {
           stylesheetHrefs = entry.css.map((href: string) => `/${href}`);
         }
       }
-    } catch (e) {
+    } catch (_e) {
       logger.warn?.("Vite manifest not found or unreadable for /docs");
     }
 
     const styles = stylesheetHrefs
-      .map((href) => `<link rel=\"stylesheet\" href=\"${href}\">`)
+      .map((href) => `<link rel="stylesheet" href="${href}">`)
       .join("");
     const scripts = moduleScriptHref
-      ? `<script type=\"module\" src=\"${moduleScriptHref}\"></script>`
+      ? `<script type="module" src="${moduleScriptHref}"></script>`
       : "";
-    const html = `<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>Runner Dev Docs</title>${styles}</head><body><div id=\"root\"></div>${scripts}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Runner Dev Docs</title>${styles}</head><body><div id="root"></div>${scripts}</body></html>`;
     res.setHeader("Content-Type", "text/html");
     res.send(html);
   };

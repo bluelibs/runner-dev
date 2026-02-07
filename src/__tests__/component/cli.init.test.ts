@@ -41,7 +41,9 @@ async function main() {
     process.exit(0);
   }
 
-  if (${opts.supportsRunTest ? "true" : "false"} && cmd === "run" && args[1] === "test") {
+  if (${
+    opts.supportsRunTest ? "true" : "false"
+  } && cmd === "run" && args[1] === "test") {
     process.stdout.write("Fake npm test: touching marker\\n");
     await touch(path.join(cwd, ".fake-tests-ran"));
     process.exit(0);
@@ -102,7 +104,7 @@ function runCli(
   });
 }
 
-function runCmd(
+function _runCmd(
   cmd: string,
   args: string[],
   cwd: string,

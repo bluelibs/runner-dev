@@ -1,11 +1,7 @@
 import React from "react";
 import { Resource } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import {
-  formatConfig,
-  formatFilePath,
-  formatId,
-} from "../utils/formatting";
+import { formatConfig, formatFilePath, formatId } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
@@ -56,7 +52,9 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const [error, setError] = React.useState<string | null>(null);
   const [coverageDetailsOpen, setCoverageDetailsOpen] = React.useState(false);
   const [coverageData, setCoverageData] = React.useState<any>(null);
-  const [coverageFileContent, setCoverageFileContent] = React.useState<string | null>(null);
+  const [coverageFileContent, setCoverageFileContent] = React.useState<
+    string | null
+  >(null);
   const [coverageLoading, setCoverageLoading] = React.useState(false);
   const [coverageError, setCoverageError] = React.useState<string | null>(null);
 
@@ -102,7 +100,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
         graphqlRequest<{
           resource: { fileContents: string | null };
-        }>(SAMPLE_RESOURCE_FILE_QUERY, { id: resource.id })
+        }>(SAMPLE_RESOURCE_FILE_QUERY, { id: resource.id }),
       ]);
 
       setCoverageData(coverageResult?.resource?.coverage);
@@ -124,7 +122,10 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         <>
           {resource.meta?.title || formatId(resource.id)}
           {isTunnel && (
-            <span className="resource-card__tunnel-badge" title="Tunnel Resource">
+            <span
+              className="resource-card__tunnel-badge"
+              title="Tunnel Resource"
+            >
               🚇
             </span>
           )}
@@ -329,7 +330,9 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
       {(dependentTasks.length > 0 || registeredElements.length > 0) && (
         <div className="resource-card__relations">
-          <h4 className="resource-card__relations__title">Resource Relations</h4>
+          <h4 className="resource-card__relations__title">
+            Resource Relations
+          </h4>
           <div className="resource-card__relations__grid">
             {dependentTasks.length > 0 && (
               <div className="resource-card__relations__category">

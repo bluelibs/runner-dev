@@ -1,13 +1,7 @@
 #!/usr/bin/env node
-import {
-  execRemote,
-  resolveEndpoint,
-  resolveHeaders,
-  applyNamespaceFilter,
-} from "./shared";
+import { execRemote, resolveEndpoint, resolveHeaders } from "./shared";
 
 function printHelp(): void {
-  // eslint-disable-next-line no-console
   console.log(`
 runner-dev overview
 
@@ -77,6 +71,7 @@ export async function main(argv: string[]): Promise<void> {
 
   try {
     const endpointResolved = resolveEndpoint(endpoint);
+
     const _headers = resolveHeaders(headersJson); // validates
     const out = await execRemote({
       endpoint: endpointResolved,
@@ -84,7 +79,6 @@ export async function main(argv: string[]): Promise<void> {
       query,
     });
     if (out?.errors?.length) {
-      // eslint-disable-next-line no-console
       console.error(JSON.stringify(out.errors, null, 2));
       process.exitCode = 1;
       return;
@@ -283,10 +277,8 @@ export async function main(argv: string[]): Promise<void> {
       lines.push("");
     }
 
-    // eslint-disable-next-line no-console
     console.log(lines.join("\n"));
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error((e as Error).message);
     process.exitCode = 1;
     return;
@@ -295,7 +287,6 @@ export async function main(argv: string[]): Promise<void> {
 
 if (require.main === module) {
   main(process.argv).catch((error: unknown) => {
-    // eslint-disable-next-line no-console
     console.error((error as Error)?.message || String(error));
     process.exitCode = 1;
   });

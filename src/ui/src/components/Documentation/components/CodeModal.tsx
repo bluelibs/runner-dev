@@ -9,7 +9,10 @@ import { EditorView } from "@codemirror/view";
 import "./CodeModal.scss";
 import { graphqlRequest } from "../utils/graphqlClient";
 import { copyToClipboard } from "./chat/ChatUtils";
-import { CoverageVisualization, type CoverageData } from "./CoverageVisualization";
+import {
+  CoverageVisualization,
+  type CoverageData,
+} from "./CoverageVisualization";
 import type { LineCoverage } from "../../../../../resources/coverage.resource";
 
 export interface CodeModalProps {
@@ -52,10 +55,12 @@ function createLineCoverageExtension(lines: LineCoverage[]): Extension {
             const mark = Decoration.line({
               attributes: {
                 class: lineCoverage.covered
-                  ? 'cm-coverage-line-covered'
-                  : 'cm-coverage-line-uncovered',
-                title: `Line ${lineCoverage.line}: ${lineCoverage.covered ? 'covered' : 'not covered'} (${lineCoverage.hits} hits)`
-              }
+                  ? "cm-coverage-line-covered"
+                  : "cm-coverage-line-uncovered",
+                title: `Line ${lineCoverage.line}: ${
+                  lineCoverage.covered ? "covered" : "not covered"
+                } (${lineCoverage.hits} hits)`,
+              },
             });
 
             builder.push(mark.range(from, to));
@@ -70,57 +75,57 @@ function createLineCoverageExtension(lines: LineCoverage[]): Extension {
   return [
     lineCoveragePlugin,
     EditorView.theme({
-      '.cm-coverage-line-covered': {
-        backgroundColor: 'rgba(76, 175, 80, 0.15)',
-        borderLeft: '3px solid #4caf50',
-        position: 'relative',
+      ".cm-coverage-line-covered": {
+        backgroundColor: "rgba(76, 175, 80, 0.15)",
+        borderLeft: "3px solid #4caf50",
+        position: "relative",
 
-        '&::before': {
+        "&::before": {
           content: '"✓"',
-          position: 'absolute',
-          left: '-20px',
-          top: '2px',
-          color: '#4caf50',
-          fontSize: '12px',
-          fontWeight: 'bold'
-        }
+          position: "absolute",
+          left: "-20px",
+          top: "2px",
+          color: "#4caf50",
+          fontSize: "12px",
+          fontWeight: "bold",
+        },
       },
 
-      '.cm-coverage-line-uncovered': {
-        backgroundColor: 'rgba(244, 67, 54, 0.15)',
-        borderLeft: '3px solid #f44336',
-        position: 'relative',
+      ".cm-coverage-line-uncovered": {
+        backgroundColor: "rgba(244, 67, 54, 0.15)",
+        borderLeft: "3px solid #f44336",
+        position: "relative",
 
-        '&::before': {
+        "&::before": {
           content: '"✗"',
-          position: 'absolute',
-          left: '-20px',
-          top: '2px',
-          color: '#f44336',
-          fontSize: '12px',
-          fontWeight: 'bold'
-        }
+          position: "absolute",
+          left: "-20px",
+          top: "2px",
+          color: "#f44336",
+          fontSize: "12px",
+          fontWeight: "bold",
+        },
       },
 
       // Add margin to line numbers to make space for coverage indicators
-      '.cm-lineNumbers .cm-gutterElement': {
-        paddingLeft: '25px'
+      ".cm-lineNumbers .cm-gutterElement": {
+        paddingLeft: "25px",
       },
 
       // Custom gutter for coverage indicators
-      '.cm-coverage-gutter': {
-        width: '20px',
-        color: '#666',
-        fontSize: '12px',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        cursor: 'pointer',
+      ".cm-coverage-gutter": {
+        width: "20px",
+        color: "#666",
+        fontSize: "12px",
+        fontWeight: "bold",
+        textAlign: "center",
+        cursor: "pointer",
 
-        '&:hover': {
-          backgroundColor: 'rgba(255, 255, 255, 0.1)'
-        }
-      }
-    })
+        "&:hover": {
+          backgroundColor: "rgba(255, 255, 255, 0.1)",
+        },
+      },
+    }),
   ];
 }
 
@@ -277,8 +282,13 @@ export const CodeModal: React.FC<CodeModalProps> = ({
             {subtitle && <div className="code-modal__subtitle">{subtitle}</div>}
             {showCoverage && coverageData?.lines && (
               <div className="code-modal__coverage-legend">
-                <div className="legend-item legend--covered">Covered ({coverageData.lines.filter(l => l.covered).length})</div>
-                <div className="legend-item legend--uncovered">Uncovered ({coverageData.lines.filter(l => !l.covered).length})</div>
+                <div className="legend-item legend--covered">
+                  Covered ({coverageData.lines.filter((l) => l.covered).length})
+                </div>
+                <div className="legend-item legend--uncovered">
+                  Uncovered (
+                  {coverageData.lines.filter((l) => !l.covered).length})
+                </div>
               </div>
             )}
           </div>
@@ -349,7 +359,9 @@ export const CodeModal: React.FC<CodeModalProps> = ({
                 allowMultipleSelections: false,
               }}
               className={`code-modal__editor${
-                showCoverage && coverageData?.lines ? ' code-modal__editor--with-coverage' : ''
+                showCoverage && coverageData?.lines
+                  ? " code-modal__editor--with-coverage"
+                  : ""
               }`}
               style={{ fontSize: "14px" }}
             />

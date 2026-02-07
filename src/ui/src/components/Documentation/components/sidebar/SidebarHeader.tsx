@@ -11,7 +11,7 @@ export interface SidebarHeaderProps {
 }
 
 export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
-  icon,
+  _icon,
   title,
   description,
   status,

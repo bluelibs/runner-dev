@@ -6,7 +6,6 @@ import {
   globals,
   type TunnelRunner,
 } from "@bluelibs/runner";
-import { introspector as introspectorResource } from "../../resources/introspector.resource";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
 
@@ -36,9 +35,11 @@ describe("Tunnel Introspection", () => {
       tasks: ["test.tasks.remote"],
       events: ["test.events.remote"],
       eventDeliveryMode: "mirror",
+
       run: async (_task, _input) => {
         throw new Error("Mock tunnel - not actually connected");
       },
+
       emit: async (_event) => {
         // No-op mock
       },

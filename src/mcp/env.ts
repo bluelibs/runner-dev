@@ -18,7 +18,6 @@ export function parseHeadersFromEnv(): Record<string, string> {
     }
     return result;
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.warn("HEADERS env var is not valid JSON. Ignoring. Error:", e);
     return {};
   }

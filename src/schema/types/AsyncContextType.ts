@@ -8,7 +8,6 @@ import {
 import type { CustomGraphQLContext } from "../context";
 import type { AsyncContext as AsyncContextModel } from "../model";
 import { BaseElementInterface } from "./AllType";
-import { TaskType } from "./TaskType";
 import { ResourceType } from "./ResourceType";
 import { baseElementCommonFields } from "./BaseElementCommon";
 
@@ -17,7 +16,8 @@ export const AsyncContextType = new GraphQLObjectType<
   CustomGraphQLContext
 >({
   name: "AsyncContext",
-  description: "An async context definition for request-scoped data propagation",
+  description:
+    "An async context definition for request-scoped data propagation",
   interfaces: [BaseElementInterface],
   fields: () => ({
     ...baseElementCommonFields(),
@@ -32,7 +32,10 @@ export const AsyncContextType = new GraphQLObjectType<
     usedBy: {
       description: "Tasks and resources that use this async context",
       type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(require("./AllType").AllType))
+        new GraphQLList(
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          new GraphQLNonNull(require("./AllType").AllType)
+        )
       ),
       resolve: (context, _args, ctx: CustomGraphQLContext) => {
         const results: any[] = [];

@@ -1,5 +1,5 @@
 import { createDummyApp, areaTag, helloTask } from "../dummy/dummyApp";
-import { resource, run, globals } from "@bluelibs/runner";
+import { resource, run } from "@bluelibs/runner";
 import { introspector } from "../../resources/introspector.resource";
 
 describe("Introspector Tags", () => {

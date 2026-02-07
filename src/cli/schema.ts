@@ -1,16 +1,11 @@
 #!/usr/bin/env node
 import { fetchIntrospectionJson } from "./shared";
 import { fetchSchemaSDL } from "../mcp/schema";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { run } from "@bluelibs/runner";
-import { graphqlCli } from "../resources/graphql.cli.resource";
 import { getIntrospectionQuery, buildClientSchema, printSchema } from "graphql";
 import { graphqlQueryCliTask } from "../resources/graphql.query.cli.task";
 import { createGraphqlCliHarnessFromEntry } from "./harness";
 
 function printHelp(): void {
-  // eslint-disable-next-line no-console
   console.log(`
 runner-dev schema
 
@@ -77,7 +72,7 @@ export async function main(argv: string[]): Promise<void> {
             );
           }
           const schema = buildClientSchema(intros.data as any);
-          // eslint-disable-next-line no-console
+
           console.log(printSchema(schema));
           return;
         }
@@ -85,14 +80,16 @@ export async function main(argv: string[]): Promise<void> {
           const intros = await harness.runTask(graphqlQueryCliTask.id, {
             query: getIntrospectionQuery(),
           });
-          // eslint-disable-next-line no-console
+
           console.log(JSON.stringify(intros, null, 2));
           return;
         }
       } finally {
         try {
           await harness.dispose();
-        } catch {}
+        } catch {
+          /* intentionally empty */
+        }
       }
     }
 
@@ -100,19 +97,18 @@ export async function main(argv: string[]): Promise<void> {
       if (endpoint) process.env.ENDPOINT = endpoint;
       if (headersJson) process.env.HEADERS = headersJson;
       const sdl = await fetchSchemaSDL();
-      // eslint-disable-next-line no-console
+
       console.log(sdl);
       return;
     }
     if (sub === "json") {
       const json = await fetchIntrospectionJson(endpoint, headersJson);
-      // eslint-disable-next-line no-console
+
       console.log(JSON.stringify(json, null, 2));
       return;
     }
     printHelp();
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error((e as Error).message);
     process.exitCode = 1;
     return;
@@ -121,7 +117,6 @@ export async function main(argv: string[]): Promise<void> {
 
 if (require.main === module) {
   main(process.argv).catch((error: unknown) => {
-    // eslint-disable-next-line no-console
     console.error((error as Error)?.message || String(error));
     process.exitCode = 1;
   });

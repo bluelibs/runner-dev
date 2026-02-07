@@ -22,7 +22,8 @@ export const graphqlAccumulator = resource({
   id: "runner-dev.resources.graphql",
   meta: {
     title: "GraphQL Schema Builder",
-    description: "Constructs and manages the GraphQL schema with all types, queries, and mutations for the Runner-Dev API",
+    description:
+      "Constructs and manages the GraphQL schema with all types, queries, and mutations for the Runner-Dev API",
   },
   async init(_config) {
     const getSchema = (): GraphQLSchema => {

@@ -1,4 +1,4 @@
-import { resource, run, task, hook, globals } from "@bluelibs/runner";
+import { resource, run, hook, globals } from "@bluelibs/runner";
 import { createDummyApp, evtHello } from "../dummy/dummyApp";
 import { live } from "../../resources/live.resource";
 import { telemetry } from "../../resources/telemetry.resource";

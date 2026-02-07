@@ -43,15 +43,21 @@ export async function loadEntryExport(
       // Patch both the live export and the cache entry exports
       try {
         runnerMod.run = wrapped;
-      } catch {}
+      } catch {
+        /* intentionally empty */
+      }
       try {
         const cache = require.cache[runnerPath];
         if (cache && cache.exports) {
           cache.exports.run = wrapped;
         }
-      } catch {}
+      } catch {
+        /* intentionally empty */
+      }
     }
-  } catch {}
+  } catch {
+    /* intentionally empty */
+  }
 
   // Try to load a TS runtime relative to the target project first
   let loadedTsRuntime: string | null = null;
@@ -61,7 +67,7 @@ export async function loadEntryExport(
   } catch (e) {
     tsLoaderErrors.push(`tsx (project): ${(e as Error).message}`);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("tsx/cjs");
       loadedTsRuntime = "tsx";
     } catch (e2) {
@@ -78,7 +84,7 @@ export async function loadEntryExport(
         `ts-node/transpile-only (project): ${(e as Error).message}`
       );
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         require("ts-node/register/transpile-only");
         loadedTsRuntime = "ts-node/transpile-only";
       } catch (e2) {
@@ -98,7 +104,7 @@ export async function loadEntryExport(
         `ts-node/register (project): ${(e as Error).message}`
       );
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         require("ts-node/register");
         loadedTsRuntime = "ts-node/register";
       } catch (e2) {
@@ -132,7 +138,9 @@ export async function loadEntryExport(
   if (loadedTsRuntime) {
     try {
       projectRequire("tsconfig-paths/register");
-    } catch {}
+    } catch {
+      /* intentionally empty */
+    }
   }
 
   const errors: string[] = [];
@@ -140,12 +148,12 @@ export async function loadEntryExport(
 
   // Try CJS require first (allows tsx/ts-node hooks), then explicit .ts require, then dynamic import
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     mod = require(abs);
   } catch (e) {
     errors.push(`require(${abs}): ${(e as Error).message}`);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       mod = require(abs.endsWith(".ts") ? abs : `${abs}.ts`);
     } catch (e2) {
       errors.push(`require(${abs}.ts): ${(e2 as Error).message}`);

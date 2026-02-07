@@ -3,12 +3,10 @@ import {
   GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
-  GraphQLString,
 } from "graphql";
 import type { CustomGraphQLContext } from "./context";
 
 import {
-  AllType,
   BaseElementInterface,
   EventType,
   EventFilterInput,
@@ -38,7 +36,6 @@ import type {
   QueryHookArgs,
 } from "../generated/resolvers-types";
 import { isSystemEventId } from "../resources/models/introspector.tools";
-import { docsGenerator } from "../resources/docs.generator.resource";
 
 export const QueryType = new GraphQLObjectType({
   name: "Query",
@@ -370,10 +367,13 @@ export const QueryType = new GraphQLObjectType({
     },
     asyncContexts: {
       description: "Get all async context definitions.",
-      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(AsyncContextType))),
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(AsyncContextType))
+      ),
       args: {
         idIncludes: {
-          description: "Return only async contexts whose id contains this substring.",
+          description:
+            "Return only async contexts whose id contains this substring.",
           type: GraphQLID,
         },
       },

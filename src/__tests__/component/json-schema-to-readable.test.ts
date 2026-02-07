@@ -18,9 +18,9 @@ describe("jsonSchemaToReadableText", () => {
       description: "A schema for user data",
       type: "object",
       properties: {
-        name: { type: "string", description: "User's name" }
+        name: { type: "string", description: "User's name" },
       },
-      required: ["name"]
+      required: ["name"],
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Schema: User Schema");
@@ -39,9 +39,9 @@ describe("jsonSchemaToReadableText", () => {
           format: "email",
           minLength: 5,
           maxLength: 100,
-          pattern: ".*@.*"
-        }
-      }
+          pattern: ".*@.*",
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Type: string");
@@ -60,9 +60,9 @@ describe("jsonSchemaToReadableText", () => {
           minimum: 0,
           maximum: 120,
           exclusiveMinimum: true,
-          multipleOf: 1
-        }
-      }
+          multipleOf: 1,
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Type: integer");
@@ -77,7 +77,7 @@ describe("jsonSchemaToReadableText", () => {
       minItems: 1,
       maxItems: 10,
       uniqueItems: true,
-      items: { type: "string" }
+      items: { type: "string" },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Type: Array");
@@ -93,9 +93,9 @@ describe("jsonSchemaToReadableText", () => {
       type: "object",
       properties: {
         status: {
-          enum: ["active", "inactive", "pending"]
-        }
-      }
+          enum: ["active", "inactive", "pending"],
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain('Allowed values: "active", "inactive", "pending"');
@@ -106,9 +106,9 @@ describe("jsonSchemaToReadableText", () => {
       type: "object",
       properties: {
         version: {
-          const: "1.0.0"
-        }
-      }
+          const: "1.0.0",
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain('Constant value: "1.0.0"');
@@ -116,10 +116,7 @@ describe("jsonSchemaToReadableText", () => {
 
   test("formats oneOf constraint", () => {
     const schema = {
-      oneOf: [
-        { type: "string" },
-        { type: "number" }
-      ]
+      oneOf: [{ type: "string" }, { type: "number" }],
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Must match exactly one of:");
@@ -129,10 +126,7 @@ describe("jsonSchemaToReadableText", () => {
 
   test("formats anyOf constraint", () => {
     const schema = {
-      anyOf: [
-        { type: "string" },
-        { type: "number" }
-      ]
+      anyOf: [{ type: "string" }, { type: "number" }],
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Must match at least one of:");
@@ -142,10 +136,7 @@ describe("jsonSchemaToReadableText", () => {
 
   test("formats allOf constraint", () => {
     const schema = {
-      allOf: [
-        { type: "object" },
-        { required: ["id"] }
-      ]
+      allOf: [{ type: "object" }, { required: ["id"] }],
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Must match all of:");
@@ -161,12 +152,12 @@ describe("jsonSchemaToReadableText", () => {
           type: "object",
           properties: {
             street: { type: "string" },
-            city: { type: "string" }
+            city: { type: "string" },
           },
           required: ["street"],
-          additionalProperties: false
-        }
-      }
+          additionalProperties: false,
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("address (optional):");
@@ -185,11 +176,11 @@ describe("jsonSchemaToReadableText", () => {
           items: {
             type: "object",
             properties: {
-              id: { type: "string" }
-            }
-          }
-        }
-      }
+              id: { type: "string" },
+            },
+          },
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Type: array");
@@ -204,9 +195,9 @@ describe("jsonSchemaToReadableText", () => {
       properties: {
         count: {
           type: "integer",
-          default: 10
-        }
-      }
+          default: 10,
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Default: 10");
@@ -218,9 +209,9 @@ describe("jsonSchemaToReadableText", () => {
       properties: {
         name: {
           type: "string",
-          examples: ["John", "Jane", "Bob"]
-        }
-      }
+          examples: ["John", "Jane", "Bob"],
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain('Examples: "John", "Jane", "Bob"');
@@ -230,9 +221,9 @@ describe("jsonSchemaToReadableText", () => {
     const schema = {
       type: "object",
       properties: {
-        name: { type: "string" }
+        name: { type: "string" },
       },
-      additionalProperties: true
+      additionalProperties: true,
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Additional properties: allowed");
@@ -252,20 +243,20 @@ describe("jsonSchemaToReadableText", () => {
                 type: "object",
                 properties: {
                   id: { type: "integer" },
-                  name: { type: "string" }
-                }
-              }
-            ]
-          }
+                  name: { type: "string" },
+                },
+              },
+            ],
+          },
         },
         meta: {
           type: "object",
           properties: {
-            count: { type: "integer", minimum: 0 }
-          }
-        }
+            count: { type: "integer", minimum: 0 },
+          },
+        },
       },
-      required: ["data"]
+      required: ["data"],
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Schema: API Response");
@@ -282,13 +273,13 @@ describe("jsonSchemaToReadableText", () => {
         Schema: {
           type: "object",
           properties: {
-            name: { type: "string" }
+            name: { type: "string" },
           },
           required: ["name"],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
-      $schema: "http://json-schema.org/draft-07/schema#"
+      $schema: "http://json-schema.org/draft-07/schema#",
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("Type: Object");
@@ -299,27 +290,29 @@ describe("jsonSchemaToReadableText", () => {
 
   test("handles unresolvable $ref", () => {
     const schema = {
-      $ref: "#/definitions/NonExistent"
+      $ref: "#/definitions/NonExistent",
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
-    expect(result).toContain("Reference: #/definitions/NonExistent (unresolved)");
+    expect(result).toContain(
+      "Reference: #/definitions/NonExistent (unresolved)"
+    );
   });
 
   test("handles $ref in nested properties", () => {
     const schema = {
       type: "object",
       properties: {
-        user: { $ref: "#/definitions/User" }
+        user: { $ref: "#/definitions/User" },
       },
       definitions: {
         User: {
           type: "object",
           properties: {
             id: { type: "string" },
-            name: { type: "string" }
-          }
-        }
-      }
+            name: { type: "string" },
+          },
+        },
+      },
     };
     const result = jsonSchemaToReadableText(JSON.stringify(schema));
     expect(result).toContain("user (optional):");

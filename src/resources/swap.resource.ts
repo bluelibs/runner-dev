@@ -1,6 +1,5 @@
 import { globals, resource } from "@bluelibs/runner";
 import { introspector } from "./introspector.resource";
-import type { Introspector } from "./models/Introspector";
 import {
   compileRunFunction,
   getTaskFromStore,
@@ -70,7 +69,8 @@ export const swapManager = resource({
   id: "runner-dev.resources.swap-manager",
   meta: {
     title: "Task Swap Manager",
-    description: "Enables runtime swapping of task implementations and provides task/event invocation capabilities for development",
+    description:
+      "Enables runtime swapping of task implementations and provides task/event invocation capabilities for development",
   },
   dependencies: {
     store: globals.resources.store,
@@ -83,7 +83,7 @@ export const swapManager = resource({
     { store, introspector, taskRunner, eventManager }
   ): Promise<ISwapManager> {
     // Track original run functions and swap metadata
-    const originalRunFunctions = new Map<string, Function>();
+    const originalRunFunctions = new Map<string, (...args: any[]) => any>();
     const swappedTasks = new Map<string, SwappedTask>();
 
     const api: ISwapManager = {

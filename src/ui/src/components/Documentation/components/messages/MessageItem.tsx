@@ -38,7 +38,7 @@ export const MessageItem: React.FC<Props> = React.memo(
         }
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
-      } catch (_) {
+      } catch {
         // noop – keep it silent
       }
     }, []);
@@ -96,9 +96,7 @@ export const MessageItem: React.FC<Props> = React.memo(
               if (!calls.length) return null;
               return (
                 <details className="message-tool-calls">
-                  <summary>
-                    Used tools ({calls.length})
-                  </summary>
+                  <summary>Used tools ({calls.length})</summary>
                   <div className="tool-calls-content">
                     <ToolCallsList
                       calls={calls}

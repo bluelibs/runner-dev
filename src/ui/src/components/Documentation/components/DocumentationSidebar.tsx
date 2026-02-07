@@ -41,8 +41,8 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   isChatOpen,
   onToggleChat,
   leftOffset = 0,
-  isDarkMode = true,
-  onToggleDarkMode,
+  _isDarkMode = true,
+  _onToggleDarkMode,
   viewMode,
   treeType,
   localNamespaceSearch,
@@ -93,10 +93,26 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
                 <div>
                   <div className="tooltip-title">Search Syntax</div>
                   <ul className="tooltip-content">
-                    <li><span className="keyword">Comma for AND:</span> <span className="example">task,resource</span> (items with both task AND resource)</li>
-                    <li><span className="keyword">Pipe for OR:</span> <span className="example">task|resource</span> (items with task OR resource)</li>
-                    <li><span className="keyword">Exclude with !:</span> <span className="example">api,!test</span> (items with api but NOT test)</li>
-                    <li><span className="keyword">Tags search:</span> <span className="example">:api,debug</span> (search tags for api AND debug)</li>
+                    <li>
+                      <span className="keyword">Comma for AND:</span>{" "}
+                      <span className="example">task,resource</span> (items with
+                      both task AND resource)
+                    </li>
+                    <li>
+                      <span className="keyword">Pipe for OR:</span>{" "}
+                      <span className="example">task|resource</span> (items with
+                      task OR resource)
+                    </li>
+                    <li>
+                      <span className="keyword">Exclude with !:</span>{" "}
+                      <span className="example">api,!test</span> (items with api
+                      but NOT test)
+                    </li>
+                    <li>
+                      <span className="keyword">Tags search:</span>{" "}
+                      <span className="example">:api,debug</span> (search tags
+                      for api AND debug)
+                    </li>
                   </ul>
                 </div>
               }

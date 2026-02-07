@@ -12,7 +12,6 @@ import {
   EvalResultType,
   InvokeEventResultType,
 } from "./types/SwapType";
-import type { ISwapManager } from "../resources/swap.resource";
 import { CustomGraphQLContext } from "./context";
 import { resolvePathInput } from "../utils/path";
 import { promises as fs } from "fs";
@@ -66,11 +65,19 @@ export const MutationType = new GraphQLObjectType({
           type: new GraphQLNonNull(GraphQLString),
         },
       },
-      async resolve(_parent, { path, content }: { path: string; content: string }) {
+      async resolve(
+        _parent,
+        { path, content }: { path: string; content: string }
+      ) {
         try {
           const resolved = resolvePathInput(path);
           if (!resolved) {
-            return { success: false, error: "Unable to resolve path", path, resolvedPath: null };
+            return {
+              success: false,
+              error: "Unable to resolve path",
+              path,
+              resolvedPath: null,
+            };
           }
           await fs.writeFile(resolved, content, { encoding: "utf8" });
           return { success: true, path, resolvedPath: resolved };

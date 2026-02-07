@@ -9,7 +9,7 @@ import { graphql } from "graphql";
 describe("GraphQL Live (integration)", () => {
   test("query live logs and emissions deeply", async () => {
     let ctx: any;
-    let checkpoint = 0;
+    let _checkpoint = 0;
 
     const trigger = hook({
       id: "probe.graphql-live.trigger",
@@ -19,7 +19,7 @@ describe("GraphQL Live (integration)", () => {
       async run(_e, { logger, emitHello }) {
         await logger.debug("dbg1");
         await new Promise((r) => setTimeout(r, 10));
-        checkpoint = Date.now();
+        _checkpoint = Date.now();
         await logger.debug("dbg2");
         await emitHello({ name: "graphql" });
       },
@@ -59,9 +59,10 @@ describe("GraphQL Live (integration)", () => {
     expect(Array.isArray(data.live.runs)).toBe(true);
 
     // check last log matches what we emitted
-    let lastLog;
     // find the last 'debug' log:
-    lastLog = data.live.logs.reverse().find((l: any) => l.level === "debug");
+    const lastLog = data.live.logs
+      .reverse()
+      .find((l: any) => l.level === "debug");
     if (!lastLog) {
       throw new Error("No debug log found");
     }

@@ -1,12 +1,5 @@
 import { r } from "@bluelibs/runner";
 import {
-  UserDomainErrors,
-  ValidationError,
-  EmailAlreadyExistsError,
-  AccountLockedError,
-  InvalidCredentialsError,
-} from "../errors";
-import {
   RequestContext,
   AuditContext,
   SecurityContext,
@@ -35,7 +28,7 @@ export const enhancedUserDatabaseResource = r
     requestContext: RequestContext,
     auditContext: AuditContext,
   })
-  .init(async (_config, deps) => {
+  .init(async (_config, _deps) => {
     return { connected: true };
   })
   .build();
@@ -46,7 +39,7 @@ export const userSecurityServiceResource = r
     securityContext: SecurityContext,
     auditContext: AuditContext,
   })
-  .init(async (_config, deps) => {
+  .init(async (_config, _deps) => {
     // const audit = deps.auditContext.use();
     // console.log(`[${audit?.traceId}] Initializing user security service`);
     return { initializedAt: new Date() };
@@ -66,7 +59,7 @@ export const enhancedRegisterUserTask = r
     emitUserRegistered: userEnhancedRegisteredEvent,
   })
   .middleware([requestContextMiddleware, auditContextMiddleware])
-  .run(async (input, deps) => {
+  .run(async (_input, _deps) => {
     return { userId: `user_${Date.now()}` };
   })
   .build();
@@ -82,7 +75,7 @@ export const enhancedAuthenticateUserTask = r
     emitSuspiciousActivity: userSuspiciousActivityEvent,
   })
   .middleware([requestContextMiddleware, auditContextMiddleware])
-  .run(async (input, deps) => {
+  .run(async (_input, _deps) => {
     return { userId: `user_${Date.now()}` };
   })
   .build();
@@ -95,9 +88,14 @@ export const userRegistrationSecurityHook = r
     securityService: userSecurityServiceResource,
     auditContext: AuditContext,
   })
-  .run(async (event, { securityService, auditContext }) => {
-    // Security analysis logic
-  })
+  .run(
+    async (
+      _event,
+      { securityService: _securityService, auditContext: _auditContext }
+    ) => {
+      // Security analysis logic
+    }
+  )
   .build();
 
 export const userSuspiciousActivityHook = r
@@ -107,7 +105,12 @@ export const userSuspiciousActivityHook = r
     securityService: userSecurityServiceResource,
     auditContext: AuditContext,
   })
-  .run(async (event, { securityService, auditContext }) => {
-    // Suspicious activity handling logic
-  })
+  .run(
+    async (
+      _event,
+      { securityService: _securityService, auditContext: _auditContext }
+    ) => {
+      // Suspicious activity handling logic
+    }
+  )
   .build();

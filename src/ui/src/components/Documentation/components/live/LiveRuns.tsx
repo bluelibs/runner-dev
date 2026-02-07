@@ -15,7 +15,7 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
   const [taskInput, setTaskInput] = useState("");
   const [taskEvalInput, setTaskEvalInput] = useState(false);
   const [taskRunning, setTaskRunning] = useState(false);
-  const [taskError, setTaskError] = useState<unknown | null>(null);
+  const [, setTaskError] = useState<unknown | null>(null);
   const [taskResult, setTaskResult] = useState<string | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskAutocomplete, setTaskAutocomplete] = useState<any[]>([]);
@@ -27,7 +27,6 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
   const [eventPayload, setEventPayload] = useState("");
   const [eventEvalInput, setEventEvalInput] = useState(false);
   const [eventInvoking, setEventInvoking] = useState(false);
-  const [eventError, setEventError] = useState<unknown | null>(null);
   const [eventResult, setEventResult] = useState<string | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [eventAutocomplete, setEventAutocomplete] = useState<any[]>([]);

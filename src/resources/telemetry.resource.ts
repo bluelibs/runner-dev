@@ -1,4 +1,4 @@
-import { globals, hook, resource, taskMiddleware } from "@bluelibs/runner";
+import { globals, resource, taskMiddleware } from "@bluelibs/runner";
 import { live } from "./live.resource";
 import { deriveParentAndRoot, withTaskRunContext } from "./telemetry.chain";
 

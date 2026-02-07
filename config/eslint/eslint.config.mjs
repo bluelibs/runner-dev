@@ -17,14 +17,17 @@ const compat = new FlatCompat({
 
 const rootDir = path.resolve(__dirname, "../../");
 
-export default tseslint.config(
+export default [
+  {
+    ignores: ["src/generated/**"],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...compat.extends("plugin:prettier/recommended"),
   {
-    // Main source files
+    // Main source files (excluding UI, which has its own tsconfig)
     files: ["src/**/*.ts", "src/**/*.tsx"],
-    ignores: ["src/__tests__/**"],
+    ignores: ["src/__tests__/**", "src/ui/**"],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -38,7 +41,41 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/no-empty-function": "off",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+  {
+    // UI source files use the UI tsconfig
+    files: ["src/ui/**/*.ts", "src/ui/**/*.tsx"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+      parserOptions: {
+        project: "src/ui/tsconfig.json",
+        tsconfigRootDir: rootDir,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
   },
   {
@@ -56,6 +93,15 @@ export default tseslint.config(
     rules: {
       // Tests usually don't need type-aware rules if they aren't in the main tsconfig
       "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
-  }
-);
+  },
+];

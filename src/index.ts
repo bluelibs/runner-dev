@@ -1,5 +1,3 @@
-import { resource } from "@bluelibs/runner";
-
 import { serverResource } from "./resources/server.resource";
 import { introspector } from "./resources/introspector.resource";
 import { live } from "./resources/live.resource";

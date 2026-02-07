@@ -22,10 +22,7 @@ export interface Element {
   [key: string]: any;
 }
 
-import {
-  parseSearchQuery,
-  treeNodeMatchesParsed,
-} from "./search-utils";
+import { parseSearchQuery, treeNodeMatchesParsed } from "./search-utils";
 
 /**
  * Parse namespaced ID into parts (e.g., "app.tasks.createUser" -> ["app", "tasks", "createUser"])

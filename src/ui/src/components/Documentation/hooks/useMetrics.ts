@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { graphqlRequest } from "../utils/graphqlClient";
 
 export interface ThroughputPoint {

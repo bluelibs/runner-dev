@@ -33,3 +33,13 @@ export { CoverageInfoType } from "./CoverageType";
 export { ErrorType } from "./ErrorType";
 export { AsyncContextType } from "./AsyncContextType";
 export { TunnelInfoType, TunnelModeEnum, TunnelTransportEnum, TunnelEventDeliveryModeEnum } from "./TunnelInfoType";
+export {
+  DurableFlowShapeType,
+  FlowNodeType,
+  FlowStepNodeType,
+  FlowSleepNodeType,
+  FlowSignalNodeType,
+  FlowEmitNodeType,
+  FlowSwitchNodeType,
+  FlowNoteNodeType,
+} from "./DurableFlowTypes";

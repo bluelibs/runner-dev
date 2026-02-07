@@ -1,4 +1,5 @@
-import { globals, resource, task, hook } from "@bluelibs/runner";
+import { globals, resource, task, hook, type Store } from "@bluelibs/runner";
+import { describeFlow as runnerDescribeFlow, type DurableFlowShape } from "@bluelibs/runner/node";
 import { deriveParentAndRoot, getCorrelationId } from "./telemetry.chain";
 
 export type LogLevel =
@@ -129,6 +130,7 @@ export interface Live {
     parentId?: string | null,
     rootId?: string | null
   ): void;
+  describeFlow(taskId: string): Promise<DurableFlowShape | null>;
 }
 
 const liveService = resource({
@@ -138,8 +140,9 @@ const liveService = resource({
     description:
       "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
   },
-  async init(c: { maxEntries?: number }): Promise<Live> {
+  async init(c: { maxEntries?: number; store?: Store }): Promise<Live> {
     const maxEntries = c?.maxEntries ?? 10000;
+    const store = c?.store;
     const logs: LogEntry[] = [];
     const emissions: EmissionEntry[] = [];
     const errors: ErrorEntry[] = [];
@@ -372,6 +375,18 @@ const liveService = resource({
           result = result.filter((r) => allowed.has(String(r.rootId)));
         }
         return sliceLast(result, options.last);
+      },
+      async describeFlow(taskId: string): Promise<DurableFlowShape | null> {
+        if (!store) return null;
+        const storeElement = store.tasks.get(taskId);
+        if (!storeElement?.task) return null;
+        try {
+          // Type assertion needed due to ITask brand symbol differences between packages
+          return await runnerDescribeFlow(storeElement.task as any);
+        } catch {
+          // Task may not be a durable workflow or describeFlow not available
+          return null;
+        }
       },
     };
   },

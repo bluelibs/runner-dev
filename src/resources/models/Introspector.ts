@@ -741,6 +741,40 @@ export class Introspector {
     }
   }
 
+  // Durable workflow-related methods
+  /**
+   * Checks if a task is a durable workflow task.
+   * A task is durable if it depends on a resource with 'durable' in its ID.
+   */
+  isDurableTask(taskId: string): boolean {
+    const task = this.taskMap.get(taskId);
+    if (!task) return false;
+    const deps = ensureStringArray(task.dependsOn);
+    return deps.some(depId =>
+      depId.includes('.durable') || depId.startsWith('base.durable.')
+    );
+  }
+
+  /**
+   * Returns all tasks that are durable workflow tasks.
+   */
+  getDurableTasks(): Task[] {
+    return this.tasks.filter(t => this.isDurableTask(t.id));
+  }
+
+  /**
+   * Returns the durable resource a task depends on, if any.
+   */
+  getDurableResourceForTask(taskId: string): Resource | null {
+    const task = this.taskMap.get(taskId);
+    if (!task) return null;
+    const deps = ensureStringArray(task.dependsOn);
+    const durableDepId = deps.find(depId =>
+      depId.includes('.durable') || depId.startsWith('base.durable.')
+    );
+    return durableDepId ? this.getResource(durableDepId) : null;
+  }
+
 
   // Serialization API
   serialize(): SerializedIntrospector {

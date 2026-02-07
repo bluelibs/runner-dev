@@ -1,10 +1,11 @@
 {
-  "entryPoints": ["src/index.ts"],
-  "out": "docs",
+  "entryPoints": ["../../src/index.ts"],
+  "tsconfig": "../ts/tsconfig.json",
+  "out": "../../docs",
   "exclude": ["**/__tests__/**/*"],
   "includeVersion": true,
   "plugin": ["typedoc-material-theme"],
   "themeColor": "#cb9820",
-  "readme": "README.md",
+  "readme": "../../README.md",
   "customCss": "typedoc.custom.css"
 }

@@ -3,9 +3,9 @@ import * as path from "path";
 
 const config: CodegenConfig = {
   // Load schema from code-first module (TypeScript)
-  schema: path.join(__dirname, "src/schema/index.ts"),
+  schema: path.join(__dirname, "../src/schema/index.ts"),
   generates: {
-    [path.join(__dirname, "src/generated/resolvers-types.ts")]: {
+    [path.join(__dirname, "../src/generated/resolvers-types.ts")]: {
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         useIndexSignature: true,
@@ -21,7 +21,9 @@ const config: CodegenConfig = {
     },
   },
   // Ensure TS schema module is loaded
-  require: ["ts-node/register/transpile-only"],
+  require: [path.join(__dirname, "ts-node-register.js")],
+  // Allow referencing tsconfig relative to this file or root
+  // codegen CLI usually runs from root, but we import this file.
 };
 
 export default config;

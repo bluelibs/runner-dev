@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext",
+    "lib": ["ESNext", "DOM"],
+    "moduleResolution": "NodeNext",
+    "isolatedModules": true,
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "preserveSymlinks": true,
+    "rootDir": "../../src",
+    "outDir": "../../dist",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "pretty": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "declaration": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "typeRoots": ["../../node_modules/@types"],
+    "types": ["node", "jest"],
+    "noImplicitThis": false,
+    "skipLibCheck": true
+  },
+
+  "include": [
+    "../../src/**/*.ts",
+    "../../src/**/*.tsx",
+    "../../src/custom.d.ts"
+  ],
+  "exclude": ["../../src/__tests__/**", "../../src/ui/**", "../../node_modules"]
+}

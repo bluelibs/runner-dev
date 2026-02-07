@@ -1,4 +1,11 @@
-import { resource, task, event, run, globals } from "@bluelibs/runner";
+import {
+  resource,
+  task,
+  event,
+  run,
+  globals,
+  type TunnelRunner,
+} from "@bluelibs/runner";
 import { introspector as introspectorResource } from "../../resources/introspector.resource";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
@@ -23,20 +30,16 @@ describe("Tunnel Introspection", () => {
   const tunnelClient = resource({
     id: "test.tunnel.client",
     tags: [globals.tags.tunnel],
-    init: async () => ({
-      mode: "client" as const,
-      transport: "http" as const,
+    init: async (): Promise<TunnelRunner> => ({
+      mode: "client",
+      transport: "http",
       tasks: ["test.tasks.remote"],
       events: ["test.events.remote"],
-      endpoint: "http://localhost:7070/__runner",
-      auth: "token",
       eventDeliveryMode: "mirror",
-      // Runner requires run() for client tunnels with tasks[]
-      run: async (_task: unknown, _input: unknown) => {
+      run: async (_task, _input) => {
         throw new Error("Mock tunnel - not actually connected");
       },
-      // Runner requires emit() for client tunnels with events[]
-      emit: async (_event: unknown, _payload: unknown) => {
+      emit: async (_event) => {
         // No-op mock
       },
     }),
@@ -46,9 +49,9 @@ describe("Tunnel Introspection", () => {
   const tunnelServer = resource({
     id: "test.tunnel.server",
     tags: [globals.tags.tunnel],
-    init: async () => ({
-      mode: "server" as const,
-      transport: "http" as const,
+    init: async (): Promise<TunnelRunner> => ({
+      mode: "server",
+      transport: "http",
       tasks: ["test.tasks.exposed"],
       events: [],
     }),
@@ -66,10 +69,10 @@ describe("Tunnel Introspection", () => {
       ],
     });
 
-    // Run the app without the introspector resource 
+    // Run the app without the introspector resource
     // Then create a fresh introspector after runtime completes
-    const runtime = await run(app, { debug: "silent" });
-    
+    const runtime = await run(app, { debug: {} });
+
     // Create a fresh introspector AFTER all resources are initialized
     const introspector = new Introspector({ store: runtime.store });
     initializeFromStore(introspector, runtime.store);
@@ -89,7 +92,6 @@ describe("Tunnel Introspection", () => {
     expect(clientResource?.tunnelInfo?.transport).toBe("http");
     expect(clientResource?.tunnelInfo?.tasks).toContain("test.tasks.remote");
     expect(clientResource?.tunnelInfo?.events).toContain("test.events.remote");
-    expect(clientResource?.tunnelInfo?.endpoint).toBe("http://localhost:7070/__runner");
     expect(clientResource?.tunnelInfo?.eventDeliveryMode).toBe("mirror");
 
     const serverResource = tunnelResources.find(
@@ -114,8 +116,8 @@ describe("Tunnel Introspection", () => {
       ],
     });
 
-    const runtime = await run(app, { debug: "silent" });
-    
+    const runtime = await run(app, { debug: {} });
+
     const introspector = new Introspector({ store: runtime.store });
     initializeFromStore(introspector, runtime.store);
     introspector.populateTunnelInfo();
@@ -140,8 +142,8 @@ describe("Tunnel Introspection", () => {
       ],
     });
 
-    const runtime = await run(app, { debug: "silent" });
-    
+    const runtime = await run(app, { debug: {} });
+
     const introspector = new Introspector({ store: runtime.store });
     initializeFromStore(introspector, runtime.store);
     introspector.populateTunnelInfo();

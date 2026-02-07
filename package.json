@@ -8,27 +8,31 @@
     "url": "https://github.com/bluelibs/runner-dev"
   },
   "scripts": {
-    "build": "tsc && npm run build:ui",
-    "watch": "tsc -w",
+    "build": "tsc -p config/ts/tsconfig.json && npm run build:ui",
+    "watch": "tsc -p config/ts/tsconfig.json -w",
     "clean": "rm -rf dist",
-    "cli": "ts-node src/cli.ts",
+    "cli": "ts-node --project config/ts/tsconfig.json src/cli.ts",
     "start": "node dist/main.js",
     "dev": "npm run build && npm run start",
     "build:ui": "cd src/ui && vite build",
     "dev:ui": "cd src/ui && vite",
     "preview:ui": "cd src/ui && vite preview --port 5173",
     "build:ui:watch": "cd src/ui && vite build --watch --clearScreen=false",
-    "play:server": "ts-node-dev --respawn --transpile-only src/__tests__/dummy/dummyServer.ts --watch src/**/*",
-    "test": "jest --verbose --runInBand",
-    "test:dev": "jest --verbose --watch",
-    "coverage": "jest --verbose --coverage",
-    "test:clean": "jest --clearCache",
+    "play:server": "ts-node-dev --project config/ts/tsconfig.json --respawn --transpile-only src/__tests__/dummy/dummyServer.ts --watch src/**/*",
+    "test": "jest --config config/jest/jest.config.js --verbose --runInBand",
+    "test:dev": "jest --config config/jest/jest.config.js --verbose --watch",
+    "coverage": "jest --config config/jest/jest.config.js --verbose --coverage",
+    "test:clean": "jest --config config/jest/jest.config.js --clearCache",
     "testonly": "npm test",
     "test:ci": "npm run build && npm run test",
     "prepublishOnly": "npm run build",
-    "typedoc": "typedoc --options typedoc.json",
-    "codegen": "graphql-codegen --config codegen.ts",
-    "prebuild": "ts-node scripts/sync-version.ts && npm run codegen",
+    "typedoc": "typedoc --options config/typedoc/typedoc.json",
+    "lint": "eslint src --config config/eslint/eslint.config.mjs",
+    "lint:fix": "eslint src --config config/eslint/eslint.config.mjs --fix",
+    "qa": "npm run lint && npm run build && npm run test && npm run typedoc",
+    "coverage:ai": "jest --config config/jest/jest.config.js --coverage --coverageReporters=text-summary",
+    "codegen": "graphql-codegen --config config/codegen.ts",
+    "prebuild": "ts-node --project config/ts/tsconfig.json scripts/sync-version.ts && npm run codegen",
     "play": "concurrently -k -n UI,SRV -c blue,green \"npm:build:ui:watch\" \"npm:play:server\"",
     "play:cli": "npm run play:server",
     "demo:ping": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js ping",
@@ -42,6 +46,8 @@
   "devDependencies": {
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/theme-one-dark": "^6.1.3",
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.2",
     "@graphql-codegen/cli": "^5.0.2",
     "@graphql-codegen/schema-ast": "^4.1.0",
     "@graphql-codegen/typescript": "^4.0.7",
@@ -63,9 +69,12 @@
     "@vitejs/plugin-react": "^4.3.1",
     "benchmark": "^2.1.4",
     "concurrently": "^9.2.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "6.3.0",
+    "eslint-plugin-jest": "^29.12.2",
     "eslint-plugin-prettier": "3.1.1",
+    "globals": "^15.15.0",
     "jest": "^29.0.0",
     "jest-environment-jsdom": "^30.2.0",
     "jest-junit": "^10.0.0",
@@ -83,6 +92,7 @@
     "typedoc": "^0.26.7",
     "typedoc-material-theme": "^1.1.0",
     "typescript": "^5.6.2",
+    "typescript-eslint": "^8.54.0",
     "vite": "^7.1.3"
   },
   "typings": "dist/index.d.ts",
@@ -117,5 +127,21 @@
       "react": "18.3.1",
       "react-dom": "18.3.1"
     }
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "tabWidth": 2,
+    "singleQuote": false,
+    "endOfLine": "auto",
+    "overrides": [
+      {
+        "files": [
+          "*.ts"
+        ],
+        "options": {
+          "parser": "babel-ts"
+        }
+      }
+    ]
   }
 }

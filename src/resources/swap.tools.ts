@@ -6,7 +6,9 @@ import type { Store } from "@bluelibs/runner";
  */
 export function compileRunFunction(
   code: string
-): { success: true; func: Function } | { success: false; error: string } {
+):
+  | { success: true; func: (...args: any[]) => any }
+  | { success: false; error: string } {
   try {
     // Validate input
     if (!code || code.trim() === "") {
@@ -63,7 +65,7 @@ export function compileRunFunction(
 
     // Create and validate the function
     // The result should be a function declaration, so we need to evaluate it and extract the function
-    let func: Function;
+    let func: (...args: any[]) => any;
     try {
       // Create a new context to execute the compiled code
       const context = { exports: {}, module: { exports: {} } };
@@ -155,7 +157,7 @@ export function getTaskDependencies(store: any, taskId: string): any {
 
     const dependencies = storeElement?.computedDependencies;
     return dependencies ?? {};
-  } catch (error) {
+  } catch (_error) {
     // If anything fails, return empty dependencies to prevent crashes
     return {};
   }

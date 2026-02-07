@@ -1,4 +1,4 @@
-import { r, run, globals, ITask, IResource } from "@bluelibs/runner";
+import { r, run, globals, ITask } from "@bluelibs/runner";
 
 // ====================
 // TUNNEL CLIENT CONFIGURATION
@@ -43,7 +43,10 @@ export const enhancedProductSyncTask = r
 
 export const enhancedProcessOrderTask = r
   .task("app.tasks.enhancedProcessOrder")
-  .run(async (input: { orderId: string }) => ({ orderId: input.orderId, paymentStatus: "approved" }))
+  .run(async (input: { orderId: string }) => ({
+    orderId: input.orderId,
+    paymentStatus: "approved",
+  }))
   .build();
 
 export const generateBusinessReportTask = r

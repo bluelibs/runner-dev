@@ -129,11 +129,15 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                 <div className="label label--tasks">Tasks</div>
               </div>
               <div className="middleware-card__usage-stat middleware-card__usage-stat--resources">
-                <div className="value value--resources">{resourceUsages.length}</div>
+                <div className="value value--resources">
+                  {resourceUsages.length}
+                </div>
                 <div className="label label--resources">Resources</div>
               </div>
               <div className="middleware-card__usage-stat middleware-card__usage-stat--events">
-                <div className="value value--events">{emittedEvents.length}</div>
+                <div className="value value--events">
+                  {emittedEvents.length}
+                </div>
                 <div className="label label--events">Events</div>
               </div>
             </div>
@@ -144,10 +148,12 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
               <div className="title">Global Middleware Configuration</div>
               <div className="content">
                 <div className="config-item">
-                  <strong>Tasks:</strong> {middleware.global.tasks ? "Enabled" : "Disabled"}
+                  <strong>Tasks:</strong>{" "}
+                  {middleware.global.tasks ? "Enabled" : "Disabled"}
                 </div>
                 <div className="config-item">
-                  <strong>Resources:</strong> {middleware.global.resources ? "Enabled" : "Disabled"}
+                  <strong>Resources:</strong>{" "}
+                  {middleware.global.resources ? "Enabled" : "Disabled"}
                 </div>
               </div>
             </div>
@@ -188,7 +194,9 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
 
       {(taskUsages.length > 0 || resourceUsages.length > 0) && (
         <div className="middleware-card__usage-details">
-          <h4 className="middleware-card__usage-details__title">Usage Details</h4>
+          <h4 className="middleware-card__usage-details__title">
+            Usage Details
+          </h4>
           <div className="middleware-card__usage-details__grid">
             {taskUsages.length > 0 && (
               <div className="middleware-card__usage-details__category">
@@ -265,7 +273,9 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
 
       {emittedEvents.length > 0 && (
         <div className="middleware-card__events">
-          <h4 className="middleware-card__events__title">Events Emitted by Usage</h4>
+          <h4 className="middleware-card__events__title">
+            Events Emitted by Usage
+          </h4>
           <div className="middleware-card__events__items">
             {emittedEvents.map((event) => (
               <a

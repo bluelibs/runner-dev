@@ -12,7 +12,7 @@ async function loadModule(basePath: string): Promise<any> {
   if (isTsRuntime) {
     // In ts-node runtime, .ts requires should already be hooked. Try CJS require first.
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       return require(`${basePath}.ts`);
     } catch {
       // Fall back to dynamic import if available in the environment
@@ -22,7 +22,7 @@ async function loadModule(basePath: string): Promise<any> {
   // Built JS path: prefer sync require to avoid early process exit
   // when stdout/stderr are piped and the entrypoint is fire-and-forget.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require(`${basePath}.js`);
   } catch {
     return await import(`${basePath}.js`);
@@ -116,7 +116,6 @@ async function run(): Promise<void> {
       2
     );
 
-    // eslint-disable-next-line no-console
     console.log(
       [
         "",
@@ -171,13 +170,11 @@ async function run(): Promise<void> {
     return;
   }
 
-  // eslint-disable-next-line no-console
   console.error(`Unknown command: ${subcommand}`);
   process.exitCode = 1;
 }
 
 run().catch((error: unknown) => {
-  // eslint-disable-next-line no-console
   console.error((error as Error)?.message || String(error));
   process.exitCode = 1;
 });

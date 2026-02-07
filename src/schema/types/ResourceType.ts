@@ -1,5 +1,4 @@
 import {
-  GraphQLBoolean,
   GraphQLID,
   GraphQLList,
   GraphQLNonNull,
@@ -15,7 +14,6 @@ import { TaskType } from "./TaskType";
 import { EventType } from "./EventType";
 import { CustomGraphQLContext } from "../context";
 import { TaskMiddlewareUsageType } from "./TaskType";
-import { definitions } from "@bluelibs/runner";
 import { Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
@@ -152,14 +150,18 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       type: GraphQLString,
     },
     tunnelInfo: {
-      description: "Tunnel configuration (present when resource has tunnel tag)",
+      description:
+        "Tunnel configuration (present when resource has tunnel tag)",
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       type: require("./TunnelInfoType").TunnelInfoType,
       resolve: (resource, _args, ctx: CustomGraphQLContext) => {
         // Check if this resource has the tunnel tag
         const tunnelTag = ctx.introspector.getTag("runner-dev.tunnel");
         if (!tunnelTag) return null;
 
-        const hasTunnelTag = (resource.tags || []).includes("runner-dev.tunnel");
+        const hasTunnelTag = (resource.tags || []).includes(
+          "runner-dev.tunnel"
+        );
         if (!hasTunnelTag) return null;
 
         // For now, return null - this will be populated by the introspector

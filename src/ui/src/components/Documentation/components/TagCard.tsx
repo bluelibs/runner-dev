@@ -41,7 +41,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
   const [error, setError] = React.useState<string | null>(null);
   const [saveOnFile, setSaveOnFile] = React.useState<string | null>(null);
 
-  async function openElementFile(
+  async function _openElementFile(
     kind: "task" | "resource" | "middleware" | "event",
     id: string,
     title?: string | null,
@@ -130,7 +130,9 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
               <div className="tag-card__stat__label">Tasks</div>
             </div>
             <div className="tag-card__stat tag-card__stat--resources">
-              <div className="tag-card__stat__value">{tag.resources.length}</div>
+              <div className="tag-card__stat__value">
+                {tag.resources.length}
+              </div>
               <div className="tag-card__stat__label">Resources</div>
             </div>
             <div className="tag-card__stat tag-card__stat--events">
@@ -138,7 +140,9 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
               <div className="tag-card__stat__label">Events</div>
             </div>
             <div className="tag-card__stat tag-card__stat--middlewares">
-              <div className="tag-card__stat__value">{tag.middlewares.length}</div>
+              <div className="tag-card__stat__value">
+                {tag.middlewares.length}
+              </div>
               <div className="tag-card__stat__label">Middlewares</div>
             </div>
             <div className="tag-card__stat tag-card__stat--hooks">

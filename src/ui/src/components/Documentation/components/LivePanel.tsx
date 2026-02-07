@@ -3,7 +3,6 @@ import { graphqlRequest } from "../utils/graphqlClient";
 import { RecentLogs } from "./live/RecentLogs";
 import { RecentEvents } from "./live/RecentEvents";
 import { RecentRuns } from "./live/RecentRuns";
-import { LiveRuns } from "./live/LiveRuns";
 import { Introspector } from "../../../../../resources/models/Introspector";
 
 interface MemoryStats {
@@ -271,7 +270,7 @@ interface LivePanelProps {
 
 export const LivePanel: React.FC<LivePanelProps> = ({
   detailed = false,
-  introspector,
+  _introspector,
 }) => {
   const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [isPolling, setIsPolling] = useState(true);

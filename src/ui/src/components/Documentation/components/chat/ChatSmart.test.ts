@@ -16,7 +16,10 @@ jest.mock("./ChatUtils", () => ({
     total: 350,
   })),
   buildRequestMessages: jest.fn(() => []),
-  expandDocsInMessage: jest.fn((text) => ({ modelText: text, displayText: text })),
+  expandDocsInMessage: jest.fn((text) => ({
+    modelText: text,
+    displayText: text,
+  })),
   generateUnifiedDiff: jest.fn(() => "mock diff"),
 }));
 
@@ -86,7 +89,9 @@ describe("ChatSmart", () => {
 
   describe("Message Management", () => {
     test("should send message and create assistant placeholder", async () => {
-      const mockStreamChatCompletion = require("./ai.service").streamChatCompletion;
+      const mockStreamChatCompletion =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("./ai.service").streamChatCompletion;
       mockStreamChatCompletion.mockImplementation(async (req, handlers) => {
         handlers.onTextDelta("Hello");
         handlers.onFinish("Hello");
@@ -105,8 +110,13 @@ describe("ChatSmart", () => {
 
     test("should show error when no API key", async () => {
       // Create a fresh instance for this test to avoid test interference
-      const freshChatSmart = new ChatSmart(mockDocsBundle, mockAvailableElements);
-      const mockStreamChatCompletion = require("./ai.service").streamChatCompletion;
+      const freshChatSmart = new ChatSmart(
+        mockDocsBundle,
+        mockAvailableElements
+      );
+      const mockStreamChatCompletion =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("./ai.service").streamChatCompletion;
 
       // Ensure API key is null (in case it was loaded from persisted state)
       freshChatSmart.settings.openaiApiKey = null;
@@ -121,7 +131,9 @@ describe("ChatSmart", () => {
       expect(freshChatSmart.messages[0].author).toBe("bot");
       expect(freshChatSmart.messages[0].id).toBe("welcome");
       expect(freshChatSmart.messages[1].author).toBe("bot");
-      expect(freshChatSmart.messages[1].text).toContain("OpenAI API key is required");
+      expect(freshChatSmart.messages[1].text).toContain(
+        "OpenAI API key is required"
+      );
       expect(freshChatSmart.isTyping).toBe(false);
 
       // Ensure streaming was not called
@@ -146,10 +158,8 @@ describe("ChatSmart", () => {
 
   describe("Settings Management", () => {
     test("should update settings", () => {
-      const persistSpy = jest.spyOn(
-        require("./ChatUtils"),
-        "saveChatSettings"
-      );
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const persistSpy = jest.spyOn(require("./ChatUtils"), "saveChatSettings");
 
       chatSmart.updateSettings({ model: "gpt-4", temperature: 0.5 });
 
@@ -158,6 +168,7 @@ describe("ChatSmart", () => {
     });
 
     test("should test OpenAI connection", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const mockTestConnection = require("./ai.service").testOpenAIConnection;
       mockTestConnection.mockResolvedValue({ ok: true });
 
@@ -198,10 +209,8 @@ describe("ChatSmart", () => {
 
   describe("Context Management", () => {
     test("should update chat context", () => {
-      const persistSpy = jest.spyOn(
-        require("./ChatUtils"),
-        "saveChatContext"
-      );
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const persistSpy = jest.spyOn(require("./ChatUtils"), "saveChatContext");
 
       chatSmart.updateChatContext({ runner: true, schema: true });
 
@@ -227,7 +236,9 @@ describe("ChatSmart", () => {
     });
 
     test("should set deep impl answers", async () => {
-      const mockStreamChatCompletion = require("./ai.service").streamChatCompletion;
+      const mockStreamChatCompletion =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("./ai.service").streamChatCompletion;
       mockStreamChatCompletion.mockImplementation(async (req, handlers) => {
         handlers.onTextDelta("Response");
         handlers.onFinish("Response");

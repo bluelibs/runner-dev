@@ -25,7 +25,7 @@ import {
   TunnelTransportEnum,
 } from "./types/index";
 
-export const createSchema = (swapManager?: ISwapManager) => {
+export const createSchema = (_swapManager?: ISwapManager) => {
   return new GraphQLSchema({
     query: QueryType,
     mutation: MutationType,

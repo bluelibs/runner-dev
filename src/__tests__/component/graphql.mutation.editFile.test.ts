@@ -18,7 +18,9 @@ describe("GraphQL mutation: editFile", () => {
     try {
       await fs.unlink(tmpFile);
       await fs.rmdir(tmpDir);
-    } catch {}
+    } catch {
+      // intentionally empty
+    }
   });
 
   test("writes content to absolute path", async () => {

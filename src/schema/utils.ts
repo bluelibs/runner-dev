@@ -34,8 +34,8 @@ export async function readFile(
     const rawStart = (options?.startLine ?? 1) as number;
     const rawEnd = (options?.endLine ?? totalLines) as number;
 
-    let start = Math.max(1, Math.min(rawStart, totalLines));
-    let end = Math.max(1, Math.min(rawEnd, totalLines));
+    const start = Math.max(1, Math.min(rawStart, totalLines));
+    const end = Math.max(1, Math.min(rawEnd, totalLines));
 
     if (start > end) {
       return "";

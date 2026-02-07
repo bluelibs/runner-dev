@@ -143,7 +143,9 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
       document.removeEventListener("keydown", handleTab);
       try {
         previouslyFocused.current?.focus();
-      } catch {}
+      } catch {
+        /* intentionally empty */
+      }
     };
   }, [isOpen]);
 
@@ -303,7 +305,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     try {
       // Evaluate JS-like input on the client and return minified JSON
       // e.g. allow single-quoted strings or expressions
-      // eslint-disable-next-line no-new-func
+
       const value = Function(`"use strict"; return (${raw})`)();
       return JSON.stringify(value);
     } catch (e: any) {

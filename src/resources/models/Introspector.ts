@@ -7,7 +7,6 @@ import type {
   Tag,
   Error as ErrorModel,
   AsyncContext as AsyncContextModel,
-  TunnelInfo,
 } from "../../schema";
 import type { DiagnosticItem } from "../../schema";
 import {
@@ -19,7 +18,6 @@ import {
   stampElementKind,
   buildIdMap,
   ensureStringArray,
-  stringifyIfObject,
 } from "./introspector.tools";
 import { extractTunnelInfo } from "./initializeFromStore.utils";
 
@@ -83,7 +81,9 @@ export class Introspector {
     this.resourceMiddlewares = [];
     this.middlewares = Array.isArray(data.middlewares) ? data.middlewares : [];
     this.errors = Array.isArray(data.errors) ? data.errors : [];
-    this.asyncContexts = Array.isArray(data.asyncContexts) ? data.asyncContexts : [];
+    this.asyncContexts = Array.isArray(data.asyncContexts)
+      ? data.asyncContexts
+      : [];
     this.rootId = data.rootId ?? null;
 
     // Maps
@@ -99,15 +99,15 @@ export class Introspector {
     this.populateErrorThrownBy();
 
     // Tags
-    const getTasksWithTag = (tagId: string) =>
+    const _getTasksWithTag = (tagId: string) =>
       this.tasks.filter((t) => ensureStringArray(t.tags).includes(tagId));
-    const getHooksWithTag = (tagId: string) =>
+    const _getHooksWithTag = (tagId: string) =>
       this.hooks.filter((h) => ensureStringArray(h.tags).includes(tagId));
-    const getResourcesWithTag = (tagId: string) =>
+    const _getResourcesWithTag = (tagId: string) =>
       this.resources.filter((r) => ensureStringArray(r.tags).includes(tagId));
-    const getMiddlewaresWithTag = (tagId: string) =>
+    const _getMiddlewaresWithTag = (tagId: string) =>
       this.middlewares.filter((m) => ensureStringArray(m.tags).includes(tagId));
-    const getEventsWithTag = (tagId: string) =>
+    const _getEventsWithTag = (tagId: string) =>
       this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
 
     this.tags = data.tags;
@@ -157,7 +157,15 @@ export class Introspector {
     return stampElementKind(this.resourceMap.get(String(id))!, "RESOURCE");
   }
 
-  getAll(): (Task | Hook | Resource | Event | Middleware | ErrorModel | AsyncContextModel)[] {
+  getAll(): (
+    | Task
+    | Hook
+    | Resource
+    | Event
+    | Middleware
+    | ErrorModel
+    | AsyncContextModel
+  )[] {
     return [
       ...this.tasks,
       ...this.hooks,
@@ -171,17 +179,17 @@ export class Introspector {
 
   private populateErrorThrownBy(): void {
     // Create error ID map for quick lookup
-    const errorIds = new Set(this.errors.map(e => e.id));
+    const errorIds = new Set(this.errors.map((e) => e.id));
 
     // Clear existing thrownBy arrays
-    this.errors.forEach(error => {
+    this.errors.forEach((error) => {
       error.thrownBy = [];
     });
 
     // Check tasks
-    this.tasks.forEach(task => {
+    this.tasks.forEach((task) => {
       const depends = ensureStringArray(task.dependsOn);
-      depends.forEach(depId => {
+      depends.forEach((depId) => {
         if (errorIds.has(depId)) {
           const error = this.errorMap.get(depId);
           if (error && !error.thrownBy.includes(task.id)) {
@@ -192,9 +200,9 @@ export class Introspector {
     });
 
     // Check hooks
-    this.hooks.forEach(hook => {
+    this.hooks.forEach((hook) => {
       const depends = ensureStringArray(hook.dependsOn);
-      depends.forEach(depId => {
+      depends.forEach((depId) => {
         if (errorIds.has(depId)) {
           const error = this.errorMap.get(depId);
           if (error && !error.thrownBy.includes(hook.id)) {
@@ -205,9 +213,9 @@ export class Introspector {
     });
 
     // Check resources
-    this.resources.forEach(resource => {
+    this.resources.forEach((resource) => {
       const depends = ensureStringArray(resource.dependsOn);
-      depends.forEach(depId => {
+      depends.forEach((depId) => {
         if (errorIds.has(depId)) {
           const error = this.errorMap.get(depId);
           if (error && !error.thrownBy.includes(resource.id)) {
@@ -581,28 +589,32 @@ export class Introspector {
     const error = this.errorMap.get(errorId);
     if (!error?.thrownBy) return [];
 
-    return this.tasks.filter(task => error.thrownBy.includes(task.id));
+    return this.tasks.filter((task) => error.thrownBy.includes(task.id));
   }
 
   getResourcesUsingError(errorId: string): Resource[] {
     const error = this.errorMap.get(errorId);
     if (!error?.thrownBy) return [];
 
-    return this.resources.filter(resource => error.thrownBy.includes(resource.id));
+    return this.resources.filter((resource) =>
+      error.thrownBy.includes(resource.id)
+    );
   }
 
   getHooksUsingError(errorId: string): Hook[] {
     const error = this.errorMap.get(errorId);
     if (!error?.thrownBy) return [];
 
-    return this.hooks.filter(hook => error.thrownBy.includes(hook.id));
+    return this.hooks.filter((hook) => error.thrownBy.includes(hook.id));
   }
 
   getMiddlewaresUsingError(errorId: string): Middleware[] {
     const error = this.errorMap.get(errorId);
     if (!error?.thrownBy) return [];
 
-    return this.middlewares.filter(middleware => error.thrownBy.includes(middleware.id));
+    return this.middlewares.filter((middleware) =>
+      error.thrownBy.includes(middleware.id)
+    );
   }
 
   getAllUsingError(errorId: string): (Task | Hook | Resource | Middleware)[] {
@@ -610,7 +622,7 @@ export class Introspector {
       ...this.getTasksUsingError(errorId),
       ...this.getHooksUsingError(errorId),
       ...this.getResourcesUsingError(errorId),
-      ...this.getMiddlewaresUsingError(errorId)
+      ...this.getMiddlewaresUsingError(errorId),
     ];
   }
 
@@ -627,43 +639,51 @@ export class Introspector {
     const context = this.asyncContextMap.get(contextId);
     if (!context?.usedBy) return [];
 
-    return this.tasks.filter(task => context.usedBy.includes(task.id));
+    return this.tasks.filter((task) => context.usedBy.includes(task.id));
   }
 
   getResourcesUsingContext(contextId: string): Resource[] {
     const context = this.asyncContextMap.get(contextId);
     if (!context?.usedBy) return [];
 
-    return this.resources.filter(resource => context.usedBy.includes(resource.id));
+    return this.resources.filter((resource) =>
+      context.usedBy.includes(resource.id)
+    );
   }
 
   getResourcesProvidingContext(contextId: string): Resource[] {
     const context = this.asyncContextMap.get(contextId);
     if (!context?.providedBy) return [];
 
-    return this.resources.filter(resource => context.providedBy.includes(resource.id));
+    return this.resources.filter((resource) =>
+      context.providedBy.includes(resource.id)
+    );
   }
 
   getHooksUsingContext(contextId: string): Hook[] {
     const context = this.asyncContextMap.get(contextId);
     if (!context?.usedBy) return [];
 
-    return this.hooks.filter(hook => context.usedBy.includes(hook.id));
+    return this.hooks.filter((hook) => context.usedBy.includes(hook.id));
   }
 
   getMiddlewaresUsingContext(contextId: string): Middleware[] {
     const context = this.asyncContextMap.get(contextId);
     if (!context?.usedBy) return [];
 
-    return this.middlewares.filter(middleware => context.usedBy.includes(middleware.id));
+    return this.middlewares.filter((middleware) =>
+      context.usedBy.includes(middleware.id)
+    );
   }
 
-  getAllUsingContext(contextId: string): (Task | Hook | Resource | Middleware)[] {
+  getAllUsingContext(
+    contextId: string
+  ): (Task | Hook | Resource | Middleware)[] {
     return [
       ...this.getTasksUsingContext(contextId),
       ...this.getHooksUsingContext(contextId),
       ...this.getResourcesUsingContext(contextId),
-      ...this.getMiddlewaresUsingContext(contextId)
+      ...this.getMiddlewaresUsingContext(contextId),
     ];
   }
 
@@ -690,16 +710,20 @@ export class Introspector {
     if (!task) return null;
 
     // Find tunnel resource that owns this task
-    return this.getTunnelResources().find((tunnel) =>
-      tunnel.tunnelInfo?.tasks?.includes(taskId)
-    ) ?? null;
+    return (
+      this.getTunnelResources().find((tunnel) =>
+        tunnel.tunnelInfo?.tasks?.includes(taskId)
+      ) ?? null
+    );
   }
 
   getTunnelForEvent(eventId: string): Resource | null {
     // Find tunnel resource that tunnels this event
-    return this.getTunnelResources().find((tunnel) =>
-      tunnel.tunnelInfo?.events?.includes(eventId)
-    ) ?? null;
+    return (
+      this.getTunnelResources().find((tunnel) =>
+        tunnel.tunnelInfo?.events?.includes(eventId)
+      ) ?? null
+    );
   }
 
   /**
@@ -708,7 +732,12 @@ export class Introspector {
    * tunnel resource values are available.
    */
   populateTunnelInfo(): void {
-    const s = this.store as { resources: Map<string, { resource: { id: unknown; tags?: unknown[] }; value: unknown }> } | null;
+    const s = this.store as {
+      resources: Map<
+        string,
+        { resource: { id: unknown; tags?: unknown[] }; value: unknown }
+      >;
+    } | null;
     if (!s?.resources) return;
 
     const allTaskIds = this.tasks.map((t) => t.id);
@@ -733,7 +762,11 @@ export class Introspector {
       });
 
       if (hasTunnelTag && resourceValue) {
-        const tunnelInfo = extractTunnelInfo(resourceValue, allTaskIds, allEventIds);
+        const tunnelInfo = extractTunnelInfo(
+          resourceValue,
+          allTaskIds,
+          allEventIds
+        );
         if (tunnelInfo) {
           modelResource.tunnelInfo = tunnelInfo;
         }
@@ -750,8 +783,8 @@ export class Introspector {
     const task = this.taskMap.get(taskId);
     if (!task) return false;
     const deps = ensureStringArray(task.dependsOn);
-    return deps.some(depId =>
-      depId.includes('.durable') || depId.startsWith('base.durable.')
+    return deps.some(
+      (depId) => depId.includes(".durable") || depId.startsWith("base.durable.")
     );
   }
 
@@ -759,7 +792,7 @@ export class Introspector {
    * Returns all tasks that are durable workflow tasks.
    */
   getDurableTasks(): Task[] {
-    return this.tasks.filter(t => this.isDurableTask(t.id));
+    return this.tasks.filter((t) => this.isDurableTask(t.id));
   }
 
   /**
@@ -769,12 +802,11 @@ export class Introspector {
     const task = this.taskMap.get(taskId);
     if (!task) return null;
     const deps = ensureStringArray(task.dependsOn);
-    const durableDepId = deps.find(depId =>
-      depId.includes('.durable') || depId.startsWith('base.durable.')
+    const durableDepId = deps.find(
+      (depId) => depId.includes(".durable") || depId.startsWith("base.durable.")
     );
     return durableDepId ? this.getResource(durableDepId) : null;
   }
-
 
   // Serialization API
   serialize(): SerializedIntrospector {

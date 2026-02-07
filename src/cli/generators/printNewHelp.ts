@@ -3,7 +3,6 @@ import { c, divider, alignRows, indentLines } from "../format";
 // scaffold moved to ./generators/scaffold.ts
 // ...helper functions moved to ./generators/initUtils.ts
 export function printNewHelp(): void {
-  // eslint-disable-next-line no-console
   console.log(
     [
       "",

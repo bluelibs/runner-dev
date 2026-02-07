@@ -3,7 +3,6 @@ import { formatSchemaIfZod, isZodSchema } from "../../utils/zod";
 import {
   mapStoreTaskToTaskModel,
   mapStoreResourceToResourceModel,
-  buildEvents,
 } from "../../resources/models/initializeFromStore.utils";
 import { definitions } from "@bluelibs/runner";
 

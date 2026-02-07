@@ -58,7 +58,7 @@ export const serverResource = resource({
     const server = new ApolloServer({ schema: graphql.getSchema() });
     const port = config.port ?? 1337;
     const host = config.host;
-    const apolloConfig = config.apollo ?? {};
+    const _apolloConfig = config.apollo ?? {};
 
     await server.start();
 
@@ -137,10 +137,10 @@ export const serverResource = resource({
     // Convenience redirect
     app.get("/", (_req: Request, res: Response) => res.redirect("/voyager"));
 
-    let resolve, reject;
-    const promise = new Promise((_resolve, _reject) => {
-      resolve = _resolve;
-      reject = _reject;
+    let _resolve, _reject;
+    const _promise = new Promise((__resolve, __reject) => {
+      _resolve = __resolve;
+      _reject = __reject;
     });
 
     const listenCallback = (e: Error | undefined) => {

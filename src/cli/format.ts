@@ -31,6 +31,7 @@ export const c = {
   cmd: chain(wrap(32, 39), wrap(1, 22)), // green + bold
 };
 
+// eslint-disable-next-line no-control-regex
 const ANSI_PATTERN = /\u001b\[[0-9;]*m/g;
 
 export function stripAnsi(input: string): string {

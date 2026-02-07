@@ -1,5 +1,4 @@
 import { r } from "@bluelibs/runner";
-import { z } from "zod";
 
 // ====================
 // REQUEST CONTEXT
@@ -15,15 +14,18 @@ export const RequestContext = r
     ipAddress?: string;
     timestamp: Date;
   }>("app.contexts.request")
-  .parse((value) => JSON.parse(value) as {
-    requestId: string;
-    userId?: string;
-    sessionId?: string;
-    correlationId?: string;
-    userAgent?: string;
-    ipAddress?: string;
-    timestamp: Date;
-  })
+  .parse(
+    (value) =>
+      JSON.parse(value) as {
+        requestId: string;
+        userId?: string;
+        sessionId?: string;
+        correlationId?: string;
+        userAgent?: string;
+        ipAddress?: string;
+        timestamp: Date;
+      }
+  )
   .serialize((data) => JSON.stringify(data))
   .build();
 
@@ -156,8 +158,8 @@ export const requestContextMiddleware = r.middleware
   .task("app.middleware.requestContext")
   .dependencies({ requestContext: RequestContext })
   .everywhere((task) => !task.id.startsWith("system."))
-  .run(async ({ task, next }, { requestContext }) => {
-    const contextData = {
+  .run(async ({ task, next }, { requestContext: _requestContext }) => {
+    const _contextData = {
       requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
     };
@@ -193,9 +195,9 @@ export const auditContextMiddleware = r.middleware
 export const performanceContextMiddleware = r.middleware
   .task("app.middleware.performanceContext")
   .dependencies({ performanceContext: PerformanceContext })
-  .everywhere((task) => true) // Apply to all tasks for demo
-  .run(async ({ task, next }, { performanceContext }) => {
-    const performanceData = {
+  .everywhere((_task) => true) // Apply to all tasks for demo
+  .run(async ({ task, next }, { performanceContext: _performanceContext }) => {
+    const _performanceData = {
       operationId: `op_${Date.now()}_${Math.random()
         .toString(36)
         .substr(2, 9)}`,

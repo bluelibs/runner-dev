@@ -11,10 +11,10 @@ export function jsonSchemaToReadableText(schemaString: string): string {
 
 function resolveRef(ref: string, rootSchema: any): any {
   if (!ref.startsWith("#/")) return null;
-  
+
   const path = ref.slice(2).split("/");
   let current = rootSchema;
-  
+
   for (const part of path) {
     if (current && typeof current === "object" && part in current) {
       current = current[part];
@@ -22,11 +22,15 @@ function resolveRef(ref: string, rootSchema: any): any {
       return null;
     }
   }
-  
+
   return current;
 }
 
-function formatSchema(schema: any, depth: number = 0, rootSchema?: any): string {
+function formatSchema(
+  schema: any,
+  depth: number = 0,
+  rootSchema?: any
+): string {
   const indent = "  ".repeat(depth);
   const lines: string[] = [];
 
@@ -232,7 +236,9 @@ function formatProperty(prop: any, depth: number, rootSchema?: any): string {
         ? " (required)"
         : " (optional)";
       lines.push(`${indent}  ${nestedPropName}${required}:`);
-      lines.push(formatProperty(nestedPropSchema as any, depth + 2, rootSchema));
+      lines.push(
+        formatProperty(nestedPropSchema as any, depth + 2, rootSchema)
+      );
     }
     if (prop.additionalProperties !== undefined) {
       lines.push(

@@ -4,7 +4,12 @@ import { DOCUMENTATION_CONSTANTS } from "../config/documentationConstants";
 export const useSidebarResize = (leftOffset: number = 0) => {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     try {
-      return parseInt(localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SIDEBAR_WIDTH) || DOCUMENTATION_CONSTANTS.DEFAULTS.SIDEBAR_WIDTH.toString(), 10);
+      return parseInt(
+        localStorage.getItem(
+          DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SIDEBAR_WIDTH
+        ) || DOCUMENTATION_CONSTANTS.DEFAULTS.SIDEBAR_WIDTH.toString(),
+        10
+      );
     } catch {
       return DOCUMENTATION_CONSTANTS.DEFAULTS.SIDEBAR_WIDTH;
     }
@@ -25,7 +30,13 @@ export const useSidebarResize = (leftOffset: number = 0) => {
     (e: MouseEvent) => {
       if (!isResizing) return;
       const newWidthRaw = e.clientX - leftOffset;
-      const newWidth = Math.min(Math.max(newWidthRaw, DOCUMENTATION_CONSTANTS.CONSTRAINTS.MIN_SIDEBAR_WIDTH), DOCUMENTATION_CONSTANTS.CONSTRAINTS.MAX_SIDEBAR_WIDTH);
+      const newWidth = Math.min(
+        Math.max(
+          newWidthRaw,
+          DOCUMENTATION_CONSTANTS.CONSTRAINTS.MIN_SIDEBAR_WIDTH
+        ),
+        DOCUMENTATION_CONSTANTS.CONSTRAINTS.MAX_SIDEBAR_WIDTH
+      );
       setSidebarWidth(newWidth);
     },
     [isResizing, leftOffset]
@@ -39,7 +50,10 @@ export const useSidebarResize = (leftOffset: number = 0) => {
     document.body.style.userSelect = "";
 
     try {
-      localStorage.setItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SIDEBAR_WIDTH, sidebarWidth.toString());
+      localStorage.setItem(
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SIDEBAR_WIDTH,
+        sidebarWidth.toString()
+      );
     } catch {
       // Ignore localStorage errors
     }

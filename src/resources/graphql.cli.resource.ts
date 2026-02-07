@@ -10,7 +10,8 @@ export const graphqlCli = resource({
   id: "runner-dev.resources.graphql-cli",
   meta: {
     title: "CLI GraphQL Resource",
-    description: "CLI-specific GraphQL resource harness that registers all necessary dependencies for command-line GraphQL operations",
+    description:
+      "CLI-specific GraphQL resource harness that registers all necessary dependencies for command-line GraphQL operations",
   },
   // Accept a prebuilt Store via cli-config sibling resource
   register: (config: { customStore: Store }) => [

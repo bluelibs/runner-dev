@@ -1,11 +1,7 @@
 import React from "react";
 import { Error } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import {
-  formatSchema,
-  formatFilePath,
-  formatId,
-} from "../utils/formatting";
+import { formatFilePath, formatId } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
@@ -22,27 +18,38 @@ export interface ErrorCardProps {
 
 // Helper function to determine CSS class based on element type
 function getElementClass(element: any): string {
-  if ('emits' in element && 'dependsOn' in element && !('events' in element)) {
-    return 'error-card__thrower-link--task';
+  if ("emits" in element && "dependsOn" in element && !("events" in element)) {
+    return "error-card__thrower-link--task";
   }
-  if ('events' in element) {
-    return 'error-card__thrower-link--hook';
+  if ("events" in element) {
+    return "error-card__thrower-link--hook";
   }
-  if ('registers' in element) {
-    return 'error-card__thrower-link--resource';
+  if ("registers" in element) {
+    return "error-card__thrower-link--resource";
   }
-  if ('type' in element && (element.type === 'task' || element.type === 'resource')) {
-    return 'error-card__thrower-link--middleware';
+  if (
+    "type" in element &&
+    (element.type === "task" || element.type === "resource")
+  ) {
+    return "error-card__thrower-link--middleware";
   }
-  return '';
+  return "";
 }
 
-export const ErrorCard: React.FC<ErrorCardProps> = ({ error, introspector }) => {
+export const ErrorCard: React.FC<ErrorCardProps> = ({
+  error,
+  introspector,
+}) => {
   const thrownByTasks = introspector.getTasksUsingError(error.id);
   const thrownByResources = introspector.getResourcesUsingError(error.id);
   const thrownByHooks = introspector.getHooksUsingError(error.id);
   const thrownByMiddlewares = introspector.getMiddlewaresUsingError(error.id);
-  const allThrowers = [...thrownByTasks, ...thrownByResources, ...thrownByHooks, ...thrownByMiddlewares];
+  const allThrowers = [
+    ...thrownByTasks,
+    ...thrownByResources,
+    ...thrownByHooks,
+    ...thrownByMiddlewares,
+  ];
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [fileContent, setFileContent] = React.useState<string | null>(null);
@@ -150,7 +157,9 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({ error, introspector }) => 
                           <a
                             key={thrower.id}
                             href={`#element-${thrower.id}`}
-                            className={`error-card__thrower-link ${getElementClass(thrower)}`}
+                            className={`error-card__thrower-link ${getElementClass(
+                              thrower
+                            )}`}
                           >
                             <div className="title">
                               {thrower.meta?.title || formatId(thrower.id)}
@@ -292,7 +301,13 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({ error, introspector }) => 
         subtitle={error.filePath || undefined}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        code={loading ? "Loading..." : errorState ? `Error: ${errorState}` : fileContent}
+        code={
+          loading
+            ? "Loading..."
+            : errorState
+            ? `Error: ${errorState}`
+            : fileContent
+        }
         enableEdit={Boolean(error.filePath)}
         saveOnFile={error.filePath || null}
       />

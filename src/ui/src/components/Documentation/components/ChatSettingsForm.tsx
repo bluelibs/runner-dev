@@ -5,7 +5,6 @@ import {
   Form,
   FormActions,
   FormGroup,
-  FormRow,
   PasswordInput,
   TextInput,
 } from "./common/FormControls";
@@ -46,7 +45,7 @@ export const ChatSettingsForm: React.FC<ChatSettingsFormProps> = ({
     handleSubmit,
     reset,
     setValue,
-    formState: { isDirty },
+    formState: { isDirty: _isDirty },
   } = useForm<ChatSettingsFormValues>({
     defaultValues: defaults,
   });

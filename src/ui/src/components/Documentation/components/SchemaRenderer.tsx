@@ -137,7 +137,13 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     [resolvedRoot]
   );
 
-  const { register, control, watch, setValue, reset } = useForm({
+  const {
+    register,
+    control: _control,
+    watch,
+    setValue,
+    reset,
+  } = useForm({
     defaultValues: defaultValues ?? {},
   });
 

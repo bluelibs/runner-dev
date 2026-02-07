@@ -205,12 +205,12 @@ export default `<!DOCTYPE html>
       }
 
       /* Specific Node Types */
-      #graph0 g#TYPE\:\:Query polygon { 
+      #graph0 g#TYPE::Query polygon { 
         fill: var(--accent-deep-blue);
         stroke: var(--accent-purple);
         stroke-width: 2;
       }
-      #graph0 g#FIELD\:\:Query\:\:tags polygon { 
+      #graph0 g#FIELD::Query::tags polygon { 
         fill: var(--bg-tertiary);
         stroke: var(--accent-blue);
       }

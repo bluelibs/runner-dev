@@ -36,17 +36,9 @@ export const ElementCard: React.FC<ElementCardProps> = ({
   const descriptionContent = React.useMemo(() => {
     if (!description) return null;
     if (typeof description === "string" || typeof description === "number") {
-      return (
-        <p className={`${prefix}__description`}>
-          {description}
-        </p>
-      );
+      return <p className={`${prefix}__description`}>{description}</p>;
     }
-    return (
-      <div className={`${prefix}__description`}>
-        {description}
-      </div>
-    );
+    return <div className={`${prefix}__description`}>{description}</div>;
   }, [description, prefix]);
 
   return (
@@ -58,16 +50,8 @@ export const ElementCard: React.FC<ElementCardProps> = ({
             {id && <div className={`${prefix}__id`}>{id}</div>}
             {descriptionContent}
           </div>
-          {actions && (
-            <div className={`${prefix}__actions`}>
-              {actions}
-            </div>
-          )}
-          {meta && (
-            <div className="meta">
-              {meta}
-            </div>
-          )}
+          {actions && <div className={`${prefix}__actions`}>{actions}</div>}
+          {meta && <div className="meta">{meta}</div>}
         </div>
       </div>
 
@@ -97,10 +81,7 @@ export const CardSection: React.FC<CardSectionProps> = ({
     <div className={joinClasses(`${prefix}__section`, className)}>
       <h4 className={`${prefix}__section__title`}>{title}</h4>
       <div
-        className={joinClasses(
-          `${prefix}__section__content`,
-          contentClassName
-        )}
+        className={joinClasses(`${prefix}__section__content`, contentClassName)}
       >
         {children}
       </div>

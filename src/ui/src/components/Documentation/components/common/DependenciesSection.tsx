@@ -1,5 +1,11 @@
 import React from "react";
-import { Task, Resource, Hook, Event, Middleware, Error as ErrorModel } from "../../../../../../schema/model";
+import {
+  Task,
+  Resource,
+  Hook,
+  Event,
+  Error as ErrorModel,
+} from "../../../../../../schema/model";
 import { formatId } from "../../utils/formatting";
 
 export interface DependenciesSectionProps {

@@ -1,15 +1,8 @@
 import { useNewSmart } from "@bluelibs/smart";
-import { useEffect, useState, useContext } from "react";
+import { useEffect } from "react";
 import { ChatSmart } from "./ChatSmart";
-import type {
-  ChatState,
-  ChatSettings,
-  TokenUsage,
-  TokenEstimate,
-  ToolCallInfo,
-  AvailableElements,
-} from "./ChatTypes";
-import type { DocsBundle, DocsIncludeFlags } from "./ChatUtils";
+import type { ChatState, AvailableElements } from "./ChatTypes";
+import type { DocsBundle } from "./ChatUtils";
 
 export const useChatStateSmart = (opts?: {
   availableElements?: AvailableElements;
@@ -23,7 +16,11 @@ export const useChatStateSmart = (opts?: {
   };
 
   // Create ChatSmart instance with constructor arguments
-  const [chatModel, ChatProvider] = useNewSmart(ChatSmart, docsBundle, opts?.availableElements || {});
+  const [chatModel] = useNewSmart(
+    ChatSmart,
+    docsBundle,
+    opts?.availableElements || {}
+  );
 
   // Persist messages when they change (with debouncing)
   useEffect(() => {
@@ -50,7 +47,7 @@ export const useChatStateSmart = (opts?: {
 
     // Provide setChatState for compatibility with existing components
     setChatState: (updater: React.SetStateAction<ChatState>) => {
-      if (typeof updater === 'function') {
+      if (typeof updater === "function") {
         const newState = updater(chatModel.getStateAsChatState());
         // Update the ChatSmart state based on the new state
         Object.assign(chatModel, newState);
@@ -83,7 +80,8 @@ export const useChatStateSmart = (opts?: {
     setSelectedMessageId: chatModel.setSelectedMessageId.bind(chatModel),
 
     // Deep Implementation methods
-    enableDeepImplementation: chatModel.enableDeepImplementation.bind(chatModel),
+    enableDeepImplementation:
+      chatModel.enableDeepImplementation.bind(chatModel),
     setDeepImplAnswers: chatModel.setDeepImplAnswers.bind(chatModel),
     continueDeepImplFlow: chatModel.continueDeepImplFlow.bind(chatModel),
 

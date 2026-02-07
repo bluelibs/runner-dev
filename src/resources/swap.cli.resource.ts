@@ -9,7 +9,8 @@ export const swapManagerCli = resource({
   id: "runner-dev.resources.swap-manager-cli",
   meta: {
     title: "CLI Swap Manager",
-    description: "CLI version of the swap manager that provides read-only visibility for GraphQL queries (swapping disabled in CLI)",
+    description:
+      "CLI version of the swap manager that provides read-only visibility for GraphQL queries (swapping disabled in CLI)",
   },
   dependencies: { cli: cliConfig, introspector: introspectorCli },
   async init(_cfg, { cli }): Promise<ISwapManager> {

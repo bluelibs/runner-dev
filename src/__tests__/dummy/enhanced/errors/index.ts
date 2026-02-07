@@ -1,4 +1,4 @@
-import { r, IErrorDefinition, IErrorHelper } from "@bluelibs/runner";
+import { r, IErrorHelper } from "@bluelibs/runner";
 import { z } from "zod";
 
 // ====================
@@ -276,12 +276,13 @@ export const ValidationError = r
     message: string;
   }>("app.system.errors.validation")
   .dataSchema({
-    parse: (value: any) => value as {
-      field: string;
-      value: unknown;
-      constraint: string;
-      message: string;
-    }
+    parse: (value: any) =>
+      value as {
+        field: string;
+        value: unknown;
+        constraint: string;
+        message: string;
+      },
   })
   .build();
 

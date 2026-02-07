@@ -85,9 +85,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Note: useChatStateSmart is the preferred implementation. useChatState is deprecated.
   // To use Smart implementation by default, set REACT_APP_USE_SMART_CHAT=true or NEXT_PUBLIC_USE_SMART_CHAT=true
   // Or use URL parameter: ?useSmartChat=true
-  const useSmartChat = process.env.REACT_APP_USE_SMART_CHAT === 'true' ||
-                       process.env.NEXT_PUBLIC_USE_SMART_CHAT === 'true' ||
-                       window.location.search.includes('useSmartChat=true');
+  const useSmartChat =
+    process.env.REACT_APP_USE_SMART_CHAT === "true" ||
+    process.env.NEXT_PUBLIC_USE_SMART_CHAT === "true" ||
+    window.location.search.includes("useSmartChat=true");
 
   const chatHookData = useSmartChat
     ? useChatStateSmart({
@@ -136,10 +137,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     chatState.isTyping
   );
 
-  const { isAtBottom, scrollToBottom } = useAutoScroll(scrollRef, [
-    filteredMessages,
-    chatState.isTyping,
-  ]);
+  const { isAtBottom: _isAtBottom, scrollToBottom: _scrollToBottom } =
+    useAutoScroll(scrollRef, [filteredMessages, chatState.isTyping]);
 
   // Modal handlers
   const openFileModal = useCallback((file: FileReference, title: string) => {
@@ -203,7 +202,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   // Handle tagged element selection
   const handleTaggedElementSelect = useCallback(
-    (elementId: string, elementType: string) => {
+    (elementId: string, _elementType: string) => {
       // Clicks from external UI may want to insert a tag token into the input.
       // We'll append a simple @<id> token so ChatInput will pick it up consistently.
       setChatState((prev) => {

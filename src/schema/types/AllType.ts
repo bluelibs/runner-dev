@@ -8,7 +8,7 @@ import {
   type GraphQLFieldConfigMap,
   GraphQLList,
 } from "graphql";
-import { All, elementKindSymbol, ElementKind } from "../model";
+import { elementKindSymbol, ElementKind } from "../model";
 import { sanitizePath } from "../../utils/path";
 import { MetaType } from "./MetaType";
 import { baseElementCommonFields } from "./BaseElementCommon";

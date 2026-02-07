@@ -1,5 +1,5 @@
 import { resource, run } from "@bluelibs/runner";
-import { createDummyApp, helloTask } from "../dummy/dummyApp";
+import { createDummyApp } from "../dummy/dummyApp";
 import { introspector as introspectorResource } from "../../resources/introspector.resource";
 import { Introspector } from "../../resources/models/Introspector";
 

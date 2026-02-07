@@ -1,4 +1,4 @@
-import { graphqlRequest } from './graphqlClient';
+import { graphqlRequest } from "./graphqlClient";
 
 export interface ElementFileContent {
   id: string;
@@ -98,13 +98,16 @@ export async function fetchElementFileContentsBySearch(
 
     // Find exact match first, then partial match
     const elements = response.all || [];
-    const exactMatch = elements.find(el => el.id === elementId);
+    const exactMatch = elements.find((el) => el.id === elementId);
     if (exactMatch) return exactMatch;
 
     // Return first partial match if no exact match
     return elements.length > 0 ? elements[0] : null;
   } catch (error) {
-    console.error(`Failed to fetch file contents for element: ${elementId}`, error);
+    console.error(
+      `Failed to fetch file contents for element: ${elementId}`,
+      error
+    );
     return null;
   }
 }
@@ -135,7 +138,10 @@ export async function fetchElementFileContents(
 
     return response[elementType] || null;
   } catch (error) {
-    console.error(`Failed to fetch file contents for ${elementType}:${elementId}`, error);
+    console.error(
+      `Failed to fetch file contents for ${elementType}:${elementId}`,
+      error
+    );
     return null;
   }
 }
@@ -163,8 +169,8 @@ export function parseElementReferences(
   }
 ): ElementReference[] {
   const references: ElementReference[] = [];
-  const atMentionRegex = /@([\w\.]+)/g; // Updated to include dots for element IDs like "globals.middleware.retry.task"
-  
+  const atMentionRegex = /@([\w.]+)/g; // Updated to include dots for element IDs like "globals.middleware.retry.task"
+
   let match;
   while ((match = atMentionRegex.exec(text)) !== null) {
     const mentionText = match[0]; // Full match including @
@@ -174,11 +180,13 @@ export function parseElementReferences(
 
     // Find which element type this reference belongs to
     for (const [elementType, elements] of Object.entries(availableElements)) {
-      const element = elements.find(el => el.name === mentionName || el.id === mentionName);
+      const element = elements.find(
+        (el) => el.name === mentionName || el.id === mentionName
+      );
       if (element) {
         // Convert plural type to singular (tasks -> task)
         const singularType = elementType.slice(0, -1) as ElementType;
-        
+
         references.push({
           originalText: mentionText,
           elementId: element.id,
@@ -209,35 +217,38 @@ export async function injectFileContentsForReferences(
   }
 ): Promise<string> {
   const references = parseElementReferences(text, availableElements);
-  
+
   if (references.length === 0) {
     return text;
   }
 
   // Fetch file contents for all references
-  const fileContentsPromises = references.map(ref =>
+  const fileContentsPromises = references.map((ref) =>
     fetchElementFileContents(ref.elementId, ref.elementType)
   );
-  
+
   const fileContentsResults = await Promise.all(fileContentsPromises);
-  
+
   // Build the new text with injected contexts
   let result = text;
   let offset = 0; // Track how much we've added to the text
-  
+
   for (let i = 0; i < references.length; i++) {
     const ref = references[i];
     const fileContent = fileContentsResults[i];
-    
+
     if (fileContent && fileContent.fileContents) {
       const contextBlock = `\n\n========= ELEMENT ID: ${ref.elementId} =========\n${fileContent.fileContents}\n=========\n\n`;
-      
+
       // Replace the @reference with the @reference + context
       const insertPosition = ref.endIndex + offset;
-      result = result.slice(0, insertPosition) + contextBlock + result.slice(insertPosition);
+      result =
+        result.slice(0, insertPosition) +
+        contextBlock +
+        result.slice(insertPosition);
       offset += contextBlock.length;
     }
   }
-  
+
   return result;
 }

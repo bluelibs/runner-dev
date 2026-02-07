@@ -1,10 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "../config/documentationConstants";
-import {
-  parseSearchQuery,
-  elementMatchesParsed,
-} from "../utils/search-utils";
+import { parseSearchQuery, elementMatchesParsed } from "../utils/search-utils";
 
 export const useDocumentationFilters = (
   introspector: Introspector,

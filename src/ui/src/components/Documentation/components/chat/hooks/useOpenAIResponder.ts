@@ -58,8 +58,7 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
           id: `error-${Date.now()}`,
           author: "bot",
           type: "text",
-          text:
-            "❌ OpenAI API key is required. Please configure it in the settings to use the AI assistant.",
+          text: "❌ OpenAI API key is required. Please configure it in the settings to use the AI assistant.",
           timestamp: Date.now(),
         };
         params.setChatState((prev) => ({
@@ -117,10 +116,10 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
             projectOverviewMd: null,
           };
 
-      const docsTokenRegex = /@docs\.(runner|schema|runnerDev|projectOverview)\b/;
+      const docsTokenRegex =
+        /@docs\.(runner|schema|runnerDev|projectOverview)\b/;
       const hasDocsTokens = docsTokenRegex.test(userMessage);
       if (hasDocsTokens) {
-        // eslint-disable-next-line no-console
         console.log(
           "[chat] @docs tokens detected in input, include flags:",
           params.getChatState().chatContext?.include || {}
@@ -129,7 +128,6 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
 
       const expanded = expandDocsInMessage(userMessage, docsBundle);
       if (hasDocsTokens) {
-        // eslint-disable-next-line no-console
         console.log("[chat] expandDocsInMessage applied:", {
           originalLength: userMessage.length,
           expandedLength: expanded.modelText.length,
@@ -161,7 +159,7 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
               settings.responseMode === "json"
                 ? { type: "json_object" }
                 : undefined,
-            signal: abortController.current?.signal!,
+            signal: abortController.current?.signal,
           },
           {
             onTextDelta: (delta: any) => {
@@ -205,10 +203,12 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
             },
             onUsage: (usage: any) => {
               usageTotals = {
-                promptTokens: usageTotals.promptTokens + (usage.prompt_tokens || 0),
+                promptTokens:
+                  usageTotals.promptTokens + (usage.prompt_tokens || 0),
                 completionTokens:
                   usageTotals.completionTokens + (usage.completion_tokens || 0),
-                totalTokens: usageTotals.totalTokens + (usage.total_tokens || 0),
+                totalTokens:
+                  usageTotals.totalTokens + (usage.total_tokens || 0),
               };
               params.setChatState((prev) => ({
                 ...prev,
@@ -254,7 +254,9 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                     let argsObj: unknown = {};
                     try {
                       argsObj = c.argsText ? JSON.parse(c.argsText) : {};
-                    } catch {}
+                    } catch {
+                      /* intentionally empty */
+                    }
                     params.setChatState((prev) => ({
                       ...prev,
                       toolCalls: (prev.toolCalls || []).map((t, idx) =>
@@ -269,7 +271,10 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                           ? {
                               ...t,
                               status: "done",
-                              resultPreview: JSON.stringify(result).slice(0, 200),
+                              resultPreview: JSON.stringify(result).slice(
+                                0,
+                                200
+                              ),
                             }
                           : t
                       ),
@@ -284,15 +289,18 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
 
                   const assistantMessageId2 = `b-${Date.now()}-2`;
                   params.setChatState((prev) => {
-                    const txt = (
-                      prev.messages.find((m) => m.id === assistantMessageId) as
-                        | TextMessage
-                        | undefined
-                    )?.text || "";
+                    const txt =
+                      (
+                        prev.messages.find(
+                          (m) => m.id === assistantMessageId
+                        ) as TextMessage | undefined
+                      )?.text || "";
                     const keep =
                       txt.trim().length > 0
                         ? prev.messages
-                        : prev.messages.filter((m) => m.id !== assistantMessageId);
+                        : prev.messages.filter(
+                            (m) => m.id !== assistantMessageId
+                          );
                     return {
                       ...prev,
                       messages: [
@@ -339,7 +347,7 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                         settings.responseMode === "json"
                           ? { type: "json_object" }
                           : undefined,
-                      signal: abortController.current?.signal!,
+                      signal: abortController.current?.signal,
                     },
                     {
                       onTextDelta: (d2: any) => {
@@ -386,7 +394,8 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                       onUsage: (usage: any) => {
                         usageTotals = {
                           promptTokens:
-                            usageTotals.promptTokens + (usage.prompt_tokens || 0),
+                            usageTotals.promptTokens +
+                            (usage.prompt_tokens || 0),
                           completionTokens:
                             usageTotals.completionTokens +
                             (usage.completion_tokens || 0),
@@ -399,7 +408,8 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                           deepImpl: {
                             ...(prev.deepImpl || {}),
                             budget: {
-                              ...((prev.deepImpl && (prev.deepImpl as any).budget) ||
+                              ...((prev.deepImpl &&
+                                (prev.deepImpl as any).budget) ||
                                 {}),
                               usedApprox: usageTotals.totalTokens,
                             },
@@ -420,7 +430,9 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                           }
                           if (lastBotIndex === undefined) return prev;
                           const nextMessages = prev.messages.slice();
-                          const existing = nextMessages[lastBotIndex] as TextMessage;
+                          const existing = nextMessages[
+                            lastBotIndex
+                          ] as TextMessage;
                           nextMessages[lastBotIndex] = {
                             ...(existing as TextMessage),
                             toolCalls: calls.map((t) => ({
@@ -438,28 +450,32 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                           try {
                             const assistantToolMsg2: AiMessage = {
                               role: "assistant",
-                              tool_calls: toolCalls2.map((c: any, i: number) => ({
-                                id: c.id || `call2_${i}`,
-                                type: "function",
-                                function: {
-                                  name: c.name,
-                                  arguments: c.argsText,
-                                },
-                              })),
+                              tool_calls: toolCalls2.map(
+                                (c: any, i: number) => ({
+                                  id: c.id || `call2_${i}`,
+                                  type: "function",
+                                  function: {
+                                    name: c.name,
+                                    arguments: c.argsText,
+                                  },
+                                })
+                              ),
                             };
 
                             params.setChatState((prev) => ({
                               ...prev,
                               thinkingStage: "processing",
-                              toolCalls: toolCalls2.map((c: any, i: number) => ({
-                                id: c.id || String(i),
-                                name: c.name,
-                                argsPreview:
-                                  (c.argsText || "").length > 120
-                                    ? c.argsText.slice(0, 117) + "..."
-                                    : c.argsText || "",
-                                status: "pending",
-                              })),
+                              toolCalls: toolCalls2.map(
+                                (c: any, i: number) => ({
+                                  id: c.id || String(i),
+                                  name: c.name,
+                                  argsPreview:
+                                    (c.argsText || "").length > 120
+                                      ? c.argsText.slice(0, 117) + "..."
+                                      : c.argsText || "",
+                                  status: "pending",
+                                })
+                              ),
                             }));
 
                             const toolResults2: AiMessage[] = [];
@@ -469,29 +485,35 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                               if (!tool) continue;
                               let argsObj: unknown = {};
                               try {
-                                argsObj = c.argsText ? JSON.parse(c.argsText) : {};
-                              } catch {}
+                                argsObj = c.argsText
+                                  ? JSON.parse(c.argsText)
+                                  : {};
+                              } catch {
+                                /* intentionally empty */
+                              }
                               params.setChatState((prev) => ({
                                 ...prev,
-                                toolCalls: (prev.toolCalls || []).map((t, idx) =>
-                                  idx === i ? { ...t, status: "running" } : t
+                                toolCalls: (prev.toolCalls || []).map(
+                                  (t, idx) =>
+                                    idx === i ? { ...t, status: "running" } : t
                                 ),
                               }));
                               const result = await tool.run(argsObj);
                               params.setChatState((prev) => ({
                                 ...prev,
-                                toolCalls: (prev.toolCalls || []).map((t, idx) =>
-                                  idx === i
-                                    ? {
-                                        ...t,
-                                        status: "done",
-                                        resultPreview: JSON.stringify(
-                                          result,
-                                          null,
-                                          2
-                                        ),
-                                      }
-                                    : t
+                                toolCalls: (prev.toolCalls || []).map(
+                                  (t, idx) =>
+                                    idx === i
+                                      ? {
+                                          ...t,
+                                          status: "done",
+                                          resultPreview: JSON.stringify(
+                                            result,
+                                            null,
+                                            2
+                                          ),
+                                        }
+                                      : t
                                 ),
                               }));
                               toolResults2.push({
@@ -513,12 +535,14 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                                   type: "text",
                                   text: "",
                                   timestamp: Date.now(),
-                                  toolCalls: (prev.toolCalls || []).map((t) => ({
-                                    id: t.id,
-                                    name: t.name,
-                                    argsPreview: t.argsPreview,
-                                    resultPreview: t.resultPreview,
-                                  })),
+                                  toolCalls: (prev.toolCalls || []).map(
+                                    (t) => ({
+                                      id: t.id,
+                                      name: t.name,
+                                      argsPreview: t.argsPreview,
+                                      resultPreview: t.resultPreview,
+                                    })
+                                  ),
                                 } as TextMessage,
                               ],
                             }));
@@ -546,7 +570,7 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                                   settings.responseMode === "json"
                                     ? { type: "json_object" }
                                     : undefined,
-                                signal: abortController.current?.signal!,
+                                signal: abortController.current?.signal,
                               },
                               {
                                 onTextDelta: (d3: any) => {
@@ -582,7 +606,8 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                                       ...(prev.deepImpl || {}),
                                       budget: {
                                         ...((prev.deepImpl &&
-                                          (prev.deepImpl as any).budget) || {}),
+                                          (prev.deepImpl as any).budget) ||
+                                          {}),
                                         usedApprox: usageTotals.totalTokens,
                                       },
                                     },
@@ -594,9 +619,16 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                                     if (!calls.length) return prev;
                                     let lastBotIndex: number | undefined =
                                       undefined;
-                                    for (let i = prev.messages.length - 1; i >= 0; i--) {
+                                    for (
+                                      let i = prev.messages.length - 1;
+                                      i >= 0;
+                                      i--
+                                    ) {
                                       const mm = prev.messages[i];
-                                      if (mm.author === "bot" && mm.type === "text") {
+                                      if (
+                                        mm.author === "bot" &&
+                                        mm.type === "text"
+                                      ) {
                                         lastBotIndex = i;
                                         break;
                                       }
@@ -623,9 +655,12 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                                     const lastBot = [...state.messages]
                                       .reverse()
                                       .find(
-                                        (m) => m.author === "bot" && m.type === "text"
+                                        (m) =>
+                                          m.author === "bot" &&
+                                          m.type === "text"
                                       ) as TextMessage | undefined;
-                                    const empty = !lastBot || !(lastBot.text || "").trim();
+                                    const empty =
+                                      !lastBot || !(lastBot.text || "").trim();
                                     if (empty) {
                                       const retryPrompt =
                                         "Re-evaluate the provided context and produce a concise answer, as the prior step only used tool calls without output.";
@@ -646,7 +681,9 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                                             ...(m as TextMessage),
                                             text:
                                               ((m as TextMessage).text || "") +
-                                              (msg ? `\n\n❌ Error: ${msg}` : ""),
+                                              (msg
+                                                ? `\n\n❌ Error: ${msg}`
+                                                : ""),
                                           } as TextMessage)
                                         : m
                                     ),
@@ -655,8 +692,12 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
                               }
                             );
                           } catch (e) {
-                            const extra = `❌ Tool execution failed: ${String(e)}`;
-                            const sep = secondAccumulated.endsWith("\n") ? "" : "\n\n";
+                            const extra = `❌ Tool execution failed: ${String(
+                              e
+                            )}`;
+                            const sep = secondAccumulated.endsWith("\n")
+                              ? ""
+                              : "\n\n";
                             const withError = secondAccumulated + sep + extra;
                             params.setChatState((prev) => ({
                               ...prev,
@@ -777,17 +818,18 @@ export const useOpenAIResponder = (params: UseOpenAIResponderParams) => {
               m.id === assistantMessageId
                 ? ({
                     ...(m as TextMessage),
-                    text: `❌ Error: ${err?.message || "Failed to contact OpenAI"}`,
+                    text: `❌ Error: ${
+                      err?.message || "Failed to contact OpenAI"
+                    }`,
                   } as TextMessage)
                 : m
             ),
           }));
         }
       }
-    }, [params]
+    },
+    [params]
   );
 
   return { sendToOpenAI, stopRequest };
 };
-
-

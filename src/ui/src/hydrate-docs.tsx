@@ -23,7 +23,7 @@ declare global {
 }
 
 // Placeholder token replaced at serve-time in JS by the static router
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 declare const __API_URL__: string;
 
 // Use the real Introspector deserializer to avoid exposing runner

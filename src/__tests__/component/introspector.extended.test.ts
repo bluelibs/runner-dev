@@ -1,6 +1,6 @@
 import { resource, run } from "@bluelibs/runner";
 import { introspector } from "../../resources/introspector.resource";
-import { createDummyApp, helloTask, evtHello, logMw } from "../dummy/dummyApp";
+import { createDummyApp, logMw } from "../dummy/dummyApp";
 
 describe("introspector (extended)", () => {
   test("discovers dependencies, emits, hooks and relations", async () => {

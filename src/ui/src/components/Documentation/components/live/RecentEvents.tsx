@@ -28,7 +28,7 @@ interface RecentEventsProps {
 
 export const RecentEvents: React.FC<RecentEventsProps> = ({
   emissions,
-  detailed = false,
+  _detailed,
 }) => {
   const [selectedPayload, setSelectedPayload] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);

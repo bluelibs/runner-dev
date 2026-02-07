@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 /**
  * @deprecated Use useChatStateSmart instead. This hook is replaced by the Smart-based implementation.
@@ -11,16 +11,8 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
  *
  * @see useChatStateSmart for the modern implementation
  */
+import { ChatState, TextMessage, ChatSettings } from "./ChatTypes";
 import {
-  ChatState,
-  ChatMessage,
-  TextMessage,
-  FileMessage,
-  DiffMessage,
-  ChatSettings,
-} from "./ChatTypes";
-import {
-  generateUnifiedDiff,
   saveChatHistory,
   loadChatHistory,
   saveChatSettings,
@@ -42,8 +34,6 @@ import {
   AiMessage,
   testOpenAIConnection as testOpenAIConnectionApi,
 } from "./ai.service";
-import { fetchElementFileContentsBySearch } from "../../utils/fileContentUtils";
-import { graphqlRequest } from "../../utils/graphqlClient";
 import { SYSTEM_PROMPT } from "./ai.systemPrompt";
 import { createTools } from "./ai.tools";
 import {
@@ -337,27 +327,27 @@ export const useChatState = (opts?: {
         })) as AiMessage[];
 
       // Helper to resolve element ID from name via availableElements
-      const resolveId = (
-        type: "task" | "resource" | "event" | "hook" | "middleware" | "tag",
-        idOrName?: { id?: string; name?: string }
-      ): string | undefined => {
-        if (idOrName?.id) return idOrName.id;
-        const a = opts?.availableElements;
-        if (!a || !idOrName?.name) return undefined;
-        const map: Record<string, keyof AvailableElements> = {
-          task: "tasks",
-          resource: "resources",
-          event: "events",
-          hook: "hooks",
-          middleware: "middlewares",
-          tag: "tags",
-        };
-        const list = a[map[type]];
-        const found = list?.find(
-          (e) => e.name === idOrName.name || e.id === idOrName.name
-        );
-        return found?.id;
-      };
+      // const resolveId = (
+      //   type: "task" | "resource" | "event" | "hook" | "middleware" | "tag",
+      //   idOrName?: { id?: string; name?: string }
+      // ): string | undefined => {
+      //   if (idOrName?.id) return idOrName.id;
+      //   const a = opts?.availableElements;
+      //   if (!a || !idOrName?.name) return undefined;
+      //   const map: Record<string, keyof AvailableElements> = {
+      //     task: "tasks",
+      //     resource: "resources",
+      //     event: "events",
+      //     hook: "hooks",
+      //     middleware: "middlewares",
+      //     tag: "tags",
+      //   };
+      //   const list = a[map[type]];
+      //   const found = list?.find(
+      //     (e) => e.name === idOrName.name || e.id === idOrName.name
+      //   );
+      //   return found?.id;
+      // };
 
       // Tool registry: import common tools and append DeepImpl tools below
       const tools: RegisteredTool[] = [
@@ -378,7 +368,6 @@ export const useChatState = (opts?: {
           /@docs\.(runner|schema|runnerDev|projectOverview)\b/;
         const hasDocsTokens = docsTokenRegex.test(userMessage);
         if (hasDocsTokens) {
-          // eslint-disable-next-line no-console
           console.log(
             "[chat] @docs tokens detected in input, include flags:",
             chatState.chatContext?.include || {}
@@ -387,7 +376,6 @@ export const useChatState = (opts?: {
 
         const expanded = expandDocsInMessage(userMessage, docsBundle);
         if (hasDocsTokens) {
-          // eslint-disable-next-line no-console
           console.log("[chat] expandDocsInMessage applied:", {
             originalLength: userMessage.length,
             expandedLength: expanded.modelText.length,
@@ -428,7 +416,9 @@ export const useChatState = (opts?: {
               let argsObj: unknown = {};
               try {
                 argsObj = c.argsText ? JSON.parse(c.argsText) : {};
-              } catch {}
+              } catch (parseError) {
+                console.error("Failed to parse tool arguments:", parseError);
+              }
               // mark this call as running
               setToolCallStatus(setChatState, i, "running");
               const result = await tool.run(argsObj);
@@ -488,7 +478,7 @@ export const useChatState = (opts?: {
                   settings.responseMode === "json"
                     ? { type: "json_object" }
                     : undefined,
-                signal: abortController.current?.signal!,
+                signal: abortController.current?.signal,
               },
               {
                 onTextDelta: (d2: any) => {
@@ -562,7 +552,12 @@ export const useChatState = (opts?: {
                         let argsObj: unknown = {};
                         try {
                           argsObj = c.argsText ? JSON.parse(c.argsText) : {};
-                        } catch {}
+                        } catch (parseError) {
+                          console.error(
+                            "Failed to parse tool arguments:",
+                            parseError
+                          );
+                        }
                         setToolCallStatus(setChatState, i, "running");
                         const result = await tool.run(argsObj);
                         setToolCallStatus(
@@ -607,7 +602,7 @@ export const useChatState = (opts?: {
                             settings.responseMode === "json"
                               ? { type: "json_object" }
                               : undefined,
-                          signal: abortController.current?.signal!,
+                          signal: abortController.current?.signal,
                         },
                         {
                           onTextDelta: (d3: any) => {
@@ -771,7 +766,7 @@ export const useChatState = (opts?: {
               settings.responseMode === "json"
                 ? { type: "json_object" }
                 : undefined,
-            signal: abortController.current?.signal!,
+            signal: abortController.current?.signal,
           },
           {
             onTextDelta: (delta: any) => {
@@ -816,7 +811,7 @@ export const useChatState = (opts?: {
                 },
               }));
             },
-            onFinish: async (_final: any, _finishReason: any) => {
+            onFinish: async () => {
               // Orchestration is performed after the first stream completes
             },
             onError: (e: any) => {
@@ -920,7 +915,9 @@ export const useChatState = (opts?: {
           tokens: est.total,
         },
       }));
-    } catch {}
+    } catch (estimateError) {
+      console.error("Failed to compute estimate:", estimateError);
+    }
 
     const userMsg: TextMessage = {
       id: `m-${Date.now()}`,
@@ -975,7 +972,9 @@ export const useChatState = (opts?: {
             tokens: est.total,
           },
         }));
-      } catch {}
+      } catch (estimateError) {
+        console.error("Failed to compute estimate:", estimateError);
+      }
 
       // Use displayText for the UI message
       const userMsg: TextMessage = {
@@ -1087,11 +1086,6 @@ export const useChatState = (opts?: {
 
   // Live context estimate based on current input and messages (single source of truth)
   // Input used for estimates is just the live input (docs are carried in history)
-  const inputForEstimate = useMemo(
-    () => chatState.inputValue || "",
-    [chatState.inputValue]
-  );
-
   const historyForEstimate: string[] = (
     chatState.messages
       .filter((m) => m.type === "text")

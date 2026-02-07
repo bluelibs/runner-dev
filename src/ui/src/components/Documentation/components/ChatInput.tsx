@@ -56,7 +56,7 @@ interface TagSuggestion {
 export const ChatInput: React.FC<ChatInputProps> = ({
   chatState,
   setChatState,
-  sendMessage,
+  _sendMessage,
   sendMessageWithText,
   stopRequest,
   onTaggedElementSelect,
@@ -109,14 +109,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       if (found.length > 0) {
         setChatState((prev) => {
           const includes = { ...(prev.chatContext?.include || {}) };
-          let cleared = false;
+          let _cleared = false;
           for (const t of found) {
             if (t.endsWith("clear")) {
               includes.runner = false;
               includes.runnerDev = false;
               includes.schema = false;
               includes.projectOverview = false;
-              cleared = true;
+              _cleared = true;
               continue;
             }
             if (t.endsWith("runner")) includes.runner = true;
@@ -141,14 +141,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         found.length > 0
           ? (() => {
               const includes = { ...(chatState.chatContext?.include || {}) };
-              let cleared = false;
+              let _cleared = false;
               for (const t of found) {
                 if (t.endsWith("clear")) {
                   includes.runner = false;
                   includes.runnerDev = false;
                   includes.schema = false;
                   includes.projectOverview = false;
-                  cleared = true;
+                  _cleared = true;
                   continue;
                 }
                 if (t.endsWith("runner")) includes.runner = true;
@@ -554,7 +554,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           const pos = (before + toInsert).length;
           el.focus();
           el.setSelectionRange(pos, pos);
-        } catch {}
+        } catch {
+          // Ignore selection errors when textarea is detached/unavailable.
+        }
       }, 0);
       return { ...prev, inputValue: next };
     });

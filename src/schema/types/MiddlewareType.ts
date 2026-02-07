@@ -2,18 +2,8 @@ import {
   buildLegacyCombinedMiddlewareFields,
   buildResourceMiddlewareFields,
   buildTaskMiddlewareFields,
-  MiddlewareGlobalType,
 } from "./middleware/common";
-import {
-  MiddlewareResourceUsageType,
-  MiddlewareTaskUsageType,
-} from "./middleware/UsageTypes";
-import {
-  GraphQLObjectType,
-  type GraphQLFieldConfigMap,
-  GraphQLNonNull,
-  GraphQLID,
-} from "graphql";
+import { GraphQLObjectType, type GraphQLFieldConfigMap } from "graphql";
 import { BaseElementInterface } from "./AllType";
 
 export const TaskMiddlewareType: GraphQLObjectType = new GraphQLObjectType({

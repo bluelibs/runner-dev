@@ -24,16 +24,21 @@ const renderer = new marked.Renderer();
 
 renderer.code = (code: string, language?: string) => {
   let highlighted = code;
-  
+
   if (language && Prism.languages[language]) {
     try {
       highlighted = Prism.highlight(code, Prism.languages[language], language);
     } catch (error) {
-      console.warn(`Failed to highlight code with language "${language}":`, error);
+      console.warn(
+        `Failed to highlight code with language "${language}":`,
+        error
+      );
     }
   }
-  
-  return `<pre class="language-${language || 'text'}"><code class="language-${language || 'text'}">${highlighted}</code></pre>`;
+
+  return `<pre class="language-${language || "text"}"><code class="language-${
+    language || "text"
+  }">${highlighted}</code></pre>`;
 };
 
 // Configure marked options for better code rendering

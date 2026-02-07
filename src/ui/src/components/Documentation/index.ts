@@ -1,2 +1,2 @@
-export { Documentation } from './Documentation';
-export type { DocumentationProps } from './Documentation';
+export { Documentation } from "./Documentation";
+export type { DocumentationProps } from "./Documentation";

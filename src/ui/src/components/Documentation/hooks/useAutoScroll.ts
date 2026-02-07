@@ -30,7 +30,6 @@ export function useAutoScroll(
       if (rafId.current) cancelAnimationFrame(rafId.current);
       rafId.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Track manual scroll position
@@ -74,7 +73,6 @@ export function useAutoScroll(
       if (rafId.current) cancelAnimationFrame(rafId.current);
       rafId.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAtBottom, scrollToBottom, ...deps]);
 
   return { isAtBottom, scrollToBottom };

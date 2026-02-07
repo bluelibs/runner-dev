@@ -25,66 +25,69 @@ export interface InputRef {
   focus: () => void;
 }
 
-export const WriteCodeInput = forwardRef<InputRef, InputProps>(({
-  placeholder,
-  value,
-  onChange,
-  onFocus,
-  onBlur,
-  autocompleteItems = [],
-  showAutocomplete = false,
-  onSelectItem,
-  className = ""
-}, ref) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+export const WriteCodeInput = forwardRef<InputRef, InputProps>(
+  (
+    {
+      placeholder,
+      value,
+      onChange,
+      onFocus,
+      onBlur,
+      autocompleteItems = [],
+      showAutocomplete = false,
+      onSelectItem,
+      className = "",
+    },
+    ref
+  ) => {
+    const inputRef = useRef<HTMLInputElement>(null);
 
-  useImperativeHandle(ref, () => ({
-    focus: () => inputRef.current?.focus()
-  }));
+    useImperativeHandle(ref, () => ({
+      focus: () => inputRef.current?.focus(),
+    }));
 
-  const handleItemClick = (item: AutocompleteItem) => {
-    onSelectItem?.(item);
-  };
+    const handleItemClick = (item: AutocompleteItem) => {
+      onSelectItem?.(item);
+    };
 
-  return (
-    <div className={`input__autocomplete-container ${className}`}>
-      <input
-        ref={inputRef}
-        type="text"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        className="input__field"
-      />
-      {showAutocomplete && autocompleteItems.length > 0 && (
-        <div className="input__autocomplete">
-          {autocompleteItems.slice(0, 5).map((item) => (
-            <div
-              key={item.id}
-              className="input__autocomplete-item"
-              onClick={() => handleItemClick(item)}
-            >
-              <div className="input__autocomplete-id">
-                {item.id}
+    return (
+      <div className={`input__autocomplete-container ${className}`}>
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          className="input__field"
+        />
+        {showAutocomplete && autocompleteItems.length > 0 && (
+          <div className="input__autocomplete">
+            {autocompleteItems.slice(0, 5).map((item) => (
+              <div
+                key={item.id}
+                className="input__autocomplete-item"
+                onClick={() => handleItemClick(item)}
+              >
+                <div className="input__autocomplete-id">{item.id}</div>
+                {item.meta?.title && (
+                  <div className="input__autocomplete-title">
+                    {item.meta.title}
+                  </div>
+                )}
+                {item.meta?.description && (
+                  <div className="input__autocomplete-description">
+                    {item.meta.description}
+                  </div>
+                )}
               </div>
-              {item.meta?.title && (
-                <div className="input__autocomplete-title">
-                  {item.meta.title}
-                </div>
-              )}
-              {item.meta?.description && (
-                <div className="input__autocomplete-description">
-                  {item.meta.description}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
 
 WriteCodeInput.displayName = "WriteCodeInput";

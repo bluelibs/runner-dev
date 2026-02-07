@@ -9,7 +9,6 @@ import {
 import { readFile, type ReadFileOptions } from "../utils";
 import { sanitizePath, resolvePathInput } from "../../utils/path";
 import type { BaseElement } from "../model";
-import type { Introspector } from "../../resources/models/Introspector";
 import { TagType, TagUsageType } from "./TagType";
 import { MetaType } from "./MetaType";
 import { CoverageInfoType } from "./CoverageType";

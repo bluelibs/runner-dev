@@ -29,9 +29,9 @@ export const HookTargetEvents: React.FC<HookTargetEventsProps> = ({
             <h5 className="title">Universal Event Listener</h5>
           </div>
           <div className="hook-card__global-message__content">
-            This hook is triggered by <strong>every event</strong> that occurs in the
-            system. It acts as a universal listener that can respond to any event
-            type.
+            This hook is triggered by <strong>every event</strong> that occurs
+            in the system. It acts as a universal listener that can respond to
+            any event type.
           </div>
         </div>
 

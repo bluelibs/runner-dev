@@ -63,14 +63,7 @@ export async function streamChatCompletion(
   req: CreateChatRequest,
   handlers: AiStreamHandlers
 ): Promise<void> {
-  const {
-    settings,
-    messages,
-    tools,
-    tool_choice,
-    response_format,
-    temperature,
-  } = req;
+  const { settings, messages, tools, tool_choice, response_format } = req;
   if (!settings.openaiApiKey) {
     handlers.onError?.(new Error("Missing API key"));
     return;

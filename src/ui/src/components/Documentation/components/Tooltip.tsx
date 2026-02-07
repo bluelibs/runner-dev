@@ -81,8 +81,14 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
       // Keep tooltip within viewport bounds
       const padding = 8;
-      left = Math.max(padding, Math.min(left, window.innerWidth - tooltipRect.width - padding));
-      top = Math.max(padding, Math.min(top, window.innerHeight - tooltipRect.height - padding));
+      left = Math.max(
+        padding,
+        Math.min(left, window.innerWidth - tooltipRect.width - padding)
+      );
+      top = Math.max(
+        padding,
+        Math.min(top, window.innerHeight - tooltipRect.height - padding)
+      );
 
       tooltipRef.current.style.left = `${left}px`;
       tooltipRef.current.style.top = `${top}px`;

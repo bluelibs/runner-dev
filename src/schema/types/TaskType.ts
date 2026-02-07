@@ -1,7 +1,6 @@
 import {
   GraphQLBoolean,
   GraphQLID,
-  GraphQLInterfaceType,
   GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
@@ -13,7 +12,6 @@ import type { Hook, Task } from "../model";
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
 import { ResourceType } from "./ResourceType";
-import { AllType } from "./AllType";
 import { EventType } from "./EventType";
 import { TaskMiddlewareType } from "./MiddlewareType";
 import { HookType } from "./HookType";
@@ -21,15 +19,11 @@ import type { GraphQLFieldConfigMap } from "graphql";
 import type { CustomGraphQLContext } from "../context";
 import { baseElementCommonFields } from "./BaseElementCommon";
 // Removed taskLikeCommonFields, fields are declared explicitly for clarity
-import { definitions } from "@bluelibs/runner";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
 import { DurableFlowShapeType } from "./DurableFlowTypes";
 import { describeFlow as runnerDescribeFlow } from "@bluelibs/runner/node";
-
-// Forward declaration to allow self-referencing within field thunks
-export let TaskType: GraphQLObjectType<Task, CustomGraphQLContext>;
 
 // Extracted to avoid inline self-referential initializer issues
 export const TaskDependsOnType: GraphQLObjectType<
@@ -87,7 +81,7 @@ export const TaskMiddlewareUsageType = new GraphQLObjectType({
   }),
 });
 
-TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
+export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
   name: "Task",
   interfaces: () => [BaseElementInterface],
   isTypeOf: (value: unknown) =>
@@ -253,7 +247,8 @@ TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
 
     // Durable workflow fields
     isDurable: {
-      description: "Whether this task is a durable workflow (depends on a durable resource)",
+      description:
+        "Whether this task is a durable workflow (depends on a durable resource)",
       type: new GraphQLNonNull(GraphQLBoolean),
       resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.isDurableTask(node.id),
@@ -265,7 +260,8 @@ TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
         ctx.introspector.getDurableResourceForTask(node.id),
     },
     flowShape: {
-      description: "The workflow structure (steps, sleeps, signals, etc.) for durable tasks",
+      description:
+        "The workflow structure (steps, sleeps, signals, etc.) for durable tasks",
       type: DurableFlowShapeType,
       resolve: async (node: Task, _args, ctx: CustomGraphQLContext) => {
         if (!ctx.introspector.isDurableTask(node.id)) return null;

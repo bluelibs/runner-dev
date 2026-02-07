@@ -229,7 +229,7 @@ describe("SwapManager", () => {
 
       await swapManager.swap("test.swap.task", "() => ({message: 'first'})");
 
-      let tasks = swapManager.getSwappedTasks();
+      const tasks = swapManager.getSwappedTasks();
       expect(tasks).toHaveLength(1);
       expect(tasks[0].taskId).toBe("test.swap.task");
       expect(typeof tasks[0].swappedAt).toBe("number");

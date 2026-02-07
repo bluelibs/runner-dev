@@ -1,16 +1,10 @@
-import { r, task, resource, event, hook, globals } from "@bluelibs/runner";
-import {
-  ProductDomainErrors,
-  ProductNotFoundError,
-  InvalidPriceError,
-} from "../errors";
+import { r } from "@bluelibs/runner";
 import {
   RequestContext,
   AuditContext,
   TenantContext,
   BusinessContext,
 } from "../contexts";
-import { enhancedProductSyncTask } from "../tunneling";
 import z from "zod";
 
 // Simple product events
@@ -30,7 +24,9 @@ export const productPriceChangeRequestedEvent = r
 export const enhancedProductDatabaseResource = r
   .resource("app.products.resources.enhancedDatabase")
   .dependencies({})
-  .init(async (_config, deps) => {})
+  .init(async () => {
+    /* intentionally empty */
+  })
   .build();
 
 export const productPricingEngineResource = r
@@ -39,7 +35,7 @@ export const productPricingEngineResource = r
     tenantContext: TenantContext,
     businessContext: BusinessContext,
   })
-  .init(async (_config, deps) => {
+  .init(async (_config, _deps) => {
     return {};
   })
   .build();
@@ -87,9 +83,14 @@ export const productPriceOptimizationHook = r
     pricingEngine: productPricingEngineResource,
     auditContext: AuditContext,
   })
-  .run(async (event, { pricingEngine, auditContext }) => {
-    // Hook logic for price optimization
-  })
+  .run(
+    async (
+      _event,
+      { pricingEngine: _pricingEngine, auditContext: _auditContext }
+    ) => {
+      // Hook logic for price optimization
+    }
+  )
   .build();
 
 export const productInventoryRestockHook = r
@@ -98,7 +99,7 @@ export const productInventoryRestockHook = r
   .dependencies({
     auditContext: AuditContext,
   })
-  .run(async (event, { auditContext }) => {
+  .run(async (_event, { auditContext: _auditContext }) => {
     // Hook logic for inventory restock
   })
   .build();

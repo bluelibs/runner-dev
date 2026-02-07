@@ -27,10 +27,10 @@ export function parseSearchQuery(raw: string): ParsedSearch {
         .split(/\s*,\s*/)
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
-      
+
       const include: string[] = [];
       const exclude: string[] = [];
-      
+
       terms.forEach((term) => {
         if (term.startsWith("!")) {
           const excludeTerm = normalize(term.slice(1));
@@ -40,7 +40,7 @@ export function parseSearchQuery(raw: string): ParsedSearch {
           if (includeTerm) include.push(includeTerm);
         }
       });
-      
+
       return { include, exclude };
     })
     .filter((g) => g.include.length > 0 || g.exclude.length > 0);
@@ -61,28 +61,32 @@ export function elementMatchesParsed(
 
   const groupMatches = (group: SearchGroup): boolean => {
     if (group.include.length === 0 && group.exclude.length === 0) return true;
-    
+
     if (parsed.isTagSearch) {
       // Tag search mode: check against tags
       // Include terms: all must match (AND logic)
-      const includeMatch = group.include.length === 0 || 
+      const includeMatch =
+        group.include.length === 0 ||
         group.include.every((token) => tags.some((tag) => tag.includes(token)));
-      
+
       // Exclude terms: none must match
-      const excludeMatch = group.exclude.length === 0 || 
+      const excludeMatch =
+        group.exclude.length === 0 ||
         !group.exclude.some((token) => tags.some((tag) => tag.includes(token)));
-      
+
       return includeMatch && excludeMatch;
     } else {
       // Name/id search mode: check against id
       // Include terms: all must match (AND logic)
-      const includeMatch = group.include.length === 0 || 
+      const includeMatch =
+        group.include.length === 0 ||
         group.include.every((token) => id.includes(token));
-      
+
       // Exclude terms: none must match
-      const excludeMatch = group.exclude.length === 0 || 
+      const excludeMatch =
+        group.exclude.length === 0 ||
         !group.exclude.some((token) => id.includes(token));
-      
+
       return includeMatch && excludeMatch;
     }
   };
@@ -104,7 +108,9 @@ export function treeNodeMatchesParsed(
 
   const label = normalize(node.label);
   const elementId = normalize(node.elementId || "");
-  const element = node.element as { id?: string; tags?: string[] | null } | undefined;
+  const element = node.element as
+    | { id?: string; tags?: string[] | null }
+    | undefined;
 
   const elementForMatch = {
     id: normalize(element?.id || elementId || label),
@@ -113,34 +119,41 @@ export function treeNodeMatchesParsed(
 
   const groupMatches = (group: SearchGroup): boolean => {
     if (group.include.length === 0 && group.exclude.length === 0) return true;
-    
+
     if (parsed.isTagSearch) {
       // Tag search mode: only consider tags
       const tags = (elementForMatch.tags || []).map(normalize);
-      
+
       // Include terms: all must match (AND logic)
-      const includeMatch = group.include.length === 0 || 
+      const includeMatch =
+        group.include.length === 0 ||
         group.include.every((token) => tags.some((t) => t.includes(token)));
-      
+
       // Exclude terms: none must match
-      const excludeMatch = group.exclude.length === 0 || 
+      const excludeMatch =
+        group.exclude.length === 0 ||
         !group.exclude.some((token) => tags.some((t) => t.includes(token)));
-      
+
       return includeMatch && excludeMatch;
     } else {
       // Name mode: allow matching on label or elementId (AND logic)
       // Include terms: all must match
-      const includeMatch = group.include.length === 0 || 
-        group.include.every((token) => label.includes(token) || elementId.includes(token));
-      
+      const includeMatch =
+        group.include.length === 0 ||
+        group.include.every(
+          (token) => label.includes(token) || elementId.includes(token)
+        );
+
       // Exclude terms: none must match
-      const excludeMatch = group.exclude.length === 0 || 
-        !group.exclude.some((token) => label.includes(token) || elementId.includes(token));
-      
+      const excludeMatch =
+        group.exclude.length === 0 ||
+        !group.exclude.some(
+          (token) => label.includes(token) || elementId.includes(token)
+        );
+
       return includeMatch && excludeMatch;
     }
   };
 
   return parsed.groups.some(groupMatches);
 }
-

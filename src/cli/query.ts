@@ -5,16 +5,10 @@ import {
   formatOutput,
   applyNamespaceFilter,
 } from "./shared";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { run } from "@bluelibs/runner";
-import { graphqlCli } from "../resources/graphql.cli.resource";
 import { graphqlQueryCliTask } from "../resources/graphql.query.cli.task";
-import { loadEntryExport } from "./entryLoader";
 import { createGraphqlCliHarnessFromEntry } from "./harness";
 
 function printHelp(): void {
-  // eslint-disable-next-line no-console
   console.log(`
 runner-dev query
 
@@ -138,17 +132,18 @@ export async function main(argv: string[]): Promise<void> {
         };
 
         if (!raw && envelope?.errors?.length) {
-          // eslint-disable-next-line no-console
           console.error(JSON.stringify(envelope.errors, null, 2));
           process.exitCode = 1;
           return;
         }
-        // eslint-disable-next-line no-console
+
         console.log(formatOutput(envelope, { format, raw }));
       } finally {
         try {
           await harness.dispose();
-        } catch {}
+        } catch {
+          /* intentionally empty */
+        }
       }
       return;
     }
@@ -162,15 +157,13 @@ export async function main(argv: string[]): Promise<void> {
       operationName,
     });
     if (!raw && result?.errors?.length) {
-      // eslint-disable-next-line no-console
       console.error(JSON.stringify(result.errors, null, 2));
       process.exitCode = 1;
       return;
     }
-    // eslint-disable-next-line no-console
+
     console.log(formatOutput(result, { format, raw }));
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error((e as Error).message);
     process.exitCode = 1;
     return;
@@ -179,7 +172,6 @@ export async function main(argv: string[]): Promise<void> {
 
 if (require.main === module) {
   main(process.argv).catch((error: unknown) => {
-    // eslint-disable-next-line no-console
     console.error((error as Error)?.message || String(error));
     process.exitCode = 1;
   });

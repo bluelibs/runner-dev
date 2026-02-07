@@ -2,7 +2,6 @@
 import { execRemote } from "./shared";
 
 function printHelp(): void {
-  // eslint-disable-next-line no-console
   console.log(`
 runner-dev ping
 
@@ -41,7 +40,7 @@ export async function main(argv: string[]): Promise<void> {
       headersJson,
       query: "query { __typename }",
     });
-    // eslint-disable-next-line no-console
+
     console.log(
       JSON.stringify(
         {
@@ -55,7 +54,6 @@ export async function main(argv: string[]): Promise<void> {
       )
     );
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error(
       JSON.stringify({ ok: false, error: (e as Error).message }, null, 2)
     );
@@ -66,7 +64,6 @@ export async function main(argv: string[]): Promise<void> {
 
 if (require.main === module) {
   main(process.argv).catch((error: unknown) => {
-    // eslint-disable-next-line no-console
     console.error(
       JSON.stringify(
         { ok: false, error: (error as Error)?.message || String(error) },

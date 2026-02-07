@@ -1,10 +1,7 @@
 import React from "react";
 import { Task } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import {
-  formatFilePath,
-  formatId,
-} from "../utils/formatting";
+import { formatFilePath, formatId } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
@@ -36,9 +33,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   // Check for async context usage (placeholder for future implementation)
   // This will be populated when we parse context usage from source code
   const usedContexts: string[] = []; // Placeholder
-  const contextInfo = usedContexts.length > 0
-    ? usedContexts.map((contextId) => introspector.getAsyncContext(contextId)).filter(Boolean)
-    : [];
+  const contextInfo =
+    usedContexts.length > 0
+      ? usedContexts
+          .map((contextId) => introspector.getAsyncContext(contextId))
+          .filter(Boolean)
+      : [];
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [fileContent, setFileContent] = React.useState<string | null>(null);
@@ -46,7 +46,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const [error, setError] = React.useState<string | null>(null);
   const [coverageDetailsOpen, setCoverageDetailsOpen] = React.useState(false);
   const [coverageData, setCoverageData] = React.useState<any>(null);
-  const [coverageFileContent, setCoverageFileContent] = React.useState<string | null>(null);
+  const [coverageFileContent, setCoverageFileContent] = React.useState<
+    string | null
+  >(null);
   const [coverageLoading, setCoverageLoading] = React.useState(false);
   const [coverageError, setCoverageError] = React.useState<string | null>(null);
   const [isExecuteOpen, setIsExecuteOpen] = React.useState(false);
@@ -106,7 +108,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
         graphqlRequest<{
           task: { fileContents: string | null };
-        }>(SAMPLE_TASK_FILE_QUERY, { id: task.id })
+        }>(SAMPLE_TASK_FILE_QUERY, { id: task.id }),
       ]);
 
       setCoverageData(coverageResult?.task?.coverage);
@@ -305,17 +307,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           >
             <InfoBlock prefix="task-card" label="Uses Contexts:">
               <div className="task-card__contexts">
-                {contextInfo.map((context) => (
-                  context && (
-                    <a
-                      key={context.id}
-                      href={`#element-${context.id}`}
-                      className="task-card__context-link"
-                    >
-                      {context.meta?.title || formatId(context.id)}
-                    </a>
-                  )
-                ))}
+                {contextInfo.map(
+                  (context) =>
+                    context && (
+                      <a
+                        key={context.id}
+                        href={`#element-${context.id}`}
+                        className="task-card__context-link"
+                      >
+                        {context.meta?.title || formatId(context.id)}
+                      </a>
+                    )
+                )}
               </div>
             </InfoBlock>
           </CardSection>
@@ -361,7 +364,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
       {middlewareUsages.length > 0 && (
         <div className="task-card__middleware">
-          <h4 className="task-card__middleware__title">Middleware Configuration</h4>
+          <h4 className="task-card__middleware__title">
+            Middleware Configuration
+          </h4>
           <div className="task-card__middleware__items">
             {middlewareUsages.map((usage) => (
               <div key={usage.id} className="task-card__middleware__item">

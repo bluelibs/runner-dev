@@ -2,11 +2,8 @@ import {
   GraphQLObjectType,
   GraphQLString,
   GraphQLBoolean,
-  GraphQLList,
-  GraphQLInt,
   GraphQLFloat,
   GraphQLNonNull,
-  GraphQLID,
 } from "graphql";
 
 export const SwapResultType = new GraphQLObjectType({

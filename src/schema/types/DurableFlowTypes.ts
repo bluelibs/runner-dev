@@ -168,11 +168,15 @@ export const FlowNodeType = new GraphQLUnionType({
 
 export const DurableFlowShapeType = new GraphQLObjectType({
   name: "DurableFlowShape",
-  description: "The structure of a durable workflow, extracted without executing it",
+  description:
+    "The structure of a durable workflow, extracted without executing it",
   fields: (): GraphQLFieldConfigMap<unknown, unknown> => ({
     nodes: {
-      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(FlowNodeType))),
-      description: "Ordered list of flow nodes describing the workflow structure",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(FlowNodeType))
+      ),
+      description:
+        "Ordered list of flow nodes describing the workflow structure",
     },
   }),
 });

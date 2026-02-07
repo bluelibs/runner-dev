@@ -15,7 +15,10 @@ export const useFileViewerModal = () => {
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modalProps, setModalProps] = useState<{ title: string; subtitle?: string }>({ title: "" });
+  const [modalProps, setModalProps] = useState<{
+    title: string;
+    subtitle?: string;
+  }>({ title: "" });
 
   const openModal = async (
     kind: "task" | "resource" | "middleware" | "event",
@@ -30,8 +33,8 @@ export const useFileViewerModal = () => {
     setLoading(true);
     setError(null);
     setModalProps({
-        title: title || formatId(id),
-        subtitle: filePath || undefined,
+      title: title || formatId(id),
+      subtitle: filePath || undefined,
     });
 
     try {

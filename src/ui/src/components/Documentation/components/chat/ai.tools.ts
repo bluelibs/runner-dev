@@ -1,11 +1,11 @@
 import { RegisteredTool } from "./ai.service";
 import { fetchElementFileContentsBySearch } from "../../utils/fileContentUtils";
 import { graphqlRequest } from "../../utils/graphqlClient";
-import { DeepImplTodoItem, DeepImplState, ChatState } from "./ChatTypes";
+import { ChatState } from "./ChatTypes";
 
 export const createTools = (
-  getChatState: () => ChatState,
-  setChatState: React.Dispatch<React.SetStateAction<ChatState>>
+  _getChatState: () => ChatState,
+  _setChatState: React.Dispatch<React.SetStateAction<ChatState>>
 ): RegisteredTool[] => [
   {
     name: "get_current_time",
@@ -33,7 +33,6 @@ export const createTools = (
       additionalProperties: false,
     },
     run: async (args: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const a = args as { items: string[] };
 
       const sanitize = (s: string) => (s.startsWith("@") ? s.slice(1) : s);
@@ -79,7 +78,6 @@ export const createTools = (
       additionalProperties: false,
     },
     run: async (rawArgs: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const args = (rawArgs || {}) as {
         query: string;
         variables?: unknown;

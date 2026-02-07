@@ -6,9 +6,6 @@ import {
   ChatState,
   DeepImplState,
   TextMessage,
-  FileMessage,
-  DiffMessage,
-  MessageType,
   TokenUsage,
   TokenEstimate,
   ToolCallInfo,
@@ -24,7 +21,6 @@ import {
   AccumulatedToolCall,
 } from "./ai.service";
 import {
-  generateUnifiedDiff,
   saveChatHistory,
   loadChatHistory,
   saveChatSettings,
@@ -189,7 +185,10 @@ export class ChatSmart extends Smart {
     }
   }
 
-  async sendMessageWithText(messageText: string, displayText?: string): Promise<void> {
+  async sendMessageWithText(
+    messageText: string,
+    displayText?: string
+  ): Promise<void> {
     return this.sendMessage(messageText, displayText);
   }
 
@@ -301,8 +300,12 @@ export class ChatSmart extends Smart {
             this.inform();
           },
 
-          onFinish: (finalText: string, finishReason?: string) => {
-            this.finalizeMessage(assistantMessageId, finalText, accumulator.list());
+          onFinish: (finalText: string, _finishReason?: string) => {
+            this.finalizeMessage(
+              assistantMessageId,
+              finalText,
+              accumulator.list()
+            );
             this.isTyping = false;
             this.thinkingStage = "none";
             this.canStop = false;
@@ -356,7 +359,7 @@ export class ChatSmart extends Smart {
     assistantMessageId: string
   ): Promise<void> {
     // Set planned tool calls
-    this.toolCalls = toolCalls.map((call, index) => ({
+    this.toolCalls = toolCalls.map((call, _index) => ({
       id: call.id,
       name: call.name,
       argsPreview: call.argsText,
@@ -371,7 +374,11 @@ export class ChatSmart extends Smart {
       const tool = registeredTools.find((t) => t.name === toolCall.name);
 
       if (!tool) {
-        this.updateToolCallStatus(i, "error", `Tool not found: ${toolCall.name}`);
+        this.updateToolCallStatus(
+          i,
+          "error",
+          `Tool not found: ${toolCall.name}`
+        );
         continue;
       }
 
@@ -578,7 +585,7 @@ export class ChatSmart extends Smart {
 
   private async continueWithToolResults(
     toolResults: any[],
-    assistantMessageId: string
+    _assistantMessageId: string
   ): Promise<void> {
     // Continue the conversation with tool results
     // This is a simplified implementation
@@ -722,8 +729,7 @@ export class ChatSmart extends Smart {
       const savedContext = loadChatContext();
 
       if (savedMessages?.length > 0) this.messages = savedMessages;
-      if (savedSettings)
-        this.settings = { ...this.settings, ...savedSettings };
+      if (savedSettings) this.settings = { ...this.settings, ...savedSettings };
       if (savedContext?.include)
         this.chatContext.include = {
           ...this.chatContext.include,
@@ -763,9 +769,7 @@ export class ChatSmart extends Smart {
   // ========================================
 
   get canRetry(): boolean {
-    return (
-      this.messages.some((m) => m.author === "user") && !this.isTyping
-    );
+    return this.messages.some((m) => m.author === "user") && !this.isTyping;
   }
 
   get tokenStatus(): {
@@ -780,9 +784,9 @@ export class ChatSmart extends Smart {
         this.chatContext.include.schema ||
         this.chatContext.include.projectOverview
     );
-    const hasHistory = this.messages.filter(
-      (m) => m.type === "text" && m.id !== "welcome"
-    ).length > 0;
+    const hasHistory =
+      this.messages.filter((m) => m.type === "text" && m.id !== "welcome")
+        .length > 0;
 
     // When there's no history, no input, and no sticky includes,
     // still show the system prompt tokens (never show 0).

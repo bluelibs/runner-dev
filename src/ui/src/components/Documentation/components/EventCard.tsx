@@ -197,7 +197,8 @@ export const EventCard: React.FC<EventCardProps> = ({
             </InfoBlock>
           )}
 
-          {((!isGlobalEvent && emitters.length === 0) || hooks.length === 0) && (
+          {((!isGlobalEvent && emitters.length === 0) ||
+            hooks.length === 0) && (
             <div
               className={`event-card__alert ${
                 emitters.length === 0

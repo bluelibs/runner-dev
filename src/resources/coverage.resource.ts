@@ -126,8 +126,9 @@ async function loadCoverageFromJson(jsonPath: string): Promise<LoadedCoverage> {
       // Sort lines by line number and remove duplicates
       const uniqueLines = lines
         .sort((a, b) => a.line - b.line)
-        .filter((line, index, array) =>
-          index === 0 || line.line !== array[index - 1].line
+        .filter(
+          (line, index, array) =>
+            index === 0 || line.line !== array[index - 1].line
         );
 
       summariesByAbsPath.set(abs, {
@@ -190,7 +191,9 @@ async function loadCoverageFromClover(
 
     // Parse line coverage from Clover XML
     const lines: LineCoverage[] = [];
-    const lineMatches = [...inner.matchAll(/<line[^>]*num="(\d+)"[^>]*count="(\d+)"/g)];
+    const lineMatches = [
+      ...inner.matchAll(/<line[^>]*num="(\d+)"[^>]*count="(\d+)"/g),
+    ];
     for (const lineMatch of lineMatches) {
       const lineNum = parseInt(lineMatch[1], 10);
       const count = parseInt(lineMatch[2], 10);
@@ -241,7 +244,8 @@ export const coverage = resource({
   id: "runner-dev.resources.coverage",
   meta: {
     title: "Code Coverage Service",
-    description: "Loads and parses test coverage data from JSON or Clover XML files to provide coverage statistics",
+    description:
+      "Loads and parses test coverage data from JSON or Clover XML files to provide coverage statistics",
   },
   dependencies: {
     // Keep ability to access store if needed later
@@ -249,13 +253,13 @@ export const coverage = resource({
   },
   async init(_config, _deps): Promise<CoverageService> {
     let cached: LoadedCoverage | null = null;
-    let lastLoadTs = 0;
+    let _lastLoadTs = 0;
 
     async function ensureLoaded(): Promise<void> {
       // Basic freshness check: reload if file changed time? For now, load once per process or when missing.
       if (cached) return;
       cached = await tryLoadCoverage();
-      lastLoadTs = Date.now();
+      _lastLoadTs = Date.now();
     }
 
     async function getRawCoverageContents(): Promise<string | null> {

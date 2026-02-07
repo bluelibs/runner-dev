@@ -1,14 +1,6 @@
 import { resource } from "@bluelibs/runner";
 import type { Introspector } from "./models/Introspector";
 import { introspector } from "./introspector.resource";
-import type {
-  Resource,
-  Task,
-  Event,
-  Hook,
-  Middleware,
-  BaseElement,
-} from "../schema/model";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -214,7 +206,8 @@ export const docsGenerator = resource({
   id: "runner-dev.resources.docs-generator",
   meta: {
     title: "Documentation Generator",
-    description: "Generates comprehensive markdown documentation for applications by analyzing tasks, resources, events, hooks, and middlewares",
+    description:
+      "Generates comprehensive markdown documentation for applications by analyzing tasks, resources, events, hooks, and middlewares",
   },
   dependencies: {
     introspector,

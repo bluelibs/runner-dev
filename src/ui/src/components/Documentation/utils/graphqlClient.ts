@@ -1,5 +1,5 @@
 /* Minimal GraphQL client for the docs UI */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 declare const __API_URL__: string;
 
 export interface GraphQLResponse<T> {
@@ -12,7 +12,9 @@ function getBaseUrl(): string {
   try {
     const base: string = __API_URL__;
     if (base && typeof base === "string" && base.length > 0) return base;
-  } catch {}
+  } catch {
+    // Ignore unresolved __API_URL__ and use the fallback below.
+  }
   return typeof window !== "undefined" ? window.location.origin : "";
 }
 

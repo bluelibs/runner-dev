@@ -58,14 +58,14 @@ function assertInvokeTaskData(
 }
 
 describe("Swap GraphQL Integration", () => {
-  let testApp: any;
+  let _testApp: any;
   let apolloServer: ApolloServer;
   let context: CustomGraphQLContext;
 
   const testTask = task({
     id: "test.graphql.task",
     dependencies: { logger: globals.resources.logger },
-    async run(input, { logger }) {
+    async run(_input, { logger: _logger }) {
       return "original graphql test";
     },
   });
@@ -110,7 +110,7 @@ describe("Swap GraphQL Integration", () => {
       telemetry,
       probe,
     ]);
-    testApp = await run(app);
+    _testApp = await run(app);
   });
 
   afterAll(async () => {

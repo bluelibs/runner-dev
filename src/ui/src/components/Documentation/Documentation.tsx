@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Introspector } from "../../../../resources/models/Introspector";
 import "./Documentation.scss";
 import { DocumentationSidebar } from "./components/DocumentationSidebar";
@@ -106,7 +106,9 @@ export const Documentation: React.FC<DocumentationProps> = ({
           DOCUMENTATION_CONSTANTS.STORAGE_KEYS.CHAT_OPEN,
           String(next)
         );
-      } catch {}
+      } catch {
+        /* intentionally empty */
+      }
       // Mark a brief transition window for overlay while chat opens/closes
       setIsChatTransitioning(true);
       window.setTimeout(() => setIsChatTransitioning(false), 260);
@@ -127,7 +129,9 @@ export const Documentation: React.FC<DocumentationProps> = ({
     const handleHashChange = () => {
       try {
         setIsStatsOpen(window.location.hash === "#overview-stats");
-      } catch {}
+      } catch {
+        /* intentionally empty */
+      }
     };
     window.addEventListener("hashchange", handleHashChange);
     handleHashChange();
@@ -139,14 +143,18 @@ export const Documentation: React.FC<DocumentationProps> = ({
   const openStats = () => {
     try {
       window.location.hash = "#overview-stats";
-    } catch {}
+    } catch {
+      /* intentionally empty */
+    }
   };
   const closeStats = () => {
     try {
       if (window.location.hash === "#overview-stats") {
         window.location.hash = "#overview";
       }
-    } catch {}
+    } catch {
+      /* intentionally empty */
+    }
   };
 
   const treeHook = useTreeNavigation(

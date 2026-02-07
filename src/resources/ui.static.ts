@@ -39,7 +39,7 @@ export function createUiStaticRouter(uiDir: string): Router {
       res.setHeader("Content-Type", "application/javascript");
       res.setHeader("Cache-Control", "no-store");
       return res.send(data);
-    } catch (e) {
+    } catch (_e) {
       return next();
     }
   });

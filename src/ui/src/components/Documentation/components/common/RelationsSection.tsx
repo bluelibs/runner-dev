@@ -1,9 +1,23 @@
 import React from "react";
-import { Task, Resource, Event, BaseElement, Middleware, Hook } from "../../../../../../schema/model";
+import {
+  Task,
+  Resource,
+  Event,
+  BaseElement,
+  Middleware,
+  Hook,
+} from "../../../../../../schema/model";
 import { formatId } from "../../utils/formatting";
 import "./RelationsSection.scss";
 
-type RelationItem = (Task | Resource | Event | Middleware | Hook | BaseElement) & { meta?: { title?: string | null } };
+type RelationItem = (
+  | Task
+  | Resource
+  | Event
+  | Middleware
+  | Hook
+  | BaseElement
+) & { meta?: { title?: string | null } };
 
 interface RelationsSectionProps {
   relations: {
@@ -14,13 +28,14 @@ interface RelationsSectionProps {
 }
 
 const getRelationItemClass = (item: RelationItem) => {
-    if ('emits' in item && 'dependsOn' in item) return 'task';
-    if ('config' in item && !('emits' in item)) return 'resource';
-    if ('payloadSchema' in item) return 'event';
-    if ('event' in item) return 'hook';
-    if ('type' in item && (item.type === 'task' || item.type === 'resource')) return 'middleware';
-    return 'default';
-}
+  if ("emits" in item && "dependsOn" in item) return "task";
+  if ("config" in item && !("emits" in item)) return "resource";
+  if ("payloadSchema" in item) return "event";
+  if ("event" in item) return "hook";
+  if ("type" in item && (item.type === "task" || item.type === "resource"))
+    return "middleware";
+  return "default";
+};
 
 export const RelationsSection: React.FC<RelationsSectionProps> = ({
   relations,
@@ -45,22 +60,22 @@ export const RelationsSection: React.FC<RelationsSectionProps> = ({
               <h5>{category}</h5>
               <div className="relations-section__items">
                 {items.map((item) => {
-                    if (renderItem) {
-                        return renderItem(item, category);
-                    }
-                    const itemClass = getRelationItemClass(item);
-                    return (
-                        <a
-                            key={item.id}
-                            href={`#element-${item.id}`}
-                            className={`relations-section__item relations-section__item--${itemClass} relations-section__link`}
-                        >
-                            <div className={`title title--${itemClass}`}>
-                                {item.meta?.title || formatId(item.id)}
-                            </div>
-                            <div className="id">{item.id}</div>
-                        </a>
-                    )
+                  if (renderItem) {
+                    return renderItem(item, category);
+                  }
+                  const itemClass = getRelationItemClass(item);
+                  return (
+                    <a
+                      key={item.id}
+                      href={`#element-${item.id}`}
+                      className={`relations-section__item relations-section__item--${itemClass} relations-section__link`}
+                    >
+                      <div className={`title title--${itemClass}`}>
+                        {item.meta?.title || formatId(item.id)}
+                      </div>
+                      <div className="id">{item.id}</div>
+                    </a>
+                  );
                 })}
               </div>
             </div>

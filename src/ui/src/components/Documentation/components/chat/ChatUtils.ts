@@ -222,8 +222,8 @@ export const generateUnifiedDiff = (
 
   // Simple line-by-line diff (in production, use a proper diff library like diff2html)
   const maxLines = Math.max(prevLines.length, newLines.length);
-  let hunkStart = 0;
-  let hunkLines: string[] = [];
+  const hunkStart = 0;
+  const hunkLines: string[] = [];
 
   for (let i = 0; i < maxLines; i++) {
     const prevLine = prevLines[i];

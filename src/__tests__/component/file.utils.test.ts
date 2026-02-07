@@ -18,7 +18,9 @@ describe("readFile utility", () => {
     try {
       await fs.unlink(tmpFile);
       await fs.rmdir(tmpDir);
-    } catch {}
+    } catch {
+      // intentionally empty
+    }
   });
 
   test("returns full file when no options provided", async () => {

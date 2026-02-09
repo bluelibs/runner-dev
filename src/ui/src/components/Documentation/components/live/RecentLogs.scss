@@ -32,11 +32,78 @@
     font-weight: 400;
     transition: all 0.15s ease;
     cursor: pointer;
+    flex-shrink: 0;
 
     &:hover {
       background: var(--docs-hover-bg);
       color: var(--docs-text-primary);
     }
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    max-width: 420px;
+    position: relative;
+  }
+
+  &__search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 14px;
+    color: var(--docs-text-muted);
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  &__search-input {
+    width: 100%;
+    padding: 6px 30px 6px 28px;
+    border: 1px solid var(--docs-border-primary);
+    border-radius: 6px;
+    background: var(--docs-bg-secondary);
+    color: var(--docs-text-primary);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &::placeholder {
+      color: var(--docs-text-muted);
+      font-size: 12px;
+    }
+
+    &:focus {
+      border-color: var(--docs-primary);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+    }
+  }
+
+  &__search-clear {
+    position: absolute;
+    right: 6px;
+    background: transparent;
+    border: none;
+    color: var(--docs-text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    line-height: 1;
+    border-radius: 3px;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: var(--docs-text-primary);
+    }
+  }
+
+  &__match-count {
+    font-size: 11px;
+    color: var(--docs-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   &__list {
@@ -167,7 +234,8 @@
     rgba(30, 41, 59, 0.9) 100%
   );
   backdrop-filter: blur(8px);
-  z-index: 2147483646;
+  // Base fullscreen layer (below log details and trace view).
+  z-index: 2147483645;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -198,6 +266,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--docs-border-primary);
@@ -210,6 +279,79 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+}
+
+.recent-logs-fs__search {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  max-width: 500px;
+  position: relative;
+  gap: 8px;
+}
+
+.recent-logs-fs__search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 16px;
+  color: rgba(148, 163, 184, 0.6);
+  pointer-events: none;
+  line-height: 1;
+}
+
+.recent-logs-fs__search-input {
+  width: 100%;
+  padding: 10px 36px 10px 34px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.5) 0%,
+    rgba(30, 41, 59, 0.4) 100%
+  );
+  color: var(--docs-text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  backdrop-filter: blur(4px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &::placeholder {
+    color: rgba(148, 163, 184, 0.5);
+    font-size: 14px;
+  }
+
+  &:focus {
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  }
+}
+
+.recent-logs-fs__search-clear {
+  position: absolute;
+  right: 62px; // right of match-count when present, else right edge
+  background: transparent;
+  border: none;
+  color: rgba(148, 163, 184, 0.6);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--docs-text-primary);
+  }
+}
+
+.recent-logs-fs__match-count {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.7);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .recent-logs-fs__close {
@@ -423,7 +565,8 @@
     rgba(30, 41, 59, 0.8) 100%
   );
   backdrop-filter: blur(12px);
-  z-index: 2147483647;
+  // Log details layer (below trace view).
+  z-index: 2147483646;
   display: flex;
   align-items: center;
   justify-content: center;

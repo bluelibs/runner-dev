@@ -6,7 +6,8 @@
 .trace-view__overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  // Must sit above RecentLogs fullscreen/details overlays.
+  z-index: 2147483647;
   display: flex;
   align-items: center;
   justify-content: center;

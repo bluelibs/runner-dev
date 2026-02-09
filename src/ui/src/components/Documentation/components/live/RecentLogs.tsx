@@ -1,7 +1,35 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import JsonViewer from "../JsonViewer";
 import "./RecentLogs.scss";
+
+/**
+ * Case-insensitive, token-based fuzzy match.
+ * Every whitespace-separated token in `query` must appear in at least one of
+ * the searchable fields (correlationId, sourceId, message, level, data).
+ */
+const fuzzyMatchLog = (log: LogEntry, query: string): boolean => {
+  if (!query) return true;
+
+  const haystack = [
+    log.message,
+    log.level,
+    log.correlationId ?? "",
+    log.sourceId ?? "",
+    log.data ?? "",
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return tokens.every((token) => haystack.includes(token));
+};
 
 interface LogEntry {
   timestampMs: number;
@@ -40,6 +68,11 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const fsSearchInputRef = useRef<HTMLInputElement>(null);
+
+  const clearSearch = useCallback(() => setSearchQuery(""), []);
 
   const formatTimestamp = (timestampMs: number): string => {
     const d = new Date(timestampMs);
@@ -57,8 +90,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
 
   const visibleLogs = useMemo(() => {
     const base = isFullscreen ? logs : logs.slice(-50);
-    return [...base].reverse();
-  }, [logs, isFullscreen]);
+    const reversed = [...base].reverse();
+    if (!searchQuery) return reversed;
+    return reversed.filter((log) => fuzzyMatchLog(log, searchQuery));
+  }, [logs, isFullscreen, searchQuery]);
 
   const selectedLog = useMemo(() => {
     if (selectedLogIndex === null) return null;
@@ -70,19 +105,59 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
       if (e.key === "Escape") {
         if (selectedLogIndex !== null) {
           setSelectedLogIndex(null);
+        } else if (searchQuery) {
+          clearSearch();
         } else if (isFullscreen) {
           setIsFullscreen(false);
+        }
+      }
+
+      // Ctrl/Cmd+F focuses the search input
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+        const target = isFullscreen ? fsSearchInputRef : searchInputRef;
+        if (target.current) {
+          e.preventDefault();
+          target.current.focus();
         }
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isFullscreen, selectedLogIndex]);
+  }, [isFullscreen, selectedLogIndex, searchQuery, clearSearch]);
 
   return (
     <div className="recent-logs live-section">
       <div className="recent-logs__header">
         <h4 className="recent-logs__title">Recent Logs ({logs.length})</h4>
+        <div className="recent-logs__search">
+          <span className="recent-logs__search-icon" aria-hidden="true">
+            ⌕
+          </span>
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="recent-logs__search-input"
+            placeholder="Search logs… (id, source, message, level)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search logs"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="recent-logs__search-clear"
+              onClick={clearSearch}
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <span className="recent-logs__match-count">
+            {visibleLogs.length} match{visibleLogs.length !== 1 ? "es" : ""}
+          </span>
+        )}
         <button
           type="button"
           className="recent-logs__toggle"
@@ -169,6 +244,40 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                 <h3 className="recent-logs-fs__title">
                   Recent Logs - Full Screen
                 </h3>
+                <div className="recent-logs-fs__search">
+                  <span
+                    className="recent-logs-fs__search-icon"
+                    aria-hidden="true"
+                  >
+                    ⌕
+                  </span>
+                  <input
+                    ref={fsSearchInputRef}
+                    type="text"
+                    className="recent-logs-fs__search-input"
+                    placeholder="Search logs… (id, source, message, level)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Search logs"
+                    autoFocus
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="recent-logs-fs__search-clear"
+                      onClick={clearSearch}
+                      aria-label="Clear search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  {searchQuery && (
+                    <span className="recent-logs-fs__match-count">
+                      {visibleLogs.length} match
+                      {visibleLogs.length !== 1 ? "es" : ""}
+                    </span>
+                  )}
+                </div>
                 <button
                   className="recent-logs-fs__close"
                   onClick={() => setIsFullscreen(false)}

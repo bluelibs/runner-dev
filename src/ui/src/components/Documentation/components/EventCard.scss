@@ -19,7 +19,11 @@
 // Event Card Header
 // -----------------------------------------------------------------------------
 .event-card__header {
-  background: linear-gradient(180deg, var(--docs-panel-bg), var(--docs-bg-secondary));
+  background: linear-gradient(
+    180deg,
+    var(--docs-panel-bg),
+    var(--docs-bg-secondary)
+  );
   color: var(--docs-text-primary);
   padding: $spacing-xl;
   border-bottom: 1px solid var(--docs-border-primary);
@@ -169,20 +173,20 @@
 
     &--status {
       font-weight: 500;
-      
+
       // Status color classes
       &.status-unused {
         color: var(--docs-text-muted);
       }
-      
+
       &.status-no-emitters {
         color: var(--docs-danger);
       }
-      
+
       &.status-no-listeners {
         color: var(--docs-warning);
       }
-      
+
       &.status-active {
         color: var(--docs-success);
       }

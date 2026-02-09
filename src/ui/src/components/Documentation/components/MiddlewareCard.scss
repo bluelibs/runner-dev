@@ -153,25 +153,25 @@
   @media (min-width: 768px) {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
-    
+
     .middleware-card__section:nth-child(1),
     .middleware-card__section:nth-child(2) {
       grid-row: 1;
     }
-    
+
     .middleware-card__usage-details {
       grid-column: 1 / -1;
       grid-row: 2;
     }
-    
+
     .middleware-card__events {
       grid-column: 1 / -1;
     }
-    
+
     .middleware-card__empty-state {
       grid-column: 1 / -1;
     }
-    
+
     .middleware-card__tags-section {
       grid-column: 1 / -1;
     }

@@ -28,8 +28,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: $spacing-xxl;
-  background:
-    radial-gradient(
+  background: radial-gradient(
       circle at top,
       rgba(59, 130, 246, 0.12),
       rgba(59, 130, 246, 0)
@@ -956,6 +955,21 @@ body {
       &:hover {
         background: linear-gradient(135deg, $error-red, #13cb47);
         box-shadow: 0 20px 40px rgba(156, 39, 176, 0.4);
+      }
+    }
+
+    &--connections {
+      background: linear-gradient(135deg, #546e7a, #37474f);
+      box-shadow: 0 4px 20px rgba(84, 110, 122, 0.2);
+      cursor: default;
+
+      &:hover {
+        background: linear-gradient(
+          135deg,
+          color.adjust(#546e7a, $lightness: 10%),
+          color.adjust(#37474f, $lightness: 10%)
+        );
+        box-shadow: 0 20px 40px rgba(84, 110, 122, 0.4);
       }
     }
 

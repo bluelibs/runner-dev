@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { TaskCard } from "./TaskCard";
 import { ResourceCard } from "./ResourceCard";
@@ -68,6 +68,16 @@ export const DocumentationMainContent: React.FC<
   const rootDescription =
     rootResource?.meta?.description ||
     "Complete overview of your application's architecture and components";
+
+  // Count total connections: dependsOn + middleware usage across tasks, hooks, resources
+  const totalConnections = useMemo(() => {
+    let count = 0;
+    for (const node of [...tasks, ...hooks, ...resources] as any[]) {
+      if (Array.isArray(node.dependsOn)) count += node.dependsOn.length;
+      if (Array.isArray(node.middleware)) count += node.middleware.length;
+    }
+    return count;
+  }, [tasks, hooks, resources]);
 
   const resolveSectionFromHash = React.useCallback(
     (hash: string): string => {
@@ -272,6 +282,10 @@ export const DocumentationMainContent: React.FC<
                 <h3>Tags</h3>
                 <div className="count">{tags.length}</div>
               </a>
+              <div className="card card--connections">
+                <h3>Connections</h3>
+                <div className="count">{totalConnections}</div>
+              </div>
             </div>
           </section>
         )}

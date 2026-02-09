@@ -16,6 +16,8 @@ import { createUiStaticRouter } from "./ui.static";
 import { printSchema } from "graphql/utilities/printSchema";
 import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
 import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
+import { createLiveStreamHandler } from "./routeHandlers/createLiveStreamHandler";
+import { createRequestCorrelationMiddleware } from "./routeHandlers/requestCorrelation";
 import voyagerHtml from "./templates/voyager.html";
 
 export interface ServerConfig {
@@ -64,6 +66,11 @@ export const serverResource = resource({
 
     const app = express();
 
+    // Wrap every incoming request in an AsyncLocalStorage context with a fresh
+    // correlationId so that all logs / emissions / errors within the request
+    // automatically receive a traceId — even outside task execution.
+    app.use(createRequestCorrelationMiddleware());
+
     // GraphQL endpoint
     app.use(
       "/graphql",
@@ -85,6 +92,9 @@ export const serverResource = resource({
         },
       })
     );
+
+    // SSE endpoint for live telemetry streaming
+    app.get("/live/stream", createLiveStreamHandler({ live }));
 
     // Voyager UI at /voyager (simple CDN-based standalone page)
     app.get("/voyager", (_req: Request, res: Response) => {

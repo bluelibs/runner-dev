@@ -4,21 +4,21 @@
 .recent-runs {
   @include docs-panel($spacing-lg);
   margin-bottom: $spacing-lg;
-  
+
   h4 {
     color: var(--docs-text-primary);
     margin-bottom: $spacing-md;
   }
-  
+
   .errors-section,
   .runs-section {
     margin-bottom: $spacing-md;
-    
+
     &:last-child {
       margin-bottom: 0;
     }
   }
-  
+
   .live-entries {
     @include docs-scrollbar();
     max-height: 300px;
@@ -26,7 +26,7 @@
     display: flex;
     flex-direction: column;
     gap: $spacing-sm;
-    
+
     .live-entry {
       background: var(--docs-bg-secondary);
       border-radius: $border-radius;
@@ -36,47 +36,47 @@
       align-items: center;
       gap: $spacing-sm;
       flex-wrap: wrap;
-      
+
       &:hover {
         background: var(--docs-hover-bg);
       }
-      
+
       &.live-entry--error {
         border-left: 3px solid var(--docs-danger);
       }
-      
+
       &.live-entry--run {
         &.live-entry--success {
           border-left: 3px solid var(--docs-success);
         }
-        
+
         &.live-entry--failure {
           border-left: 3px solid var(--docs-danger);
         }
       }
-      
+
       .entry-time {
         font-family: $font-family-mono;
         font-size: $font-size-xs;
         color: var(--docs-text-muted);
         min-width: 80px;
       }
-      
+
       .entry-status {
         font-size: $font-size-sm;
       }
-      
+
       .entry-source,
       .entry-node {
         color: var(--docs-primary);
         text-decoration: none;
         font-weight: 500;
-        
+
         &:hover {
           text-decoration: underline;
         }
       }
-      
+
       .entry-duration {
         font-family: $font-family-mono;
         font-size: $font-size-xs;
@@ -85,22 +85,44 @@
         padding: 2px 6px;
         border-radius: $border-radius-sm;
       }
-      
+
       .entry-actions {
         margin-left: auto;
         display: flex;
         gap: $spacing-sm;
       }
-      
+
       .clean-button {
         @include docs-button(ghost);
         font-size: $font-size-xs;
         padding: $spacing-xs $spacing-sm;
-        
+
         &[title="Add to AI"] {
           background: var(--docs-primary-bg);
           color: var(--docs-primary);
           font-weight: 600;
+        }
+      }
+
+      .entry-corr {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        color: #6366f1;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: $font-size-xs;
+        font-family: $font-family-mono;
+        white-space: nowrap;
+
+        &--clickable {
+          cursor: pointer;
+          transition: all 0.15s ease;
+
+          &:hover {
+            background: #6366f1;
+            color: #fff;
+            border-color: #6366f1;
+          }
         }
       }
     }

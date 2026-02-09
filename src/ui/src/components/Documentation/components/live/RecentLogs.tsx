@@ -14,6 +14,7 @@ interface LogEntry {
 
 interface RecentLogsProps {
   logs: LogEntry[];
+  onCorrelationIdClick?: (correlationId: string) => void;
 }
 
 const levelName = (
@@ -33,7 +34,10 @@ const shortCorrelationId = (id: string, len = 6): string => {
   return id.length > len ? id.slice(-len) : id;
 };
 
-export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
+export const RecentLogs: React.FC<RecentLogsProps> = ({
+  logs,
+  onCorrelationIdClick,
+}) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
 
@@ -113,7 +117,14 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
             </span>
             <span className="recent-logs__message">{log.message}</span>
             {log.correlationId && (
-              <span className="recent-logs__corr" title={log.correlationId}>
+              <span
+                className="recent-logs__corr recent-logs__corr--clickable"
+                title={`Trace: ${log.correlationId}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCorrelationIdClick?.(log.correlationId!);
+                }}
+              >
                 {shortCorrelationId(log.correlationId)}
               </span>
             )}
@@ -187,8 +198,12 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                     </span>
                     {log.correlationId && (
                       <span
-                        className="recent-logs-fs__corr"
-                        title={`Correlation ID: ${log.correlationId}`}
+                        className="recent-logs-fs__corr recent-logs-fs__corr--clickable"
+                        title={`Trace: ${log.correlationId}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCorrelationIdClick?.(log.correlationId!);
+                        }}
                       >
                         {shortCorrelationId(log.correlationId)}
                       </span>
@@ -267,7 +282,13 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                         <div className="recent-logs-modal__label">
                           Correlation ID
                         </div>
-                        <div className="recent-logs-modal__value recent-logs-modal__value--mono recent-logs-modal__value--break">
+                        <div
+                          className="recent-logs-modal__value recent-logs-modal__value--mono recent-logs-modal__value--break recent-logs-modal__value--clickable"
+                          onClick={() =>
+                            onCorrelationIdClick?.(selectedLog.correlationId!)
+                          }
+                          title="View full trace"
+                        >
                           {selectedLog.correlationId}
                         </div>
                       </div>
@@ -294,37 +315,32 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({ logs }) => {
                       </div>
                     </div>
 
-                    {selectedLog.data && selectedLog.data !== "{}" && (
-                      <div>
-                        <div className="recent-logs-modal__data-header">
-                          <div className="recent-logs-modal__label">Data</div>
-                          <button
-                            className="recent-logs-modal__copy"
-                            onClick={() => {
-                              const raw = selectedLog.data ?? "";
-                              navigator.clipboard
-                                .writeText(raw)
-                                .catch(() => {});
-                            }}
-                          >
-                            Copy
-                          </button>
-                        </div>
-                        <div className="recent-logs-modal__data">
-                          {(() => {
-                            const parsed = tryParseJson(selectedLog.data!);
-                            if (parsed) {
-                              return <JsonViewer data={parsed} />;
-                            }
-                            return (
-                              <pre className="recent-logs-modal__pre">
-                                {selectedLog.data}
-                              </pre>
-                            );
-                          })()}
-                        </div>
+                    <div>
+                      <div className="recent-logs-modal__data-header">
+                        <div className="recent-logs-modal__label">Data</div>
+                        <button
+                          className="recent-logs-modal__copy"
+                          onClick={() => {
+                            const raw = selectedLog.data || "{}";
+                            navigator.clipboard.writeText(raw).catch(() => {});
+                          }}
+                        >
+                          Copy
+                        </button>
                       </div>
-                    )}
+                      <div className="recent-logs-modal__data">
+                        {(() => {
+                          const raw = selectedLog.data || "{}";
+                          const parsed = tryParseJson(raw);
+                          if (parsed) {
+                            return <JsonViewer data={parsed} />;
+                          }
+                          return (
+                            <pre className="recent-logs-modal__pre">{raw}</pre>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

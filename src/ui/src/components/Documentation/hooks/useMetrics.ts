@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { graphqlRequest } from "../utils/graphqlClient";
+import { DEFAULT_POLL_INTERVAL_MS } from "./useLiveStream";
 
 export interface ThroughputPoint {
   t: number;
@@ -29,7 +30,9 @@ export interface UseMetricsResult {
 }
 
 // Placeholder metrics hook. Later, wire to live GraphQL / resources used by Live panel.
-export function useMetrics(): UseMetricsResult {
+export function useMetrics(
+  pollIntervalMs: number = DEFAULT_POLL_INTERVAL_MS
+): UseMetricsResult {
   const [isLoading, setIsLoading] = useState(true);
   const [throughput, setThroughput] = useState<ThroughputPoint[]>([]);
   const [latency, setLatency] = useState<LatencyPoint[]>([]);
@@ -179,14 +182,14 @@ export function useMetrics(): UseMetricsResult {
 
     fetchAndAggregate();
     const id = window.setInterval(
-      () => fetchAndAggregate(Date.now() - 5_000),
-      5_000
+      () => fetchAndAggregate(Date.now() - pollIntervalMs),
+      pollIntervalMs
     );
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, []);
+  }, [pollIntervalMs]);
 
   return { throughput, latency, errorByTask, heatmap, isLoading };
 }

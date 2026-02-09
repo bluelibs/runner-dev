@@ -1,368 +1,69 @@
-import React, { useState, useEffect, useRef } from "react";
-import { graphqlRequest } from "../utils/graphqlClient";
+﻿import React, { useState } from "react";
 import { RecentLogs } from "./live/RecentLogs";
 import { RecentEvents } from "./live/RecentEvents";
 import { RecentRuns } from "./live/RecentRuns";
+import { TraceView } from "./live/TraceView";
 import { Introspector } from "../../../../../resources/models/Introspector";
-
-interface MemoryStats {
-  heapUsed: number;
-  heapTotal: number;
-  rss: number;
-}
-
-interface CpuStats {
-  usage: number;
-  loadAverage: number;
-}
-
-interface EventLoopStats {
-  lag: number;
-}
-
-interface GcStats {
-  collections: number;
-  duration: number;
-}
-
-interface LogEntry {
-  timestampMs: number;
-  level: string;
-  message: string;
-  data?: string;
-  correlationId?: string;
-}
-
-interface EmissionEntry {
-  timestampMs: number;
-  eventId: string;
-  emitterId?: string;
-  payload?: string;
-  correlationId?: string;
-  eventResolved?: {
-    id: string;
-    meta?: {
-      title?: string;
-      description?: string;
-      tags: Array<{
-        id: string;
-        config?: string;
-      }>;
-    };
-  };
-}
-
-interface ErrorEntry {
-  timestampMs: number;
-  sourceId: string;
-  sourceKind: string;
-  message: string;
-  stack?: string;
-  data?: string;
-  correlationId?: string;
-  sourceResolved?: {
-    id: string;
-    meta?: {
-      title?: string;
-      description?: string;
-      tags: Array<{
-        id: string;
-        config?: string;
-      }>;
-    };
-  };
-}
-
-interface RunRecord {
-  timestampMs: number;
-  nodeId: string;
-  nodeKind: string;
-  ok: boolean;
-  durationMs?: number;
-  error?: string;
-}
-
-interface LiveData {
-  memory: MemoryStats;
-  cpu: CpuStats;
-  eventLoop: EventLoopStats;
-  gc: GcStats;
-  logs: LogEntry[];
-  emissions: EmissionEntry[];
-  errors: ErrorEntry[];
-  runs: RunRecord[];
-}
+import {
+  useLiveStream,
+  MIN_POLL_INTERVAL_MS,
+  MAX_POLL_INTERVAL_MS,
+} from "../hooks/useLiveStream";
+import type { ConnectionMode } from "../hooks/useLiveStream";
 
 interface LivePanelProps {
   detailed?: boolean;
   introspector: Introspector;
 }
 
-interface MemoryStats {
-  heapUsed: number;
-  heapTotal: number;
-  rss: number;
-}
+// ---------------------------------------------------------------------------
+// Helpers (outside component to avoid per-render re-creation)
+// ---------------------------------------------------------------------------
 
-interface CpuStats {
-  usage: number;
-  loadAverage: number;
-}
+const CONNECTION_BADGES: Record<
+  ConnectionMode,
+  { label: string; icon: string; className: string }
+> = {
+  sse: { label: "SSE", icon: "⚡", className: "connection-badge--sse" },
+  polling: {
+    label: "Polling",
+    icon: "🔄",
+    className: "connection-badge--polling",
+  },
+};
 
-interface EventLoopStats {
-  lag: number;
-}
-
-interface GcStats {
-  collections: number;
-  duration: number;
-}
-
-interface LogEntry {
-  timestampMs: number;
-  level: string;
-  message: string;
-  data?: string;
-  correlationId?: string;
-}
-
-interface EmissionEntry {
-  timestampMs: number;
-  eventId: string;
-  emitterId?: string;
-  payload?: string;
-  correlationId?: string;
-  eventResolved?: {
-    id: string;
-    meta?: {
-      title?: string;
-      description?: string;
-      tags: Array<{
-        id: string;
-        config?: string;
-      }>;
-    };
-  };
-}
-
-interface ErrorEntry {
-  timestampMs: number;
-  sourceId: string;
-  sourceKind: string;
-  message: string;
-  stack?: string;
-  data?: string;
-  correlationId?: string;
-  sourceResolved?: {
-    id: string;
-    meta?: {
-      title?: string;
-      description?: string;
-      tags: Array<{
-        id: string;
-        config?: string;
-      }>;
-    };
-  };
-}
-
-interface RunRecord {
-  timestampMs: number;
-  nodeId: string;
-  nodeKind: string;
-  ok: boolean;
-  durationMs?: number;
-  error?: string;
-}
-
-interface LiveData {
-  memory: MemoryStats;
-  cpu: CpuStats;
-  eventLoop: EventLoopStats;
-  gc: GcStats;
-  logs: LogEntry[];
-  emissions: EmissionEntry[];
-  errors: ErrorEntry[];
-  runs: RunRecord[];
-}
-
-const LIVE_DATA_QUERY = `
-  query LiveData($afterTimestamp: Float, $last: Int) {
-    live {
-      memory {
-        heapUsed
-        heapTotal
-        rss
-      }
-      cpu {
-        usage
-        loadAverage
-      }
-      eventLoop {
-        lag
-      }
-      gc(windowMs: 30000) {
-        collections
-        duration
-      }
-      logs(afterTimestamp: $afterTimestamp, last: $last) {
-        timestampMs
-        level
-        message
-        data
-        correlationId
-        sourceId
-      }
-      emissions(afterTimestamp: $afterTimestamp, last: $last) {
-        timestampMs
-        eventId
-        emitterId
-        payload
-        correlationId
-        eventResolved {
-          id
-          tags {
-            id
-            config
-          }
-          meta {
-            title
-            description
-          }
-        }
-      }
-      errors(afterTimestamp: $afterTimestamp, last: $last) {
-        timestampMs
-        sourceId
-        sourceKind
-        message
-        stack
-        data
-        correlationId
-        sourceResolved {
-          id
-          tags {
-            id
-            config
-          }
-          meta {
-            title
-            description
-          }
-        }
-      }
-      runs(afterTimestamp: $afterTimestamp, last: $last) {
-        timestampMs
-        nodeId
-        nodeKind
-        ok
-        durationMs
-        error
-      }
-    }
-  }
-`;
-
-interface LivePanelProps {
-  detailed?: boolean;
-  introspector: Introspector;
+function formatBytes(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(1)} MB`;
 }
 
 export const LivePanel: React.FC<LivePanelProps> = ({
   detailed = false,
   introspector: _introspector,
 }) => {
-  const [liveData, setLiveData] = useState<LiveData | null>(null);
-  const [isPolling, setIsPolling] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastTimestamp, setLastTimestamp] = useState<number>(Date.now());
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const {
+    liveData,
+    error,
+    connectionMode,
+    isActive,
+    setIsActive,
+    pollInterval,
+    setPollInterval,
+    refresh,
+  } = useLiveStream({ detailed });
 
-  const fetchLiveData = async (afterTimestamp?: number) => {
-    try {
-      const variables: any = {
-        last: detailed ? 50 : 10,
-      };
+  const [traceCorrelationId, setTraceCorrelationId] = useState<string | null>(
+    null
+  );
 
-      if (afterTimestamp) {
-        variables.afterTimestamp = afterTimestamp;
-      }
-
-      const data = await graphqlRequest<{ live: LiveData }>(
-        LIVE_DATA_QUERY,
-        variables
-      );
-
-      if (data.live) {
-        setLiveData((prevData) => {
-          if (!prevData || !afterTimestamp) {
-            // Initial load or full refresh
-            return data.live;
-          }
-
-          // Merge new data with existing data
-          return {
-            ...data.live,
-            logs: [...prevData.logs, ...data.live.logs].slice(-100),
-            emissions: [...prevData.emissions, ...data.live.emissions].slice(
-              -100
-            ),
-            errors: [...prevData.errors, ...data.live.errors].slice(-100),
-            runs: [...prevData.runs, ...data.live.runs].slice(-100),
-          };
-        });
-
-        // Update timestamp for next poll
-        const allEntries = [
-          ...data.live.logs,
-          ...data.live.emissions,
-          ...data.live.errors,
-          ...data.live.runs,
-        ];
-
-        if (allEntries.length > 0) {
-          const maxTimestamp = Math.max(
-            ...allEntries.map((e) => e.timestampMs)
-          );
-          setLastTimestamp(maxTimestamp);
-        }
-      }
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch live data"
-      );
-    }
-  };
-
-  useEffect(() => {
-    // Initial fetch
-    fetchLiveData();
-
-    if (isPolling) {
-      intervalRef.current = setInterval(() => {
-        fetchLiveData(lastTimestamp);
-      }, 5000);
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isPolling, lastTimestamp]);
-
-  const formatBytes = (bytes: number): string => {
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(1)} MB`;
-  };
+  const badge = CONNECTION_BADGES[connectionMode];
 
   if (error) {
     return (
       <div className="live-panel live-panel--error">
         <div className="live-error">
           <span>❌ Error loading live data: {error}</span>
-          <button onClick={() => fetchLiveData()}>Retry</button>
+          <button onClick={() => refresh()}>Retry</button>
         </div>
       </div>
     );
@@ -379,15 +80,44 @@ export const LivePanel: React.FC<LivePanelProps> = ({
   return (
     <div className="live-panel">
       <div className="live-controls">
-        <button
-          onClick={() => setIsPolling(!isPolling)}
-          className={`clean-button ${isPolling ? "live-toggle--active" : ""}`}
+        <span
+          className={`connection-badge ${badge.className}`}
+          title={`Connected via ${badge.label}`}
         >
-          {isPolling ? "⏸ Pause" : "▶ Resume"} Live Updates
+          {badge.icon} {badge.label}
+        </span>
+
+        <button
+          onClick={() => setIsActive(!isActive)}
+          className={`clean-button ${isActive ? "live-toggle--active" : ""}`}
+        >
+          {isActive ? "⏸ Pause" : "▶ Resume"} Live Updates
         </button>
-        <button onClick={() => fetchLiveData()} className="clean-button">
+        <button onClick={() => refresh()} className="clean-button">
           Refresh
         </button>
+
+        {/* Poll interval slider — only shown in polling mode */}
+        {connectionMode === "polling" && (
+          <div className="poll-interval-control">
+            <label
+              htmlFor="poll-interval-slider"
+              className="poll-interval-label"
+            >
+              Interval: {(pollInterval / 1000).toFixed(1)}s
+            </label>
+            <input
+              id="poll-interval-slider"
+              type="range"
+              min={MIN_POLL_INTERVAL_MS}
+              max={MAX_POLL_INTERVAL_MS}
+              step={100}
+              value={pollInterval}
+              onChange={(e) => setPollInterval(Number(e.target.value))}
+              className="poll-interval-slider"
+            />
+          </div>
+        )}
       </div>
 
       {/* Main Grid Layout */}
@@ -434,13 +164,20 @@ export const LivePanel: React.FC<LivePanelProps> = ({
 
         {/* Logs - Full Width */}
         <div className="live-logs-section">
-          <RecentLogs logs={liveData.logs} />
+          <RecentLogs
+            logs={liveData.logs}
+            onCorrelationIdClick={setTraceCorrelationId}
+          />
         </div>
 
         {/* Recent Events and Runs - stacked */}
         <div className="live-events-runs-grid">
           <div className="live-section">
-            <RecentEvents emissions={liveData.emissions} detailed={detailed} />
+            <RecentEvents
+              emissions={liveData.emissions}
+              detailed={detailed}
+              onCorrelationIdClick={setTraceCorrelationId}
+            />
           </div>
 
           <div className="live-section">
@@ -448,15 +185,23 @@ export const LivePanel: React.FC<LivePanelProps> = ({
               runs={liveData.runs}
               errors={liveData.errors}
               detailed={detailed}
+              onCorrelationIdClick={setTraceCorrelationId}
             />
           </div>
         </div>
-
-        {/* Live Actions - Full Width */}
-        {/* <div className="live-actions-section">
-          <LiveRuns introspector={introspector} />
-        </div> */}
       </div>
+
+      {/* Trace View Modal */}
+      {traceCorrelationId && liveData && (
+        <TraceView
+          correlationId={traceCorrelationId}
+          logs={liveData.logs}
+          emissions={liveData.emissions}
+          errors={liveData.errors}
+          runs={liveData.runs}
+          onClose={() => setTraceCorrelationId(null)}
+        />
+      )}
     </div>
   );
 };

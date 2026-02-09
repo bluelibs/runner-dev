@@ -342,6 +342,30 @@
   text-overflow: ellipsis;
 }
 
+/* Clickable correlationId badge — opens the Trace View */
+.recent-logs-fs__corr--clickable,
+.recent-logs__corr--clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--docs-primary);
+    color: #fff;
+    border-color: var(--docs-primary);
+  }
+}
+
+.recent-logs-modal__value--clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--docs-primary);
+    color: #fff;
+    border-color: var(--docs-primary);
+  }
+}
+
 .recent-logs-fs__source {
   background: linear-gradient(
     135deg,

@@ -136,4 +136,74 @@
   gap: $spacing-md;
 }
 
+// Connection badge (SSE / Polling indicator)
+.connection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  user-select: none;
+
+  &--sse {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  &--polling {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+}
+
+// Poll-interval slider control
+.poll-interval-control {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  .poll-interval-label {
+    font-size: $font-size-xs;
+    color: var(--docs-text-secondary);
+    white-space: nowrap;
+    min-width: 90px;
+  }
+
+  .poll-interval-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 120px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--docs-border-primary);
+    outline: none;
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--docs-primary);
+      cursor: pointer;
+    }
+
+    &::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--docs-primary);
+      cursor: pointer;
+      border: none;
+    }
+  }
+}
+
 // Loading state dark overlay is handled by CSS variables

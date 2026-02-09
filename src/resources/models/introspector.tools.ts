@@ -110,6 +110,68 @@ export function computeOverrideConflicts(
   return result;
 }
 
+export function computeOverriddenElements(introspector: Introspector): Array<{
+  id: string;
+  kind: "TASK" | "HOOK" | "MIDDLEWARE";
+  overriddenBy: string;
+}> {
+  const result: Array<{
+    id: string;
+    kind: "TASK" | "HOOK" | "MIDDLEWARE";
+    overriddenBy: string;
+  }> = [];
+
+  for (const task of introspector.getTasks()) {
+    if (task.overriddenBy) {
+      result.push({
+        id: task.id,
+        kind: "TASK",
+        overriddenBy: task.overriddenBy,
+      });
+    }
+  }
+
+  for (const hook of introspector.getHooks()) {
+    if (hook.overriddenBy) {
+      result.push({
+        id: hook.id,
+        kind: "HOOK",
+        overriddenBy: hook.overriddenBy,
+      });
+    }
+  }
+
+  for (const middleware of introspector.getMiddlewares()) {
+    if (middleware.overriddenBy) {
+      result.push({
+        id: middleware.id,
+        kind: "MIDDLEWARE",
+        overriddenBy: middleware.overriddenBy,
+      });
+    }
+  }
+
+  result.sort((a, b) =>
+    a.id === b.id
+      ? a.kind === b.kind
+        ? a.overriddenBy.localeCompare(b.overriddenBy)
+        : a.kind.localeCompare(b.kind)
+      : a.id.localeCompare(b.id)
+  );
+
+  return result;
+}
+
+export function computeUnusedErrors(
+  introspector: Introspector
+): Array<{ id: string }> {
+  return introspector
+    .getErrors()
+    .filter((error) => (error.thrownBy?.length ?? 0) === 0)
+    .map((error) => ({ id: error.id }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
 export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
   const diags: DiagnosticItem[] = [];
 
@@ -162,6 +224,26 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
       code: "OVERRIDE_CONFLICT",
       message: `Override conflict on ${c.targetId} by ${c.by}`,
       nodeId: c.targetId,
+    });
+  }
+
+  for (const item of computeOverriddenElements(introspector)) {
+    diags.push({
+      severity: "info",
+      code: "OVERRIDDEN_ELEMENT",
+      message: `${item.kind} is overridden by ${item.overriddenBy}: ${item.id}`,
+      nodeId: item.id,
+      nodeKind: item.kind,
+    });
+  }
+
+  for (const error of computeUnusedErrors(introspector)) {
+    diags.push({
+      severity: "info",
+      code: "UNUSED_ERROR",
+      message: `Error is defined but never used: ${error.id}`,
+      nodeId: error.id,
+      nodeKind: "ERROR",
     });
   }
 

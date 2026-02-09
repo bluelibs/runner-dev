@@ -1,7 +1,41 @@
 import { globals, r } from "@bluelibs/runner";
-import { memoryDurableResource } from "@bluelibs/runner/node";
+import {
+  durableWorkflowTag,
+  memoryDurableResource,
+} from "@bluelibs/runner/node";
 import { z } from "zod";
-import { DURABLE_WORKFLOW_TAG_ID } from "../../../../resources/models/durable.tools";
+
+const pricingMultiplierByRegion = {
+  US: 1.02,
+  EU: 1.08,
+  APAC: 1.04,
+} as const;
+
+const riskScoreByRegion = {
+  US: 3,
+  EU: 8,
+  APAC: 5,
+} as const;
+
+function computeAdjustedPrice(
+  basePrice: number,
+  region: keyof typeof pricingMultiplierByRegion
+): number {
+  return Number((basePrice * pricingMultiplierByRegion[region]).toFixed(2));
+}
+
+function computeRiskScore(
+  amount: number,
+  region: keyof typeof riskScoreByRegion
+): number {
+  const amountScore = Math.min(70, Math.round(amount / 10));
+  return Math.min(100, amountScore + riskScoreByRegion[region]);
+}
+
+function buildApprovalReference(orderId: string, riskScore: number): string {
+  const suffix = orderId.replace(/[^a-zA-Z0-9]/g, "").slice(-8) || "ORDER";
+  return `APR-${suffix}-${riskScore}`;
+}
 
 const tunnelPricingPreviewInputSchema = z.object({
   sku: z.string(),
@@ -32,6 +66,28 @@ const durableOrderApprovalInputSchema = z.object({
   amount: z.number().positive(),
   region: z.enum(["US", "EU", "APAC"]),
 });
+type DurableOrderApprovalInput = z.infer<
+  typeof durableOrderApprovalInputSchema
+>;
+
+function normalizeDurableOrderApprovalInput(
+  input: DurableOrderApprovalInput | null | undefined
+): DurableOrderApprovalInput {
+  const orderId =
+    typeof input?.orderId === "string" && input.orderId.trim().length > 0
+      ? input.orderId
+      : "preview-order";
+  const amount =
+    typeof input?.amount === "number" && Number.isFinite(input.amount)
+      ? Math.max(input.amount, 1)
+      : 100;
+  const region =
+    input?.region === "US" || input?.region === "EU" || input?.region === "APAC"
+      ? input.region
+      : "US";
+
+  return { orderId, amount, region };
+}
 
 const durableOrderApprovalResultSchema = z.object({
   orderId: z.string(),
@@ -41,7 +97,9 @@ const durableOrderApprovalResultSchema = z.object({
   cooldownMs: z.number().int().nonnegative(),
 });
 
-const durableWorkflowTag = r.tag(DURABLE_WORKFLOW_TAG_ID).build();
+const durableExecutionIdResultSchema = z.object({
+  executionId: z.string(),
+});
 
 export const tunnelCatalogUpdatedEvent = r
   .event("app.examples.tunnel.events.catalogUpdated")
@@ -63,15 +121,9 @@ export const tunnelPricingPreviewTask = r
   .inputSchema(tunnelPricingPreviewInputSchema)
   .resultSchema(tunnelPricingPreviewResultSchema)
   .run(async (input) => {
-    const regionMultiplier =
-      input.region === "EU" ? 1.08 : input.region === "APAC" ? 1.04 : 1.02;
-    const adjustedPrice = Number(
-      (input.basePrice * regionMultiplier).toFixed(2)
-    );
-
     return {
       sku: input.sku,
-      adjustedPrice,
+      adjustedPrice: computeAdjustedPrice(input.basePrice, input.region),
       ruleApplied: `regional_multiplier_${input.region.toLowerCase()}`,
       source: "tunnel-exposed-task" as const,
     };
@@ -140,30 +192,16 @@ export const durableOrderApprovalTask = r
   .inputSchema(durableOrderApprovalInputSchema)
   .resultSchema(durableOrderApprovalResultSchema)
   .run(async (input, { durable }) => {
-    const workflowInput = input || {
-      orderId: "preview-order",
-      amount: 100,
-      region: "US" as const,
-    };
     const ctx = durable.use();
+    const workflowInput = normalizeDurableOrderApprovalInput(input);
 
-    const riskScore = await ctx.step("risk-check", async () => {
-      const amountScore = Math.min(70, Math.round(workflowInput.amount / 10));
-      const regionScore =
-        workflowInput.region === "EU"
-          ? 8
-          : workflowInput.region === "APAC"
-          ? 5
-          : 3;
-      return Math.min(100, amountScore + regionScore);
-    });
+    const riskScore = await ctx.step("risk-check", async () =>
+      computeRiskScore(workflowInput.amount, workflowInput.region)
+    );
 
-    const approvalReference = await ctx.step("approve-payment", async () => {
-      const suffix = workflowInput.orderId
-        .replace(/[^a-zA-Z0-9]/g, "")
-        .slice(-8);
-      return `APR-${suffix || "ORDER"}-${riskScore}`;
-    });
+    const approvalReference = await ctx.step("approve-payment", async () =>
+      buildApprovalReference(workflowInput.orderId, riskScore)
+    );
 
     const cooldownMs = 250;
     await ctx.sleep(cooldownMs, { stepId: "partner-cooldown" });
@@ -195,9 +233,31 @@ export const runDurableOrderApprovalTask = r
   })
   .inputSchema(durableOrderApprovalInputSchema)
   .resultSchema(durableOrderApprovalResultSchema)
-  .run(async (input, { durable, durableOrderApprovalTask }) =>
+  .run(async (input, { durable }) =>
     durable.execute(durableOrderApprovalTask, input)
   )
+  .build();
+
+export const startDurableOrderApprovalTask = r
+  .task("app.examples.durable.tasks.startOrderApprovalWorkflow")
+  .meta({
+    title: "Start Durable Order Approval Workflow",
+    description:
+      "Helper task to demonstrate async durable workflow startup via startExecution(...).",
+  })
+  .dependencies({
+    durable: showcaseDurableResource,
+    durableOrderApprovalTask,
+  })
+  .inputSchema(durableOrderApprovalInputSchema)
+  .resultSchema(durableExecutionIdResultSchema)
+  .run(async (input, { durable }) => {
+    const executionId = await durable.startExecution(
+      durableOrderApprovalTask,
+      input
+    );
+    return { executionId };
+  })
   .build();
 
 export const tunnelAndDurableExampleRegistrations = [
@@ -206,7 +266,7 @@ export const tunnelAndDurableExampleRegistrations = [
   tunnelCatalogSyncTask,
   tunnelServerShowcaseResource,
   showcaseDurableRegistration,
-  durableWorkflowTag,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,
+  startDurableOrderApprovalTask,
 ];

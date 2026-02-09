@@ -471,7 +471,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         {isTunneled && (
           <CardSection
             prefix="task-card"
-            title="🚇 Tunnel Information"
+            title="Tunnel Information"
             className="task-card__tunnel-info"
             contentClassName="task-card__tunnel-info__content"
           >
@@ -505,7 +505,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         {isDurable && (
           <CardSection
             prefix="task-card"
-            title="⏱️ Durable Workflow"
+            title="Durable Workflow"
             className="task-card__durable-info"
             contentClassName="task-card__durable-info__content"
           >

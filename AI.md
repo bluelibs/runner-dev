@@ -449,6 +449,54 @@ mutation TestTask {
 }
 ```
 
+### 5. Durable Workflow Introspection (Node)
+
+Durable workflows are regular Runner tasks tagged with `durableWorkflowTag` from `@bluelibs/runner/node`.
+Runner-Dev exposes durable metadata directly on tasks:
+
+- `isDurable`
+- `durableResource`
+- `flowShape` (checkpoint structure from `durable.describe(...)`)
+
+```graphql
+query DurableTasks {
+  tasks {
+    id
+    isDurable
+    durableResource {
+      id
+    }
+    flowShape {
+      nodes {
+        __typename
+      }
+    }
+  }
+}
+```
+
+Minimal workflow setup pattern:
+
+```ts
+import { r } from "@bluelibs/runner";
+import { durableWorkflowTag, memoryDurableResource } from "@bluelibs/runner/node";
+
+const durable = memoryDurableResource.fork("app.durable");
+const durableRegistration = durable.with({});
+
+const workflow = r
+  .task("app.tasks.orderWorkflow")
+  .dependencies({ durable })
+  .tags([durableWorkflowTag])
+  .run(async (input, { durable }) => {
+    const ctx = durable.use();
+    await ctx.step("validate", async () => ({ ok: true }));
+    await ctx.sleep(250, { stepId: "cooldown" });
+    return { ok: true };
+  })
+  .build();
+```
+
 ## Best Practices for AI Assistants
 
 ### Documentation & Information Gathering

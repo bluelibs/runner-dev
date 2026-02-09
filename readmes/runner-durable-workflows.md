@@ -37,11 +37,12 @@ The recommended integration is a **single durable resource** that:
 - Provides a **per-resource** durable context, accessed via `durable.use()`.
 - Optionally embeds a worker (`worker: true`) to consume the queue in that process.
 
-### 1) Define a durable task (steps + sleep + signal)
+### 1) Define a durable workflow task (tag is required)
 
 ```ts
 import { event, r, run } from "@bluelibs/runner";
 import {
+  durableWorkflowTag,
   memoryDurableResource,
 } from "@bluelibs/runner/node";
 
@@ -56,25 +57,21 @@ const durableRegistration = durable.with({
 const approveOrder = r
   .task("app.tasks.approveOrder")
   .dependencies({ durable })
+  .tags([durableWorkflowTag])
   .run(async (input: { orderId: string }, { durable }) => {
     const ctx = durable.use();
 
-    await ctx.step("validate", async () => {
-      // fetch order, validate invariants, etc.
-      return { ok: true };
-    });
+    await ctx.step("validate", async () => ({ ok: true }));
 
     const outcome = await ctx.waitForSignal(Approved, {
       timeoutMs: 86_400_000,
     });
+
     if (outcome.kind === "timeout") {
       return { status: "timed_out" as const };
     }
 
-    await ctx.step("ship", async () => {
-      // ship only after approval
-      return { shipped: true };
-    });
+    await ctx.step("ship", async () => ({ shipped: true }));
 
     return {
       status: "approved" as const,
@@ -91,37 +88,28 @@ const app = r
 await run(app, { logs: { printThreshold: null } });
 ```
 
-## Tagging Workflows for Discovery (Required)
+### 2) Start and resume patterns
 
-Durable workflows are regular Runner tasks, but **must be tagged with `durableWorkflowTag`**
-to make them discoverable at runtime. Always add this tag to your workflow tasks:
+Use one of these patterns depending on the integration:
 
 ```ts
-import { r } from "@bluelibs/runner";
-import {
-  memoryDurableResource,
-  durableWorkflowTag,
-} from "@bluelibs/runner/node";
+// Fire-and-wait in one call (good for short workflows)
+const result = await d.execute(approveOrder, { orderId: "order-123" });
 
-const durable = memoryDurableResource.fork("app.durable");
-
-const onboarding = r
-  .task("app.workflows.onboarding")
-  .dependencies({ durable })
-  .tags([durableWorkflowTag.with({ category: "users" })])
-  .run(async (_input, { durable }) => {
-    const ctx = durable.use();
-    await ctx.step("create-user", async () => ({ ok: true }));
-    return { ok: true };
-  })
-  .build();
-
-// later, after run(...)
-// const durableRuntime = runtime.getResourceValue(durable);
-// const workflows = durableRuntime.getWorkflows();
+// Start now, resume later (webhooks, callbacks, approvals)
+const executionId = await d.startExecution(approveOrder, {
+  orderId: "order-123",
+});
+await d.signal(executionId, Approved, { approvedBy: "admin@company.com" });
+const resumedResult = await d.wait(executionId, { timeout: 30_000 });
 ```
 
-The `durableWorkflowTag` is **required** — workflows without this tag will not be discoverable
+### Tagging workflows for discovery (required)
+
+Durable workflows are regular Runner tasks, but they **must** be tagged with `durableWorkflowTag`
+to be discoverable at runtime.
+
+The `durableWorkflowTag` is **required** - workflows without this tag will not be discoverable
 via `getWorkflows()`. The durable resources (`durableResource`, `memoryDurableResource`,
 and `redisDurableResource`) auto-register this tag definition, so you can use it immediately
 without manual tag registration.
@@ -214,7 +202,7 @@ In multi-process setups you typically either:
 If you enable polling in multiple processes without atomic claiming, you may get duplicate resume attempts.
 This is still designed to be safe (at-least-once), but it can increase load/noise.
 
-### 2) Start an execution (store the executionId)
+### 3) Start an execution (store the executionId)
 
 ```ts
 const executionId = await d.startExecution(approveOrder, {

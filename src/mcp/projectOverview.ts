@@ -5,6 +5,24 @@ import { callGraphQL } from "./http";
 
 type Maybe<T> = T | null | undefined;
 
+/**
+ * Counts total connections (dependencies + middleware usage) across
+ * tasks, hooks, and resources. Each dependsOn entry and each middleware
+ * entry counts as one connection.
+ */
+function countConnections(
+  tasks: any[],
+  hooks: any[],
+  resources: any[]
+): number {
+  let total = 0;
+  for (const node of [...tasks, ...hooks, ...resources]) {
+    if (Array.isArray(node.dependsOn)) total += node.dependsOn.length;
+    if (Array.isArray(node.middleware)) total += node.middleware.length;
+  }
+  return total;
+}
+
 function safeString(value: Maybe<unknown>): string | undefined {
   if (value == null) return undefined;
   if (typeof value === "string") return value;
@@ -77,9 +95,9 @@ export function registerProjectOverview(server: McpServer) {
       const liveLast = typeof last === "number" ? last : 20;
 
       const query = `query Overview($liveLast: Int) {
-  tasks { id meta { title description } filePath inputSchemaReadable }
-  hooks { id meta { title description } events filePath inputSchemaReadable }
-  resources { id meta { title description } filePath configSchemaReadable }
+  tasks { id meta { title description } filePath inputSchemaReadable dependsOn middleware }
+  hooks { id meta { title description } events filePath inputSchemaReadable dependsOn middleware }
+  resources { id meta { title description } filePath configSchemaReadable dependsOn middleware }
   middlewares { id meta { title description } filePath configSchemaReadable }
   events { id meta { title description } filePath payloadSchemaReadable emittedBy listenedToBy }
   diagnostics { severity code message nodeId nodeKind }
@@ -120,12 +138,15 @@ export function registerProjectOverview(server: McpServer) {
       lines.push("");
       lines.push(`Endpoint: ${endpoint}`);
       lines.push("");
+      const totalConnections = countConnections(tasks, hooks, resources);
+
       lines.push(`## Topology Summary`);
       lines.push(`- Tasks: ${tasks.length}`);
       lines.push(`- Hooks: ${hooks.length}`);
       lines.push(`- Resources: ${resources.length}`);
       lines.push(`- Middleware: ${middlewares.length}`);
       lines.push(`- Events: ${events.length}`);
+      lines.push(`- Connections: ${totalConnections}`);
       lines.push(`- Diagnostics: ${diagnostics.length}`);
       if (Object.keys(diagBySeverity).length) {
         const sevStr = Object.entries(diagBySeverity)

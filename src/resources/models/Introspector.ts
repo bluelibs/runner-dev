@@ -15,12 +15,17 @@ import {
   computeUnemittedEvents,
   computeUnusedMiddleware,
   computeOverrideConflicts,
+  computeOverriddenElements,
+  computeUnusedErrors,
   buildDiagnostics,
   stampElementKind,
   buildIdMap,
   ensureStringArray,
 } from "./introspector.tools";
-import { hasDurableIdPattern, hasDurableWorkflowTag } from "./durable.tools";
+import {
+  findDurableDependencyId,
+  hasDurableWorkflowTag,
+} from "./durable.tools";
 import { extractTunnelInfo } from "./extractTunnelInfo";
 import { hasTunnelTag } from "./tunnel.tools";
 
@@ -37,6 +42,12 @@ export type SerializedIntrospector = {
   orphanEvents?: { id: string }[];
   unemittedEvents?: { id: string }[];
   unusedMiddleware?: { id: string }[];
+  overriddenElements?: Array<{
+    id: string;
+    kind: "TASK" | "HOOK" | "MIDDLEWARE";
+    overriddenBy: string;
+  }>;
+  unusedErrors?: Array<{ id: string }>;
   missingFiles?: Array<{ id: string; filePath: string }>;
   overrideConflicts?: Array<{ targetId: string; by: string }>;
   rootId?: string | null;
@@ -521,6 +532,18 @@ export class Introspector {
     return computeOverrideConflicts(this);
   }
 
+  getOverriddenElements(): Array<{
+    id: string;
+    kind: "TASK" | "HOOK" | "MIDDLEWARE";
+    overriddenBy: string;
+  }> {
+    return computeOverriddenElements(this);
+  }
+
+  getUnusedErrors(): Array<{ id: string }> {
+    return computeUnusedErrors(this);
+  }
+
   getDiagnostics(): Array<{
     severity: string;
     code: string;
@@ -794,7 +817,7 @@ export class Introspector {
   // Durable workflow-related methods
   /**
    * Checks if a task is a durable workflow task.
-   * A task is durable if it has the durable workflow tag (`durable.workflow`).
+   * A task is durable if it has the durable workflow tag (current: `globals.tags.durableWorkflow`, legacy: `durable.workflow`).
    */
   isDurableTask(taskId: string): boolean {
     const task = this.taskMap.get(taskId);
@@ -818,7 +841,7 @@ export class Introspector {
     if (!this.isDurableTask(taskId)) return null;
 
     const deps = ensureStringArray(task.dependsOn);
-    const durableDepId = deps.find((depId) => hasDurableIdPattern(depId));
+    const durableDepId = findDurableDependencyId(deps);
     return durableDepId ? this.getResource(durableDepId) : null;
   }
 
@@ -837,6 +860,8 @@ export class Introspector {
       orphanEvents: this.getOrphanEvents(),
       unemittedEvents: this.getUnemittedEvents(),
       unusedMiddleware: this.getUnusedMiddleware(),
+      overriddenElements: this.getOverriddenElements(),
+      unusedErrors: this.getUnusedErrors(),
       overrideConflicts: this.getOverrideConflicts(),
       rootId:
         (this.store as any)?.root?.resource?.id != null

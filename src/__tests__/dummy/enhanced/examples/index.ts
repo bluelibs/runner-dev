@@ -15,5 +15,6 @@ export {
   showcaseDurableRegistration,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,
+  startDurableOrderApprovalTask,
   tunnelAndDurableExampleRegistrations,
 } from "./tunnelAndDurableExample";

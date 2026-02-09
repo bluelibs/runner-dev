@@ -1,6 +1,24 @@
 #!/usr/bin/env node
 import { execRemote, resolveEndpoint, resolveHeaders } from "./shared";
 
+/**
+ * Counts total connections (dependencies + middleware usage) across
+ * tasks, hooks, and resources. Each dependsOn entry and each middleware
+ * entry counts as one connection.
+ */
+function countConnections(
+  tasks: any[],
+  hooks: any[],
+  resources: any[]
+): number {
+  let total = 0;
+  for (const node of [...tasks, ...hooks, ...resources]) {
+    if (Array.isArray(node.dependsOn)) total += node.dependsOn.length;
+    if (Array.isArray(node.middleware)) total += node.middleware.length;
+  }
+  return total;
+}
+
 function printHelp(): void {
   console.log(`
 runner-dev overview
@@ -55,9 +73,9 @@ export async function main(argv: string[]): Promise<void> {
   const namespace = (opts.get("namespace") as string) || undefined;
 
   const query = `query Overview($liveLast: Int) {
-  tasks { id meta { title description } filePath inputSchemaReadable }
-  hooks { id meta { title description } events filePath inputSchemaReadable }
-  resources { id meta { title description } filePath configSchemaReadable }
+  tasks { id meta { title description } filePath inputSchemaReadable dependsOn middleware }
+  hooks { id meta { title description } events filePath inputSchemaReadable dependsOn middleware }
+  resources { id meta { title description } filePath configSchemaReadable dependsOn middleware }
   middlewares { id meta { title description } filePath configSchemaReadable }
   events { id meta { title description } filePath payloadSchemaReadable emittedBy listenedToBy }
   diagnostics { severity code message nodeId nodeKind }
@@ -114,12 +132,15 @@ export async function main(argv: string[]): Promise<void> {
     lines.push("");
     lines.push(`Endpoint: ${endpointResolved}`);
     lines.push("");
+    const totalConnections = countConnections(tasks, hooks, resources);
+
     lines.push(`## Topology Summary`);
     lines.push(`- Tasks: ${tasks.length}`);
     lines.push(`- Hooks: ${hooks.length}`);
     lines.push(`- Resources: ${resources.length}`);
     lines.push(`- Middleware: ${middlewares.length}`);
     lines.push(`- Events: ${events.length}`);
+    lines.push(`- Connections: ${totalConnections}`);
     lines.push(`- Diagnostics: ${diagnostics.length}`);
     if (Object.keys(diagBySeverity).length) {
       const sevStr = Object.entries(diagBySeverity)

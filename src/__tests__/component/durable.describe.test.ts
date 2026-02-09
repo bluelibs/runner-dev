@@ -6,6 +6,11 @@ import {
 import { graphql } from "graphql";
 import { resources } from "../../index";
 import { schema } from "../../schema";
+import { describeDurableTaskFromStore } from "../../resources/models/durable.runtime";
+import {
+  createEnhancedSuperApp,
+  durableOrderApprovalTask,
+} from "../dummy/enhanced";
 
 function createDurableFixtureApp() {
   const durable = memoryDurableResource.fork("tests.durable.runtime");
@@ -170,5 +175,39 @@ describe("durable.describe integration", () => {
     expect(normalShape).toBeNull();
 
     await runtime.dispose();
+  });
+
+  test("enhanced durable docs example resolves flow shape", async () => {
+    const app = createEnhancedSuperApp();
+    const runtime = await run(app);
+
+    try {
+      const store = await runtime.getResourceValue(globals.resources.store);
+      const shape = await describeDurableTaskFromStore(
+        store,
+        durableOrderApprovalTask.id,
+        { timeoutMs: 2000 }
+      );
+
+      expect(shape?.nodes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ kind: "step", stepId: "risk-check" }),
+          expect.objectContaining({
+            kind: "step",
+            stepId: "approve-payment",
+          }),
+          expect.objectContaining({
+            kind: "sleep",
+            stepId: "partner-cooldown",
+          }),
+          expect.objectContaining({
+            kind: "note",
+            message: "Order approved in durable showcase flow",
+          }),
+        ])
+      );
+    } finally {
+      await runtime.dispose();
+    }
   });
 });

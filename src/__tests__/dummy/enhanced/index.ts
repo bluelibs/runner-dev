@@ -84,6 +84,7 @@ export {
   showcaseDurableRegistration,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,
+  startDurableOrderApprovalTask,
   tunnelAndDurableExampleRegistrations,
 } from "./examples/tunnelAndDurableExample";
 
@@ -210,6 +211,9 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
       );
       console.log(
         "   ⏱️  app.examples.durable.tasks.runOrderApprovalWorkflow - Durable workflow runner"
+      );
+      console.log(
+        "   🏁 app.examples.durable.tasks.startOrderApprovalWorkflow - Returns durable execution id"
       );
       console.log("");
       console.log("🛍️  Available Business Tasks:");

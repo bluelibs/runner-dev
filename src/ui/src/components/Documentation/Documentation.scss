@@ -685,6 +685,7 @@ body {
 }
 
 .docs-content-container {
+  padding-top: $spacing-md;
   padding-left: $spacing-md;
   max-width: 1200px;
   margin: 0 auto;
@@ -704,6 +705,7 @@ body {
 
 .docs-header {
   text-align: center;
+  margin-top: $spacing-xl;
   margin-bottom: 50px;
   color: white;
   padding: $spacing-xxxl;

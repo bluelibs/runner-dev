@@ -40,7 +40,8 @@ const durableOrderApprovalResultSchema = z.object({
   cooldownMs: z.number().int().nonnegative(),
 });
 
-const durableWorkflowTag = r.tag("durable.workflow").build();
+// TODO: must change to the oen from "runner"
+const durableWorkflowTag = r.tag("durable.tags.workflow").build();
 
 export const tunnelCatalogUpdatedEvent = r
   .event("app.examples.tunnel.events.catalogUpdated")

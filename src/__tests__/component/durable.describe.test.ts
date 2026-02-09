@@ -1,4 +1,4 @@
-import { globals, resource, run, task } from "@bluelibs/runner";
+import { globals, resource, run, tag, task } from "@bluelibs/runner";
 import { memoryDurableResource } from "@bluelibs/runner/node";
 import { graphql } from "graphql";
 import { resources } from "../../index";
@@ -7,15 +7,27 @@ import { schema } from "../../schema";
 function createDurableFixtureApp() {
   const durable = memoryDurableResource.fork("tests.durable.runtime");
   const durableRegistration = durable.with({});
+  const durableWorkflowTag = tag({ id: "durable.workflow" });
 
   const durableTask = task({
     id: "tests.tasks.durable",
     dependencies: { durable },
+    tags: [durableWorkflowTag],
     async run(_input, { durable }) {
       const ctx = durable.use();
       await ctx.step("validate", async () => true);
       await ctx.sleep(500, { stepId: "cooldown" });
       await ctx.note("done");
+      return "ok";
+    },
+  });
+
+  const untaggedDurableTask = task({
+    id: "tests.tasks.durable.untagged",
+    dependencies: { durable },
+    async run(_input, { durable }) {
+      const ctx = durable.use();
+      await ctx.step("untagged-step", async () => true);
       return "ok";
     },
   });
@@ -31,7 +43,9 @@ function createDurableFixtureApp() {
     id: "tests.durable.app",
     register: [
       durableRegistration,
+      durableWorkflowTag,
       durableTask,
+      untaggedDurableTask,
       normalTask,
       resources.introspector,
       resources.live,
@@ -39,12 +53,13 @@ function createDurableFixtureApp() {
     ],
   });
 
-  return { app, durableTask, normalTask };
+  return { app, durableTask, untaggedDurableTask, normalTask };
 }
 
 describe("durable.describe integration", () => {
   test("GraphQL task flowShape is resolved via durable.describe()", async () => {
-    const { app, durableTask, normalTask } = createDurableFixtureApp();
+    const { app, durableTask, untaggedDurableTask, normalTask } =
+      createDurableFixtureApp();
     const runtime = await run(app);
 
     const contextValue = {
@@ -58,7 +73,7 @@ describe("durable.describe integration", () => {
     const result = await graphql({
       schema,
       source: `
-        query DurableShape($durableId: ID!, $normalId: ID!) {
+        query DurableShape($durableId: ID!, $untaggedId: ID!, $normalId: ID!) {
           durableTask: task(id: $durableId) {
             id
             isDurable
@@ -72,6 +87,12 @@ describe("durable.describe integration", () => {
               }
             }
           }
+          untaggedTask: task(id: $untaggedId) {
+            id
+            isDurable
+            durableResource { id }
+            flowShape { nodes { __typename } }
+          }
           normalTask: task(id: $normalId) {
             id
             isDurable
@@ -82,6 +103,7 @@ describe("durable.describe integration", () => {
       `,
       variableValues: {
         durableId: durableTask.id,
+        untaggedId: untaggedDurableTask.id,
         normalId: normalTask.id,
       },
       contextValue,
@@ -113,6 +135,10 @@ describe("durable.describe integration", () => {
         },
       ])
     );
+
+    expect(data.untaggedTask.isDurable).toBe(false);
+    expect(data.untaggedTask.durableResource).toBeNull();
+    expect(data.untaggedTask.flowShape).toBeNull();
 
     expect(data.normalTask.isDurable).toBe(false);
     expect(data.normalTask.durableResource).toBeNull();

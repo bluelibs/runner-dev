@@ -40,6 +40,8 @@ const durableOrderApprovalResultSchema = z.object({
   cooldownMs: z.number().int().nonnegative(),
 });
 
+const durableWorkflowTag = r.tag("durable.workflow").build();
+
 export const tunnelCatalogUpdatedEvent = r
   .event("app.examples.tunnel.events.catalogUpdated")
   .meta({
@@ -133,6 +135,7 @@ export const durableOrderApprovalTask = r
       "Durable example with step/sleep/note so the workflow shape is visible in play.",
   })
   .dependencies({ durable: showcaseDurableResource })
+  .tags([durableWorkflowTag])
   .inputSchema(durableOrderApprovalInputSchema)
   .resultSchema(durableOrderApprovalResultSchema)
   .run(async (input, { durable }) => {
@@ -202,6 +205,7 @@ export const tunnelAndDurableExampleRegistrations = [
   tunnelCatalogSyncTask,
   tunnelServerShowcaseResource,
   showcaseDurableRegistration,
+  durableWorkflowTag,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,
 ];

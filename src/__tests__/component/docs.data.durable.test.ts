@@ -1,4 +1,4 @@
-import { globals, resource, run, task } from "@bluelibs/runner";
+import { globals, resource, run, tag, task } from "@bluelibs/runner";
 import { memoryDurableResource } from "@bluelibs/runner/node";
 import type { Request, Response } from "express";
 import { createDocsDataRouteHandler } from "../../resources/routeHandlers/getDocsData";
@@ -7,10 +7,12 @@ import { Introspector } from "../../resources/models/Introspector";
 function createDurableDocsFixtureApp() {
   const durable = memoryDurableResource.fork("tests.docs.durable.runtime");
   const durableRegistration = durable.with({});
+  const durableWorkflowTag = tag({ id: "durable.workflow" });
 
   const durableWorkflowTask = task({
     id: "tests.docs.tasks.durableWorkflow",
     dependencies: { durable },
+    tags: [durableWorkflowTag],
     async run(_input, { durable }) {
       const ctx = durable.use();
       await ctx.step("validate", async () => true);
@@ -29,7 +31,12 @@ function createDurableDocsFixtureApp() {
 
   const app = resource({
     id: "tests.docs.app",
-    register: [durableRegistration, durableWorkflowTask, runWorkflowTask],
+    register: [
+      durableRegistration,
+      durableWorkflowTag,
+      durableWorkflowTask,
+      runWorkflowTask,
+    ],
   });
 
   return { app, durableWorkflowTask, runWorkflowTask };
@@ -74,7 +81,7 @@ describe("/docs/data durable enrichment", () => {
 
       expect(workflow?.isDurable).toBe(true);
       expect(workflow?.flowShape).toBeNull();
-      expect(runner?.isDurable).toBe(true);
+      expect(runner?.isDurable).toBe(false);
       expect(runner?.flowShape).toBeNull();
     } finally {
       await runtime.dispose();

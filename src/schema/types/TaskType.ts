@@ -23,7 +23,10 @@ import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
 import { DurableFlowShapeType } from "./DurableFlowTypes";
-import { describeDurableTaskFromStore } from "../../resources/models/durable.runtime";
+import {
+  describeDurableTaskFromStore,
+  findDurableResourceIdFromStore,
+} from "../../resources/models/durable.runtime";
 
 // Extracted to avoid inline self-referential initializer issues
 export const TaskDependsOnType: GraphQLObjectType<
@@ -248,23 +251,44 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
     // Durable workflow fields
     isDurable: {
       description:
-        "Whether this task is a durable workflow (depends on a durable resource)",
+        "Whether this task is a durable workflow (tagged with durable.workflow)",
       type: new GraphQLNonNull(GraphQLBoolean),
       resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.isDurableTask(node.id),
     },
     durableResource: {
-      description: "The durable resource this task depends on (if any)",
+      description:
+        "The durable resource runtime used by this workflow (if resolvable)",
       type: ResourceType,
-      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getDurableResourceForTask(node.id),
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) => {
+        if (!ctx.introspector.isDurableTask(node.id)) return null;
+
+        const dependencyIds = Array.isArray(node.dependsOn)
+          ? node.dependsOn
+          : [];
+        const durableResourceId = findDurableResourceIdFromStore(
+          ctx.store,
+          node.id,
+          dependencyIds
+        );
+
+        if (durableResourceId) {
+          return ctx.introspector.getResource(durableResourceId);
+        }
+
+        return ctx.introspector.getDurableResourceForTask(node.id);
+      },
     },
     flowShape: {
       description:
         "The workflow structure (steps, sleeps, signals, etc.) for durable tasks",
       type: DurableFlowShapeType,
-      resolve: async (node: Task, _args, ctx: CustomGraphQLContext) =>
-        describeDurableTaskFromStore(ctx.store, node.id, { timeoutMs: 800 }),
+      resolve: async (node: Task, _args, ctx: CustomGraphQLContext) => {
+        if (!ctx.introspector.isDurableTask(node.id)) return null;
+        return describeDurableTaskFromStore(ctx.store, node.id, {
+          timeoutMs: 800,
+        });
+      },
     },
 
     ...baseElementCommonFields(),

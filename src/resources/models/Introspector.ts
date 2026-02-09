@@ -20,7 +20,7 @@ import {
   buildIdMap,
   ensureStringArray,
 } from "./introspector.tools";
-import { hasDurableIdPattern } from "./durable.tools";
+import { hasDurableIdPattern, hasDurableWorkflowTag } from "./durable.tools";
 import { extractTunnelInfo } from "./extractTunnelInfo";
 
 export type SerializedIntrospector = {
@@ -783,16 +783,12 @@ export class Introspector {
   // Durable workflow-related methods
   /**
    * Checks if a task is a durable workflow task.
-   * A task is durable if it depends on a resource id matching the durable id pattern.
-   *
-   * Note: This method is used in the browser (docs UI) where the runtime Store and
-   * durable resource instances are not available.
+   * A task is durable if it has the durable workflow tag (`durable.workflow`).
    */
   isDurableTask(taskId: string): boolean {
     const task = this.taskMap.get(taskId);
     if (!task) return false;
-    const deps = ensureStringArray(task.dependsOn);
-    return deps.some((depId) => hasDurableIdPattern(depId));
+    return hasDurableWorkflowTag(task.tags);
   }
 
   /**
@@ -808,6 +804,8 @@ export class Introspector {
   getDurableResourceForTask(taskId: string): Resource | null {
     const task = this.taskMap.get(taskId);
     if (!task) return null;
+    if (!this.isDurableTask(taskId)) return null;
+
     const deps = ensureStringArray(task.dependsOn);
     const durableDepId = deps.find((depId) => hasDurableIdPattern(depId));
     return durableDepId ? this.getResource(durableDepId) : null;

@@ -5,6 +5,7 @@ import { initializeFromStore } from "../models/initializeFromStore";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { readPackageDoc } from "../../mcp/help";
+import { findDurableResourceIdFromStore } from "../models/durable.runtime";
 
 export interface DocsRouteConfig {
   uiDir: string;
@@ -45,9 +46,19 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
         if (!taskId) continue;
 
         const isDurable = introspector.isDurableTask(taskId);
+        const dependencyIds = Array.isArray(task?.dependsOn)
+          ? task.dependsOn.map((depId: unknown) => String(depId))
+          : [];
+
         task.isDurable = isDurable;
         task.durableResourceId = isDurable
-          ? introspector.getDurableResourceForTask(taskId)?.id || null
+          ? findDurableResourceIdFromStore(
+              config.store,
+              taskId,
+              dependencyIds
+            ) ||
+            introspector.getDurableResourceForTask(taskId)?.id ||
+            null
           : null;
         task.flowShape = null;
       }

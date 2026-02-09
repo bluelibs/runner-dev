@@ -1038,7 +1038,7 @@ export type Task = BaseElement & {
   dependsOnResolved: TaskDependsOn;
   /** Flattened dependencies resolved to All (tasks, hooks, resources) */
   depenendsOnResolved: Array<BaseElement>;
-  /** The durable resource this task depends on (if any) */
+  /** The durable resource runtime used by this workflow (if resolvable) */
   durableResource: Maybe<Resource>;
   /** Event ids this task may emit (from dependencies) */
   emits: Array<Scalars['String']['output']>;
@@ -1056,7 +1056,7 @@ export type Task = BaseElement & {
   inputSchema: Maybe<Scalars['String']['output']>;
   /** Readable text representation of the input schema, if provided */
   inputSchemaReadable: Maybe<Scalars['String']['output']>;
-  /** Whether this task is a durable workflow (depends on a durable resource) */
+  /** Whether this task is a durable workflow (tagged with durable.workflow) */
   isDurable: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];

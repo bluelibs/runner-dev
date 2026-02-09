@@ -4,14 +4,11 @@ import type {
   TaskStoreElementType,
 } from "@bluelibs/runner";
 import { type DurableFlowShape, DurableResource } from "@bluelibs/runner/node";
+import { hasDurableWorkflowTag } from "./durable.tools";
 
 type StoreSlice = Pick<Store, "tasks" | "resources">;
 interface DescribeDurableTaskOptions {
   timeoutMs?: number;
-}
-
-export function hasDurableIdPattern(depId: string): boolean {
-  return depId.includes(".durable") || depId.startsWith("base.durable.");
 }
 
 function getStoreTask(
@@ -21,9 +18,15 @@ function getStoreTask(
   return store?.tasks.get(taskId) ?? null;
 }
 
+function isTaggedDurableWorkflow(storeTask: TaskStoreElementType): boolean {
+  return hasDurableWorkflowTag((storeTask.task as { tags?: unknown[] }).tags);
+}
+
 function getDurableDependencyFromTask(
   storeTask: TaskStoreElementType
 ): DurableResource | null {
+  if (!isTaggedDurableWorkflow(storeTask)) return null;
+
   for (const dep of Object.values(storeTask.computedDependencies ?? {})) {
     if (dep instanceof DurableResource) {
       return dep;

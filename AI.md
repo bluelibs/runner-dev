@@ -12,6 +12,7 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 - **GraphQL API**: Comprehensive query interface for all system data
 - **MCP Integration**: AI-native development environment
 - **Tags (first-class)**: Discover Tag objects and reverse usage via GraphQL (`tags`, `tag(id)`).
+- **Documentation UI Overviews**: Sortable and searchable overview tables with a `Used By` counter column for faster cross-element inspection.
 
 ## Available GraphQL Queries
 
@@ -446,6 +447,59 @@ mutation TestTask {
     executionTimeMs
   }
 }
+```
+
+### 5. Durable Workflow Introspection (Node)
+
+Durable workflows are regular Runner tasks tagged with `durableWorkflowTag` from `@bluelibs/runner/node`.
+Runner-Dev exposes durable metadata directly on tasks:
+
+- `isDurable`
+- `durableResource`
+- `flowShape` (checkpoint structure from `durable.describe(...)`)
+
+```graphql
+query DurableTasks {
+  tasks {
+    id
+    isDurable
+    durableResource {
+      id
+    }
+    flowShape {
+      nodes {
+        __typename
+      }
+    }
+  }
+}
+```
+
+Minimal workflow setup pattern:
+
+```ts
+import { r } from "@bluelibs/runner";
+import { durableWorkflowTag, memoryDurableResource } from "@bluelibs/runner/node";
+
+const durable = memoryDurableResource.fork("app.durable");
+const durableRegistration = durable.with({});
+
+const workflow = r
+  .task("app.tasks.orderWorkflow")
+  .dependencies({ durable })
+  .tags([durableWorkflowTag])
+  .run(async (input, { durable }) => {
+    const ctx = durable.use();
+    await ctx.step("validate", async () => ({ ok: true }));
+    await ctx.sleep(250, { stepId: "cooldown" });
+    return { ok: true };
+  })
+  .build();
+
+const app = r
+  .resource("app")
+  .register([durableRegistration, workflow])
+  .build();
 ```
 
 ## Best Practices for AI Assistants

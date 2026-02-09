@@ -69,13 +69,15 @@ export type AsyncContext = BaseElement & {
   parse: Maybe<Scalars['String']['output']>;
   /** Resources that provide this async context */
   providedBy: Array<Resource>;
+  /** Tasks that use .require() middleware for this async context */
+  requiredBy: Array<All>;
   /** Serialization method signature */
   serialize: Maybe<Scalars['String']['output']>;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
   /** Detailed tags associated with this element */
   tagsDetailed: Maybe<Array<TagUsage>>;
-  /** Tasks and resources that use this async context */
+  /** Tasks and resources that use this async context as a dependency */
   usedBy: Array<All>;
 };
 
@@ -1038,7 +1040,7 @@ export type Task = BaseElement & {
   dependsOnResolved: TaskDependsOn;
   /** Flattened dependencies resolved to All (tasks, hooks, resources) */
   depenendsOnResolved: Array<BaseElement>;
-  /** The durable resource this task depends on (if any) */
+  /** The durable resource runtime used by this workflow (if resolvable) */
   durableResource: Maybe<Resource>;
   /** Event ids this task may emit (from dependencies) */
   emits: Array<Scalars['String']['output']>;
@@ -1056,7 +1058,7 @@ export type Task = BaseElement & {
   inputSchema: Maybe<Scalars['String']['output']>;
   /** Readable text representation of the input schema, if provided */
   inputSchemaReadable: Maybe<Scalars['String']['output']>;
-  /** Whether this task is a durable workflow (depends on a durable resource) */
+  /** Whether this task is a durable workflow (tagged with durable.workflow) */
   isDurable: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
@@ -1276,13 +1278,13 @@ export type ResolversUnionTypes<_RefType extends Record<string, unknown>> = Reso
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  BaseElement: ( Omit<All, 'tags'> & { tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<AsyncContext, 'providedBy' | 'tags' | 'usedBy'> & { providedBy: Array<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['All']> } ) | ( Omit<Error, 'tags' | 'thrownBy'> & { tags: Maybe<Array<_RefType['Tag']>>, thrownBy: Array<_RefType['All']> } ) | ( Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved' | 'tags'> & { emittedByResolved: Array<_RefType['BaseElement']>, listenedToByResolved: Array<_RefType['Hook']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Middleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedByResourcesDetailed: Array<_RefType['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<_RefType['Resource']>, usedByTasksDetailed: Array<_RefType['MiddlewareTaskUsage']>, usedByTasksResolved: Array<_RefType['Task']> } ) | ( Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'tunnelInfo' | 'usedBy'> & { dependsOnResolved: Array<_RefType['Resource']>, emits: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['ResourceMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, overridesResolved: Array<_RefType['BaseElement']>, registeredByResolved: Maybe<_RefType['Resource']>, registersResolved: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, tunnelInfo: Maybe<_RefType['TunnelInfo']>, usedBy: Array<_RefType['Task']> } ) | ( Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Resource']>, usedByDetailed: Array<_RefType['MiddlewareResourceUsage']> } ) | ( Omit<Tag, 'all' | 'events' | 'hooks' | 'middlewares' | 'resources' | 'tags' | 'tasks'> & { all: Array<_RefType['BaseElement']>, events: Array<_RefType['Event']>, hooks: Array<_RefType['Hook']>, middlewares: Array<_RefType['Middleware']>, resources: Array<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, tasks: Array<_RefType['Task']> } ) | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'flowShape' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, durableResource: Maybe<_RefType['Resource']>, emitsResolved: Array<_RefType['Event']>, flowShape: Maybe<_RefType['DurableFlowShape']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']>, usedByDetailed: Array<_RefType['MiddlewareTaskUsage']> } );
+  BaseElement: ( Omit<All, 'tags'> & { tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<_RefType['Resource']>, requiredBy: Array<_RefType['All']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['All']> } ) | ( Omit<Error, 'tags' | 'thrownBy'> & { tags: Maybe<Array<_RefType['Tag']>>, thrownBy: Array<_RefType['All']> } ) | ( Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved' | 'tags'> & { emittedByResolved: Array<_RefType['BaseElement']>, listenedToByResolved: Array<_RefType['Hook']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Middleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedByResourcesDetailed: Array<_RefType['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<_RefType['Resource']>, usedByTasksDetailed: Array<_RefType['MiddlewareTaskUsage']>, usedByTasksResolved: Array<_RefType['Task']> } ) | ( Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'tunnelInfo' | 'usedBy'> & { dependsOnResolved: Array<_RefType['Resource']>, emits: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['ResourceMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, overridesResolved: Array<_RefType['BaseElement']>, registeredByResolved: Maybe<_RefType['Resource']>, registersResolved: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, tunnelInfo: Maybe<_RefType['TunnelInfo']>, usedBy: Array<_RefType['Task']> } ) | ( Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Resource']>, usedByDetailed: Array<_RefType['MiddlewareResourceUsage']> } ) | ( Omit<Tag, 'all' | 'events' | 'hooks' | 'middlewares' | 'resources' | 'tags' | 'tasks'> & { all: Array<_RefType['BaseElement']>, events: Array<_RefType['Event']>, hooks: Array<_RefType['Hook']>, middlewares: Array<_RefType['Middleware']>, resources: Array<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, tasks: Array<_RefType['Task']> } ) | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'flowShape' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, durableResource: Maybe<_RefType['Resource']>, emitsResolved: Array<_RefType['Event']>, flowShape: Maybe<_RefType['DurableFlowShape']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']>, usedByDetailed: Array<_RefType['MiddlewareTaskUsage']> } );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   All: ResolverTypeWrapper<Omit<All, 'tags'> & { tags: Maybe<Array<ResolversTypes['Tag']>> }>;
-  AsyncContext: ResolverTypeWrapper<Omit<AsyncContext, 'providedBy' | 'tags' | 'usedBy'> & { providedBy: Array<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['All']> }>;
+  AsyncContext: ResolverTypeWrapper<Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<ResolversTypes['Resource']>, requiredBy: Array<ResolversTypes['All']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['All']> }>;
   BaseElement: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['BaseElement']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CoverageInfo: ResolverTypeWrapper<CoverageInfo>;
@@ -1345,7 +1347,7 @@ export type ResolversTypes = ResolversObject<{
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
   All: Omit<All, 'tags'> & { tags: Maybe<Array<ResolversParentTypes['Tag']>> };
-  AsyncContext: Omit<AsyncContext, 'providedBy' | 'tags' | 'usedBy'> & { providedBy: Array<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['All']> };
+  AsyncContext: Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<ResolversParentTypes['Resource']>, requiredBy: Array<ResolversParentTypes['All']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['All']> };
   BaseElement: ResolversInterfaceTypes<ResolversParentTypes>['BaseElement'];
   Boolean: Scalars['Boolean']['output'];
   CoverageInfo: CoverageInfo;
@@ -1422,6 +1424,7 @@ export type AsyncContextResolvers<ContextType = CustomGraphQLContext, ParentType
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   parse: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   providedBy: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
+  requiredBy: Resolver<Array<ResolversTypes['All']>, ParentType, ContextType>;
   serialize: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;

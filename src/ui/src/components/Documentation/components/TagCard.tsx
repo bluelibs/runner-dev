@@ -111,6 +111,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
     <ElementCard
       prefix="tag-card"
       elementId={tag.id}
+      kindLabel="tag"
       title={tag.meta?.title || formatId(tag.id)}
       id={tag.id}
       description={tag.meta?.description}

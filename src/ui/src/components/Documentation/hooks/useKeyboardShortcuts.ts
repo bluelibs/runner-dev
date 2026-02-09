@@ -17,12 +17,12 @@ export function useKeyboardShortcuts(opts: Options) {
     const handler = (e: KeyboardEvent) => {
       const isMeta = e.metaKey || e.ctrlKey;
 
-      // Toggle chat: Cmd/Ctrl+Shift+A
-      if (isMeta && e.shiftKey && (e.key === "A" || e.key === "a")) {
-        e.preventDefault();
-        opts.onToggleChat?.();
-        return;
-      }
+      // [AI-CHAT-DISABLED] Toggle chat: Cmd/Ctrl+Shift+A
+      // if (isMeta && e.shiftKey && (e.key === "A" || e.key === "a")) {
+      //   e.preventDefault();
+      //   opts.onToggleChat?.();
+      //   return;
+      // }
 
       // Focus input: Cmd/Ctrl+I
       if (isMeta && (e.key === "I" || e.key === "i")) {

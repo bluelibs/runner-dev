@@ -5,6 +5,7 @@ import { initializeFromStore } from "../models/initializeFromStore";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { readPackageDoc } from "../../mcp/help";
+import { findDurableResourceIdFromStore } from "../models/durable.runtime";
 
 export interface DocsRouteConfig {
   uiDir: string;
@@ -37,6 +38,31 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
 
     initializeFromStore(introspector, config.store);
     const data = (introspector as unknown as Introspector).serialize();
+
+    // Enrich tasks with durable metadata for docs UI.
+    if (Array.isArray((data as any).tasks)) {
+      for (const task of (data as any).tasks) {
+        const taskId = String(task?.id || "");
+        if (!taskId) continue;
+
+        const isDurable = introspector.isDurableTask(taskId);
+        const dependencyIds = Array.isArray(task?.dependsOn)
+          ? task.dependsOn.map((depId: unknown) => String(depId))
+          : [];
+
+        task.isDurable = isDurable;
+        task.durableResourceId = isDurable
+          ? findDurableResourceIdFromStore(
+              config.store,
+              taskId,
+              dependencyIds
+            ) ||
+            introspector.getDurableResourceForTask(taskId)?.id ||
+            null
+          : null;
+        task.flowShape = null;
+      }
+    }
 
     // Attach pre-fetched coverage percentages when coverage is available.
     if (config.coverage) {

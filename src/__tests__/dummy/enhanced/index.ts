@@ -75,6 +75,19 @@ export {
   runIntegrationDemo,
 } from "./examples/integrationExample";
 
+export {
+  tunnelCatalogUpdatedEvent,
+  tunnelPricingPreviewTask,
+  tunnelCatalogSyncTask,
+  tunnelServerShowcaseResource,
+  showcaseDurableResource,
+  showcaseDurableRegistration,
+  durableOrderApprovalTask,
+  runDurableOrderApprovalTask,
+  startDurableOrderApprovalTask,
+  tunnelAndDurableExampleRegistrations,
+} from "./examples/tunnelAndDurableExample";
+
 import { r, run, RegisterableItems } from "@bluelibs/runner";
 import { AllContexts, ContextMiddleware } from "./contexts";
 import { AllErrors } from "./errors";
@@ -109,6 +122,7 @@ import {
   contextPropagationDemoTask,
   runIntegrationDemo,
 } from "./examples/integrationExample";
+import { tunnelAndDurableExampleRegistrations } from "./examples/tunnelAndDurableExample";
 
 // ====================
 // MAIN ENHANCED APPLICATION
@@ -159,6 +173,7 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
       completeUserJourneyTask,
       errorHandlingDemoTask,
       contextPropagationDemoTask,
+      ...tunnelAndDurableExampleRegistrations,
 
       // Tunneling (optional - requires remote server)
       tunnelClient,
@@ -178,7 +193,8 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
       console.log("   ✅ Dynamic product pricing and inventory");
       console.log("   ✅ Comprehensive error handling");
       console.log("   ✅ Integration examples and demos");
-      console.log("   🔗 Tunneling support (when remote server available)");
+      console.log("   🔗 Tunnel showcase with server-mode policy");
+      console.log("   ⏱️  Durable workflow showcase with step/sleep/note");
       console.log("");
       console.log("📊 Available Demo Tasks:");
       console.log(
@@ -189,6 +205,15 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
       );
       console.log(
         "   🔄 app.examples.contextPropagation - Context propagation demo"
+      );
+      console.log(
+        "   🌐 app.examples.tunnel.tasks.catalogSync - Tunnel policy task sample"
+      );
+      console.log(
+        "   ⏱️  app.examples.durable.tasks.runOrderApprovalWorkflow - Durable workflow runner"
+      );
+      console.log(
+        "   🏁 app.examples.durable.tasks.startOrderApprovalWorkflow - Returns durable execution id"
       );
       console.log("");
       console.log("🛍️  Available Business Tasks:");

@@ -34,6 +34,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: $spacing-md;
 
   .main {
     flex: 1;
@@ -265,7 +266,7 @@
   background: var(--docs-bg-secondary);
   border: 1px solid var(--docs-border-primary);
   border-left-width: 4px;
-  
+
   .config-title {
     font-size: $font-size-base;
     color: var(--docs-text-secondary);
@@ -336,6 +337,8 @@
     font-size: $font-size-xs;
     color: var(--docs-text-secondary);
     font-family: $font-family-mono;
+    word-break: break-all;
+    overflow-wrap: break-word;
   }
 }
 

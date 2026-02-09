@@ -14,6 +14,7 @@ import { SchemaRenderer } from "./SchemaRenderer";
 import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
+import { hasTunnelTag } from "../../../../../resources/models/tunnel.tools";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -38,7 +39,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   ];
 
   // Check if this is a tunnel resource
-  const isTunnel = resource.tags?.includes("runner-dev.tunnel") || false;
+  const isTunnel = hasTunnelTag(resource.tags || null);
   const tunneledTasks = isTunnel
     ? introspector.getTunneledTasks(resource.id)
     : [];
@@ -118,6 +119,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     <ElementCard
       prefix="resource-card"
       elementId={resource.id}
+      kindLabel="resource"
       title={
         <>
           {resource.meta?.title || formatId(resource.id)}

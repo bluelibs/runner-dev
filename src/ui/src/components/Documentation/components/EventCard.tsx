@@ -79,6 +79,7 @@ export const EventCard: React.FC<EventCardProps> = ({
     <ElementCard
       prefix="event-card"
       elementId={event.id}
+      kindLabel="event"
       title={
         <>
           {isGlobalEvent
@@ -91,27 +92,15 @@ export const EventCard: React.FC<EventCardProps> = ({
       }
       id={!isGlobalEvent ? event.id : undefined}
       description={event.meta?.description}
-      meta={
-        <div className="event-card__stats">
-          <div className="event-card__stat-badge">
-            <span className="icon">Emit</span>
-            <span className="count">Emitters: {emitters.length}</span>
-          </div>
-          <div className="event-card__stat-badge">
-            <span className="icon">Hook</span>
-            <span className="count">Hooks: {hooks.length}</span>
-          </div>
-          <div className="event-card__run">
-            <button
-              type="button"
-              className="btn"
-              onClick={() => setIsExecuteOpen(true)}
-              title="Invoke Event"
-            >
-              Emit
-            </button>
-          </div>
-        </div>
+      actions={
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setIsExecuteOpen(true)}
+          title="Invoke Event"
+        >
+          Emit
+        </button>
       }
     >
       <div className="event-card__grid">

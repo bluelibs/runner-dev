@@ -9,6 +9,7 @@ import {
 } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./AsyncContextCard.scss";
+import { ElementKindBadge } from "./common/ElementKindBadge";
 
 export interface AsyncContextCardProps {
   asyncContext: AsyncContext;
@@ -27,11 +28,25 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
   const usedByMiddlewares = introspector.getMiddlewaresUsingContext(
     asyncContext.id
   );
+  const requiredByTasks = introspector.getTasksRequiringContext(
+    asyncContext.id
+  );
   const providedByResources = introspector.getResourcesProvidingContext(
     asyncContext.id
   );
+
+  // Build a set of IDs that use .require() for quick lookup
+  const requiredByIds = new Set(requiredByTasks.map((t) => t.id));
+
+  // Merge requiredBy tasks that aren't already in usedByTasks
+  const usedByTaskIds = new Set(usedByTasks.map((t) => t.id));
+  const requireOnlyTasks = requiredByTasks.filter(
+    (t) => !usedByTaskIds.has(t.id)
+  );
+
   const allUsers = [
     ...usedByTasks,
+    ...requireOnlyTasks,
     ...usedByResources,
     ...usedByHooks,
     ...usedByMiddlewares,
@@ -75,6 +90,7 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
               </p>
             )}
           </div>
+          <ElementKindBadge kind="async-context" />
         </div>
       </div>
 
@@ -218,11 +234,14 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
                 </div>
               )}
 
-              {usedByTasks.length > 0 && (
+              {(usedByTasks.length > 0 || requireOnlyTasks.length > 0) && (
                 <div className="async-context-card__relations__category">
-                  <h5>Used By Tasks ({usedByTasks.length})</h5>
+                  <h5>
+                    Used By Tasks (
+                    {usedByTasks.length + requireOnlyTasks.length})
+                  </h5>
                   <div className="async-context-card__relations__items">
-                    {usedByTasks.map((task) => (
+                    {[...usedByTasks, ...requireOnlyTasks].map((task) => (
                       <a
                         key={task.id}
                         href={`#element-${task.id}`}
@@ -230,8 +249,23 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
                       >
                         <div className="title title--task">
                           {task.meta?.title || formatId(task.id)}
+                          {requiredByIds.has(task.id) && (
+                            <span
+                              className="async-context-card__require-badge"
+                              title="Uses .require() middleware — context must be provided or the task will throw"
+                            >
+                              .require()
+                            </span>
+                          )}
                         </div>
-                        <div className="id">{task.id}</div>
+                        <div className="id">
+                          {task.id}
+                          {!usedByTaskIds.has(task.id) && (
+                            <span className="async-context-card__require-only">
+                              via middleware only
+                            </span>
+                          )}
+                        </div>
                       </a>
                     ))}
                   </div>

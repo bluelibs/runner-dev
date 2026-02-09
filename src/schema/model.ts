@@ -56,6 +56,20 @@ export interface TunnelInfo {
   eventDeliveryMode?: string; // e.g., "mirror", "remote-only", "local-only", "remote-first"
 }
 
+export interface DurableFlowNode {
+  kind: string;
+  stepId?: string | null;
+  durationMs?: number | null;
+  signalId?: string | null;
+  eventId?: string | null;
+  selectedBranchId?: string | null;
+  message?: string | null;
+}
+
+export interface DurableFlowShape {
+  nodes: DurableFlowNode[];
+}
+
 export interface Tag extends BaseElement {
   id: string;
   configSchema?: string | null;
@@ -115,6 +129,11 @@ export interface Task extends BaseElement {
   middlewareDetailed?: MiddlewareUsage[];
   // Prettified Zod schema for the task input if provided
   inputSchema?: string | null;
+  // Prettified Zod schema for the task result if provided
+  resultSchema?: string | null;
+  isDurable?: boolean;
+  durableResourceId?: string | null;
+  flowShape?: DurableFlowShape | null;
 }
 
 export interface Hook extends BaseElement {
@@ -163,8 +182,10 @@ export interface AsyncContext extends BaseElement {
   serialize?: string | null;
   // Parse method signature if provided
   parse?: string | null;
-  // Task/resource IDs that use this context
+  // Task/resource/hook/middleware IDs that depend on this context (via dependencies)
   usedBy: string[];
+  // Task/resource/hook/middleware IDs that use .require() for this context
+  requiredBy: string[];
   // Resource IDs that provide this context
   providedBy: string[];
 }

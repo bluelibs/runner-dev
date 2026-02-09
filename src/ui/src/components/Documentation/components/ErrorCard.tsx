@@ -10,6 +10,7 @@ import {
 import { TagsSection } from "./TagsSection";
 import "./ErrorCard.scss";
 import { SchemaRenderer } from "./SchemaRenderer";
+import { ElementKindBadge } from "./common/ElementKindBadge";
 
 export interface ErrorCardProps {
   error: Error;
@@ -89,6 +90,7 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
               </p>
             )}
           </div>
+          <ElementKindBadge kind="error" />
         </div>
       </div>
 

@@ -6,12 +6,12 @@ import { DocumentationMainContent } from "./components/DocumentationMainContent"
 import { useDocumentationFilters } from "./hooks/useDocumentationFilters";
 import { useViewMode } from "./hooks/useViewMode";
 import { useSidebarResize } from "./hooks/useSidebarResize";
-import { useChatSidebarResize } from "./hooks/useChatSidebarResize";
+// [AI-CHAT-DISABLED] import { useChatSidebarResize } from "./hooks/useChatSidebarResize";
 import { useTreeNavigation } from "./hooks/useTreeNavigation";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { createSections } from "./config/documentationSections";
-import { DOCUMENTATION_CONSTANTS } from "./config/documentationConstants";
-import { ChatSidebar } from "./components/chat/ChatSidebar";
+// [AI-CHAT-DISABLED] import { DOCUMENTATION_CONSTANTS } from "./config/documentationConstants";
+// [AI-CHAT-DISABLED] import { ChatSidebar } from "./components/chat/ChatSidebar";
 import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
 import { useRef } from "react";
 
@@ -40,22 +40,25 @@ export interface DocumentationProps {
 export const Documentation: React.FC<DocumentationProps> = ({
   introspector,
   namespacePrefix,
-  runnerFrameworkMd,
-  runnerDevMd,
-  projectOverviewMd,
-  graphqlSdl,
+  // [AI-CHAT-DISABLED] These props were used by ChatSidebar
+  runnerFrameworkMd: _runnerFrameworkMd,
+  runnerDevMd: _runnerDevMd,
+  projectOverviewMd: _projectOverviewMd,
+  graphqlSdl: _graphqlSdl,
 }) => {
   const didInitHashHandlerRef = useRef(false);
-  const [isChatOpen, setIsChatOpen] = useState<boolean>(() => {
-    try {
-      return (
-        localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.CHAT_OPEN) ===
-        "true"
-      );
-    } catch {
-      return DOCUMENTATION_CONSTANTS.DEFAULTS.CHAT_OPEN;
-    }
-  });
+  // [AI-CHAT-DISABLED] Chat sidebar is disabled — force closed
+  const _isChatOpen = false;
+  // const [isChatOpen, setIsChatOpen] = useState<boolean>(() => {
+  //   try {
+  //     return (
+  //       localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.CHAT_OPEN) ===
+  //       "true"
+  //     );
+  //   } catch {
+  //     return DOCUMENTATION_CONSTANTS.DEFAULTS.CHAT_OPEN;
+  //   }
+  // });
 
   // Dark mode state - default to true (dark mode by default)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -87,34 +90,32 @@ export const Documentation: React.FC<DocumentationProps> = ({
   // Custom hooks for state management
   const filterHook = useDocumentationFilters(introspector, namespacePrefix);
   const viewModeHook = useViewMode();
-  const chatHook = useChatSidebarResize(40);
-  const sidebarHook = useSidebarResize(
-    isChatOpen ? chatHook.chatWidth + 40 : 0
-  );
+  // [AI-CHAT-DISABLED] const chatHook = useChatSidebarResize(40);
+  const sidebarHook = useSidebarResize(0);
   const debouncedSidebarWidth = useDebouncedValue(
     sidebarHook.sidebarWidth,
     180
   );
-  const debouncedChatWidth = useDebouncedValue(chatHook.chatWidth, 180);
-  const [isChatTransitioning, setIsChatTransitioning] = useState(false);
+  // [AI-CHAT-DISABLED] const debouncedChatWidth = useDebouncedValue(chatHook.chatWidth, 180);
+  // [AI-CHAT-DISABLED] const [isChatTransitioning, setIsChatTransitioning] = useState(false);
 
-  const handleToggleChat = () => {
-    setIsChatOpen((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(
-          DOCUMENTATION_CONSTANTS.STORAGE_KEYS.CHAT_OPEN,
-          String(next)
-        );
-      } catch {
-        /* intentionally empty */
-      }
-      // Mark a brief transition window for overlay while chat opens/closes
-      setIsChatTransitioning(true);
-      window.setTimeout(() => setIsChatTransitioning(false), 260);
-      return next;
-    });
-  };
+  // [AI-CHAT-DISABLED] Chat toggle handler
+  // const handleToggleChat = () => {
+  //   setIsChatOpen((prev) => {
+  //     const next = !prev;
+  //     try {
+  //       localStorage.setItem(
+  //         DOCUMENTATION_CONSTANTS.STORAGE_KEYS.CHAT_OPEN,
+  //         String(next)
+  //       );
+  //     } catch {
+  //       /* intentionally empty */
+  //     }
+  //     setIsChatTransitioning(true);
+  //     window.setTimeout(() => setIsChatTransitioning(false), 260);
+  //     return next;
+  //   });
+  // };
 
   // Hash-driven toggle for stats overlay; reacts to address bar changes
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(() => {
@@ -273,17 +274,12 @@ export const Documentation: React.FC<DocumentationProps> = ({
     introspector,
   ]);
 
-  if (window !== undefined) {
-    console.log(introspector.serialize());
-  }
-
   // Consider layout busy whenever dragging resizers or debounced widths are catching up
   const isLayoutBusy =
     sidebarHook.isResizing ||
-    chatHook.isResizing ||
-    isChatTransitioning ||
-    debouncedSidebarWidth !== sidebarHook.sidebarWidth ||
-    debouncedChatWidth !== chatHook.chatWidth;
+    // [AI-CHAT-DISABLED] chatHook.isResizing ||
+    // [AI-CHAT-DISABLED] isChatTransitioning ||
+    debouncedSidebarWidth !== sidebarHook.sidebarWidth;
 
   return (
     <div className="docs-app">
@@ -291,9 +287,9 @@ export const Documentation: React.FC<DocumentationProps> = ({
       <DocumentationSidebar
         sidebarWidth={sidebarHook.sidebarWidth}
         sidebarRef={sidebarHook.sidebarRef}
-        isChatOpen={isChatOpen}
-        onToggleChat={handleToggleChat}
-        leftOffset={isChatOpen ? chatHook.chatWidth + 40 : 0}
+        // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
+        // [AI-CHAT-DISABLED] onToggleChat={handleToggleChat}
+        leftOffset={0}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
         viewMode={viewModeHook.viewMode}
@@ -319,11 +315,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
           sidebarHook.isResizing ? "docs-sidebar-resizer--active" : ""
         }`}
         style={{
-          left: `${
-            (isChatOpen ? chatHook.chatWidth + 40 : 0) +
-            sidebarHook.sidebarWidth +
-            40
-          }px`,
+          left: `${sidebarHook.sidebarWidth + 40}px`,
         }}
         onMouseDown={sidebarHook.handleMouseDown}
       />
@@ -332,12 +324,12 @@ export const Documentation: React.FC<DocumentationProps> = ({
       <DocumentationMainContent
         introspector={introspector}
         sidebarWidth={debouncedSidebarWidth}
-        chatWidth={debouncedChatWidth}
-        isChatOpen={isChatOpen}
+        // [AI-CHAT-DISABLED] chatWidth={debouncedChatWidth}
+        // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
         openStats={openStats}
         isStatsOpen={isStatsOpen}
         closeStats={closeStats}
-        chatPushesLeft
+        // [AI-CHAT-DISABLED] chatPushesLeft
         suspendRendering={isLayoutBusy}
         tasks={filterHook.tasks}
         resources={filterHook.resources}
@@ -347,70 +339,12 @@ export const Documentation: React.FC<DocumentationProps> = ({
         errors={introspector.getErrors()}
         asyncContexts={introspector.getAsyncContexts()}
         tags={filterHook.tags}
+        sections={sections}
       />
 
       {/* "Open Stats" button moved next to the Overview header inside main content */}
 
-      {isChatOpen && (
-        <>
-          <div
-            ref={chatHook.resizerRef}
-            className={`docs-sidebar-resizer ${
-              chatHook.isResizing ? "docs-sidebar-resizer--active" : ""
-            }`}
-            style={{ left: `${chatHook.chatWidth + 40}px` }}
-            onMouseDown={chatHook.handleMouseDown}
-          />
-          <ChatSidebar
-            width={chatHook.chatWidth}
-            sidebarRef={chatHook.sidebarRef}
-            onToggleChat={handleToggleChat}
-            isChatOpen={isChatOpen}
-            runnerAiMd={runnerFrameworkMd}
-            runnerDevMd={runnerDevMd}
-            projectOverviewMd={projectOverviewMd}
-            graphqlSdl={graphqlSdl}
-            availableElements={{
-              tasks: filterHook.tasks.map((task) => ({
-                id: task.id,
-                name: task.id,
-                title: task.meta?.title || undefined,
-                description: task.meta?.description || undefined,
-              })),
-              resources: filterHook.resources.map((resource) => ({
-                id: resource.id,
-                name: resource.id,
-                title: resource.meta?.title || undefined,
-                description: resource.meta?.description || undefined,
-              })),
-              events: filterHook.events.map((event) => ({
-                id: event.id,
-                name: event.id,
-                title: event.meta?.title || undefined,
-                description: event.meta?.description || undefined,
-              })),
-              hooks: filterHook.hooks.map((hook) => ({
-                id: hook.id,
-                name: hook.id,
-                title: hook.meta?.title || undefined,
-                description: hook.meta?.description || undefined,
-              })),
-              middlewares: filterHook.middlewares.map((middleware) => ({
-                id: middleware.id,
-                name: middleware.id,
-                title: middleware.meta?.title || undefined,
-                description: middleware.meta?.description || undefined,
-              })),
-              tags: filterHook.tags.map((tag) => ({
-                id: tag.id,
-                name: tag.id,
-                title: tag.meta?.title || undefined,
-                description: tag.meta?.description || undefined,
-              })),
-            }}
-          />
-        </>
-      )}
+      {/* [AI-CHAT-DISABLED] ChatSidebar and resizer removed — isChatOpen is always false */}
 
       {/* Render overlayed stats panel when hash requests it */}
       {isStatsOpen && <OverviewStatsPanel overlay onClose={closeStats} />}

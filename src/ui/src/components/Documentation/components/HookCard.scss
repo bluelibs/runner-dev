@@ -27,6 +27,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: $spacing-md;
 
   .main {
     flex: 1;
@@ -137,6 +138,8 @@
 // Info Blocks
 // -----------------------------------------------------------------------------
 .hook-card__info-block {
+  min-width: 0;
+
   .label {
     font-weight: bold;
     color: var(--docs-text-secondary);
@@ -145,6 +148,10 @@
   .value a {
     text-decoration: underline;
     cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
   }
 
   .value {
@@ -155,6 +162,9 @@
     background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
     &--order {
       color: var(--docs-primary);
@@ -411,6 +421,8 @@
     font-size: $font-size-xs;
     color: var(--docs-text-muted);
     font-family: $font-family-mono;
+    word-break: break-all;
+    overflow-wrap: break-word;
   }
 }
 

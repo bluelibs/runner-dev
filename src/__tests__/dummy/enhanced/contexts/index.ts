@@ -14,6 +14,11 @@ export const RequestContext = r
     ipAddress?: string;
     timestamp: Date;
   }>("app.contexts.request")
+  .meta({
+    title: "Request Context",
+    description:
+      "Carries request-scoped metadata such as request identity, session hints, and client details.",
+  })
   .parse(
     (value) =>
       JSON.parse(value) as {
@@ -43,6 +48,11 @@ export const TenantContext = r
     features: Record<string, boolean>;
     settings: Record<string, unknown>;
   }>("app.contexts.tenant")
+  .meta({
+    title: "Tenant Context",
+    description:
+      "Holds tenant-specific runtime configuration including localization, feature flags, and settings.",
+  })
   .parse((raw) => JSON.parse(raw))
   .serialize((data) => JSON.stringify(data))
   .build();
@@ -61,6 +71,11 @@ export const AuditContext = r
     metadata: Record<string, unknown>;
     tags: string[];
   }>("app.contexts.audit")
+  .meta({
+    title: "Audit Context",
+    description:
+      "Tracks traceability data for observability and auditing, including trace identifiers and operation metadata.",
+  })
   .parse((raw) => JSON.parse(raw))
   .serialize((data) => JSON.stringify(data))
   .build();
@@ -80,6 +95,11 @@ export const SecurityContext = r
     mfaVerified: boolean;
     ipAddress?: string;
   }>("app.contexts.security")
+  .meta({
+    title: "Security Context",
+    description:
+      "Stores authentication and authorization state such as roles, permissions, token data, and trust level.",
+  })
   .parse((raw) => JSON.parse(raw))
   .serialize((data) => JSON.stringify(data))
   .build();
@@ -98,6 +118,11 @@ export const BusinessContext = r
     campaign?: string;
     segment?: string;
   }>("app.contexts.business")
+  .meta({
+    title: "Business Context",
+    description:
+      "Captures business segmentation information like unit, region, channel, and campaign scope.",
+  })
   .parse((raw) => JSON.parse(raw))
   .serialize((data) => JSON.stringify(data))
   .build();
@@ -129,6 +154,11 @@ export const PerformanceContext = r
       threshold: number;
     }>;
   }>("app.contexts.performance")
+  .meta({
+    title: "Performance Context",
+    description:
+      "Collects operation performance details such as checkpoints, memory stats, warnings, and slow query signals.",
+  })
   .parse((raw) => JSON.parse(raw))
   .serialize((data) => JSON.stringify(data))
   .build();
@@ -146,6 +176,11 @@ export const CacheContext = r
     cacheMisses: number;
     cacheKeyPrefix?: string;
   }>("app.contexts.cache")
+  .meta({
+    title: "Cache Context",
+    description:
+      "Represents per-operation cache behavior, including strategy, hit/miss counters, and invalidation tags.",
+  })
   .parse((raw) => JSON.parse(raw))
   .serialize((data) => JSON.stringify(data))
   .build();
@@ -175,7 +210,7 @@ export const auditContextMiddleware = r.middleware
     (task) => task.id.startsWith("app.") || task.id.startsWith("api.")
   )
   .run(async ({ task, next }, { auditContext }) => {
-    auditContext.provide(
+    return await auditContext.provide(
       {
         traceId: `trace_${Date.now()}_${Math.random()
           .toString(36)

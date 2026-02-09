@@ -32,9 +32,18 @@ describe("CLI overview (remote)", () => {
   test("prints markdown with counts", async () => {
     mockedCallGraphQL.mockResolvedValueOnce({
       data: {
-        tasks: [{ id: "task.a", meta: {} }],
-        hooks: [{ id: "hook.a", meta: {} }],
-        resources: [{ id: "resource.a", meta: {} }],
+        tasks: [
+          {
+            id: "task.a",
+            meta: {},
+            dependsOn: ["resource.a"],
+            middleware: ["mw.a"],
+          },
+        ],
+        hooks: [{ id: "hook.a", meta: {}, dependsOn: [], middleware: [] }],
+        resources: [
+          { id: "resource.a", meta: {}, dependsOn: [], middleware: [] },
+        ],
         middlewares: [{ id: "mw.a", meta: {} }],
         events: [{ id: "event.a", meta: {}, emittedBy: [], listenedToBy: [] }],
         diagnostics: [],
@@ -52,5 +61,6 @@ describe("CLI overview (remote)", () => {
     expect(out).toMatch(/Hooks: \d+/);
     expect(out).toMatch(/Resources: \d+/);
     expect(out).toMatch(/Events: \d+/);
+    expect(out).toContain("Connections: 2");
   });
 });

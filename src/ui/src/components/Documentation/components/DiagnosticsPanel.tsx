@@ -29,6 +29,8 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   const unemittedEvents = introspector.getUnemittedEvents();
   const unusedMiddleware = introspector.getUnusedMiddleware();
   const overrideConflicts = introspector.getOverrideConflicts();
+  const overriddenElements = introspector.getOverriddenElements();
+  const unusedErrors = introspector.getUnusedErrors();
 
   const errorCount = diagnostics.filter((d) => d.severity === "error").length;
   const warningCount = diagnostics.filter(
@@ -55,6 +57,16 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
       id: "conflicts",
       label: "Override Conflicts",
       count: overrideConflicts.length,
+    },
+    {
+      id: "overridden",
+      label: "Overridden Elements",
+      count: overriddenElements.length,
+    },
+    {
+      id: "unusedErrors",
+      label: "Unused Errors",
+      count: unusedErrors.length,
     },
   ];
 
@@ -229,6 +241,22 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "⚔️",
           "Resource override issues",
           "diagnostics-panel__summary-card--conflicts"
+        )}
+        {renderSummaryCard(
+          "Overridden Elements",
+          overriddenElements.length,
+          "#17a2b8",
+          "O",
+          "Nodes shadowed by overrides",
+          "diagnostics-panel__summary-card--info"
+        )}
+        {renderSummaryCard(
+          "Unused Errors",
+          unusedErrors.length,
+          "#6c757d",
+          "E",
+          "Errors never referenced",
+          "diagnostics-panel__summary-card--unused"
         )}
       </div>
     );
@@ -413,6 +441,58 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             )}
           </div>
         )}
+
+        {activeCategory === "overridden" && (
+          <div className="diagnostics-panel__special-section">
+            <h4>
+              <span className="icon">O</span>
+              Overridden Elements ({overriddenElements.length})
+            </h4>
+            {overriddenElements.length === 0 ? (
+              <div className="diagnostics-panel__empty-state">
+                <div className="celebration">🎉</div>
+                No overridden elements found. Great job!
+              </div>
+            ) : (
+              <div className="diagnostics-panel__special-section__items">
+                {overriddenElements.map((item, index) => (
+                  <div
+                    key={index}
+                    className="diagnostics-panel__special-section__item diagnostics-panel__special-section__item--conflict diagnostics-panel__conflict-item"
+                  >
+                    <div className="title">
+                      <a
+                        href={`#element-${item.id}`}
+                        className="diagnostics-panel__conflict-link"
+                      >
+                        {formatId(item.id)}
+                      </a>
+                      {" <- overridden by -> "}
+                      <a
+                        href={`#element-${item.overriddenBy}`}
+                        className="diagnostics-panel__conflict-link"
+                      >
+                        {formatId(item.overriddenBy)}
+                      </a>
+                    </div>
+                    <div className="id">Type: {item.kind}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeCategory === "unusedErrors" &&
+          renderSpecialItems(
+            unusedErrors,
+            "Unused Errors",
+            "E",
+            "#6c757d",
+            (item) => item.id,
+            (item) => `${formatId(item.id)} (Not thrown)`,
+            "diagnostics-panel__special-section__item--unused"
+          )}
       </div>
     </div>
   );

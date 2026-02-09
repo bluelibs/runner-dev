@@ -1,0 +1,54 @@
+// =============================================================================
+// ELEMENT KIND BADGE - Top-right type indicator for element cards
+// =============================================================================
+@use "../../../../styles/variables" as *;
+
+.element-kind-badge {
+  display: inline-block;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: $border-radius-sm;
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  backdrop-filter: blur(4px);
+
+  // -- Variants (subtle tint per kind) ----------------------------------------
+  &--task {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &--resource {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &--event {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &--hook {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &--middleware {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &--tag {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &--error {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &--async-context {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}

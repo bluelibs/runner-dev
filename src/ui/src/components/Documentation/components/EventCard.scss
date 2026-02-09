@@ -19,7 +19,11 @@
 // Event Card Header
 // -----------------------------------------------------------------------------
 .event-card__header {
-  background: linear-gradient(180deg, var(--docs-panel-bg), var(--docs-bg-secondary));
+  background: linear-gradient(
+    180deg,
+    var(--docs-panel-bg),
+    var(--docs-bg-secondary)
+  );
   color: var(--docs-text-primary);
   padding: $spacing-xl;
   border-bottom: 1px solid var(--docs-border-primary);
@@ -29,26 +33,25 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: $spacing-md;
 
   .main {
     flex: 1;
   }
 
-  .meta {
+  .event-card__actions {
     display: flex;
     align-items: center;
-    gap: 10px;
-    align-items: center;
-    .event-card__run {
-      button {
-        border: none;
-        background: rgba(255, 255, 255, 0.12);
-        color: #fff;
-        padding: 6px 8px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-      }
+    gap: $spacing-sm;
+
+    button {
+      border: none;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
     }
   }
 }
@@ -153,6 +156,8 @@
 // Info Blocks
 // -----------------------------------------------------------------------------
 .event-card__info-block {
+  min-width: 0;
+
   .label {
     font-weight: bold;
     color: var(--docs-text-primary);
@@ -166,23 +171,33 @@
     background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    a {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
 
     &--status {
       font-weight: 500;
-      
+
       // Status color classes
       &.status-unused {
         color: var(--docs-text-muted);
       }
-      
+
       &.status-no-emitters {
         color: var(--docs-danger);
       }
-      
+
       &.status-no-listeners {
         color: var(--docs-warning);
       }
-      
+
       &.status-active {
         color: var(--docs-success);
       }
@@ -232,6 +247,8 @@
       font-size: $font-size-xs;
       color: var(--docs-text-secondary);
       font-family: $font-family-mono;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
   }
 }
@@ -427,6 +444,8 @@
       font-size: $font-size-xs;
       color: var(--docs-text-secondary);
       font-family: $font-family-mono;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
   }
 }
@@ -460,6 +479,8 @@
 
       .id {
         font-size: $font-size-xs;
+        word-break: break-all;
+        overflow-wrap: break-word;
         color: var(--docs-text-secondary);
         font-family: $font-family-mono;
       }

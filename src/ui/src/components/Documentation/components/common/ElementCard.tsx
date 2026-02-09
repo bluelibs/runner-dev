@@ -1,4 +1,5 @@
 import React from "react";
+import { ElementKindBadge, ElementKind } from "./ElementKindBadge";
 
 type ClassValue = string | undefined | false;
 
@@ -14,6 +15,8 @@ export interface ElementCardProps {
   description?: React.ReactNode;
   actions?: React.ReactNode;
   meta?: React.ReactNode;
+  /** Displays a kind badge (e.g. "Resource", "Task") in the top-right corner */
+  kindLabel?: ElementKind;
   className?: string;
   headerClassName?: string;
   contentClassName?: string;
@@ -28,6 +31,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({
   description,
   actions,
   meta,
+  kindLabel,
   className,
   headerClassName,
   contentClassName,
@@ -52,6 +56,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({
           </div>
           {actions && <div className={`${prefix}__actions`}>{actions}</div>}
           {meta && <div className="meta">{meta}</div>}
+          {kindLabel && <ElementKindBadge kind={kindLabel} />}
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
   SAMPLE_TASK_FILE_QUERY,
+  TASK_DURABLE_FLOW_QUERY,
   TASK_COVERAGE_DETAILS_QUERY,
 } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
@@ -15,6 +16,132 @@ import ExecuteModal from "./ExecuteModal";
 import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
+import { MermaidDiagram } from "./common/MermaidDiagram";
+
+function normalizeDurableNodeLabel(node: any, index: number): string {
+  const kind = String(node?.kind || "node");
+
+  if (kind === "step") {
+    return `Step: ${String(node?.stepId || `step_${index + 1}`)}`;
+  }
+  if (kind === "sleep") {
+    const duration = typeof node?.durationMs === "number" ? node.durationMs : 0;
+    return `Sleep: ${duration}ms`;
+  }
+  if (kind === "signal" || kind === "waitForSignal") {
+    return `Signal: ${String(node?.signalId || "unknown_signal")}`;
+  }
+  if (kind === "emit") {
+    return `Emit: ${String(node?.eventId || "unknown_event")}`;
+  }
+  if (kind === "switch") {
+    const firstBranch = Array.isArray(node?.branchIds)
+      ? node.branchIds[0]
+      : null;
+    return `Switch: ${String(
+      firstBranch || node?.selectedBranchId || "branch"
+    )}`;
+  }
+  if (kind === "note") {
+    return `Note: ${String(node?.message || "note")}`;
+  }
+
+  return `${kind}: ${String(node?.stepId || `node_${index + 1}`)}`;
+}
+
+function escapeMermaidLabel(text: string): string {
+  return text
+    .replaceAll("[", " ")
+    .replaceAll("]", " ")
+    .replaceAll("(", " ")
+    .replaceAll(")", " ")
+    .replaceAll("{", " ")
+    .replaceAll("}", " ")
+    .replaceAll('"', " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatMermaidLabel(text: string): string {
+  const maxLineLength = 24;
+  const maxTotalLength = 84;
+  const compactText =
+    text.length > maxTotalLength
+      ? `${text.slice(0, maxTotalLength - 3).trim()}...`
+      : text;
+
+  const words = compactText.split(" ").filter(Boolean);
+  if (words.length <= 1) return compactText;
+
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    if (!currentLine) {
+      currentLine = word;
+      continue;
+    }
+
+    const candidate = `${currentLine} ${word}`;
+    if (candidate.length <= maxLineLength) {
+      currentLine = candidate;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.join("<br/>");
+}
+
+function buildDurableMermaid(
+  _taskId: string,
+  flowShape: Task["flowShape"]
+): string {
+  const nodes = Array.isArray(flowShape?.nodes) ? flowShape.nodes : [];
+
+  const lines = ["flowchart TD", `  START(["Start"])`];
+  let previousId = "START";
+
+  for (let index = 0; index < nodes.length; index++) {
+    const node = nodes[index] as any;
+    const nodeId = `N${index + 1}`;
+    const label = formatMermaidLabel(
+      escapeMermaidLabel(normalizeDurableNodeLabel(node, index))
+    );
+    lines.push(`  ${nodeId}["${label}"]`);
+    lines.push(`  ${previousId} --> ${nodeId}`);
+    previousId = nodeId;
+  }
+
+  lines.push(`  END(["End"])`);
+  lines.push(`  ${previousId} --> END`);
+
+  return lines.join("\n");
+}
+
+function normalizeDurableFlowNodes(rawNodes: any[] | null | undefined): any[] {
+  if (!Array.isArray(rawNodes)) return [];
+  return rawNodes.map((node) => {
+    const stepId =
+      node?.stepId ??
+      node?.stepIdStep ??
+      node?.stepIdSleep ??
+      node?.stepIdSignal ??
+      node?.stepIdEmit ??
+      node?.stepIdSwitch ??
+      null;
+
+    return {
+      ...node,
+      stepId: stepId || undefined,
+    };
+  });
+}
 
 export interface TaskCardProps {
   task: Task;
@@ -29,6 +156,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   // Check if this task is tunneled
   const tunnelResource = introspector.getTunnelForTask(task.id);
   const isTunneled = Boolean(tunnelResource);
+  const isDurable = task.isDurable === true;
+  const initialDurableFlowNodes = React.useMemo(
+    () => normalizeDurableFlowNodes(task.flowShape?.nodes as any[]),
+    [task.flowShape]
+  );
+  const durableResourceId = task.durableResourceId || null;
 
   // Check for async context usage (placeholder for future implementation)
   // This will be populated when we parse context usage from source code
@@ -52,6 +185,29 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const [coverageLoading, setCoverageLoading] = React.useState(false);
   const [coverageError, setCoverageError] = React.useState<string | null>(null);
   const [isExecuteOpen, setIsExecuteOpen] = React.useState(false);
+  const [isDurablePreviewOpen, setIsDurablePreviewOpen] = React.useState(false);
+  const [durableFlowNodes, setDurableFlowNodes] = React.useState<any[]>(
+    initialDurableFlowNodes
+  );
+  const [isDurableFlowLoading, setIsDurableFlowLoading] =
+    React.useState<boolean>(false);
+  const [durableFlowError, setDurableFlowError] = React.useState<string | null>(
+    null
+  );
+  const [hasLoadedDurableFlow, setHasLoadedDurableFlow] =
+    React.useState<boolean>(initialDurableFlowNodes.length > 0);
+  const durableMermaid = React.useMemo(
+    () => buildDurableMermaid(task.id, { nodes: durableFlowNodes } as any),
+    [task.id, durableFlowNodes]
+  );
+
+  React.useEffect(() => {
+    setDurableFlowNodes(initialDurableFlowNodes);
+    setIsDurableFlowLoading(false);
+    setDurableFlowError(null);
+    setHasLoadedDurableFlow(initialDurableFlowNodes.length > 0);
+    setIsDurablePreviewOpen(false);
+  }, [task.id, initialDurableFlowNodes]);
 
   async function openFileModal() {
     if (!task?.id) return;
@@ -122,10 +278,44 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
     }
   }
 
+  async function toggleDurablePreview() {
+    if (isDurablePreviewOpen) {
+      setIsDurablePreviewOpen(false);
+      return;
+    }
+
+    setIsDurablePreviewOpen(true);
+    if (!isDurable || hasLoadedDurableFlow || isDurableFlowLoading) {
+      return;
+    }
+
+    setIsDurableFlowLoading(true);
+    setDurableFlowError(null);
+
+    try {
+      const data = await graphqlRequest<{
+        task: {
+          id: string;
+          flowShape: { nodes: any[] } | null;
+        } | null;
+      }>(TASK_DURABLE_FLOW_QUERY, { id: task.id });
+
+      const nodes = normalizeDurableFlowNodes(data?.task?.flowShape?.nodes);
+      setDurableFlowNodes(nodes);
+      setHasLoadedDurableFlow(true);
+    } catch (e: any) {
+      setDurableFlowError(e?.message ?? "Failed to load durable flow");
+      setHasLoadedDurableFlow(true);
+    } finally {
+      setIsDurableFlowLoading(false);
+    }
+  }
+
   return (
     <ElementCard
       prefix="task-card"
       elementId={task.id}
+      kindLabel="task"
       title={
         <>
           {task.meta?.title || formatId(task.id)}
@@ -153,7 +343,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       }
     >
       <div className="task-card__grid">
-        <CardSection prefix="task-card" title="Overview">
+        <CardSection
+          prefix="task-card"
+          title="Overview"
+          className="task-card__grid-section"
+        >
           <InfoBlock prefix="task-card" label="File Path:">
             {task.filePath ? (
               <a
@@ -259,15 +453,25 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         <CardSection
           prefix="task-card"
           title="Input Schema"
+          className="task-card__grid-section"
           contentClassName="task-card__config"
         >
           <SchemaRenderer schemaString={task.inputSchema} />
         </CardSection>
 
+        <CardSection
+          prefix="task-card"
+          title="Output Schema"
+          className="task-card__grid-section"
+          contentClassName="task-card__config"
+        >
+          <SchemaRenderer schemaString={task.resultSchema} />
+        </CardSection>
+
         {isTunneled && (
           <CardSection
             prefix="task-card"
-            title="🚇 Tunnel Information"
+            title="Tunnel Information"
             className="task-card__tunnel-info"
             contentClassName="task-card__tunnel-info__content"
           >
@@ -295,6 +499,85 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 )}
               </>
             )}
+          </CardSection>
+        )}
+
+        {isDurable && (
+          <CardSection
+            prefix="task-card"
+            title="Durable Workflow"
+            className="task-card__durable-info"
+            contentClassName="task-card__durable-info__content"
+          >
+            {durableResourceId && (
+              <InfoBlock prefix="task-card" label="Durable Resource:">
+                <a
+                  href={`#element-${durableResourceId}`}
+                  className="task-card__durable-link"
+                >
+                  {formatId(durableResourceId)}
+                </a>
+              </InfoBlock>
+            )}
+
+            <InfoBlock prefix="task-card" label="Flow Nodes:">
+              {hasLoadedDurableFlow ? durableFlowNodes.length : "Not loaded"}
+            </InfoBlock>
+
+            <InfoBlock prefix="task-card" label="Flow Graph:">
+              <button
+                type="button"
+                className="task-card__durable-preview-btn"
+                onClick={toggleDurablePreview}
+              >
+                {isDurablePreviewOpen ? "Hide Graph" : "Preview Graph"}
+              </button>
+            </InfoBlock>
+
+            {isDurablePreviewOpen && isDurableFlowLoading ? (
+              <InfoBlock prefix="task-card" label="Mermaid Diagram:">
+                Loading flow preview...
+              </InfoBlock>
+            ) : null}
+
+            {isDurablePreviewOpen && durableFlowError ? (
+              <InfoBlock prefix="task-card" label="Mermaid Diagram:">
+                {durableFlowError}
+              </InfoBlock>
+            ) : null}
+
+            {isDurablePreviewOpen &&
+            !isDurableFlowLoading &&
+            !durableFlowError &&
+            durableFlowNodes.length > 0 ? (
+              <>
+                <InfoBlock prefix="task-card" label="Flow Summary:">
+                  <div className="task-card__durable-steps">
+                    {durableFlowNodes.map((node: any, index: number) => (
+                      <div key={`${String(node?.kind || "node")}-${index}`}>
+                        {index + 1}. {normalizeDurableNodeLabel(node, index)}
+                      </div>
+                    ))}
+                  </div>
+                </InfoBlock>
+
+                <InfoBlock prefix="task-card" label="Mermaid Diagram:">
+                  <MermaidDiagram
+                    chart={durableMermaid}
+                    className="task-card__durable-mermaid"
+                  />
+                </InfoBlock>
+              </>
+            ) : null}
+
+            {isDurablePreviewOpen &&
+            !isDurableFlowLoading &&
+            !durableFlowError &&
+            durableFlowNodes.length === 0 ? (
+              <InfoBlock prefix="task-card" label="Mermaid Diagram:">
+                Flow shape is not available yet for this durable task.
+              </InfoBlock>
+            ) : null}
           </CardSection>
         )}
 

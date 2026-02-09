@@ -1,10 +1,10 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import "./ExecuteModal.scss";
-import {
-  hasOpenAIKey,
-  generateInstanceFromJsonSchema,
-} from "./chat/ai.prefill";
+// [AI-CHAT-DISABLED] import {
+//   hasOpenAIKey,
+//   generateInstanceFromJsonSchema,
+// } from "./chat/ai.prefill";
 import { copyToClipboard } from "./chat/ChatUtils";
 
 export interface ExecuteModalProps {
@@ -34,8 +34,8 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
   const [loading, setLoading] = React.useState<boolean>(false);
   const [response, setResponse] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [aiLoading, setAiLoading] = React.useState<boolean>(false);
-  const [aiAvailable, setAiAvailable] = React.useState<boolean>(false);
+  // [AI-CHAT-DISABLED] const [aiLoading, setAiLoading] = React.useState<boolean>(false);
+  // [AI-CHAT-DISABLED] const [aiAvailable, setAiAvailable] = React.useState<boolean>(false);
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const previouslyFocused = React.useRef<HTMLElement | null>(null);
@@ -70,7 +70,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     }
 
     return schema;
-  }, [schema, isOpen]);
+  }, [schema]);
 
   // Check if schema has renderable properties
   const hasFormFields = React.useMemo(() => {
@@ -82,7 +82,43 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
       (!resolvedSchema.type || resolvedSchema.type === "object");
 
     return result;
-  }, [resolvedSchema, schema, schemaString, isOpen]);
+  }, [resolvedSchema]);
+
+  const handleRun = React.useCallback(async () => {
+    setError(null);
+    setResponse(null);
+    setLoading(true);
+    try {
+      let prepared = inputJson;
+      if (evalInput) {
+        try {
+          // Evaluate JS-like input on the client and return minified JSON
+          // e.g. allow single-quoted strings or expressions
+          const value = Function(`"use strict"; return (${inputJson})`)();
+          prepared = JSON.stringify(value);
+        } catch (e: any) {
+          throw new Error(e?.message || String(e));
+        }
+      }
+
+      const result = await onInvoke({ inputJson: prepared, evalInput: false });
+      if (result.error) {
+        setError(result.error);
+      } else if (result.output) {
+        // Try to parse and prettify JSON response, otherwise show raw
+        try {
+          const parsed = JSON.parse(result.output);
+          setResponse(JSON.stringify(parsed, null, 2));
+        } catch {
+          setResponse(result.output);
+        }
+      }
+    } catch (e: any) {
+      setError(e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [evalInput, inputJson, onInvoke]);
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -95,7 +131,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose, loading]);
+  }, [handleRun, isOpen, onClose, loading]);
 
   React.useEffect(() => {
     if (initialInputJson !== undefined) setInputJson(initialInputJson);
@@ -149,10 +185,10 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     };
   }, [isOpen]);
 
-  // Detect if AI key is configured
-  React.useEffect(() => {
-    setAiAvailable(hasOpenAIKey());
-  }, [isOpen]);
+  // [AI-CHAT-DISABLED] Detect if AI key is configured
+  // React.useEffect(() => {
+  //   setAiAvailable(hasOpenAIKey());
+  // }, [isOpen]);
 
   // Initialize form data from schema defaults
   React.useEffect(() => {
@@ -198,27 +234,27 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleAIPrefill = async () => {
-    if (!schemaString || !resolvedSchema) return;
-    setError(null);
-    setAiLoading(true);
-    try {
-      const generated = await generateInstanceFromJsonSchema(schemaString);
-      // Merge with defaults but prefer AI values
-      const merged = { ...formData, ...(generated || {}) };
-      setFormData(merged);
-      setInputJson(JSON.stringify(merged, null, 2));
-    } catch (e: any) {
-      setError(e?.message || String(e));
-    } finally {
-      setAiLoading(false);
-    }
-  };
+  // [AI-CHAT-DISABLED] AI prefill handler
+  // const handleAIPrefill = async () => {
+  //   if (!schemaString || !resolvedSchema) return;
+  //   setError(null);
+  //   setAiLoading(true);
+  //   try {
+  //     const generated = await generateInstanceFromJsonSchema(schemaString);
+  //     const merged = { ...formData, ...(generated || {}) };
+  //     setFormData(merged);
+  //     setInputJson(JSON.stringify(merged, null, 2));
+  //   } catch (e: any) {
+  //     setError(e?.message || String(e));
+  //   } finally {
+  //     setAiLoading(false);
+  //   }
+  // };
 
   const renderFormField = (key: string, prop: any) => {
     const isRequired =
       resolvedSchema.required && resolvedSchema.required.includes(key);
-    const value = formData[key] || "";
+    const value = formData[key] ?? "";
 
     if (prop.enum && Array.isArray(prop.enum)) {
       return (
@@ -300,44 +336,6 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     }
   };
 
-  const prepareInput = (raw: string) => {
-    if (!evalInput) return raw;
-    try {
-      // Evaluate JS-like input on the client and return minified JSON
-      // e.g. allow single-quoted strings or expressions
-
-      const value = Function(`"use strict"; return (${raw})`)();
-      return JSON.stringify(value);
-    } catch (e: any) {
-      throw new Error(e?.message || String(e));
-    }
-  };
-
-  const handleRun = async () => {
-    setError(null);
-    setResponse(null);
-    setLoading(true);
-    try {
-      const prepared = prepareInput(inputJson);
-      const result = await onInvoke({ inputJson: prepared, evalInput: false });
-      if (result.error) {
-        setError(result.error);
-      } else if (result.output) {
-        // Try to parse and prettify JSON response, otherwise show raw
-        try {
-          const parsed = JSON.parse(result.output);
-          setResponse(JSON.stringify(parsed, null, 2));
-        } catch {
-          setResponse(result.output);
-        }
-      }
-    } catch (e: any) {
-      setError(e?.message || String(e));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Lock background scroll and preserve position while modal is open
   React.useEffect(() => {
     if (!isOpen) return;
@@ -393,6 +391,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
               {title || "Execute"}
             </div>
             <div className="execute-modal__controls">
+              {/* [AI-CHAT-DISABLED] AI Prefill button
               {resolvedSchema && (
                 <button
                   className="btn execute-modal__ai-btn"
@@ -404,9 +403,10 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
                   onClick={handleAIPrefill}
                   disabled={!aiAvailable || aiLoading}
                 >
-                  {aiLoading ? "Filling…" : "✧ Prefill"}
+                  {aiLoading ? "Filling\u2026" : "\u2727 Prefill"}
                 </button>
               )}
+              */}
               <label className="execute-modal__eval">
                 <input
                   type="checkbox"

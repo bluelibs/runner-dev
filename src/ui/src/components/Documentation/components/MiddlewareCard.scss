@@ -27,6 +27,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: $spacing-md;
 
   .main {
     flex: 1;
@@ -153,25 +154,25 @@
   @media (min-width: 768px) {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
-    
+
     .middleware-card__section:nth-child(1),
     .middleware-card__section:nth-child(2) {
       grid-row: 1;
     }
-    
+
     .middleware-card__usage-details {
       grid-column: 1 / -1;
       grid-row: 2;
     }
-    
+
     .middleware-card__events {
       grid-column: 1 / -1;
     }
-    
+
     .middleware-card__empty-state {
       grid-column: 1 / -1;
     }
-    
+
     .middleware-card__tags-section {
       grid-column: 1 / -1;
     }
@@ -201,6 +202,8 @@
 // Info Blocks
 // -----------------------------------------------------------------------------
 .middleware-card__info-block {
+  min-width: 0;
+
   .label {
     font-weight: bold;
     color: var(--docs-text-secondary);
@@ -214,7 +217,16 @@
     background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
+    overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+
+    a {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
   }
 }
 
@@ -432,6 +444,8 @@
         font-size: $font-size-xs;
         color: var(--docs-text-muted);
         font-family: $font-family-mono;
+        word-break: break-all;
+        overflow-wrap: break-word;
       }
     }
 
@@ -530,6 +544,8 @@
     font-size: $font-size-xs;
     color: var(--docs-text-muted);
     font-family: $font-family-mono;
+    word-break: break-all;
+    overflow-wrap: break-word;
   }
 }
 

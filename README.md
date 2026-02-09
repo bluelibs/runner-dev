@@ -39,6 +39,7 @@ const app = resource({
 ## What you get
 
 - Fully-featured UI with AI assistance to explore your app, call tasks, emit events, diagnostics, logs and more.
+- Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters.
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
 - Live: in-memory logs and event emissions
 - Live File Previews and Saving.

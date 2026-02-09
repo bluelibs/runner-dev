@@ -15,6 +15,7 @@ export const introspector = resource({
   async init(_, { store }) {
     const i = new Introspector({ store });
     initializeFromStore(i, store);
+    i.populateTunnelInfo();
     return i;
   },
 });

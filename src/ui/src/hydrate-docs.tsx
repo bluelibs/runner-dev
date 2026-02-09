@@ -25,6 +25,33 @@ declare global {
 // Placeholder token replaced at serve-time in JS by the static router
 
 declare const __API_URL__: string;
+const DOCS_DATA_FETCH_TIMEOUT_MS = 15_000;
+
+function createTimedAbortSignal(timeoutMs: number): {
+  signal?: AbortSignal;
+  cleanup: () => void;
+} {
+  if (
+    typeof AbortSignal !== "undefined" &&
+    typeof AbortSignal.timeout === "function"
+  ) {
+    return {
+      signal: AbortSignal.timeout(timeoutMs),
+      cleanup: () => undefined,
+    };
+  }
+
+  if (typeof AbortController !== "undefined") {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    return {
+      signal: controller.signal,
+      cleanup: () => window.clearTimeout(timeoutId),
+    };
+  }
+
+  return { cleanup: () => undefined };
+}
 
 // Use the real Introspector deserializer to avoid exposing runner
 function createIntrospectorFromData(data: SerializedIntrospector) {
@@ -116,6 +143,45 @@ function scrollToHashElement() {
   });
 }
 
+type BootstrapScreenProps = {
+  title: string;
+  message: string;
+  isError?: boolean;
+  onRetry?: () => void;
+};
+
+function DocsBootstrapScreen({
+  title,
+  message,
+  isError = false,
+  onRetry,
+}: BootstrapScreenProps) {
+  return (
+    <div className="docs-bootstrap-screen">
+      <div
+        className={`docs-bootstrap-card ${
+          isError ? "docs-bootstrap-card--error" : ""
+        }`}
+      >
+        {!isError && (
+          <div className="docs-bootstrap-spinner" aria-hidden="true" />
+        )}
+        <h2 className="docs-bootstrap-title">{title}</h2>
+        <p className="docs-bootstrap-message">{message}</p>
+        {isError && (
+          <button
+            type="button"
+            className="docs-bootstrap-retry"
+            onClick={onRetry}
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 async function bootstrap() {
   const container = document.getElementById("root")!;
   const props = window.__DOCS_PROPS__;
@@ -139,25 +205,58 @@ async function bootstrap() {
     return;
   }
 
+  const root = createRoot(container);
+  root.render(
+    <DocsBootstrapScreen
+      title="Loading documentation"
+      message="Preparing resources, tasks, events, and flow diagrams..."
+    />
+  );
+
   const baseUrl = __API_URL__ || "";
-  const url = new URL("/docs/data", baseUrl || window.location.origin);
-  const response = await fetch(url.toString());
-  const json = await response.json();
-  const introspector = createIntrospectorFromData(
-    json.introspectorData as SerializedIntrospector
-  );
-  ensureSystemVisibilityForHash(introspector);
-  createRoot(container).render(
-    React.createElement(Documentation as any, {
-      introspector,
-      namespacePrefix: json.namespacePrefix,
-      runnerFrameworkMd: json.runnerFrameworkMd,
-      runnerDevMd: json.runnerDevMd,
-      projectOverviewMd: json.projectOverviewMd,
-      graphqlSdl: json.graphqlSdl,
-    })
-  );
-  scrollToHashElement();
+  try {
+    const url = new URL("/docs/data", baseUrl || window.location.origin);
+    const { signal, cleanup } = createTimedAbortSignal(
+      DOCS_DATA_FETCH_TIMEOUT_MS
+    );
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), signal ? { signal } : {});
+    } finally {
+      cleanup();
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to load docs data (${response.status})`);
+    }
+
+    const json = await response.json();
+    const introspector = createIntrospectorFromData(
+      json.introspectorData as SerializedIntrospector
+    );
+    ensureSystemVisibilityForHash(introspector);
+    root.render(
+      React.createElement(Documentation as any, {
+        introspector,
+        namespacePrefix: json.namespacePrefix,
+        runnerFrameworkMd: json.runnerFrameworkMd,
+        runnerDevMd: json.runnerDevMd,
+        projectOverviewMd: json.projectOverviewMd,
+        graphqlSdl: json.graphqlSdl,
+      })
+    );
+    scrollToHashElement();
+  } catch (error) {
+    console.error("Failed to bootstrap docs UI:", error);
+    root.render(
+      <DocsBootstrapScreen
+        title="Could not load documentation"
+        message="The docs endpoint failed to respond. Verify the server is running and reload."
+        isError
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
 }
 
 bootstrap();

@@ -1,11 +1,11 @@
-import { resource, run, resourceMiddleware, event } from "@bluelibs/runner";
+import { resource, run, resourceMiddleware, event, r } from "@bluelibs/runner";
 import { schema } from "../../schema";
-import { createDummyApp } from "../dummy/dummyApp";
+import { createDummyApp, logMw } from "../dummy/dummyApp";
 import { introspector } from "../../resources/introspector.resource";
 import { graphql } from "graphql";
 
 describe("Graph diagnostics (component)", () => {
-  test("reports orphan event, unused middleware", async () => {
+  test("reports orphan event, unused middleware, overridden elements, and unused errors", async () => {
     let ctx: any;
 
     // Define an event without hooks/emitters
@@ -18,10 +18,19 @@ describe("Graph diagnostics (component)", () => {
         return next();
       },
     });
+    const unusedErr = r.error("err.unused").build();
+
+    const overrideRes = resource({
+      id: "res.override.for.diagnostics",
+      overrides: [logMw],
+      async init() {
+        return {};
+      },
+    });
 
     const probe = resource({
       id: "probe.diagnostics",
-      register: [orphanEvt, unusedMw],
+      register: [orphanEvt, unusedMw, unusedErr],
       dependencies: { introspector },
       async init(_config, { introspector }) {
         ctx = {
@@ -33,7 +42,7 @@ describe("Graph diagnostics (component)", () => {
       },
     });
 
-    const app = createDummyApp([introspector, probe]);
+    const app = createDummyApp([introspector, overrideRes, probe]);
     await run(app);
 
     const query = `
@@ -57,5 +66,15 @@ describe("Graph diagnostics (component)", () => {
       (d) => d.code === "UNUSED_MIDDLEWARE" && d.nodeId === "mw.unused"
     );
     expect(hasUnused).toBe(true);
+
+    const hasOverriddenElement = diags.some(
+      (d) => d.code === "OVERRIDDEN_ELEMENT" && d.nodeId === "mw.log"
+    );
+    expect(hasOverriddenElement).toBe(true);
+
+    const hasUnusedError = diags.some(
+      (d) => d.code === "UNUSED_ERROR" && d.nodeId === "err.unused"
+    );
+    expect(hasUnusedError).toBe(true);
   });
 });

@@ -8,12 +8,13 @@ describe("ui static router", () => {
     await fs.mkdir(path.join(tmpDir, "assets"), { recursive: true });
     await fs.writeFile(
       path.join(tmpDir, "assets/app.js"),
-      "console.log('__API_URL__','__OPENAI_API_BASE_URL__','__OPENAI_API_KEY__')"
+      // [AI-CHAT-DISABLED] OpenAI tokens no longer injected
+      "console.log('__API_URL__')"
     );
 
     process.env.API_URL = "http://x";
-    process.env.OPENAI_API_BASE_URL = "http://y";
-    process.env.OPENAI_API_KEY = "z";
+    // [AI-CHAT-DISABLED] process.env.OPENAI_API_BASE_URL = "http://y";
+    // [AI-CHAT-DISABLED] process.env.OPENAI_API_KEY = "z";
 
     const router = createUiStaticRouter(tmpDir) as any;
     const jsLayer = router.stack.find(
@@ -40,7 +41,8 @@ describe("ui static router", () => {
     });
 
     expect(body).toContain(JSON.stringify("http://x"));
-    expect(body).toContain(JSON.stringify("http://y"));
-    expect(body).toContain(JSON.stringify("z"));
+    // [AI-CHAT-DISABLED] OpenAI token assertions removed
+    // expect(body).toContain(JSON.stringify("http://y"));
+    // expect(body).toContain(JSON.stringify("z"));
   });
 });

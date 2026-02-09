@@ -110,9 +110,7 @@ Durable workflows are regular Runner tasks, but they **must** be tagged with `du
 to be discoverable at runtime.
 
 The `durableWorkflowTag` is **required** - workflows without this tag will not be discoverable
-via `getWorkflows()`. The durable resources (`durableResource`, `memoryDurableResource`,
-and `redisDurableResource`) auto-register this tag definition, so you can use it immediately
-without manual tag registration.
+via `getWorkflows()`.
 
 ### Production wiring (Redis + RabbitMQ)
 

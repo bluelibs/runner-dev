@@ -495,6 +495,11 @@ const workflow = r
     return { ok: true };
   })
   .build();
+
+const app = r
+  .resource("app")
+  .register([durableRegistration, workflow])
+  .build();
 ```
 
 ## Best Practices for AI Assistants

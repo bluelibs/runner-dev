@@ -84,6 +84,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
     <ElementCard
       prefix="middleware-card"
       elementId={middleware.id}
+      kindLabel="middleware"
       title={middleware.meta?.title || formatId(middleware.id)}
       id={middleware.id}
       description={descriptionContent}

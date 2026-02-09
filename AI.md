@@ -12,6 +12,7 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 - **GraphQL API**: Comprehensive query interface for all system data
 - **MCP Integration**: AI-native development environment
 - **Tags (first-class)**: Discover Tag objects and reverse usage via GraphQL (`tags`, `tag(id)`).
+- **Documentation UI Overviews**: Sortable and searchable overview tables with a `Used By` counter column for faster cross-element inspection.
 
 ## Available GraphQL Queries
 

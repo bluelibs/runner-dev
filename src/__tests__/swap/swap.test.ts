@@ -2,6 +2,10 @@ import { run, task, resource } from "@bluelibs/runner";
 import { resources } from "../../index";
 import type { ISwapManager } from "../../resources/swap.resource";
 import { createDummyApp } from "../dummy/dummyApp";
+import {
+  AuditContext,
+  auditContextMiddleware,
+} from "../dummy/enhanced/contexts";
 
 describe("SwapManager", () => {
   let swapManager: ISwapManager;
@@ -20,6 +24,18 @@ describe("SwapManager", () => {
     register: [originalTask],
   });
 
+  const middlewareReturnTask = task({
+    id: "app.test.middleware-return",
+    async run() {
+      return { message: "middleware preserved result" };
+    },
+  });
+
+  const middlewareResource = resource({
+    id: "test.middleware.resource",
+    register: [AuditContext, auditContextMiddleware, middlewareReturnTask],
+  });
+
   // Probe resource to capture dependencies after initialization
   const probe = resource({
     id: "test.probe",
@@ -36,6 +52,7 @@ describe("SwapManager", () => {
   beforeAll(async () => {
     const app = createDummyApp([
       testResource,
+      middlewareResource,
       resources.introspector,
       resources.swapManager,
       probe,
@@ -271,6 +288,16 @@ describe("SwapManager", () => {
       expect(result.invocationId).toBeTruthy();
       expect(typeof result.executionTimeMs).toBe("number");
       expect(result.result).toContain("original");
+    });
+
+    test("should preserve task output when app-wide audit middleware wraps execution", async () => {
+      const result = await swapManager.invokeTask("app.test.middleware-return");
+
+      expect(result.success).toBe(true);
+      expect(result.result).toBeTruthy();
+
+      const parsedResult = JSON.parse(result.result!);
+      expect(parsedResult).toEqual({ message: "middleware preserved result" });
     });
 
     test("should invoke task with JSON input", async () => {

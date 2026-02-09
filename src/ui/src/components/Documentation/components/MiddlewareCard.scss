@@ -27,6 +27,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: $spacing-md;
 
   .main {
     flex: 1;
@@ -201,6 +202,8 @@
 // Info Blocks
 // -----------------------------------------------------------------------------
 .middleware-card__info-block {
+  min-width: 0;
+
   .label {
     font-weight: bold;
     color: var(--docs-text-secondary);
@@ -214,7 +217,16 @@
     background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
+    overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+
+    a {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
   }
 }
 

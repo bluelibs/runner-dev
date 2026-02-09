@@ -51,6 +51,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: $spacing-md;
 
     .main {
       flex: 1;

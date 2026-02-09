@@ -31,7 +31,10 @@ function createTimedAbortSignal(timeoutMs: number): {
   signal?: AbortSignal;
   cleanup: () => void;
 } {
-  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+  if (
+    typeof AbortSignal !== "undefined" &&
+    typeof AbortSignal.timeout === "function"
+  ) {
     return {
       signal: AbortSignal.timeout(timeoutMs),
       cleanup: () => undefined,

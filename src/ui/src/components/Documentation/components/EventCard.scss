@@ -33,26 +33,25 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: $spacing-md;
 
   .main {
     flex: 1;
   }
 
-  .meta {
+  .event-card__actions {
     display: flex;
     align-items: center;
-    gap: 10px;
-    align-items: center;
-    .event-card__run {
-      button {
-        border: none;
-        background: rgba(255, 255, 255, 0.12);
-        color: #fff;
-        padding: 6px 8px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-      }
+    gap: $spacing-sm;
+
+    button {
+      border: none;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
     }
   }
 }
@@ -157,6 +156,8 @@
 // Info Blocks
 // -----------------------------------------------------------------------------
 .event-card__info-block {
+  min-width: 0;
+
   .label {
     font-weight: bold;
     color: var(--docs-text-primary);
@@ -170,6 +171,16 @@
     background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    a {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
 
     &--status {
       font-weight: 500;

@@ -210,7 +210,7 @@ export const auditContextMiddleware = r.middleware
     (task) => task.id.startsWith("app.") || task.id.startsWith("api.")
   )
   .run(async ({ task, next }, { auditContext }) => {
-    auditContext.provide(
+    return await auditContext.provide(
       {
         traceId: `trace_${Date.now()}_${Math.random()
           .toString(36)

@@ -119,6 +119,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     <ElementCard
       prefix="resource-card"
       elementId={resource.id}
+      kindLabel="resource"
       title={
         <>
           {resource.meta?.title || formatId(resource.id)}

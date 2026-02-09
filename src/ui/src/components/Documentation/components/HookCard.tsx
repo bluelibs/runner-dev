@@ -26,6 +26,7 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
     <ElementCard
       prefix="hook-card"
       elementId={hook.id}
+      kindLabel="hook"
       title={
         <>
           {isGlobalHook ? "🌐" : "🪝"} {hook.meta?.title || formatId(hook.id)}
@@ -36,17 +37,6 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
       }
       id={hook.id}
       description={hook.meta?.description}
-      meta={
-        <div className="hook-card__stats">
-          {hook.hookOrder !== null && hook.hookOrder !== undefined && (
-            <div className="hook-card__order-badge">#{hook.hookOrder}</div>
-          )}
-          <div className="hook-card__stat-badge">
-            <span className="icon">📤</span>
-            <span className="count">{emittedEvents.length}</span>
-          </div>
-        </div>
-      }
     >
       <div className="hook-card__content">
         <div className="hook-card__grid">

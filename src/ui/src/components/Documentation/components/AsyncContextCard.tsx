@@ -9,6 +9,7 @@ import {
 } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./AsyncContextCard.scss";
+import { ElementKindBadge } from "./common/ElementKindBadge";
 
 export interface AsyncContextCardProps {
   asyncContext: AsyncContext;
@@ -89,6 +90,7 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
               </p>
             )}
           </div>
+          <ElementKindBadge kind="async-context" />
         </div>
       </div>
 

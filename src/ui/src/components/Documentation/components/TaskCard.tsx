@@ -315,6 +315,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
     <ElementCard
       prefix="task-card"
       elementId={task.id}
+      kindLabel="task"
       title={
         <>
           {task.meta?.title || formatId(task.id)}

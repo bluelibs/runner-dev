@@ -22,13 +22,15 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
   middleware,
   introspector,
 }) => {
-  const taskUsages = introspector.getTasksUsingMiddlewareDetailed(
-    middleware.id
-  );
-  const resourceUsages = introspector.getResourcesUsingMiddlewareDetailed(
-    middleware.id
-  );
+  const isTaskMiddleware = middleware.type === "task";
+
+  const usages = isTaskMiddleware
+    ? introspector.getTasksUsingMiddlewareDetailed(middleware.id)
+    : introspector.getResourcesUsingMiddlewareDetailed(middleware.id);
+
   const emittedEvents = introspector.getMiddlewareEmittedEvents(middleware.id);
+
+  const usageLabel = isTaskMiddleware ? "Tasks" : "Resources";
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [fileContent, setFileContent] = React.useState<string | null>(null);
@@ -85,18 +87,11 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
     <ElementCard
       prefix="middleware-card"
       elementId={middleware.id}
-      kindLabel="middleware"
+      kindLabel={isTaskMiddleware ? "task-middleware" : "resource-middleware"}
       isSystem={isSystemElement(middleware)}
       title={middleware.meta?.title || formatId(middleware.id)}
       id={middleware.id}
       description={descriptionContent}
-      meta={
-        <div
-          className={`middleware-card__type-badge middleware-card__type-badge--${middleware.type}`}
-        >
-          {middleware.type === "task" ? "Task" : "Resource"}
-        </div>
-      }
     >
       <div className="middleware-card__grid">
         <CardSection prefix="middleware-card" title="Overview">
@@ -125,25 +120,8 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             </InfoBlock>
           )}
 
-          <InfoBlock prefix="middleware-card" label="Usage Statistics:">
-            <div className="middleware-card__usage-stats">
-              <div className="middleware-card__usage-stat middleware-card__usage-stat--tasks">
-                <div className="value value--tasks">{taskUsages.length}</div>
-                <div className="label label--tasks">Tasks</div>
-              </div>
-              <div className="middleware-card__usage-stat middleware-card__usage-stat--resources">
-                <div className="value value--resources">
-                  {resourceUsages.length}
-                </div>
-                <div className="label label--resources">Resources</div>
-              </div>
-              <div className="middleware-card__usage-stat middleware-card__usage-stat--events">
-                <div className="value value--events">
-                  {emittedEvents.length}
-                </div>
-                <div className="label label--events">Events</div>
-              </div>
-            </div>
+          <InfoBlock prefix="middleware-card" label={`Used by ${usageLabel}:`}>
+            {usages.length}
           </InfoBlock>
 
           {middleware.global?.enabled && (
@@ -195,81 +173,47 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
         </CardSection>
       </div>
 
-      {(taskUsages.length > 0 || resourceUsages.length > 0) && (
+      {usages.length > 0 && (
         <div className="middleware-card__usage-details">
           <h4 className="middleware-card__usage-details__title">
-            Usage Details
+            Used by {usageLabel}
           </h4>
           <div className="middleware-card__usage-details__grid">
-            {taskUsages.length > 0 && (
-              <div className="middleware-card__usage-details__category">
-                <h5>Used by Tasks</h5>
-                <div className="middleware-card__usage-details__items">
-                  {taskUsages.map((usage) => (
-                    <a
-                      key={usage.id}
-                      href={`#element-${usage.id}`}
-                      className="middleware-card__usage-item middleware-card__usage-link"
-                    >
-                      <div className="middleware-card__usage-item__header">
-                        <div className="main">
-                          <div className="title">
-                            {usage.node.meta?.title || formatId(usage.id)}
-                          </div>
-                          <div className="id">{usage.id}</div>
+            <div className="middleware-card__usage-details__category">
+              <div className="middleware-card__usage-details__items">
+                {usages.map((usage) => (
+                  <a
+                    key={usage.id}
+                    href={`#element-${usage.id}`}
+                    className="middleware-card__usage-item middleware-card__usage-link"
+                  >
+                    <div className="middleware-card__usage-item__header">
+                      <div className="main">
+                        <div className="title">
+                          {usage.node.meta?.title || formatId(usage.id)}
                         </div>
-                        {usage.config && (
-                          <span className="configured-badge configured-badge--task">
-                            Configured
-                          </span>
-                        )}
+                        <div className="id">{usage.id}</div>
                       </div>
                       {usage.config && (
-                        <div className="middleware-card__usage-item__config">
-                          <div className="config-title">Configuration:</div>
-                          <pre className="config-code">{usage.config}</pre>
-                        </div>
+                        <span
+                          className={`configured-badge configured-badge--${
+                            isTaskMiddleware ? "task" : "resource"
+                          }`}
+                        >
+                          Configured
+                        </span>
                       )}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {resourceUsages.length > 0 && (
-              <div className="middleware-card__usage-details__category">
-                <h5>Used by Resources</h5>
-                <div className="middleware-card__usage-details__items">
-                  {resourceUsages.map((usage) => (
-                    <a
-                      key={usage.id}
-                      href={`#element-${usage.id}`}
-                      className="middleware-card__usage-item middleware-card__usage-link"
-                    >
-                      <div className="middleware-card__usage-item__header">
-                        <div className="main">
-                          <div className="title">
-                            {usage.node.meta?.title || formatId(usage.id)}
-                          </div>
-                          <div className="id">{usage.id}</div>
-                        </div>
-                        {usage.config && (
-                          <span className="configured-badge configured-badge--resource">
-                            Configured
-                          </span>
-                        )}
+                    </div>
+                    {usage.config && (
+                      <div className="middleware-card__usage-item__config">
+                        <div className="config-title">Configuration:</div>
+                        <pre className="config-code">{usage.config}</pre>
                       </div>
-                      {usage.config && (
-                        <div className="middleware-card__usage-item__config">
-                          <div className="config-title">Configuration:</div>
-                          <pre className="config-code">{usage.config}</pre>
-                        </div>
-                      )}
-                    </a>
-                  ))}
-                </div>
+                    )}
+                  </a>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -296,9 +240,10 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
         </div>
       )}
 
-      {taskUsages.length === 0 && resourceUsages.length === 0 && (
+      {usages.length === 0 && (
         <div className="middleware-card__empty-state">
-          This middleware is not currently used by any tasks or resources.
+          This middleware is not currently used by any{" "}
+          {usageLabel.toLowerCase()}.
         </div>
       )}
 

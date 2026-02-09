@@ -315,9 +315,8 @@
   align-items: center;
   flex: 1;
   min-width: 0;
-  max-width: 500px;
+  max-width: 560px;
   position: relative;
-  gap: 8px;
 }
 
 .recent-logs-fs__search-icon {
@@ -331,7 +330,7 @@
 
 .recent-logs-fs__search-input {
   width: 100%;
-  padding: 10px 36px 10px 34px;
+  padding: 10px 126px 10px 34px;
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 10px;
   background: linear-gradient(
@@ -357,9 +356,18 @@
   }
 }
 
-.recent-logs-fs__search-clear {
+.recent-logs-fs__search-actions {
   position: absolute;
-  right: 62px; // right of match-count when present, else right edge
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recent-logs-fs__search-clear {
+  position: static;
   background: transparent;
   border: none;
   color: rgba(148, 163, 184, 0.6);
@@ -375,11 +383,25 @@
   }
 }
 
+.recent-logs-fs__search-clear:disabled {
+  cursor: default;
+}
+
+.recent-logs-fs__search-clear--hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .recent-logs-fs__match-count {
   font-size: 12px;
   color: rgba(148, 163, 184, 0.7);
   white-space: nowrap;
-  flex-shrink: 0;
+  min-width: 72px;
+  text-align: right;
+}
+
+.recent-logs-fs__match-count--hidden {
+  visibility: hidden;
 }
 
 .recent-logs-fs__close {

@@ -7,6 +7,8 @@ export type ElementKind =
   | "event"
   | "hook"
   | "middleware"
+  | "task-middleware"
+  | "resource-middleware"
   | "tag"
   | "error"
   | "async-context";
@@ -17,6 +19,8 @@ const KIND_LABELS: Record<ElementKind, string> = {
   event: "Event",
   hook: "Hook",
   middleware: "Middleware",
+  "task-middleware": "Task Middleware",
+  "resource-middleware": "Resource Middleware",
   tag: "Tag",
   error: "Error",
   "async-context": "Async Context",

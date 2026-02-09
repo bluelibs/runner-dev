@@ -62,6 +62,13 @@ const shortCorrelationId = (id: string, len = 6): string => {
   return id.length > len ? id.slice(-len) : id;
 };
 
+const isEmptyJsonLikeValue = (value: unknown): boolean => {
+  if (value == null) return true;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return false;
+};
+
 export const RecentLogs: React.FC<RecentLogsProps> = ({
   logs,
   onCorrelationIdClick,
@@ -102,18 +109,43 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
 
   const selectedLogData = useMemo(() => {
     if (!selectedLog) {
-      return { hasData: false, raw: "", parsed: null as object | null };
+      return {
+        hasData: false,
+        raw: "",
+        parsed: null as object | null,
+      };
     }
 
     const raw = selectedLog.data?.trim() ?? "";
     if (!raw) {
-      return { hasData: false, raw: "", parsed: null as object | null };
+      return {
+        hasData: false,
+        raw: "",
+        parsed: null as object | null,
+      };
+    }
+
+    if (raw.toLowerCase() === "null") {
+      return {
+        hasData: false,
+        raw: "",
+        parsed: null as object | null,
+      };
+    }
+
+    const parsed = tryParseJson(raw);
+    if (parsed && isEmptyJsonLikeValue(parsed)) {
+      return {
+        hasData: false,
+        raw: "",
+        parsed: null as object | null,
+      };
     }
 
     return {
       hasData: true,
       raw,
-      parsed: tryParseJson(raw),
+      parsed,
     };
   }, [selectedLog]);
 
@@ -288,22 +320,29 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                     aria-label="Search logs"
                     autoFocus
                   />
-                  {searchQuery && (
+                  <div className="recent-logs-fs__search-actions">
                     <button
                       type="button"
-                      className="recent-logs-fs__search-clear"
+                      className={`recent-logs-fs__search-clear ${
+                        searchQuery
+                          ? ""
+                          : "recent-logs-fs__search-clear--hidden"
+                      }`}
                       onClick={clearSearch}
                       aria-label="Clear search"
+                      disabled={!searchQuery}
                     >
                       ✕
                     </button>
-                  )}
-                  {searchQuery && (
-                    <span className="recent-logs-fs__match-count">
+                    <span
+                      className={`recent-logs-fs__match-count ${
+                        searchQuery ? "" : "recent-logs-fs__match-count--hidden"
+                      }`}
+                    >
                       {visibleLogs.length} match
                       {visibleLogs.length !== 1 ? "es" : ""}
                     </span>
-                  )}
+                  </div>
                 </div>
                 <button
                   className="recent-logs-fs__close"
@@ -485,7 +524,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                       <div className="recent-logs-modal__data">
                         {!selectedLogData.hasData ? (
                           <div className="recent-logs-modal__empty">
-                            Data is missing for this log entry.
+                            Data is empty or missing for this log entry.
                           </div>
                         ) : selectedLogData.parsed ? (
                           <JsonViewer data={selectedLogData.parsed} />

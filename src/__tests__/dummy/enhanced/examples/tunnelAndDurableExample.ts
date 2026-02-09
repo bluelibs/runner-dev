@@ -206,7 +206,7 @@ export const tunnelAndDurableExampleRegistrations = [
   tunnelCatalogSyncTask,
   tunnelServerShowcaseResource,
   showcaseDurableRegistration,
-  // durableWorkflowTag,
+  durableWorkflowTag,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,
 ];

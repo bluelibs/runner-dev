@@ -11,6 +11,7 @@ import {
 } from "../utils/graphqlClient";
 import SchemaRenderer from "./SchemaRenderer";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
+import { isSystemElement } from "../utils/isSystemElement";
 
 export interface MiddlewareCardProps {
   middleware: Middleware;
@@ -85,6 +86,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
       prefix="middleware-card"
       elementId={middleware.id}
       kindLabel="middleware"
+      isSystem={isSystemElement(middleware)}
       title={middleware.meta?.title || formatId(middleware.id)}
       id={middleware.id}
       description={descriptionContent}

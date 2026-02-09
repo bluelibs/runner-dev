@@ -100,6 +100,23 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     return visibleLogs[selectedLogIndex] ?? null;
   }, [selectedLogIndex, visibleLogs]);
 
+  const selectedLogData = useMemo(() => {
+    if (!selectedLog) {
+      return { hasData: false, raw: "", parsed: null as object | null };
+    }
+
+    const raw = selectedLog.data?.trim() ?? "";
+    if (!raw) {
+      return { hasData: false, raw: "", parsed: null as object | null };
+    }
+
+    return {
+      hasData: true,
+      raw,
+      parsed: tryParseJson(raw),
+    };
+  }, [selectedLog]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -174,58 +191,68 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
           isFullscreen ? "recent-logs__list--expanded" : ""
         }`}
       >
-        {visibleLogs.map((log, idx) => (
-          <div
-            key={`${log.timestampMs}-${idx}`}
-            className={`recent-logs__row recent-logs__row--compact`}
-            onClick={() => setSelectedLogIndex(idx)}
-          >
-            <span className="recent-logs__time">
-              {new Date(log.timestampMs).toLocaleTimeString()}
-            </span>
-            <span
-              className={`recent-logs__level recent-logs__level--${levelName(
-                log.level
-              )}`}
+        {searchQuery && visibleLogs.length === 0 ? (
+          <div className="recent-logs__empty">
+            <span className="recent-logs__empty-icon">🔍</span>
+            <p className="recent-logs__empty-text">No logs found</p>
+            <p className="recent-logs__empty-hint">
+              Try adjusting your search query
+            </p>
+          </div>
+        ) : (
+          visibleLogs.map((log, idx) => (
+            <div
+              key={`${log.timestampMs}-${idx}`}
+              className={`recent-logs__row recent-logs__row--compact`}
+              onClick={() => setSelectedLogIndex(idx)}
             >
-              {log.level}
-            </span>
-            <span className="recent-logs__message">{log.message}</span>
-            {log.correlationId && (
+              <span className="recent-logs__time">
+                {new Date(log.timestampMs).toLocaleTimeString()}
+              </span>
               <span
-                className="recent-logs__corr recent-logs__corr--clickable"
-                title={`Trace: ${log.correlationId}`}
+                className={`recent-logs__level recent-logs__level--${levelName(
+                  log.level
+                )}`}
+              >
+                {log.level}
+              </span>
+              <span className="recent-logs__message">{log.message}</span>
+              {log.correlationId && (
+                <span
+                  className="recent-logs__corr recent-logs__corr--clickable"
+                  title={`Trace: ${log.correlationId}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCorrelationIdClick?.(log.correlationId!);
+                  }}
+                >
+                  {shortCorrelationId(log.correlationId)}
+                </span>
+              )}
+              {log.sourceId && (
+                <a
+                  href={`#element-${log.sourceId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  title={`Go to source #${log.sourceId}`}
+                  className="recent-logs__source"
+                >
+                  #{log.sourceId}
+                </a>
+              )}
+              <button
+                type="button"
+                className="recent-logs__action"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onCorrelationIdClick?.(log.correlationId!);
+                  setSelectedLogIndex(idx);
                 }}
+                title="View details"
               >
-                {shortCorrelationId(log.correlationId)}
-              </span>
-            )}
-            {log.sourceId && (
-              <a
-                href={`#element-${log.sourceId}`}
-                onClick={(e) => e.stopPropagation()}
-                title={`Go to source #${log.sourceId}`}
-                className="recent-logs__source"
-              >
-                #{log.sourceId}
-              </a>
-            )}
-            <button
-              type="button"
-              className="recent-logs__action"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedLogIndex(idx);
-              }}
-              title="View details"
-            >
-              View
-            </button>
-          </div>
-        ))}
+                View
+              </button>
+            </div>
+          ))
+        )}
       </div>
 
       {isFullscreen &&
@@ -286,58 +313,68 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                 </button>
               </div>
               <div className="recent-logs-fs__content">
-                {visibleLogs.map((log, idx) => (
-                  <div
-                    key={`fs-${log.timestampMs}-${idx}`}
-                    className="recent-logs__row recent-logs__row--fullscreen"
-                    onClick={() => setSelectedLogIndex(idx)}
-                  >
-                    <span className="recent-logs-fs__time">
-                      {formatTimestamp(log.timestampMs)}
-                    </span>
-                    <span
-                      className={`recent-logs-fs__level recent-logs-fs__level--${levelName(
-                        log.level
-                      )}`}
+                {searchQuery && visibleLogs.length === 0 ? (
+                  <div className="recent-logs-fs__empty">
+                    <span className="recent-logs-fs__empty-icon">🔍</span>
+                    <p className="recent-logs-fs__empty-text">No logs found</p>
+                    <p className="recent-logs-fs__empty-hint">
+                      Try adjusting your search query
+                    </p>
+                  </div>
+                ) : (
+                  visibleLogs.map((log, idx) => (
+                    <div
+                      key={`fs-${log.timestampMs}-${idx}`}
+                      className="recent-logs__row recent-logs__row--fullscreen"
+                      onClick={() => setSelectedLogIndex(idx)}
                     >
-                      {log.level}
-                    </span>
-                    <span className="recent-logs-fs__message">
-                      {log.message}
-                    </span>
-                    {log.correlationId && (
+                      <span className="recent-logs-fs__time">
+                        {formatTimestamp(log.timestampMs)}
+                      </span>
                       <span
-                        className="recent-logs-fs__corr recent-logs-fs__corr--clickable"
-                        title={`Trace: ${log.correlationId}`}
+                        className={`recent-logs-fs__level recent-logs-fs__level--${levelName(
+                          log.level
+                        )}`}
+                      >
+                        {log.level}
+                      </span>
+                      <span className="recent-logs-fs__message">
+                        {log.message}
+                      </span>
+                      {log.correlationId && (
+                        <span
+                          className="recent-logs-fs__corr recent-logs-fs__corr--clickable"
+                          title={`Trace: ${log.correlationId}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCorrelationIdClick?.(log.correlationId!);
+                          }}
+                        >
+                          {shortCorrelationId(log.correlationId)}
+                        </span>
+                      )}
+                      {log.sourceId && (
+                        <a
+                          href={`#element-${log.sourceId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          title={`Go to source #${log.sourceId}`}
+                          className="recent-logs-fs__source"
+                        >
+                          #{log.sourceId}
+                        </a>
+                      )}
+                      <button
+                        className="recent-logs-fs__action"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onCorrelationIdClick?.(log.correlationId!);
+                          setSelectedLogIndex(idx);
                         }}
                       >
-                        {shortCorrelationId(log.correlationId)}
-                      </span>
-                    )}
-                    {log.sourceId && (
-                      <a
-                        href={`#element-${log.sourceId}`}
-                        onClick={(e) => e.stopPropagation()}
-                        title={`Go to source #${log.sourceId}`}
-                        className="recent-logs-fs__source"
-                      >
-                        #{log.sourceId}
-                      </a>
-                    )}
-                    <button
-                      className="recent-logs-fs__action"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedLogIndex(idx);
-                      }}
-                    >
-                      Details
-                    </button>
-                  </div>
-                ))}
+                        Details
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>,
@@ -429,25 +466,34 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                         <div className="recent-logs-modal__label">Data</div>
                         <button
                           className="recent-logs-modal__copy"
+                          disabled={!selectedLogData.hasData}
+                          title={
+                            selectedLogData.hasData
+                              ? "Copy log data"
+                              : "No data to copy"
+                          }
                           onClick={() => {
-                            const raw = selectedLog.data || "{}";
-                            navigator.clipboard.writeText(raw).catch(() => {});
+                            if (!selectedLogData.hasData) return;
+                            navigator.clipboard
+                              .writeText(selectedLogData.raw)
+                              .catch(() => {});
                           }}
                         >
                           Copy
                         </button>
                       </div>
                       <div className="recent-logs-modal__data">
-                        {(() => {
-                          const raw = selectedLog.data || "{}";
-                          const parsed = tryParseJson(raw);
-                          if (parsed) {
-                            return <JsonViewer data={parsed} />;
-                          }
-                          return (
-                            <pre className="recent-logs-modal__pre">{raw}</pre>
-                          );
-                        })()}
+                        {!selectedLogData.hasData ? (
+                          <div className="recent-logs-modal__empty">
+                            Data is missing for this log entry.
+                          </div>
+                        ) : selectedLogData.parsed ? (
+                          <JsonViewer data={selectedLogData.parsed} />
+                        ) : (
+                          <pre className="recent-logs-modal__pre">
+                            {selectedLogData.raw}
+                          </pre>
+                        )}
                       </div>
                     </div>
                   </div>

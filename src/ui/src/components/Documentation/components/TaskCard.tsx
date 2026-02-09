@@ -17,6 +17,7 @@ import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { MermaidDiagram } from "./common/MermaidDiagram";
+import { isSystemElement } from "../utils/isSystemElement";
 
 function normalizeDurableNodeLabel(node: any, index: number): string {
   const kind = String(node?.kind || "node");
@@ -316,6 +317,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       prefix="task-card"
       elementId={task.id}
       kindLabel="task"
+      isSystem={isSystemElement(task)}
       title={
         <>
           {task.meta?.title || formatId(task.id)}

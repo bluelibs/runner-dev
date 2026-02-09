@@ -9,7 +9,8 @@ import {
 } from "../utils/graphqlClient";
 import { TagsSection } from "./TagsSection";
 import "./AsyncContextCard.scss";
-import { ElementKindBadge } from "./common/ElementKindBadge";
+import { ElementKindBadge, SystemBadge } from "./common/ElementKindBadge";
+import { isSystemElement } from "../utils/isSystemElement";
 
 export interface AsyncContextCardProps {
   asyncContext: AsyncContext;
@@ -90,6 +91,7 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
               </p>
             )}
           </div>
+          {isSystemElement(asyncContext) && <SystemBadge />}
           <ElementKindBadge kind="async-context" />
         </div>
       </div>

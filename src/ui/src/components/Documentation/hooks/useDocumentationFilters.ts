@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "../config/documentationConstants";
 import { parseSearchQuery, elementMatchesParsed } from "../utils/search-utils";
+import { isSystemElement } from "../utils/isSystemElement";
 
 export const useDocumentationFilters = (
   introspector: Introspector,
@@ -31,14 +32,6 @@ export const useDocumentationFilters = (
   useEffect(() => {
     setLocalNamespaceSearch(namespacePrefix || "");
   }, [namespacePrefix]);
-
-  const isSystemElement = (el: any): boolean => {
-    if (!el) return false;
-    if (Array.isArray((el as any)?.tags)) {
-      return (el as any).tags.includes(DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID);
-    }
-    return (el as any)?.id === DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID;
-  };
 
   const applyFilters = <T extends { id: string; tags?: string[] | null }>(
     items: T[]

@@ -33,3 +33,12 @@ export const ElementKindBadge: React.FC<ElementKindBadgeProps> = ({ kind }) => {
     </span>
   );
 };
+
+/** Grey badge shown alongside the kind badge for system elements */
+export const SystemBadge: React.FC = () => {
+  return (
+    <span className="element-kind-badge element-kind-badge--system">
+      System
+    </span>
+  );
+};

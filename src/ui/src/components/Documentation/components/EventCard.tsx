@@ -12,6 +12,7 @@ import {
 import SchemaRenderer from "./SchemaRenderer";
 import ExecuteModal from "./ExecuteModal";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
+import { isSystemElement } from "../utils/isSystemElement";
 
 export interface EventCardProps {
   event: Event;
@@ -80,6 +81,7 @@ export const EventCard: React.FC<EventCardProps> = ({
       prefix="event-card"
       elementId={event.id}
       kindLabel="event"
+      isSystem={isSystemElement(event)}
       title={
         <>
           {isGlobalEvent

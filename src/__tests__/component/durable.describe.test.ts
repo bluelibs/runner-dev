@@ -1,5 +1,8 @@
-import { globals, resource, run, tag, task } from "@bluelibs/runner";
-import { memoryDurableResource } from "@bluelibs/runner/node";
+import { globals, resource, run, task } from "@bluelibs/runner";
+import {
+  durableWorkflowTag,
+  memoryDurableResource,
+} from "@bluelibs/runner/node";
 import { graphql } from "graphql";
 import { resources } from "../../index";
 import { schema } from "../../schema";
@@ -7,7 +10,6 @@ import { schema } from "../../schema";
 function createDurableFixtureApp() {
   const durable = memoryDurableResource.fork("tests.durable.runtime");
   const durableRegistration = durable.with({});
-  const durableWorkflowTag = tag({ id: "durable.workflow" });
 
   const durableTask = task({
     id: "tests.tasks.durable",
@@ -43,7 +45,6 @@ function createDurableFixtureApp() {
     id: "tests.durable.app",
     register: [
       durableRegistration,
-      durableWorkflowTag,
       durableTask,
       untaggedDurableTask,
       normalTask,

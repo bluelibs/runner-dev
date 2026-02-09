@@ -13,9 +13,9 @@ export function createUiStaticRouter(uiDir: string): Router {
         ? req.path.slice(1)
         : req.path;
       const filePath = path.join(uiDir, cleanedPath);
-      const cacheKey = `${req.path}:${process.env.API_URL ?? ""}:${
-        process.env.OPENAI_API_BASE_URL ?? ""
-      }:${process.env.OPENAI_API_KEY ?? ""}`;
+      const cacheKey = `${req.path}:${process.env.API_URL ?? ""}`;
+      // [AI-CHAT-DISABLED] OpenAI env injection disabled
+      // `:${process.env.OPENAI_API_BASE_URL ?? ""}:${process.env.OPENAI_API_KEY ?? ""}`
 
       if (jsCache.has(cacheKey)) {
         res.setHeader("Content-Type", "application/javascript");
@@ -27,8 +27,9 @@ export function createUiStaticRouter(uiDir: string): Router {
 
       const replacements: [string, string][] = [
         ["__API_URL__", process.env.API_URL ?? ""],
-        ["__OPENAI_API_BASE_URL__", process.env.OPENAI_API_BASE_URL ?? ""],
-        ["__OPENAI_API_KEY__", process.env.OPENAI_API_KEY ?? ""],
+        // [AI-CHAT-DISABLED] OpenAI env injection disabled
+        // ["__OPENAI_API_BASE_URL__", process.env.OPENAI_API_BASE_URL ?? ""],
+        // ["__OPENAI_API_KEY__", process.env.OPENAI_API_KEY ?? ""],
       ];
 
       for (const [token, value] of replacements) {

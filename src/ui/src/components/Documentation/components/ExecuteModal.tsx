@@ -1,10 +1,10 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import "./ExecuteModal.scss";
-import {
-  hasOpenAIKey,
-  generateInstanceFromJsonSchema,
-} from "./chat/ai.prefill";
+// [AI-CHAT-DISABLED] import {
+//   hasOpenAIKey,
+//   generateInstanceFromJsonSchema,
+// } from "./chat/ai.prefill";
 import { copyToClipboard } from "./chat/ChatUtils";
 
 export interface ExecuteModalProps {
@@ -34,8 +34,8 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
   const [loading, setLoading] = React.useState<boolean>(false);
   const [response, setResponse] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [aiLoading, setAiLoading] = React.useState<boolean>(false);
-  const [aiAvailable, setAiAvailable] = React.useState<boolean>(false);
+  // [AI-CHAT-DISABLED] const [aiLoading, setAiLoading] = React.useState<boolean>(false);
+  // [AI-CHAT-DISABLED] const [aiAvailable, setAiAvailable] = React.useState<boolean>(false);
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const previouslyFocused = React.useRef<HTMLElement | null>(null);
@@ -149,10 +149,10 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     };
   }, [isOpen]);
 
-  // Detect if AI key is configured
-  React.useEffect(() => {
-    setAiAvailable(hasOpenAIKey());
-  }, [isOpen]);
+  // [AI-CHAT-DISABLED] Detect if AI key is configured
+  // React.useEffect(() => {
+  //   setAiAvailable(hasOpenAIKey());
+  // }, [isOpen]);
 
   // Initialize form data from schema defaults
   React.useEffect(() => {
@@ -198,22 +198,22 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleAIPrefill = async () => {
-    if (!schemaString || !resolvedSchema) return;
-    setError(null);
-    setAiLoading(true);
-    try {
-      const generated = await generateInstanceFromJsonSchema(schemaString);
-      // Merge with defaults but prefer AI values
-      const merged = { ...formData, ...(generated || {}) };
-      setFormData(merged);
-      setInputJson(JSON.stringify(merged, null, 2));
-    } catch (e: any) {
-      setError(e?.message || String(e));
-    } finally {
-      setAiLoading(false);
-    }
-  };
+  // [AI-CHAT-DISABLED] AI prefill handler
+  // const handleAIPrefill = async () => {
+  //   if (!schemaString || !resolvedSchema) return;
+  //   setError(null);
+  //   setAiLoading(true);
+  //   try {
+  //     const generated = await generateInstanceFromJsonSchema(schemaString);
+  //     const merged = { ...formData, ...(generated || {}) };
+  //     setFormData(merged);
+  //     setInputJson(JSON.stringify(merged, null, 2));
+  //   } catch (e: any) {
+  //     setError(e?.message || String(e));
+  //   } finally {
+  //     setAiLoading(false);
+  //   }
+  // };
 
   const renderFormField = (key: string, prop: any) => {
     const isRequired =
@@ -393,6 +393,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
               {title || "Execute"}
             </div>
             <div className="execute-modal__controls">
+              {/* [AI-CHAT-DISABLED] AI Prefill button
               {resolvedSchema && (
                 <button
                   className="btn execute-modal__ai-btn"
@@ -404,9 +405,10 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
                   onClick={handleAIPrefill}
                   disabled={!aiAvailable || aiLoading}
                 >
-                  {aiLoading ? "Filling…" : "✧ Prefill"}
+                  {aiLoading ? "Filling\u2026" : "\u2727 Prefill"}
                 </button>
               )}
+              */}
               <label className="execute-modal__eval">
                 <input
                   type="checkbox"

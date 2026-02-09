@@ -38,8 +38,8 @@ export interface DocumentationSidebarProps {
 export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   sidebarWidth,
   sidebarRef,
-  isChatOpen,
-  onToggleChat,
+  isChatOpen: _isChatOpen,
+  onToggleChat: _onToggleChat,
   leftOffset = 0,
   _isDarkMode = true,
   _onToggleDarkMode,
@@ -70,6 +70,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
         className="sidebar-header--docs"
         actions={
           <div style={{ display: "flex", gap: "8px" }}>
+            {/* [AI-CHAT-DISABLED] AI chat toggle button
             <button
               className={`sidebar-header__action-btn ${
                 isChatOpen ? "active" : ""
@@ -79,6 +80,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
             >
               AI
             </button>
+            */}
           </div>
         }
       />

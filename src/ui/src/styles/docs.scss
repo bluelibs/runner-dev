@@ -9,10 +9,10 @@
 @use "../components/Documentation/components/DocumentationMainContent";
 @use "../components/Documentation/components/DocumentationSidebar";
 
-// Chat components
-@use "../components/Documentation/components/ChatInput";
-@use "../components/Documentation/components/ChatSettingsForm";
-@use "../components/Documentation/components/chat/ChatSidebar";
+// [AI-CHAT-DISABLED] Chat components
+// @use "../components/Documentation/components/ChatInput";
+// @use "../components/Documentation/components/ChatSettingsForm";
+// @use "../components/Documentation/components/chat/ChatSidebar";
 
 // Card components
 @use "../components/Documentation/components/HookCard";

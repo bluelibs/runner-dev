@@ -10,10 +10,10 @@ import {
 import { formatSchema } from "../utils/formatting";
 import { copyToClipboard } from "./chat/ChatUtils";
 import "./SchemaRenderer.scss";
-import {
-  hasOpenAIKey,
-  generateInstanceFromJsonSchema,
-} from "./chat/ai.prefill";
+// [AI-CHAT-DISABLED] import {
+//   hasOpenAIKey,
+//   generateInstanceFromJsonSchema,
+// } from "./chat/ai.prefill";
 
 export interface SchemaRendererProps {
   schemaString?: string | null;
@@ -122,8 +122,8 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   );
   const [didPrefill, setDidPrefill] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
-  const [aiLoading, setAiLoading] = React.useState(false);
-  const [aiAvailable, setAiAvailable] = React.useState(false);
+  // [AI-CHAT-DISABLED] const [aiLoading, setAiLoading] = React.useState(false);
+  // [AI-CHAT-DISABLED] const [aiAvailable, setAiAvailable] = React.useState(false);
   const schema = React.useMemo(() => parseSchema(schemaString), [schemaString]);
   const resolvedRoot = React.useMemo(
     () =>
@@ -150,7 +150,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   const formData = watch();
 
   React.useEffect(() => {
-    setAiAvailable(hasOpenAIKey());
+    // [AI-CHAT-DISABLED] setAiAvailable(hasOpenAIKey());
   }, [schemaString]);
 
   const getPathValue = (obj: any, dotPath: string): any => {
@@ -341,25 +341,26 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     }
   }, [jsonString]);
 
-  const handleAIPrefill = async () => {
-    if (!schemaString) return;
-    setAiLoading(true);
-    try {
-      const generated = await generateInstanceFromJsonSchema(schemaString);
-      if (generated && typeof generated === "object") {
-        reset(generated);
-      }
-    } catch (e) {
-      // surface as a brief feedback
-      console.error("AI fill failed", e);
-    } finally {
-      setAiLoading(false);
-    }
-  };
+  // [AI-CHAT-DISABLED] AI prefill handler
+  // const handleAIPrefill = async () => {
+  //   if (!schemaString) return;
+  //   setAiLoading(true);
+  //   try {
+  //     const generated = await generateInstanceFromJsonSchema(schemaString);
+  //     if (generated && typeof generated === "object") {
+  //       reset(generated);
+  //     }
+  //   } catch (e) {
+  //     console.error("AI fill failed", e);
+  //   } finally {
+  //     setAiLoading(false);
+  //   }
+  // };
 
   return (
     <div className="schema-renderer">
       <div className="schema-renderer__tabs">
+        {/* [AI-CHAT-DISABLED] AI Fill button
         {schema && (
           <button
             type="button"
@@ -372,9 +373,10 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
             onClick={handleAIPrefill}
             disabled={!aiAvailable || aiLoading}
           >
-            {aiLoading ? "Filling…" : "✧ Fill"}
+            {aiLoading ? "Filling\u2026" : "\u2727 Fill"}
           </button>
         )}
+        */}
         {!hidePrint && (
           <button
             type="button"

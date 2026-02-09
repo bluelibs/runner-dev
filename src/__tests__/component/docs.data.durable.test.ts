@@ -1,5 +1,8 @@
-import { globals, resource, run, tag, task } from "@bluelibs/runner";
-import { memoryDurableResource } from "@bluelibs/runner/node";
+import { globals, resource, run, task } from "@bluelibs/runner";
+import {
+  durableWorkflowTag,
+  memoryDurableResource,
+} from "@bluelibs/runner/node";
 import type { Request, Response } from "express";
 import { createDocsDataRouteHandler } from "../../resources/routeHandlers/getDocsData";
 import { Introspector } from "../../resources/models/Introspector";
@@ -7,7 +10,6 @@ import { Introspector } from "../../resources/models/Introspector";
 function createDurableDocsFixtureApp() {
   const durable = memoryDurableResource.fork("tests.docs.durable.runtime");
   const durableRegistration = durable.with({});
-  const durableWorkflowTag = tag({ id: "durable.workflow" });
 
   const durableWorkflowTask = task({
     id: "tests.docs.tasks.durableWorkflow",
@@ -31,12 +33,7 @@ function createDurableDocsFixtureApp() {
 
   const app = resource({
     id: "tests.docs.app",
-    register: [
-      durableRegistration,
-      durableWorkflowTag,
-      durableWorkflowTask,
-      runWorkflowTask,
-    ],
+    register: [durableRegistration, durableWorkflowTask, runWorkflowTask],
   });
 
   return { app, durableWorkflowTask, runWorkflowTask };

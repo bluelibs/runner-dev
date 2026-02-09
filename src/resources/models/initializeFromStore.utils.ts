@@ -453,6 +453,45 @@ export function normalizeDependencies(
   return {};
 }
 
+export function extractAsyncContextIdsFromDependencies(
+  deps: Record<string | symbol, unknown>
+): string[] {
+  const result: string[] = [];
+  for (const value of Object.values(deps)) {
+    if (
+      value &&
+      (typeof value === "object" || typeof value === "function") &&
+      Reflect.get(value, definitions.symbolAsyncContext) === true
+    ) {
+      result.push(readId(value));
+    }
+  }
+  return Array.from(new Set(result));
+}
+
+/**
+ * Extracts async context IDs from `.require()` middleware usage on a task.
+ * `.require()` returns `requireContextTaskMiddleware.with({ context })` so
+ * we look for middleware entries with id `globals.middleware.requireContext`
+ * and pull the context ID from the configured config object.
+ */
+export const REQUIRE_CONTEXT_MIDDLEWARE_ID =
+  "globals.middleware.requireContext";
+
+export function extractRequiredContextIds(middleware: any[]): string[] {
+  const result: string[] = [];
+  for (const m of middleware || []) {
+    if (
+      m &&
+      String(m.id) === REQUIRE_CONTEXT_MIDDLEWARE_ID &&
+      m.config?.context?.id
+    ) {
+      result.push(String(m.config.context.id));
+    }
+  }
+  return Array.from(new Set(result));
+}
+
 export function extractAllDependenciesFromDependencies(
   deps: Record<string | symbol, unknown>
 ): string[] {
@@ -461,6 +500,7 @@ export function extractAllDependenciesFromDependencies(
     ...extractResourceIdsFromDependencies(deps),
     ...extractTaskIdsFromDependencies(deps),
     ...extractErrorIdsFromDependencies(deps),
+    ...extractAsyncContextIdsFromDependencies(deps),
   ];
 }
 

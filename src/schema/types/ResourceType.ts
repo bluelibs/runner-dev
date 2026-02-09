@@ -19,17 +19,7 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { CoverageInfoType } from "./CoverageType";
-
-function hasTunnelTag(tags: string[] | null | undefined): boolean {
-  return (tags || []).some((tagId) => {
-    const tag = String(tagId);
-    return (
-      tag === "runner-dev.tunnel" ||
-      tag === "globals.tags.tunnel" ||
-      (tag.includes("tunnel") && !tag.includes("tunnelPolicy"))
-    );
-  });
-}
+import { hasTunnelTag } from "../../resources/models/tunnel.tools";
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",

@@ -232,6 +232,8 @@
       font-size: $font-size-xs;
       color: var(--docs-text-secondary);
       font-family: $font-family-mono;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
   }
 }
@@ -427,6 +429,8 @@
       font-size: $font-size-xs;
       color: var(--docs-text-secondary);
       font-family: $font-family-mono;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
   }
 }
@@ -460,6 +464,8 @@
 
       .id {
         font-size: $font-size-xs;
+        word-break: break-all;
+        overflow-wrap: break-word;
         color: var(--docs-text-secondary);
         font-family: $font-family-mono;
       }

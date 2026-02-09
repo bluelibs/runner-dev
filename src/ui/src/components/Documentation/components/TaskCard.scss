@@ -339,6 +339,8 @@
     font-size: $font-size-xs;
     color: var(--docs-text-muted);
     font-family: $font-family-mono;
+    word-break: break-all;
+    overflow-wrap: break-word;
   }
 }
 
@@ -438,6 +440,8 @@
       font-size: $font-size-xs;
       color: var(--docs-text-tertiary);
       font-family: $font-family-mono;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
   }
 }
@@ -479,6 +483,8 @@
       color: var(--docs-text-muted);
       font-family: $font-family-mono;
       margin-bottom: $spacing-md;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
 
     .config-title {

@@ -9,6 +9,12 @@ import { Introspector } from "../../resources/models/Introspector";
 
 function createDurableDocsFixtureApp() {
   const durable = memoryDurableResource.fork("tests.docs.durable.runtime");
+  if (!durable?.id) {
+    throw new Error(
+      "memoryDurableResource.fork() did not return a valid resource"
+    );
+  }
+
   const durableRegistration = durable.with({});
 
   const durableWorkflowTask = task({

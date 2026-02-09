@@ -22,6 +22,7 @@ import {
 } from "./introspector.tools";
 import { hasDurableIdPattern, hasDurableWorkflowTag } from "./durable.tools";
 import { extractTunnelInfo } from "./extractTunnelInfo";
+import { hasTunnelTag } from "./tunnel.tools";
 
 export type SerializedIntrospector = {
   tasks: Task[];
@@ -693,6 +694,24 @@ export class Introspector {
     ];
   }
 
+  /**
+   * Returns tasks that use `.require()` for a given async context.
+   */
+  getTasksRequiringContext(contextId: string): Task[] {
+    const context = this.asyncContextMap.get(contextId);
+    if (!context?.requiredBy) return [];
+
+    return this.tasks.filter((task) => context.requiredBy.includes(task.id));
+  }
+
+  /**
+   * Checks whether a given element uses `.require()` for a specific async context.
+   */
+  isContextRequiredBy(contextId: string, elementId: string): boolean {
+    const context = this.asyncContextMap.get(contextId);
+    return context?.requiredBy?.includes(elementId) ?? false;
+  }
+
   // Tunnel-related methods (enhance existing methods)
   getTunnelResources(): Resource[] {
     // Resources with populated tunnelInfo (set during store initialization)
@@ -759,15 +778,7 @@ export class Introspector {
       if (!modelResource) continue;
 
       // Check if resource has tunnel tag using the already-normalized tags
-      const hasTunnelTag = (modelResource.tags || []).some((tagId) => {
-        const tagStr = String(tagId);
-        return (
-          tagStr === "globals.tags.tunnel" ||
-          (tagStr.includes("tunnel") && !tagStr.includes("tunnelPolicy"))
-        );
-      });
-
-      if (hasTunnelTag && resourceValue) {
+      if (hasTunnelTag(modelResource.tags) && resourceValue) {
         const tunnelInfo = extractTunnelInfo(
           resourceValue,
           allTaskIds,

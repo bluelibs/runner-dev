@@ -14,17 +14,7 @@ import { SchemaRenderer } from "./SchemaRenderer";
 import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
-
-function hasTunnelTag(tags: string[] | null | undefined): boolean {
-  return (tags || []).some((tagId) => {
-    const tag = String(tagId);
-    return (
-      tag === "runner-dev.tunnel" ||
-      tag === "globals.tags.tunnel" ||
-      (tag.includes("tunnel") && !tag.includes("tunnelPolicy"))
-    );
-  });
-}
+import { hasTunnelTag } from "../../../../../resources/models/tunnel.tools";
 
 export interface ResourceCardProps {
   resource: Resource;

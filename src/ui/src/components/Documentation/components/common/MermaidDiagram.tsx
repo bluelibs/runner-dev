@@ -29,6 +29,11 @@ declare global {
   }
 }
 
+function resetMermaidLoadState() {
+  window.__runnerDocsMermaidPromise = undefined;
+  window.__runnerDocsMermaidInitialized = false;
+}
+
 function loadMermaid(): Promise<MermaidLike> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Mermaid can only be loaded in a browser"));
@@ -55,16 +60,27 @@ function loadMermaid(): Promise<MermaidLike> {
 
       script.onload = () => {
         if (!window.mermaid) {
+          resetMermaidLoadState();
           reject(new Error("Mermaid script loaded but global was not found"));
           return;
         }
 
-        window.mermaid.initialize(MERMAID_CONFIG);
-        window.__runnerDocsMermaidInitialized = true;
-        resolve(window.mermaid);
+        try {
+          window.mermaid.initialize(MERMAID_CONFIG);
+          window.__runnerDocsMermaidInitialized = true;
+          resolve(window.mermaid);
+        } catch (error) {
+          resetMermaidLoadState();
+          reject(
+            error instanceof Error
+              ? error
+              : new Error("Failed to initialize Mermaid")
+          );
+        }
       };
 
       script.onerror = () => {
+        resetMermaidLoadState();
         reject(new Error("Failed to load Mermaid script"));
       };
 

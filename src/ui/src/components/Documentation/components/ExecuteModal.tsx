@@ -70,7 +70,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     }
 
     return schema;
-  }, [schema, isOpen]);
+  }, [schema]);
 
   // Check if schema has renderable properties
   const hasFormFields = React.useMemo(() => {
@@ -82,7 +82,43 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
       (!resolvedSchema.type || resolvedSchema.type === "object");
 
     return result;
-  }, [resolvedSchema, schema, schemaString, isOpen]);
+  }, [resolvedSchema]);
+
+  const handleRun = React.useCallback(async () => {
+    setError(null);
+    setResponse(null);
+    setLoading(true);
+    try {
+      let prepared = inputJson;
+      if (evalInput) {
+        try {
+          // Evaluate JS-like input on the client and return minified JSON
+          // e.g. allow single-quoted strings or expressions
+          const value = Function(`"use strict"; return (${inputJson})`)();
+          prepared = JSON.stringify(value);
+        } catch (e: any) {
+          throw new Error(e?.message || String(e));
+        }
+      }
+
+      const result = await onInvoke({ inputJson: prepared, evalInput: false });
+      if (result.error) {
+        setError(result.error);
+      } else if (result.output) {
+        // Try to parse and prettify JSON response, otherwise show raw
+        try {
+          const parsed = JSON.parse(result.output);
+          setResponse(JSON.stringify(parsed, null, 2));
+        } catch {
+          setResponse(result.output);
+        }
+      }
+    } catch (e: any) {
+      setError(e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [evalInput, inputJson, onInvoke]);
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -95,7 +131,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose, loading]);
+  }, [handleRun, isOpen, onClose, loading]);
 
   React.useEffect(() => {
     if (initialInputJson !== undefined) setInputJson(initialInputJson);
@@ -218,7 +254,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
   const renderFormField = (key: string, prop: any) => {
     const isRequired =
       resolvedSchema.required && resolvedSchema.required.includes(key);
-    const value = formData[key] || "";
+    const value = formData[key] ?? "";
 
     if (prop.enum && Array.isArray(prop.enum)) {
       return (
@@ -297,44 +333,6 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
             />
           </div>
         );
-    }
-  };
-
-  const prepareInput = (raw: string) => {
-    if (!evalInput) return raw;
-    try {
-      // Evaluate JS-like input on the client and return minified JSON
-      // e.g. allow single-quoted strings or expressions
-
-      const value = Function(`"use strict"; return (${raw})`)();
-      return JSON.stringify(value);
-    } catch (e: any) {
-      throw new Error(e?.message || String(e));
-    }
-  };
-
-  const handleRun = async () => {
-    setError(null);
-    setResponse(null);
-    setLoading(true);
-    try {
-      const prepared = prepareInput(inputJson);
-      const result = await onInvoke({ inputJson: prepared, evalInput: false });
-      if (result.error) {
-        setError(result.error);
-      } else if (result.output) {
-        // Try to parse and prettify JSON response, otherwise show raw
-        try {
-          const parsed = JSON.parse(result.output);
-          setResponse(JSON.stringify(parsed, null, 2));
-        } catch {
-          setResponse(result.output);
-        }
-      }
-    } catch (e: any) {
-      setError(e?.message || String(e));
-    } finally {
-      setLoading(false);
     }
   };
 

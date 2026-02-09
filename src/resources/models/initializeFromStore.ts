@@ -6,9 +6,12 @@ import {
   buildEvents,
   buildResourceMiddlewares,
   buildTaskMiddlewares,
+  extractAsyncContextIdsFromDependencies,
+  extractRequiredContextIds,
   mapStoreHookToHookModel,
   mapStoreResourceToResourceModel,
   mapStoreTaskToTaskModel,
+  normalizeDependencies,
 } from "./initializeFromStore.utils";
 import { Introspector } from "./Introspector";
 import { buildIdMap, ensureStringArray } from "./introspector.tools";
@@ -61,20 +64,93 @@ export function initializeFromStore(
   }));
 
   // Build async contexts
-  introspector.asyncContexts = Array.from(store.asyncContexts.values()).map(
+  // First, create the basic async context models
+  const asyncContextBasics = Array.from(store.asyncContexts.values()).map(
     (c: any) => ({
       id: c.id,
       meta: c.meta,
       filePath: sanitizePath(c[definitions.symbolFilePath]),
       serialize: c.serialize,
       parse: c.parse,
-      usedBy: c.usedBy || [],
+      usedBy: [] as string[],
+      requiredBy: [] as string[],
       providedBy: c.providedBy || [],
       registeredBy: c.registeredBy,
       overriddenBy: c.overriddenBy,
       tags: ensureStringArray(c.tags),
     })
   );
+
+  // Compute usedBy (dependencies) and requiredBy (.require() middleware)
+  // by scanning all tasks, hooks, resources, and middlewares
+  const asyncContextIds = new Set(asyncContextBasics.map((ac) => ac.id));
+  const usedByMap = new Map<string, Set<string>>();
+  const requiredByMap = new Map<string, Set<string>>();
+  for (const acId of asyncContextIds) {
+    usedByMap.set(acId, new Set());
+    requiredByMap.set(acId, new Set());
+  }
+
+  // Scan tasks for dependency-based usage and .require() middleware
+  for (const t of s.tasks.values()) {
+    const task = t.task;
+    const depsObj = normalizeDependencies(task?.dependencies);
+    const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
+    for (const ctxId of contextIds) {
+      usedByMap.get(ctxId)?.add(task.id.toString());
+    }
+    const reqIds = extractRequiredContextIds(task.middleware);
+    for (const ctxId of reqIds) {
+      requiredByMap.get(ctxId)?.add(task.id.toString());
+    }
+  }
+
+  // Scan hooks for dependency-based usage
+  for (const h of s.hooks.values()) {
+    const hook = h.hook;
+    const depsObj = normalizeDependencies(hook?.dependencies);
+    const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
+    for (const ctxId of contextIds) {
+      usedByMap.get(ctxId)?.add(hook.id.toString());
+    }
+  }
+
+  // Scan resources for dependency-based usage
+  for (const r of s.resources.values()) {
+    const resource = r.resource;
+    const depsObj = normalizeDependencies(resource?.dependencies);
+    const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
+    for (const ctxId of contextIds) {
+      usedByMap.get(ctxId)?.add(resource.id.toString());
+    }
+  }
+
+  // Scan task middlewares for dependency-based usage
+  for (const mw of s.taskMiddlewares.values()) {
+    const middleware = mw.middleware;
+    const depsObj = normalizeDependencies(middleware?.dependencies);
+    const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
+    for (const ctxId of contextIds) {
+      usedByMap.get(ctxId)?.add(middleware.id.toString());
+    }
+  }
+
+  // Scan resource middlewares for dependency-based usage
+  for (const mw of s.resourceMiddlewares.values()) {
+    const middleware = mw.middleware;
+    const depsObj = normalizeDependencies(middleware?.dependencies);
+    const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
+    for (const ctxId of contextIds) {
+      usedByMap.get(ctxId)?.add(middleware.id.toString());
+    }
+  }
+
+  // Apply computed usedBy and requiredBy to the async context models
+  introspector.asyncContexts = asyncContextBasics.map((ac) => ({
+    ...ac,
+    usedBy: Array.from(usedByMap.get(ac.id) ?? []),
+    requiredBy: Array.from(requiredByMap.get(ac.id) ?? []),
+  }));
 
   // Build middlewares from both task and resource middleware collections
   introspector.taskMiddlewares = buildTaskMiddlewares(

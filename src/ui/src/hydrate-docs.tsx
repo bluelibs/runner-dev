@@ -25,6 +25,30 @@ declare global {
 // Placeholder token replaced at serve-time in JS by the static router
 
 declare const __API_URL__: string;
+const DOCS_DATA_FETCH_TIMEOUT_MS = 15_000;
+
+function createTimedAbortSignal(timeoutMs: number): {
+  signal?: AbortSignal;
+  cleanup: () => void;
+} {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return {
+      signal: AbortSignal.timeout(timeoutMs),
+      cleanup: () => undefined,
+    };
+  }
+
+  if (typeof AbortController !== "undefined") {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    return {
+      signal: controller.signal,
+      cleanup: () => window.clearTimeout(timeoutId),
+    };
+  }
+
+  return { cleanup: () => undefined };
+}
 
 // Use the real Introspector deserializer to avoid exposing runner
 function createIntrospectorFromData(data: SerializedIntrospector) {
@@ -189,7 +213,16 @@ async function bootstrap() {
   const baseUrl = __API_URL__ || "";
   try {
     const url = new URL("/docs/data", baseUrl || window.location.origin);
-    const response = await fetch(url.toString());
+    const { signal, cleanup } = createTimedAbortSignal(
+      DOCS_DATA_FETCH_TIMEOUT_MS
+    );
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), signal ? { signal } : {});
+    } finally {
+      cleanup();
+    }
+
     if (!response.ok) {
       throw new Error(`Failed to load docs data (${response.status})`);
     }

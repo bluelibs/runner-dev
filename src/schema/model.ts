@@ -182,8 +182,10 @@ export interface AsyncContext extends BaseElement {
   serialize?: string | null;
   // Parse method signature if provided
   parse?: string | null;
-  // Task/resource IDs that use this context
+  // Task/resource/hook/middleware IDs that depend on this context (via dependencies)
   usedBy: string[];
+  // Task/resource/hook/middleware IDs that use .require() for this context
+  requiredBy: string[];
   // Resource IDs that provide this context
   providedBy: string[];
 }

@@ -149,10 +149,6 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
 
   const formData = watch();
 
-  React.useEffect(() => {
-    // [AI-CHAT-DISABLED] setAiAvailable(hasOpenAIKey());
-  }, [schemaString]);
-
   const getPathValue = (obj: any, dotPath: string): any => {
     if (!obj) return undefined;
     if (!dotPath) return obj;

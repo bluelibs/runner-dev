@@ -1,6 +1,7 @@
 import { globals, r } from "@bluelibs/runner";
 import { memoryDurableResource } from "@bluelibs/runner/node";
 import { z } from "zod";
+import { DURABLE_WORKFLOW_TAG_ID } from "../../../../resources/models/durable.tools";
 
 const tunnelPricingPreviewInputSchema = z.object({
   sku: z.string(),
@@ -40,8 +41,7 @@ const durableOrderApprovalResultSchema = z.object({
   cooldownMs: z.number().int().nonnegative(),
 });
 
-// TODO: must change to the oen from "runner"
-const durableWorkflowTag = r.tag("durable.tags.workflow").build();
+const durableWorkflowTag = r.tag(DURABLE_WORKFLOW_TAG_ID).build();
 
 export const tunnelCatalogUpdatedEvent = r
   .event("app.examples.tunnel.events.catalogUpdated")
@@ -206,7 +206,7 @@ export const tunnelAndDurableExampleRegistrations = [
   tunnelCatalogSyncTask,
   tunnelServerShowcaseResource,
   showcaseDurableRegistration,
-  durableWorkflowTag,
+  // durableWorkflowTag,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,
 ];

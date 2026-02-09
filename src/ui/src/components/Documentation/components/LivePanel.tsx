@@ -270,7 +270,7 @@ interface LivePanelProps {
 
 export const LivePanel: React.FC<LivePanelProps> = ({
   detailed = false,
-  _introspector,
+  introspector: _introspector,
 }) => {
   const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [isPolling, setIsPolling] = useState(true);

@@ -30,7 +30,8 @@ export const AsyncContextType = new GraphQLObjectType<
       type: GraphQLString,
     },
     usedBy: {
-      description: "Tasks and resources that use this async context",
+      description:
+        "Tasks and resources that use this async context as a dependency",
       type: new GraphQLNonNull(
         new GraphQLList(
           // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -49,6 +50,31 @@ export const AsyncContextType = new GraphQLObjectType<
         // Get resources that use this context
         for (const resourceId of context.usedBy || []) {
           const resource = ctx.introspector.getResource(resourceId);
+          if (resource) results.push(resource);
+        }
+
+        return results;
+      },
+    },
+    requiredBy: {
+      description:
+        "Tasks that use .require() middleware for this async context",
+      type: new GraphQLNonNull(
+        new GraphQLList(
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          new GraphQLNonNull(require("./AllType").AllType)
+        )
+      ),
+      resolve: (context, _args, ctx: CustomGraphQLContext) => {
+        const results: any[] = [];
+
+        for (const elementId of context.requiredBy || []) {
+          const task = ctx.introspector.getTask(elementId);
+          if (task) {
+            results.push(task);
+            continue;
+          }
+          const resource = ctx.introspector.getResource(elementId);
           if (resource) results.push(resource);
         }
 

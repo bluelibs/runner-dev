@@ -102,6 +102,7 @@ export interface Live {
           ok?: boolean;
           parentIds?: string[];
           rootIds?: string[];
+          correlationIds?: string[];
         }
   ): RunRecord[];
   recordLog(
@@ -132,6 +133,10 @@ export interface Live {
     rootId?: string | null
   ): void;
   describeFlow(taskId: string): Promise<DurableFlowShape | null>;
+  /** Register a listener that fires whenever a record* method is called. Returns an unsubscribe function. */
+  onRecord(
+    callback: (kind: "log" | "emission" | "error" | "run") => void
+  ): () => void;
 }
 
 const liveService = resource({
@@ -153,6 +158,20 @@ const liveService = resource({
     const emissions: EmissionEntry[] = [];
     const errors: ErrorEntry[] = [];
     const runs: RunRecord[] = [];
+    const recordListeners = new Set<
+      (kind: "log" | "emission" | "error" | "run") => void
+    >();
+    const notifyRecordListeners = (
+      kind: "log" | "emission" | "error" | "run"
+    ) => {
+      for (const listener of recordListeners) {
+        try {
+          listener(kind);
+        } catch {
+          // Never let a listener error break telemetry recording
+        }
+      }
+    };
     const trim = <T>(arr: T[]) => {
       const overflow = arr.length - maxEntries;
       if (overflow > 0) arr.splice(0, overflow);
@@ -194,6 +213,7 @@ const liveService = resource({
           correlationId: correlationId ?? getCorrelationId() ?? null,
         });
         trim(logs);
+        notifyRecordListeners("log");
       },
       getLogs(input) {
         const options = toOptions<{
@@ -235,6 +255,7 @@ const liveService = resource({
           correlationId: getCorrelationId(),
         });
         trim(emissions);
+        notifyRecordListeners("emission");
       },
       getEmissions(input) {
         const options = toOptions<{
@@ -276,8 +297,10 @@ const liveService = resource({
           message,
           stack,
           data,
+          correlationId: getCorrelationId() ?? null,
         });
         trim(errors);
+        notifyRecordListeners("error");
       },
       getErrors(input) {
         const options = toOptions<{
@@ -343,6 +366,7 @@ const liveService = resource({
           correlationId: getCorrelationId(),
         });
         trim(runs);
+        notifyRecordListeners("run");
       },
       getRuns(input) {
         const options = toOptions<{
@@ -353,6 +377,7 @@ const liveService = resource({
           ok?: boolean;
           parentIds?: string[];
           rootIds?: string[];
+          correlationIds?: string[];
         }>(input);
 
         let result = [...runs];
@@ -380,10 +405,20 @@ const liveService = resource({
           const allowed = new Set(options.rootIds.map(String));
           result = result.filter((r) => allowed.has(String(r.rootId)));
         }
+        if (options.correlationIds && options.correlationIds.length > 0) {
+          const allowed = new Set(options.correlationIds.map(String));
+          result = result.filter((r) => allowed.has(String(r.correlationId)));
+        }
         return sliceLast(result, options.last);
       },
       async describeFlow(taskId: string): Promise<DurableFlowShape | null> {
         return describeDurableTaskFromStore(store, taskId);
+      },
+      onRecord(callback) {
+        recordListeners.add(callback);
+        return () => {
+          recordListeners.delete(callback);
+        };
       },
     };
   },

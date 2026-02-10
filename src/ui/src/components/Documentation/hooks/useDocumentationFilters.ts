@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "../config/documentationConstants";
 import { parseSearchQuery, elementMatchesParsed } from "../utils/search-utils";
+import { isSystemElement } from "../utils/isSystemElement";
 
 export const useDocumentationFilters = (
   introspector: Introspector,
@@ -32,14 +33,6 @@ export const useDocumentationFilters = (
     setLocalNamespaceSearch(namespacePrefix || "");
   }, [namespacePrefix]);
 
-  const isSystemElement = (el: any): boolean => {
-    if (!el) return false;
-    if (Array.isArray((el as any)?.tags)) {
-      return (el as any).tags.includes(DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID);
-    }
-    return (el as any)?.id === DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID;
-  };
-
   const applyFilters = <T extends { id: string; tags?: string[] | null }>(
     items: T[]
   ): T[] => {
@@ -51,7 +44,7 @@ export const useDocumentationFilters = (
       // Elements: if tag-search, match by tag ids; otherwise match by id
       result = result.filter((item) =>
         elementMatchesParsed(
-          { id: String((item as any).id), tags: (item as any).tags || [] },
+          { id: item.id, tags: item.tags || [] },
           parsedSearch
         )
       );
@@ -69,7 +62,7 @@ export const useDocumentationFilters = (
     // Tags list: keep consistent behavior — always filter by id text
     let tags = introspector.getAllTags();
     if (!showSystem) {
-      tags = tags.filter((t: any) => !isSystemElement(t));
+      tags = tags.filter((t) => !isSystemElement(t));
     }
     if (localNamespaceSearch) {
       const body = parsedSearch.isTagSearch

@@ -28,11 +28,13 @@ import { EventType } from "./EventType";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
 import * as os from "node:os";
 import {
-  monitorEventLoopDelay,
-  performance,
-  PerformanceObserver,
-  type EventLoopUtilization,
-} from "node:perf_hooks";
+  getEventLoopMeanNs,
+  resetEventLoopHistogram,
+  getCpuEluUtilization,
+  gcTotalCollections,
+  gcTotalDurationMs,
+  getGcWindow,
+} from "../../utils/healthCollectors";
 
 export const LogEntryType = new GraphQLObjectType<
   LiveLogEntry,
@@ -222,53 +224,8 @@ type CpuStats = { usage: number; loadAverage: number };
 type EventLoopStats = { lag: number };
 type GcStats = { collections: number; duration: number };
 
-// Event loop delay histogram (nanoseconds)
-const __eventLoopDelayHistogram = (() => {
-  try {
-    const h = monitorEventLoopDelay({ resolution: 10 });
-    h.enable();
-    return h;
-  } catch {
-    return undefined;
-  }
-})();
-
-// GC observer to aggregate stats since process start
-let __gcCollections = 0;
-let __gcDurationMs = 0;
-const __gcEvents: { ts: number; duration: number }[] = [];
-const __gcEventsMax = 10000;
-function pushGcEvent(duration: number) {
-  __gcEvents.push({ ts: Date.now(), duration });
-  if (__gcEvents.length > __gcEventsMax) {
-    // Trim 10% oldest to amortize cost
-    __gcEvents.splice(0, Math.floor(__gcEventsMax * 0.1));
-  }
-}
-try {
-  const obs = new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) {
-      __gcCollections += 1;
-      __gcDurationMs += entry.duration;
-      pushGcEvent(entry.duration);
-    }
-  });
-  // buffered picks up prior GC entries as well
-  obs.observe({ entryTypes: ["gc"], buffered: true });
-} catch {
-  // noop if unsupported
-}
-
-let __prevElu: EventLoopUtilization | undefined = undefined;
-function getCpuEluUtilization(): number {
-  try {
-    const current = performance.eventLoopUtilization(__prevElu as any);
-    __prevElu = current;
-    return Number.isFinite(current.utilization) ? current.utilization : 0;
-  } catch {
-    return 0;
-  }
-}
+// Health collectors (event loop, GC, CPU) are all centralised in
+// src/utils/healthCollectors.ts — a single set of observers per process.
 
 export const MemoryStatsType = new GraphQLObjectType<
   MemoryStats,
@@ -379,17 +336,11 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
       },
       type: new GraphQLNonNull(EventLoopStatsType),
       resolve: (_root, args: { reset?: boolean }) => {
-        const meanNs = __eventLoopDelayHistogram?.mean ?? 0;
+        const meanNs = getEventLoopMeanNs();
         const node: EventLoopStats = {
           lag: Number.isFinite(meanNs) ? meanNs / 1e6 : 0,
         };
-        if (args?.reset) {
-          try {
-            __eventLoopDelayHistogram?.reset();
-          } catch {
-            // ignore
-          }
-        }
+        if (args?.reset) resetEventLoopHistogram();
         return node;
       },
     },
@@ -407,24 +358,12 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
       resolve: (_root, args: { windowMs?: number }) => {
         const w = args?.windowMs;
         if (typeof w === "number" && w > 0) {
-          const since = Date.now() - w;
-          let collections = 0;
-          let duration = 0;
-          // __gcEvents is time-ordered; find first index >= since
-          // Linear scan is fine for modest sizes
-          for (let i = __gcEvents.length - 1; i >= 0; i--) {
-            const ev = __gcEvents[i];
-            if (ev.ts < since) break;
-            collections += 1;
-            duration += ev.duration;
-          }
-          return { collections, duration } as GcStats;
+          return getGcWindow(w) as GcStats;
         }
-        const node: GcStats = {
-          collections: __gcCollections,
-          duration: __gcDurationMs,
-        };
-        return node;
+        return {
+          collections: gcTotalCollections,
+          duration: gcTotalDurationMs,
+        } as GcStats;
       },
     },
     logs: {
@@ -451,7 +390,7 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           last: args.last ?? undefined,
           levels: args.filter?.levels ?? undefined,
           messageIncludes: args.filter?.messageIncludes ?? undefined,
-          correlationIds: (args as any).filter?.correlationIds ?? undefined,
+          correlationIds: args.filter?.correlationIds ?? undefined,
         });
       },
     },
@@ -478,6 +417,7 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           last: args.last ?? undefined,
           eventIds: args.filter?.eventIds ?? undefined,
           emitterIds: args.filter?.emitterIds ?? undefined,
+          correlationIds: args.filter?.correlationIds ?? undefined,
         });
       },
     },
@@ -505,6 +445,7 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           sourceKinds: args.filter?.sourceKinds ?? undefined,
           sourceIds: args.filter?.sourceIds ?? undefined,
           messageIncludes: args.filter?.messageIncludes ?? undefined,
+          correlationIds: args.filter?.correlationIds ?? undefined,
         });
       },
     },
@@ -532,8 +473,9 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           nodeKinds: args.filter?.nodeKinds ?? undefined,
           nodeIds: args.filter?.nodeIds ?? undefined,
           ok: args.filter?.ok ?? undefined,
-          parentIds: (args as any).filter?.parentIds ?? undefined,
-          rootIds: (args as any).filter?.rootIds ?? undefined,
+          parentIds: args.filter?.parentIds ?? undefined,
+          rootIds: args.filter?.rootIds ?? undefined,
+          correlationIds: args.filter?.correlationIds ?? undefined,
         });
       },
     },

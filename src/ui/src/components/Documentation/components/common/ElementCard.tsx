@@ -1,5 +1,5 @@
 import React from "react";
-import { ElementKindBadge, ElementKind } from "./ElementKindBadge";
+import { ElementKindBadge, ElementKind, SystemBadge } from "./ElementKindBadge";
 
 type ClassValue = string | undefined | false;
 
@@ -17,6 +17,8 @@ export interface ElementCardProps {
   meta?: React.ReactNode;
   /** Displays a kind badge (e.g. "Resource", "Task") in the top-right corner */
   kindLabel?: ElementKind;
+  /** Shows a grey "SYSTEM" badge next to the kind badge for system elements */
+  isSystem?: boolean;
   className?: string;
   headerClassName?: string;
   contentClassName?: string;
@@ -32,6 +34,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({
   actions,
   meta,
   kindLabel,
+  isSystem,
   className,
   headerClassName,
   contentClassName,
@@ -56,6 +59,7 @@ export const ElementCard: React.FC<ElementCardProps> = ({
           </div>
           {actions && <div className={`${prefix}__actions`}>{actions}</div>}
           {meta && <div className="meta">{meta}</div>}
+          {isSystem && <SystemBadge />}
           {kindLabel && <ElementKindBadge kind={kindLabel} />}
         </div>
       </div>

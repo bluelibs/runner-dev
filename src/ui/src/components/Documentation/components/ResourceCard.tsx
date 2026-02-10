@@ -15,6 +15,7 @@ import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { hasTunnelTag } from "../../../../../resources/models/tunnel.tools";
+import { isSystemElement } from "../utils/isSystemElement";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -120,6 +121,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       prefix="resource-card"
       elementId={resource.id}
       kindLabel="resource"
+      isSystem={isSystemElement(resource)}
       title={
         <>
           {resource.meta?.title || formatId(resource.id)}

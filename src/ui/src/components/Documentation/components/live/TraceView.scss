@@ -1,0 +1,293 @@
+@use "../../../../styles/variables" as *;
+@use "../../../../styles/mixins" as *;
+
+// ─── Panel ───────────────────────────────────────────────────────────────────
+
+// Visual overrides only — layout is handled by BaseModal's panel + size variant.
+.trace-view__panel {
+  background: var(--docs-panel-bg);
+  border: 1px solid var(--docs-border-primary);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  color: var(--docs-text-primary);
+}
+
+// ─── Stats bar ───────────────────────────────────────────────────────────────
+
+.trace-view__stats {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-lg;
+  border-bottom: 1px solid var(--docs-border-primary);
+  background: var(--docs-bg-secondary);
+  flex-wrap: wrap;
+}
+
+.trace-view__stat {
+  font-size: $font-size-xs;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: $border-radius-pill;
+  white-space: nowrap;
+
+  &--log {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+  }
+  &--emission {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+  }
+  &--error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+  }
+  &--run {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+  }
+  &--total {
+    color: var(--docs-text-muted);
+    margin-left: auto;
+  }
+}
+
+// ─── Empty state ─────────────────────────────────────────────────────────────
+
+.trace-view__empty {
+  padding: $spacing-xl;
+  text-align: center;
+  color: var(--docs-text-muted);
+  font-style: italic;
+}
+
+// ─── Timeline ────────────────────────────────────────────────────────────────
+
+.trace-view__timeline {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-md $spacing-lg;
+  @include docs-scrollbar();
+}
+
+.trace-view__entry {
+  display: flex;
+  gap: $spacing-sm;
+  position: relative;
+  cursor: default;
+
+  &:hover {
+    .trace-view__content {
+      background: var(--docs-hover-bg);
+    }
+  }
+
+  &--expanded .trace-view__content {
+    background: var(--docs-bg-tertiary);
+  }
+}
+
+// ─── Gutter (vertical timeline line + dot) ───────────────────────────────────
+
+.trace-view__gutter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 20px;
+  flex-shrink: 0;
+  padding-top: 10px;
+}
+
+.trace-view__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  z-index: 1;
+
+  .trace-view__entry--log & {
+    background: #3b82f6;
+  }
+  .trace-view__entry--emission & {
+    background: #8b5cf6;
+  }
+  .trace-view__entry--error & {
+    background: #ef4444;
+  }
+  .trace-view__entry--run & {
+    background: #22c55e;
+  }
+}
+
+.trace-view__connector {
+  width: 2px;
+  flex: 1;
+  min-height: 12px;
+  background: var(--docs-border-primary);
+}
+
+// ─── Content row ─────────────────────────────────────────────────────────────
+
+.trace-view__content {
+  flex: 1;
+  border-radius: $border-radius;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-xs;
+  transition: background 0.12s ease;
+  min-width: 0;
+}
+
+.trace-view__row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.trace-view__time {
+  font-family: $font-family-mono;
+  font-size: $font-size-xs;
+  color: var(--docs-text-muted);
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+.trace-view__badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: $border-radius-sm;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+
+  &--log {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+  }
+  &--emission {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+  }
+  &--error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+  }
+  &--run {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+  }
+}
+
+.trace-view__summary {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: $font-size-sm;
+}
+
+.trace-view__offset {
+  font-family: $font-family-mono;
+  font-size: $font-size-xs;
+  color: var(--docs-text-muted);
+  background: var(--docs-bg-tertiary);
+  padding: 1px 5px;
+  border-radius: $border-radius-sm;
+  white-space: nowrap;
+}
+
+.trace-view__link {
+  color: var(--docs-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: $font-size-sm;
+  flex-shrink: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.trace-view__expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--docs-text-muted);
+  cursor: pointer;
+  font-size: $font-size-sm;
+  padding: 0 4px;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--docs-text-primary);
+  }
+}
+
+// ─── Detail (expanded) ──────────────────────────────────────────────────────
+
+.trace-view__detail {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius;
+}
+
+.trace-view__detail-section {
+  margin-bottom: $spacing-sm;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.trace-view__detail-label {
+  font-size: $font-size-xs;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--docs-text-muted);
+  margin-bottom: 2px;
+}
+
+.trace-view__detail-value {
+  font-size: $font-size-sm;
+  word-break: break-word;
+}
+
+.trace-view__pre {
+  margin: 0;
+  padding: $spacing-sm;
+  background: var(--docs-bg-tertiary);
+  border-radius: $border-radius-sm;
+  font-family: $font-family-mono;
+  font-size: $font-size-xs;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.trace-view__null {
+  color: var(--docs-text-muted);
+  font-style: italic;
+}
+
+// ─── Footer ──────────────────────────────────────────────────────────────────
+
+.trace-view__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm $spacing-lg;
+  border-top: 1px solid var(--docs-border-primary);
+  background: var(--docs-bg-secondary);
+  font-size: $font-size-xs;
+  color: var(--docs-text-muted);
+  font-family: $font-family-mono;
+}
+
+.trace-view__duration {
+  font-weight: 600;
+  color: var(--docs-text-secondary);
+}

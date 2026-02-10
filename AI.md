@@ -146,6 +146,28 @@ query LiveTelemetry {
 }
 ```
 
+### SSE Live Streaming
+
+Server-Sent Events endpoint at `GET /live/stream` for near-instant push instead of polling:
+
+- **`telemetry`** event: `{ logs, emissions, errors, runs }` pushed ~100ms after each record (debounced)
+- **`health`** event: `{ memory, cpu, eventLoop, gc }` every 2s
+- Heartbeat comment every 15s to keep proxies alive
+- `Live.onRecord(callback)` fires synchronously on each `record*` call; returns an unsubscribe function
+- The built-in Live Panel auto-uses SSE and falls back to configurable-interval polling (500ms–10s)
+
+### Correlation ID Trace View
+
+The Live Panel includes a built-in **Trace View** — a unified timeline showing every log, event emission, error, and task run sharing a single `correlationId`, ordered chronologically. Click any correlationId badge (shown on logs, events, errors, and runs) to open the trace modal. This provides an in-process "distributed tracing" experience (like Jaeger).
+
+### Unified Modal System
+
+All UI modals (CodeModal, ExecuteModal, TraceView, RecentLogs, OverviewStatsPanel) are built on a shared `BaseModal` primitive (`src/ui/src/components/Documentation/components/modals/`). It provides:
+
+- **Stacking**: A `ModalStackContext` tracks open modals and assigns ascending z-indexes (base 10 000 + 10 per layer). Global Escape closes the topmost modal first.
+- **Consistent UX**: Portal to `document.body`, backdrop blur, scroll lock, focus trap, slide-up animation, ARIA `role="dialog"`.
+- **Sizes**: `sm | md | lg | xl | fullscreen` with responsive fallback to fullscreen on small viewports.
+
 ### Diagnostics & Health
 
 ```graphql
@@ -262,9 +284,11 @@ npx @bluelibs/runner-dev new <project-name>
 # Example
 npx @bluelibs/runner-dev new my-awesome-app
 ```
+
 This command creates a new Runner project with a complete TypeScript setup, Jest for testing, and all necessary dependencies.
 
 Key flags for `new`:
+
 - `--install`: Install dependencies after scaffolding.
 - `--run-tests`: Run the generated test suite after installation.
 - `--run`: Start the dev server after installation.
@@ -274,11 +298,13 @@ Key flags for `new`:
 All commands can be prefixed with environment variables like `ENDPOINT` and `HEADERS`.
 
 **Ping the server:**
+
 ```bash
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev ping
 ```
 
 **Execute a GraphQL query (Remote Mode):**
+
 ```bash
 # Simple query
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { tasks { id } }'
@@ -306,11 +332,13 @@ npx @bluelibs/runner-dev query 'query { tasks { id } }' \
 ```
 
 Selection logic:
+
 - If `--entry-file` is provided, dry-run mode is used (no server; requires ts-node).
 - Otherwise, the CLI uses a remote endpoint via `--endpoint` or `ENDPOINT/GRAPHQL_ENDPOINT`.
 - If neither is provided, the command errors.
 
 **Generate a project overview:**
+
 ```bash
 ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev overview --details 10
 ```
@@ -338,7 +366,6 @@ ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev schema json
 - `--raw`: Print the full GraphQL envelope including errors.
 
 This direct CLI access provides a powerful way for AI assistants with shell access to script complex interactions, perform detailed introspection, and validate application state without relying on MCP tools.
-
 
 ## Common Use Cases
 
@@ -479,7 +506,10 @@ Minimal workflow setup pattern:
 
 ```ts
 import { r } from "@bluelibs/runner";
-import { durableWorkflowTag, memoryDurableResource } from "@bluelibs/runner/node";
+import {
+  durableWorkflowTag,
+  memoryDurableResource,
+} from "@bluelibs/runner/node";
 
 const durable = memoryDurableResource.fork("app.durable");
 const durableRegistration = durable.with({});
@@ -496,10 +526,7 @@ const workflow = r
   })
   .build();
 
-const app = r
-  .resource("app")
-  .register([durableRegistration, workflow])
-  .build();
+const app = r.resource("app").register([durableRegistration, workflow]).build();
 ```
 
 ## Best Practices for AI Assistants

@@ -9,6 +9,7 @@ import { HookTargetEvents } from "./hook/HookTargetEvents";
 import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard } from "./common/ElementCard";
+import { isSystemElement } from "../utils/isSystemElement";
 
 export interface HookCardProps {
   hook: Hook;
@@ -27,6 +28,7 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
       prefix="hook-card"
       elementId={hook.id}
       kindLabel="hook"
+      isSystem={isSystemElement(hook)}
       title={
         <>
           {isGlobalHook ? "🌐" : "🪝"} {hook.meta?.title || formatId(hook.id)}

@@ -16,6 +16,7 @@ import {
 import { TaggedElements } from "./tag/TaggedElements";
 import { SchemaRenderer } from "./SchemaRenderer";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
+import { isSystemElement } from "../utils/isSystemElement";
 
 export interface TagCardProps {
   tag: Tag;
@@ -112,6 +113,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
       prefix="tag-card"
       elementId={tag.id}
       kindLabel="tag"
+      isSystem={isSystemElement(tag)}
       title={tag.meta?.title || formatId(tag.id)}
       id={tag.id}
       description={tag.meta?.description}

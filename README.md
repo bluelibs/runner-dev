@@ -86,6 +86,7 @@ Once your application is running with the `dev` resource, you can access the vis
 🚀 **Open [http://localhost:1337](http://localhost:1337) in your browser.**
 
 Inside the UI, you can:
+
 - Explore the resource graph.
 - Manually invoke tasks with custom inputs.
 - Inspect live logs and event emissions in real-time.
@@ -318,13 +319,13 @@ Precedence:
 
 ### CLI Summary
 
-| Category | Description |
-| --- | --- |
-| **New Project** | `runner-dev new <project-name>` |
+| Category        | Description                                               |
+| --------------- | --------------------------------------------------------- |
+| **New Project** | `runner-dev new <project-name>`                           |
 | **Scaffolding** | `runner-dev new <resource\|task\|event\|tag\|middleware>` |
-| **Queries** | `runner-dev query 'query { ... }'` |
-| **Overview** | `runner-dev overview --details 10` |
-| **Schema** | `runner-dev schema sdl` |
+| **Queries**     | `runner-dev query 'query { ... }'`                        |
+| **Overview**    | `runner-dev overview --details 10`                        |
+| **Schema**      | `runner-dev schema sdl`                                   |
 
 ---
 
@@ -547,6 +548,41 @@ Notes:
 - `cpu.usage` is a ratio; `loadAverage` is 1‑minute OS load.
 - `eventLoop.lag` may be 0 if `monitorEventLoopDelay` is unavailable.
 
+### SSE Live Streaming
+
+In addition to GraphQL polling, the server exposes a **Server-Sent Events** endpoint at `GET /live/stream` for near-instant telemetry delivery:
+
+```http
+GET /live/stream
+Accept: text/event-stream
+```
+
+The endpoint pushes two event types:
+
+| Event       | Cadence                                      | Payload                                                     |
+| ----------- | -------------------------------------------- | ----------------------------------------------------------- |
+| `telemetry` | ~100ms after each `record*` call (debounced) | `{ logs, emissions, errors, runs }` (delta since last push) |
+| `health`    | Every 2s                                     | `{ memory, cpu, eventLoop, gc }`                            |
+
+A heartbeat comment (`: heartbeat`) is sent every 15s to keep the connection alive through proxies.
+
+**JavaScript client example:**
+
+```js
+const es = new EventSource("http://localhost:1337/live/stream");
+es.addEventListener("telemetry", (e) => {
+  const { logs, emissions, errors, runs } = JSON.parse(e.data);
+  // merge into your state
+});
+es.addEventListener("health", (e) => {
+  const { memory, cpu, eventLoop, gc } = JSON.parse(e.data);
+});
+```
+
+The built-in Live Panel UI automatically uses SSE when available and falls back to configurable-interval polling (500ms–10s slider) when SSE is not supported.
+
+**Programmatic notification hook:** The `Live` interface exposes `onRecord(callback)` which fires synchronously whenever a `record*` method is called, returning an unsubscribe function. This is the mechanism the SSE endpoint uses internally.
+
 ### Correlation and call chains
 
 - What is correlationId? An opaque UUID (via `crypto.randomUUID()`) created for the first task in a run chain.
@@ -582,6 +618,14 @@ query TraceByCorrelation($ts: Float, $cid: String!) {
   }
 }
 ```
+
+#### Trace View (UI)
+
+The Live Panel includes a built-in **Trace View** — click any `correlationId` badge in the Logs, Events, Errors, or Runs sub-tabs to open a unified timeline modal showing every entry that shares that ID, ordered chronologically. Each entry is color-coded by kind (log, event, error, run) with a vertical timeline gutter, relative offset labels, and expandable details. This provides an in-process "distributed tracing" experience similar to Jaeger or Zipkin, but entirely within the Dev UI.
+
+#### Unified Modal System
+
+All Dev UI modals (code viewer, execute, trace view, log details, stats overlay) share a common `BaseModal` primitive that provides portal rendering, backdrop blur, focus trap, scroll lock, slide-up animation, and ARIA dialog semantics. A `ModalStackContext` manages stacking so modals can open on top of other modals — each layer gets a higher z-index and the global <kbd>Esc</kbd> key always closes the topmost one first.
 
 ## Emitting Events (Runner-native)
 

@@ -1,50 +1,28 @@
-// Modern, slick ExecuteModal design
-.execute-modal__overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 20px;
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
+// Visual overrides only — layout is handled by BaseModal's panel + size variant.
 .execute-modal__container {
   background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  width: 95%;
-  max-width: 1400px;
-  max-height: 90vh;
-  height: 90vh;
-  display: flex;
-  border-radius: 20px;
-  overflow: hidden;
   box-shadow: 0 32px 64px rgba(2, 6, 23, 0.4),
     0 0 0 1px rgba(148, 163, 184, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
+  // Force 90vh so the panel fills most of the viewport.
+  height: 90vh;
+  // Wider than the default xl max-width (1200px) for the two-pane layout.
+  max-width: 1400px;
+
+  // The body should not scroll — the split panes manage their own scrolling.
+  // Must be a flex-column container so the split element stretches to fill.
+  .base-modal__body {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+// Horizontal split layout wrapping left (form) and right (response) panes.
+.execute-modal__split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .execute-modal__left {
@@ -149,7 +127,8 @@
   padding: 20px 24px;
   display: flex;
   gap: 20px;
-  height: calc(100% - 80px);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -359,7 +338,8 @@
 .execute-modal__response-body {
   padding: 20px 24px;
   overflow: auto;
-  height: calc(100% - 68px);
+  flex: 1;
+  min-height: 0;
   position: relative;
 }
 
@@ -674,11 +654,6 @@
 
 // Responsive design
 @media (max-width: 1024px) {
-  .execute-modal__container {
-    width: 98%;
-    height: 95vh;
-  }
-
   .execute-modal__left {
     min-width: 300px;
   }
@@ -689,9 +664,8 @@
 }
 
 @media (max-width: 768px) {
-  .execute-modal__container {
+  .execute-modal__split {
     flex-direction: column;
-    border-radius: 16px;
   }
 
   .execute-modal__left,
@@ -717,7 +691,7 @@
   }
 
   .execute-modal__form-layout {
-    flex-direction: column; /* stack on small screens */
+    flex-direction: column;
     gap: 16px;
   }
 
@@ -741,15 +715,6 @@
 }
 
 @media (max-width: 480px) {
-  .execute-modal__overlay {
-    padding: 12px;
-  }
-
-  .execute-modal__container {
-    border-radius: 12px;
-    min-height: 500px;
-  }
-
   .execute-modal__header {
     padding: 12px 16px;
     flex-direction: column;

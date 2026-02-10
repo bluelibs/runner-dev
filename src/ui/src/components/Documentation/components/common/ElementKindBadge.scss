@@ -51,4 +51,10 @@
   &--async-context {
     background: rgba(255, 255, 255, 0.22);
   }
+
+  &--system {
+    background: rgba(160, 160, 160, 0.35);
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+  }
 }

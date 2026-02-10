@@ -9,6 +9,7 @@ interface RunRecord {
   ok: boolean;
   durationMs?: number;
   error?: string;
+  correlationId?: string;
 }
 
 interface ErrorEntry {
@@ -36,12 +37,14 @@ interface RecentRunsProps {
   runs: RunRecord[];
   errors: ErrorEntry[];
   detailed?: boolean;
+  onCorrelationIdClick?: (correlationId: string) => void;
 }
 
 export const RecentRuns: React.FC<RecentRunsProps> = ({
   runs,
   errors,
-  _detailed,
+  detailed: _detailed,
+  onCorrelationIdClick,
 }) => {
   const [selectedErrorStack, setSelectedErrorStack] = useState<string | null>(
     null
@@ -122,6 +125,20 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                       </button>
                     </div>
                   )}
+                  {error.correlationId && (
+                    <span
+                      className="entry-corr entry-corr--clickable"
+                      title={`Trace: ${error.correlationId}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCorrelationIdClick?.(error.correlationId!);
+                      }}
+                    >
+                      {error.correlationId.length > 6
+                        ? error.correlationId.slice(-6)
+                        : error.correlationId}
+                    </span>
+                  )}
                 </div>
               ))}
           </div>
@@ -163,6 +180,20 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                       >
                         View Error
                       </button>
+                    )}
+                    {run.correlationId && (
+                      <span
+                        className="entry-corr entry-corr--clickable"
+                        title={`Trace: ${run.correlationId}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCorrelationIdClick?.(run.correlationId!);
+                        }}
+                      >
+                        {run.correlationId.length > 6
+                          ? run.correlationId.slice(-6)
+                          : run.correlationId}
+                      </span>
                     )}
                     {/* <button
                       className="clean-button"

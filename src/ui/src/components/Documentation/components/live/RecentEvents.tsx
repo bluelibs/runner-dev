@@ -24,11 +24,13 @@ interface EmissionEntry {
 interface RecentEventsProps {
   emissions: EmissionEntry[];
   detailed?: boolean;
+  onCorrelationIdClick?: (correlationId: string) => void;
 }
 
 export const RecentEvents: React.FC<RecentEventsProps> = ({
   emissions,
-  _detailed,
+  detailed: _detailed,
+  onCorrelationIdClick,
 }) => {
   const [selectedPayload, setSelectedPayload] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -103,6 +105,20 @@ export const RecentEvents: React.FC<RecentEventsProps> = ({
                     >
                       View Payload
                     </button>
+                  )}
+                  {emission.correlationId && (
+                    <span
+                      className="entry-corr entry-corr--clickable"
+                      title={`Trace: ${emission.correlationId}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCorrelationIdClick?.(emission.correlationId!);
+                      }}
+                    >
+                      {emission.correlationId.length > 6
+                        ? emission.correlationId.slice(-6)
+                        : emission.correlationId}
+                    </span>
                   )}
                 </div>
               ))}

@@ -253,27 +253,8 @@
   }
 }
 
-.recent-logs-fs__overlay {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(15, 23, 42, 0.95) 0%,
-    rgba(30, 41, 59, 0.9) 100%
-  );
-  backdrop-filter: blur(8px);
-  // Base fullscreen layer (below log details and trace view).
-  z-index: 2147483645;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
+// Visual overrides only — layout is handled by BaseModal's panel + size variant.
 .recent-logs-fs__panel {
-  position: relative;
-  width: min(1400px, 96vw);
-  height: min(900px, 92vh);
   background: linear-gradient(
     135deg,
     rgba(15, 23, 42, 0.95) 0%,
@@ -281,12 +262,8 @@
   );
   color: var(--docs-text-primary);
   border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 16px;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.05);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
   backdrop-filter: blur(16px);
 }
 
@@ -519,6 +496,63 @@
   font-size: 1rem;
 }
 
+// Wrapper for message + optional data preview in fullscreen rows.
+.recent-logs-fs__message-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.recent-logs-fs__data-preview {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--docs-text-secondary);
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.recent-logs-fs__data-label {
+  font-weight: 600;
+  color: var(--docs-text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.recent-logs-fs__data-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+}
+
+.recent-logs-fs__data-more {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.5);
+  }
+}
+
 .recent-logs-fs__corr,
 .recent-logs__corr {
   background: var(--docs-primary-bg);
@@ -635,27 +669,8 @@
   color: rgba(148, 163, 184, 0.7);
 }
 
-.recent-logs-modal__overlay {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(15, 23, 42, 0.85) 0%,
-    rgba(30, 41, 59, 0.8) 100%
-  );
-  backdrop-filter: blur(12px);
-  // Log details layer (below trace view).
-  z-index: 2147483646;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
+// Visual overrides only — layout is handled by BaseModal's panel + size variant.
 .recent-logs-modal__panel {
-  width: min(1200px, 95vw);
-  max-height: 85vh;
-  overflow: hidden;
   background: linear-gradient(
     135deg,
     var(--docs-bg-elevated) 0%,
@@ -663,68 +678,20 @@
   );
   color: var(--docs-text-primary);
   border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 16px;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.05);
-  display: flex;
-  flex-direction: column;
   backdrop-filter: blur(20px);
-}
 
-.recent-logs-modal__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 24px 32px;
-  border-bottom: 1px solid var(--docs-border-primary);
-  background: linear-gradient(
-    135deg,
-    rgba(30, 41, 59, 0.6) 0%,
-    rgba(51, 65, 85, 0.4) 100%
-  );
-  backdrop-filter: blur(8px);
-}
-
-.recent-logs-modal__title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--docs-text-primary);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.recent-logs-modal__close {
-  background: linear-gradient(
-    135deg,
-    rgba(239, 68, 68, 0.1) 0%,
-    rgba(220, 38, 38, 0.1) 100%
-  );
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: var(--docs-danger);
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-.recent-logs-modal__close:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(239, 68, 68, 0.2) 0%,
-    rgba(220, 38, 38, 0.2) 100%
-  );
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
-  transform: translateY(-1px);
+  // Prevent horizontal scrollbar on the log-details modal.
+  .base-modal__body {
+    overflow-x: hidden;
+  }
 }
 
 .recent-logs-modal__content {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 32px;
   background: linear-gradient(
     135deg,
@@ -737,6 +704,11 @@
   display: grid;
   gap: 24px;
   grid-template-columns: 400px 1fr;
+
+  // Prevent grid children from overflowing their columns.
+  > * {
+    min-width: 0;
+  }
 }
 @media (max-width: 1024px) {
   .recent-logs-modal__grid {
@@ -772,6 +744,8 @@
   color: var(--docs-text-primary);
   font-size: 13px;
   backdrop-filter: blur(4px);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .recent-logs-modal__value--mono {
   font-family: ui-monospace, monospace;
@@ -921,7 +895,8 @@
   border-radius: 10px;
   padding: 16px 20px;
   max-height: 300px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: linear-gradient(
     135deg,
     rgba(15, 23, 42, 0.6) 0%,

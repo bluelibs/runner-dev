@@ -160,6 +160,14 @@ Server-Sent Events endpoint at `GET /live/stream` for near-instant push instead 
 
 The Live Panel includes a built-in **Trace View** — a unified timeline showing every log, event emission, error, and task run sharing a single `correlationId`, ordered chronologically. Click any correlationId badge (shown on logs, events, errors, and runs) to open the trace modal. This provides an in-process "distributed tracing" experience (like Jaeger).
 
+### Unified Modal System
+
+All UI modals (CodeModal, ExecuteModal, TraceView, RecentLogs, OverviewStatsPanel) are built on a shared `BaseModal` primitive (`src/ui/src/components/Documentation/components/modals/`). It provides:
+
+- **Stacking**: A `ModalStackContext` tracks open modals and assigns ascending z-indexes (base 10 000 + 10 per layer). Global Escape closes the topmost modal first.
+- **Consistent UX**: Portal to `document.body`, backdrop blur, scroll lock, focus trap, slide-up animation, ARIA `role="dialog"`.
+- **Sizes**: `sm | md | lg | xl | fullscreen` with responsive fallback to fullscreen on small viewports.
+
 ### Diagnostics & Health
 
 ```graphql

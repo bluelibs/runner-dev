@@ -13,6 +13,7 @@ import { createSections } from "./config/documentationSections";
 // [AI-CHAT-DISABLED] import { DOCUMENTATION_CONSTANTS } from "./config/documentationConstants";
 // [AI-CHAT-DISABLED] import { ChatSidebar } from "./components/chat/ChatSidebar";
 import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
+import { ModalStackProvider } from "./components/modals";
 import { useRef } from "react";
 
 export type Section =
@@ -282,72 +283,74 @@ export const Documentation: React.FC<DocumentationProps> = ({
     debouncedSidebarWidth !== sidebarHook.sidebarWidth;
 
   return (
-    <div className="docs-app">
-      {/* Fixed Navigation Sidebar */}
-      <DocumentationSidebar
-        sidebarWidth={sidebarHook.sidebarWidth}
-        sidebarRef={sidebarHook.sidebarRef}
-        // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
-        // [AI-CHAT-DISABLED] onToggleChat={handleToggleChat}
-        leftOffset={0}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={toggleDarkMode}
-        viewMode={viewModeHook.viewMode}
-        treeType={viewModeHook.treeType}
-        localNamespaceSearch={filterHook.localNamespaceSearch}
-        showSystem={filterHook.showSystem}
-        treeNodes={treeHook.treeNodes}
-        sections={sections}
-        totalComponents={totalComponents}
-        onViewModeChange={viewModeHook.handleViewModeChange}
-        onTreeTypeChange={viewModeHook.handleTreeTypeChange}
-        onNamespaceSearchChange={filterHook.setLocalNamespaceSearch}
-        onShowSystemChange={filterHook.handleShowSystemChange}
-        onTreeNodeClick={treeHook.handleTreeNodeClick}
-        onToggleExpansion={treeHook.handleToggleExpansion}
-        onSectionClick={handleSectionClick}
-      />
+    <ModalStackProvider>
+      <div className="docs-app">
+        {/* Fixed Navigation Sidebar */}
+        <DocumentationSidebar
+          sidebarWidth={sidebarHook.sidebarWidth}
+          sidebarRef={sidebarHook.sidebarRef}
+          // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
+          // [AI-CHAT-DISABLED] onToggleChat={handleToggleChat}
+          leftOffset={0}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={toggleDarkMode}
+          viewMode={viewModeHook.viewMode}
+          treeType={viewModeHook.treeType}
+          localNamespaceSearch={filterHook.localNamespaceSearch}
+          showSystem={filterHook.showSystem}
+          treeNodes={treeHook.treeNodes}
+          sections={sections}
+          totalComponents={totalComponents}
+          onViewModeChange={viewModeHook.handleViewModeChange}
+          onTreeTypeChange={viewModeHook.handleTreeTypeChange}
+          onNamespaceSearchChange={filterHook.setLocalNamespaceSearch}
+          onShowSystemChange={filterHook.handleShowSystemChange}
+          onTreeNodeClick={treeHook.handleTreeNodeClick}
+          onToggleExpansion={treeHook.handleToggleExpansion}
+          onSectionClick={handleSectionClick}
+        />
 
-      {/* Sidebar Resizer */}
-      <div
-        ref={sidebarHook.resizerRef}
-        className={`docs-sidebar-resizer ${
-          sidebarHook.isResizing ? "docs-sidebar-resizer--active" : ""
-        }`}
-        style={{
-          left: `${sidebarHook.sidebarWidth + 40}px`,
-        }}
-        onMouseDown={sidebarHook.handleMouseDown}
-      />
+        {/* Sidebar Resizer */}
+        <div
+          ref={sidebarHook.resizerRef}
+          className={`docs-sidebar-resizer ${
+            sidebarHook.isResizing ? "docs-sidebar-resizer--active" : ""
+          }`}
+          style={{
+            left: `${sidebarHook.sidebarWidth + 40}px`,
+          }}
+          onMouseDown={sidebarHook.handleMouseDown}
+        />
 
-      {/* Main Content */}
-      <DocumentationMainContent
-        introspector={introspector}
-        sidebarWidth={debouncedSidebarWidth}
-        // [AI-CHAT-DISABLED] chatWidth={debouncedChatWidth}
-        // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
-        openStats={openStats}
-        isStatsOpen={isStatsOpen}
-        closeStats={closeStats}
-        // [AI-CHAT-DISABLED] chatPushesLeft
-        suspendRendering={isLayoutBusy}
-        tasks={filterHook.tasks}
-        resources={filterHook.resources}
-        events={filterHook.events}
-        hooks={filterHook.hooks}
-        middlewares={filterHook.middlewares}
-        errors={introspector.getErrors()}
-        asyncContexts={introspector.getAsyncContexts()}
-        tags={filterHook.tags}
-        sections={sections}
-      />
+        {/* Main Content */}
+        <DocumentationMainContent
+          introspector={introspector}
+          sidebarWidth={debouncedSidebarWidth}
+          // [AI-CHAT-DISABLED] chatWidth={debouncedChatWidth}
+          // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
+          openStats={openStats}
+          isStatsOpen={isStatsOpen}
+          closeStats={closeStats}
+          // [AI-CHAT-DISABLED] chatPushesLeft
+          suspendRendering={isLayoutBusy}
+          tasks={filterHook.tasks}
+          resources={filterHook.resources}
+          events={filterHook.events}
+          hooks={filterHook.hooks}
+          middlewares={filterHook.middlewares}
+          errors={introspector.getErrors()}
+          asyncContexts={introspector.getAsyncContexts()}
+          tags={filterHook.tags}
+          sections={sections}
+        />
 
-      {/* "Open Stats" button moved next to the Overview header inside main content */}
+        {/* "Open Stats" button moved next to the Overview header inside main content */}
 
-      {/* [AI-CHAT-DISABLED] ChatSidebar and resizer removed — isChatOpen is always false */}
+        {/* [AI-CHAT-DISABLED] ChatSidebar and resizer removed — isChatOpen is always false */}
 
-      {/* Render overlayed stats panel when hash requests it */}
-      {isStatsOpen && <OverviewStatsPanel overlay onClose={closeStats} />}
-    </div>
+        {/* Render overlayed stats panel when hash requests it */}
+        {isStatsOpen && <OverviewStatsPanel overlay onClose={closeStats} />}
+      </div>
+    </ModalStackProvider>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect } from "react";
 import { useMetrics } from "../../hooks/useMetrics";
+import { BaseModal } from "../modals";
 import "./OverviewStatsPanel.scss";
 
 export interface OverviewStatsPanelProps {
@@ -13,7 +14,10 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
 }) => {
   const { throughput, latency, errorByTask, heatmap, isLoading } = useMetrics();
 
+  // Escape key handling delegated to BaseModal when overlay=true.
+  // For inline mode, we still handle Escape ourselves.
   useEffect(() => {
+    if (overlay) return; // BaseModal handles Escape for overlay mode
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" || e.key === "Esc") {
         onClose();
@@ -21,7 +25,7 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, overlay]);
 
   const tpPath = useMemo(() => {
     if (throughput.length === 0) return "";
@@ -58,12 +62,16 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
   }, [latency]);
   const inner = (
     <>
-      <div className="overview-stats-panel__header">
-        <h3>Performance Stats</h3>
-        <button onClick={onClose} className="clear-button">
-          Close
-        </button>
-      </div>
+      {/* Only render the inline header when NOT in overlay mode.
+          In overlay mode, BaseModal provides the header. */}
+      {!overlay && (
+        <div className="overview-stats-panel__header">
+          <h3>Performance Stats</h3>
+          <button onClick={onClose} className="clear-button">
+            Close
+          </button>
+        </div>
+      )}
 
       <div className="overview-stats-panel__grid">
         <section className="overview-stats-panel__section">
@@ -169,19 +177,16 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
 
   if (overlay) {
     return (
-      <div
-        className="overview-stats-panel overview-stats-panel--overlay"
-        onClick={onClose}
+      <BaseModal
+        isOpen
+        onClose={onClose}
+        title="Performance Stats"
+        size="xl"
+        className="overview-stats-panel__content"
+        ariaLabel="Performance stats overlay"
       >
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="overview-stats-panel__content"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {inner}
-        </div>
-      </div>
+        {inner}
+      </BaseModal>
     );
   }
 

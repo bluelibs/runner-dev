@@ -1,29 +1,10 @@
 @use "../../../styles/variables" as *;
 
-.code-modal__backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--docs-loading-overlay-bg);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 5vh 0;
-  z-index: 9999;
-}
-
+// Visual overrides only — layout (width, height, flex, border-radius, overflow)
+// is handled by BaseModal's panel + size variant classes.
 .code-modal__dialog {
-  width: min(1100px, 92vw);
-  max-height: calc(100vh - 10vh);
   background: var(--docs-bg-primary);
-  border-radius: $border-radius-xl;
   box-shadow: var(--docs-shadow-lg);
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
 }
 
 .code-modal__header {
@@ -224,13 +205,6 @@
   }
 }
 
-.code-modal__actions {
-  margin-top: $spacing-lg;
-  display: flex;
-  gap: $spacing-sm;
-  align-items: center;
-}
-
 .code-modal__btn {
   padding: $spacing-sm $spacing-md;
   border-radius: $border-radius-md;
@@ -238,29 +212,6 @@
   letter-spacing: 0.02em;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-}
-
-.code-modal__btn--primary {
-  background: var(--docs-success);
-  border: 1px solid var(--docs-success);
-  color: var(--docs-text-primary);
-
-  &:hover {
-    background: var(--docs-success);
-    opacity: 0.9;
-  }
-}
-
-// Glass styles
-.code-modal__btn--glass {
-  background: var(--docs-bg-tertiary);
-  color: var(--docs-text-primary);
-  border: 1px solid var(--docs-border-primary);
-  box-shadow: var(--docs-shadow-sm);
-
-  &:hover {
-    background: var(--docs-hover-bg);
-  }
 }
 
 .code-modal__btn--glass-primary {

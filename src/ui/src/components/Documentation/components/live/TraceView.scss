@@ -1,82 +1,14 @@
 @use "../../../../styles/variables" as *;
 @use "../../../../styles/mixins" as *;
 
-// ─── Overlay ─────────────────────────────────────────────────────────────────
-
-.trace-view__overlay {
-  position: fixed;
-  inset: 0;
-  // Must sit above RecentLogs fullscreen/details overlays.
-  z-index: 2147483647;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
-}
-
 // ─── Panel ───────────────────────────────────────────────────────────────────
 
+// Visual overrides only — layout is handled by BaseModal's panel + size variant.
 .trace-view__panel {
-  width: min(900px, 92vw);
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
   background: var(--docs-panel-bg);
   border: 1px solid var(--docs-border-primary);
-  border-radius: $border-radius-lg;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   color: var(--docs-text-primary);
-  overflow: hidden;
-}
-
-// ─── Header ──────────────────────────────────────────────────────────────────
-
-.trace-view__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: $spacing-md $spacing-lg;
-  border-bottom: 1px solid var(--docs-border-primary);
-  background: var(--docs-bg-secondary);
-}
-
-.trace-view__header-left {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-}
-
-.trace-view__title {
-  margin: 0;
-  font-size: $font-size-md;
-  font-weight: 600;
-}
-
-.trace-view__corr-id {
-  font-family: $font-family-mono;
-  font-size: $font-size-sm;
-  color: var(--docs-primary);
-  background: var(--docs-bg-tertiary);
-  padding: 2px 8px;
-  border-radius: $border-radius-sm;
-  user-select: all;
-}
-
-.trace-view__close {
-  background: transparent;
-  border: 1px solid var(--docs-border-primary);
-  border-radius: $border-radius;
-  padding: $spacing-xs $spacing-sm;
-  color: var(--docs-text-secondary);
-  cursor: pointer;
-  font-size: $font-size-sm;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: var(--docs-hover-bg);
-    color: var(--docs-text-primary);
-  }
 }
 
 // ─── Stats bar ───────────────────────────────────────────────────────────────

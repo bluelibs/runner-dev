@@ -1,11 +1,11 @@
 import React from "react";
-import { createPortal } from "react-dom";
 import "./ExecuteModal.scss";
 // [AI-CHAT-DISABLED] import {
 //   hasOpenAIKey,
 //   generateInstanceFromJsonSchema,
 // } from "./chat/ai.prefill";
 import { copyToClipboard } from "./chat/ChatUtils";
+import { BaseModal } from "./modals";
 
 export interface ExecuteModalProps {
   isOpen: boolean;
@@ -36,9 +36,6 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
   const [error, setError] = React.useState<string | null>(null);
   // [AI-CHAT-DISABLED] const [aiLoading, setAiLoading] = React.useState<boolean>(false);
   // [AI-CHAT-DISABLED] const [aiAvailable, setAiAvailable] = React.useState<boolean>(false);
-  const overlayRef = React.useRef<HTMLDivElement | null>(null);
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const previouslyFocused = React.useRef<HTMLElement | null>(null);
   const [formData, setFormData] = React.useState<Record<string, any>>({});
   const [copiedPreview, setCopiedPreview] = React.useState<boolean>(false);
 
@@ -120,10 +117,10 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     }
   }, [evalInput, inputJson, onInvoke]);
 
+  // Ctrl/Cmd+Enter to run (Escape handled by ModalStack)
   React.useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         if (!loading) handleRun();
@@ -131,59 +128,11 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleRun, isOpen, onClose, loading]);
+  }, [handleRun, isOpen, loading]);
 
   React.useEffect(() => {
     if (initialInputJson !== undefined) setInputJson(initialInputJson);
   }, [initialInputJson]);
-
-  // Focus management & trap
-  React.useEffect(() => {
-    if (!isOpen) return;
-    previouslyFocused.current = document.activeElement as HTMLElement | null;
-
-    const container = containerRef.current;
-    if (container) {
-      const focusable = Array.from(
-        container.querySelectorAll<HTMLElement>(
-          'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((el) => !el.hasAttribute("disabled"));
-      if (focusable.length > 0) focusable[0].focus();
-    }
-
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-      const nodes = container
-        ? Array.from(
-            container.querySelectorAll<HTMLElement>(
-              'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
-            )
-          ).filter((el) => !el.hasAttribute("disabled"))
-        : [];
-      if (nodes.length === 0) return;
-      const first = nodes[0];
-      const last = nodes[nodes.length - 1];
-      if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleTab);
-    return () => {
-      document.removeEventListener("keydown", handleTab);
-      try {
-        previouslyFocused.current?.focus();
-      } catch {
-        /* intentionally empty */
-      }
-    };
-  }, [isOpen]);
 
   // [AI-CHAT-DISABLED] Detect if AI key is configured
   // React.useEffect(() => {
@@ -336,101 +285,69 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
     }
   };
 
-  // Lock background scroll and preserve position while modal is open
-  React.useEffect(() => {
-    if (!isOpen) return;
-    const lockedScrollY = window.scrollY || window.pageYOffset || 0;
-    const original = {
-      position: document.body.style.position,
-      top: document.body.style.top,
-      left: document.body.style.left,
-      right: document.body.style.right,
-      width: document.body.style.width,
-      overflowY: document.body.style.overflowY,
-    };
+  // Scroll lock handled by BaseModal
 
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${lockedScrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
-    document.body.style.overflowY = "scroll";
+  const renderHeader = React.useCallback(
+    ({ onClose: close }: { onClose: () => void }) => (
+      <div className="execute-modal__header">
+        <div id="execute-modal-title" className="execute-modal__title">
+          {title || "Execute"}
+        </div>
+        <div className="execute-modal__controls">
+          {/* [AI-CHAT-DISABLED] AI Prefill button
+          {resolvedSchema && (
+            <button
+              className="btn execute-modal__ai-btn"
+              title={
+                aiAvailable
+                  ? "AI prefill based on schema"
+                  : "AI key not configured in Chat settings"
+              }
+              onClick={handleAIPrefill}
+              disabled={!aiAvailable || aiLoading}
+            >
+              {aiLoading ? "Filling\u2026" : "\u2727 Prefill"}
+            </button>
+          )}
+          */}
+          <label className="execute-modal__eval">
+            <input
+              type="checkbox"
+              checked={evalInput}
+              onChange={(e) => setEvalInput(e.target.checked)}
+            />
+            Eval input
+          </label>
+          <button
+            className={`btn btn-primary ${
+              loading ? "execute-modal__loading" : ""
+            }`}
+            onClick={handleRun}
+            disabled={loading}
+            title={loading ? "Running..." : "Run task (Ctrl+Enter)"}
+          >
+            {loading ? "Running..." : "Run"}
+          </button>
+          <button className="btn" onClick={close}>
+            Close
+          </button>
+        </div>
+      </div>
+    ),
+    [title, evalInput, loading, handleRun]
+  );
 
-    return () => {
-      document.body.style.position = original.position;
-      document.body.style.top = original.top;
-      document.body.style.left = original.left;
-      document.body.style.right = original.right;
-      document.body.style.width = original.width;
-      document.body.style.overflowY = original.overflowY;
-      window.scrollTo(0, lockedScrollY);
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const modalContent = (
-    <div
-      className="execute-modal__overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="execute-modal-title"
-      ref={overlayRef}
-      onMouseDown={(e) => {
-        if (e.target === overlayRef.current) onClose();
-      }}
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      className="execute-modal__container"
+      renderHeader={renderHeader}
+      ariaLabel={`Execute: ${title || "task"}`}
     >
-      <div
-        className="execute-modal__container"
-        ref={containerRef}
-        aria-busy={loading}
-      >
+      <div className="execute-modal__split">
         <div className="execute-modal__left">
-          <div className="execute-modal__header">
-            <div id="execute-modal-title" className="execute-modal__title">
-              {title || "Execute"}
-            </div>
-            <div className="execute-modal__controls">
-              {/* [AI-CHAT-DISABLED] AI Prefill button
-              {resolvedSchema && (
-                <button
-                  className="btn execute-modal__ai-btn"
-                  title={
-                    aiAvailable
-                      ? "AI prefill based on schema"
-                      : "AI key not configured in Chat settings"
-                  }
-                  onClick={handleAIPrefill}
-                  disabled={!aiAvailable || aiLoading}
-                >
-                  {aiLoading ? "Filling\u2026" : "\u2727 Prefill"}
-                </button>
-              )}
-              */}
-              <label className="execute-modal__eval">
-                <input
-                  type="checkbox"
-                  checked={evalInput}
-                  onChange={(e) => setEvalInput(e.target.checked)}
-                />
-                Eval input
-              </label>
-              <button
-                className={`btn btn-primary ${
-                  loading ? "execute-modal__loading" : ""
-                }`}
-                onClick={handleRun}
-                disabled={loading}
-                title={loading ? "Running..." : "Run task (Ctrl+Enter)"}
-              >
-                {loading ? "Running..." : "Run"}
-              </button>
-              <button className="btn" onClick={onClose}>
-                Close
-              </button>
-            </div>
-          </div>
-
           <div className="execute-modal__body">
             {hasFormFields ? (
               <div className="execute-modal__form-layout">
@@ -540,12 +457,8 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </BaseModal>
   );
-
-  // Render the overlay at the document.body level to avoid being constrained
-  // by any parent stacking/transform contexts inside cards.
-  return createPortal(modalContent, document.body);
 };
 
 export default ExecuteModal;

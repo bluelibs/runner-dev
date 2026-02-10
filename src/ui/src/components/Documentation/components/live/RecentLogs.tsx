@@ -5,8 +5,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import JsonViewer from "../JsonViewer";
+import { BaseModal } from "../modals";
 import "./RecentLogs.scss";
 
 /**
@@ -68,6 +68,9 @@ const isEmptyJsonLikeValue = (value: unknown): boolean => {
   if (typeof value === "object") return Object.keys(value).length === 0;
   return false;
 };
+
+/** Maximum characters for the data preview shown in fullscreen log rows. */
+const MAX_DATA_PREVIEW = 200;
 
 export const RecentLogs: React.FC<RecentLogsProps> = ({
   logs,
@@ -149,15 +152,41 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     };
   }, [selectedLog]);
 
+  /** Renders a truncated data preview for fullscreen log rows. */
+  const renderDataPreview = (log: LogEntry, idx: number): React.ReactNode => {
+    const raw = log.data?.trim();
+    if (!raw || raw.toLowerCase() === "null" || raw === "{}" || raw === "[]")
+      return null;
+    const isTruncated = raw.length > MAX_DATA_PREVIEW;
+    return (
+      <div className="recent-logs-fs__data-preview">
+        <span className="recent-logs-fs__data-label">Data:</span>
+        <span className="recent-logs-fs__data-text">
+          {isTruncated ? raw.slice(0, MAX_DATA_PREVIEW) + "…" : raw}
+        </span>
+        {isTruncated && (
+          <button
+            type="button"
+            className="recent-logs-fs__data-more"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedLogIndex(idx);
+            }}
+          >
+            More
+          </button>
+        )}
+      </div>
+    );
+  };
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Escape cascade: detail modal and fullscreen overlay are handled by
+      // BaseModal's stack. We only handle clearing the search query here.
       if (e.key === "Escape") {
-        if (selectedLogIndex !== null) {
-          setSelectedLogIndex(null);
-        } else if (searchQuery) {
+        if (selectedLogIndex === null && !isFullscreen && searchQuery) {
           clearSearch();
-        } else if (isFullscreen) {
-          setIsFullscreen(false);
         }
       }
 
@@ -287,261 +316,233 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
         )}
       </div>
 
-      {isFullscreen &&
-        createPortal(
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="recent-logs-fs__overlay"
-            onClick={() => setIsFullscreen(false)}
-          >
-            <div
-              className="recent-logs-fs__panel"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="recent-logs-fs__header">
-                <h3 className="recent-logs-fs__title">
-                  Recent Logs - Full Screen
-                </h3>
-                <div className="recent-logs-fs__search">
-                  <span
-                    className="recent-logs-fs__search-icon"
-                    aria-hidden="true"
-                  >
-                    ⌕
-                  </span>
-                  <input
-                    ref={fsSearchInputRef}
-                    type="text"
-                    className="recent-logs-fs__search-input"
-                    placeholder="Search logs… (id, source, message, level)"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search logs"
-                    autoFocus
-                  />
-                  <div className="recent-logs-fs__search-actions">
-                    <button
-                      type="button"
-                      className={`recent-logs-fs__search-clear ${
-                        searchQuery
-                          ? ""
-                          : "recent-logs-fs__search-clear--hidden"
-                      }`}
-                      onClick={clearSearch}
-                      aria-label="Clear search"
-                      disabled={!searchQuery}
-                    >
-                      ✕
-                    </button>
-                    <span
-                      className={`recent-logs-fs__match-count ${
-                        searchQuery ? "" : "recent-logs-fs__match-count--hidden"
-                      }`}
-                    >
-                      {visibleLogs.length} match
-                      {visibleLogs.length !== 1 ? "es" : ""}
-                    </span>
-                  </div>
-                </div>
+      <BaseModal
+        isOpen={isFullscreen}
+        onClose={() => setIsFullscreen(false)}
+        title="Recent Logs - Full Screen"
+        size="fullscreen"
+        className="recent-logs-fs__panel"
+        ariaLabel="Recent Logs fullscreen view"
+        renderHeader={({ onClose: closeFs }) => (
+          <div className="recent-logs-fs__header">
+            <h3 className="recent-logs-fs__title">Recent Logs - Full Screen</h3>
+            <div className="recent-logs-fs__search">
+              <span className="recent-logs-fs__search-icon" aria-hidden="true">
+                ⌕
+              </span>
+              <input
+                ref={fsSearchInputRef}
+                type="text"
+                className="recent-logs-fs__search-input"
+                placeholder="Search logs… (id, source, message, level)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search logs"
+                autoFocus
+              />
+              <div className="recent-logs-fs__search-actions">
                 <button
-                  className="recent-logs-fs__close"
-                  onClick={() => setIsFullscreen(false)}
+                  type="button"
+                  className={`recent-logs-fs__search-clear ${
+                    searchQuery ? "" : "recent-logs-fs__search-clear--hidden"
+                  }`}
+                  onClick={clearSearch}
+                  aria-label="Clear search"
+                  disabled={!searchQuery}
                 >
-                  Close
+                  ✕
+                </button>
+                <span
+                  className={`recent-logs-fs__match-count ${
+                    searchQuery ? "" : "recent-logs-fs__match-count--hidden"
+                  }`}
+                >
+                  {visibleLogs.length} match
+                  {visibleLogs.length !== 1 ? "es" : ""}
+                </span>
+              </div>
+            </div>
+            <button className="recent-logs-fs__close" onClick={closeFs}>
+              Close
+            </button>
+          </div>
+        )}
+      >
+        <div className="recent-logs-fs__content">
+          {searchQuery && visibleLogs.length === 0 ? (
+            <div className="recent-logs-fs__empty">
+              <span className="recent-logs-fs__empty-icon">🔍</span>
+              <p className="recent-logs-fs__empty-text">No logs found</p>
+              <p className="recent-logs-fs__empty-hint">
+                Try adjusting your search query
+              </p>
+            </div>
+          ) : (
+            visibleLogs.map((log, idx) => (
+              <div
+                key={`fs-${log.timestampMs}-${idx}`}
+                className="recent-logs__row recent-logs__row--fullscreen"
+                onClick={() => setSelectedLogIndex(idx)}
+              >
+                <span className="recent-logs-fs__time">
+                  {formatTimestamp(log.timestampMs)}
+                </span>
+                <span
+                  className={`recent-logs-fs__level recent-logs-fs__level--${levelName(
+                    log.level
+                  )}`}
+                >
+                  {log.level}
+                </span>
+                <div className="recent-logs-fs__message-cell">
+                  <span className="recent-logs-fs__message">{log.message}</span>
+                  {renderDataPreview(log, idx)}
+                </div>
+                {log.correlationId && (
+                  <span
+                    className="recent-logs-fs__corr recent-logs-fs__corr--clickable"
+                    title={`Trace: ${log.correlationId}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCorrelationIdClick?.(log.correlationId!);
+                    }}
+                  >
+                    {shortCorrelationId(log.correlationId)}
+                  </span>
+                )}
+                {log.sourceId && (
+                  <a
+                    href={`#element-${log.sourceId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    title={`Go to source #${log.sourceId}`}
+                    className="recent-logs-fs__source"
+                  >
+                    #{log.sourceId}
+                  </a>
+                )}
+                <button
+                  className="recent-logs-fs__action"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedLogIndex(idx);
+                  }}
+                >
+                  Details
                 </button>
               </div>
-              <div className="recent-logs-fs__content">
-                {searchQuery && visibleLogs.length === 0 ? (
-                  <div className="recent-logs-fs__empty">
-                    <span className="recent-logs-fs__empty-icon">🔍</span>
-                    <p className="recent-logs-fs__empty-text">No logs found</p>
-                    <p className="recent-logs-fs__empty-hint">
-                      Try adjusting your search query
-                    </p>
+            ))
+          )}
+        </div>
+      </BaseModal>
+
+      <BaseModal
+        isOpen={selectedLog !== null}
+        onClose={() => setSelectedLogIndex(null)}
+        title="Log Details"
+        size="lg"
+        className="recent-logs-modal__panel"
+        ariaLabel="Log entry details"
+      >
+        {selectedLog && (
+          <div className="recent-logs-modal__content">
+            <div className="recent-logs-modal__grid">
+              <div>
+                <div className="recent-logs-modal__field">
+                  <div className="recent-logs-modal__label">Timestamp</div>
+                  <div className="recent-logs-modal__value recent-logs-modal__value--mono">
+                    {formatTimestamp(selectedLog.timestampMs)}
                   </div>
-                ) : (
-                  visibleLogs.map((log, idx) => (
-                    <div
-                      key={`fs-${log.timestampMs}-${idx}`}
-                      className="recent-logs__row recent-logs__row--fullscreen"
-                      onClick={() => setSelectedLogIndex(idx)}
-                    >
-                      <span className="recent-logs-fs__time">
-                        {formatTimestamp(log.timestampMs)}
-                      </span>
-                      <span
-                        className={`recent-logs-fs__level recent-logs-fs__level--${levelName(
-                          log.level
-                        )}`}
-                      >
-                        {log.level}
-                      </span>
-                      <span className="recent-logs-fs__message">
-                        {log.message}
-                      </span>
-                      {log.correlationId && (
-                        <span
-                          className="recent-logs-fs__corr recent-logs-fs__corr--clickable"
-                          title={`Trace: ${log.correlationId}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onCorrelationIdClick?.(log.correlationId!);
-                          }}
-                        >
-                          {shortCorrelationId(log.correlationId)}
-                        </span>
-                      )}
-                      {log.sourceId && (
-                        <a
-                          href={`#element-${log.sourceId}`}
-                          onClick={(e) => e.stopPropagation()}
-                          title={`Go to source #${log.sourceId}`}
-                          className="recent-logs-fs__source"
-                        >
-                          #{log.sourceId}
-                        </a>
-                      )}
-                      <button
-                        className="recent-logs-fs__action"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedLogIndex(idx);
-                        }}
-                      >
-                        Details
-                      </button>
+                </div>
+
+                <div className="recent-logs-modal__field">
+                  <div className="recent-logs-modal__label">Level</div>
+                  <span
+                    className={`recent-logs-modal__level recent-logs-modal__level--${levelName(
+                      selectedLog.level
+                    )}`}
+                  >
+                    {selectedLog.level}
+                  </span>
+                </div>
+
+                {selectedLog.correlationId && (
+                  <div className="recent-logs-modal__field">
+                    <div className="recent-logs-modal__label">
+                      Correlation ID
                     </div>
-                  ))
+                    <div
+                      className="recent-logs-modal__value recent-logs-modal__value--mono recent-logs-modal__value--break recent-logs-modal__value--clickable"
+                      onClick={() =>
+                        onCorrelationIdClick?.(selectedLog.correlationId!)
+                      }
+                      title="View full trace"
+                    >
+                      {selectedLog.correlationId}
+                    </div>
+                  </div>
+                )}
+
+                {selectedLog.sourceId && (
+                  <div className="recent-logs-modal__field">
+                    <div className="recent-logs-modal__label">Source</div>
+                    <a
+                      href={`#element-${selectedLog.sourceId}`}
+                      className="recent-logs-modal__source"
+                    >
+                      #{selectedLog.sourceId}
+                    </a>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>,
-          document.body
-        )}
 
-      {selectedLog &&
-        createPortal(
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="recent-logs-modal__overlay"
-            onClick={() => setSelectedLogIndex(null)}
-          >
-            <div
-              className="recent-logs-modal__panel"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="recent-logs-modal__header">
-                <h3 className="recent-logs-modal__title">Log Details</h3>
-                <button
-                  className="recent-logs-modal__close"
-                  onClick={() => setSelectedLogIndex(null)}
-                >
-                  Close
-                </button>
-              </div>
-              <div className="recent-logs-modal__content">
-                <div className="recent-logs-modal__grid">
-                  <div>
-                    <div className="recent-logs-modal__field">
-                      <div className="recent-logs-modal__label">Timestamp</div>
-                      <div className="recent-logs-modal__value recent-logs-modal__value--mono">
-                        {formatTimestamp(selectedLog.timestampMs)}
-                      </div>
-                    </div>
-
-                    <div className="recent-logs-modal__field">
-                      <div className="recent-logs-modal__label">Level</div>
-                      <span
-                        className={`recent-logs-modal__level recent-logs-modal__level--${levelName(
-                          selectedLog.level
-                        )}`}
-                      >
-                        {selectedLog.level}
-                      </span>
-                    </div>
-
-                    {selectedLog.correlationId && (
-                      <div className="recent-logs-modal__field">
-                        <div className="recent-logs-modal__label">
-                          Correlation ID
-                        </div>
-                        <div
-                          className="recent-logs-modal__value recent-logs-modal__value--mono recent-logs-modal__value--break recent-logs-modal__value--clickable"
-                          onClick={() =>
-                            onCorrelationIdClick?.(selectedLog.correlationId!)
-                          }
-                          title="View full trace"
-                        >
-                          {selectedLog.correlationId}
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedLog.sourceId && (
-                      <div className="recent-logs-modal__field">
-                        <div className="recent-logs-modal__label">Source</div>
-                        <a
-                          href={`#element-${selectedLog.sourceId}`}
-                          className="recent-logs-modal__source"
-                        >
-                          #{selectedLog.sourceId}
-                        </a>
-                      </div>
-                    )}
+              <div>
+                <div className="recent-logs-modal__field">
+                  <div className="recent-logs-modal__label">Message</div>
+                  <div className="recent-logs-modal__message">
+                    {selectedLog.message}
                   </div>
+                </div>
 
-                  <div>
-                    <div className="recent-logs-modal__field">
-                      <div className="recent-logs-modal__label">Message</div>
-                      <div className="recent-logs-modal__message">
-                        {selectedLog.message}
+                <div>
+                  <div className="recent-logs-modal__data-header">
+                    <div className="recent-logs-modal__label">Data</div>
+                    <button
+                      className="recent-logs-modal__copy"
+                      disabled={!selectedLogData.hasData}
+                      title={
+                        selectedLogData.hasData
+                          ? "Copy log data"
+                          : "No data to copy"
+                      }
+                      onClick={() => {
+                        if (!selectedLogData.hasData) return;
+                        navigator.clipboard
+                          .writeText(selectedLogData.raw)
+                          .catch(() => {});
+                      }}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className="recent-logs-modal__data">
+                    {!selectedLogData.hasData ? (
+                      <div className="recent-logs-modal__empty">
+                        Data is empty or missing for this log entry.
                       </div>
-                    </div>
-
-                    <div>
-                      <div className="recent-logs-modal__data-header">
-                        <div className="recent-logs-modal__label">Data</div>
-                        <button
-                          className="recent-logs-modal__copy"
-                          disabled={!selectedLogData.hasData}
-                          title={
-                            selectedLogData.hasData
-                              ? "Copy log data"
-                              : "No data to copy"
-                          }
-                          onClick={() => {
-                            if (!selectedLogData.hasData) return;
-                            navigator.clipboard
-                              .writeText(selectedLogData.raw)
-                              .catch(() => {});
-                          }}
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <div className="recent-logs-modal__data">
-                        {!selectedLogData.hasData ? (
-                          <div className="recent-logs-modal__empty">
-                            Data is empty or missing for this log entry.
-                          </div>
-                        ) : selectedLogData.parsed ? (
-                          <JsonViewer data={selectedLogData.parsed} />
-                        ) : (
-                          <pre className="recent-logs-modal__pre">
-                            {selectedLogData.raw}
-                          </pre>
-                        )}
-                      </div>
-                    </div>
+                    ) : selectedLogData.parsed ? (
+                      <JsonViewer data={selectedLogData.parsed} />
+                    ) : (
+                      <pre className="recent-logs-modal__pre">
+                        {selectedLogData.raw}
+                      </pre>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-          </div>,
-          document.body
+          </div>
         )}
+      </BaseModal>
     </div>
   );
 };

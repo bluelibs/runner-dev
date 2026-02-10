@@ -1,25 +1,10 @@
 .overview-stats-panel {
-  /* Base container; default is inline flow. Use the --overlay modifier for full-screen overlay */
-
-  &--overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1400; // high z-index to appear above chat sidebar
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--docs-overlay-bg, rgba(0, 0, 0, 0.6));
-    animation: fadeIn 120ms ease-out;
-  }
-
+  // Visual overrides only when used as BaseModal className.
+  // Layout (width, max-height, border-radius, overflow) is handled by BaseModal.
   &__content {
-    width: min(1100px, 92vw);
-    max-height: 86vh;
     background: var(--docs-bg-primary);
     border: 1px solid var(--docs-border-primary);
-    border-radius: 16px;
     padding: 24px;
-    overflow: auto;
     box-shadow: var(--docs-shadow-xl, 0 25px 80px rgba(0, 0, 0, 0.15));
     backdrop-filter: blur(8px);
   }
@@ -128,14 +113,5 @@
         }
       }
     }
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }

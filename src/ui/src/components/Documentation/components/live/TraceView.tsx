@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { createPortal } from "react-dom";
 import JsonViewer from "../JsonViewer";
 import type {
   LogEntry,
@@ -7,6 +6,7 @@ import type {
   ErrorEntry,
   RunRecord,
 } from "../../hooks/useLiveStream";
+import { BaseModal } from "../modals";
 import "./TraceView.scss";
 
 // ─── Unified timeline entry ──────────────────────────────────────────────────
@@ -186,157 +186,140 @@ export const TraceView: React.FC<TraceViewProps> = ({
     return counts;
   }, [timeline]);
 
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="trace-view__overlay"
-      onClick={onClose}
+  return (
+    <BaseModal
+      isOpen
+      onClose={onClose}
+      title="🔍 Trace View"
+      subtitle={correlationId}
+      size="xl"
+      className="trace-view__panel"
+      ariaLabel={`Trace view for ${correlationId}`}
     >
-      <div className="trace-view__panel" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="trace-view__header">
-          <div className="trace-view__header-left">
-            <h3 className="trace-view__title">🔍 Trace View</h3>
-            <span className="trace-view__corr-id" title={correlationId}>
-              {correlationId}
-            </span>
-          </div>
-          <button className="trace-view__close" onClick={onClose}>
-            Close
-          </button>
-        </div>
+      {/* Stats bar */}
+      <div className="trace-view__stats">
+        {(Object.keys(stats) as TraceEntryKind[]).map((kind) => (
+          <span
+            key={kind}
+            className={`trace-view__stat trace-view__stat--${kind}`}
+          >
+            {KIND_ICONS[kind]} {stats[kind]} {KIND_LABELS[kind]}
+            {stats[kind] !== 1 ? "S" : ""}
+          </span>
+        ))}
+        <span className="trace-view__stat trace-view__stat--total">
+          {timeline.length} total
+        </span>
+      </div>
 
-        {/* Stats bar */}
-        <div className="trace-view__stats">
-          {(Object.keys(stats) as TraceEntryKind[]).map((kind) => (
-            <span
-              key={kind}
-              className={`trace-view__stat trace-view__stat--${kind}`}
-            >
-              {KIND_ICONS[kind]} {stats[kind]} {KIND_LABELS[kind]}
-              {stats[kind] !== 1 ? "S" : ""}
-            </span>
-          ))}
-          <span className="trace-view__stat trace-view__stat--total">
-            {timeline.length} total
+      {/* Timeline */}
+      {timeline.length === 0 ? (
+        <div className="trace-view__empty">
+          No entries found for this correlation ID.
+        </div>
+      ) : (
+        <div className="trace-view__timeline">
+          {timeline.map((entry, idx) => {
+            const relativeMs = entry.timestampMs - timeSpan.startMs;
+            const isExpanded = expandedIndex === idx;
+            const hasDetail =
+              entry.detail && Object.keys(entry.detail).length > 0;
+
+            return (
+              <div
+                key={idx}
+                className={`trace-view__entry trace-view__entry--${
+                  entry.kind
+                } ${isExpanded ? "trace-view__entry--expanded" : ""}`}
+                onClick={() =>
+                  setExpandedIndex(isExpanded ? null : hasDetail ? idx : null)
+                }
+              >
+                {/* Timeline gutter */}
+                <div className="trace-view__gutter">
+                  <div className="trace-view__dot" />
+                  {idx < timeline.length - 1 && (
+                    <div className="trace-view__connector" />
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="trace-view__content">
+                  <div className="trace-view__row">
+                    <span className="trace-view__time">
+                      {shortTime(entry.timestampMs)}
+                    </span>
+                    <span
+                      className={`trace-view__badge trace-view__badge--${entry.kind}`}
+                    >
+                      {KIND_ICONS[entry.kind]} {KIND_LABELS[entry.kind]}
+                    </span>
+                    <span className="trace-view__summary">{entry.summary}</span>
+                    {relativeMs > 0 && (
+                      <span className="trace-view__offset">
+                        +{relativeMs.toFixed(0)}ms
+                      </span>
+                    )}
+                    {entry.sourceId && (
+                      <a
+                        href={`#element-${entry.sourceId}`}
+                        className="trace-view__link"
+                        onClick={(e) => e.stopPropagation()}
+                        title={`Go to ${entry.sourceId}`}
+                      >
+                        →
+                      </a>
+                    )}
+                    {hasDetail && (
+                      <button
+                        type="button"
+                        className="trace-view__expand-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedIndex(isExpanded ? null : idx);
+                        }}
+                      >
+                        {isExpanded ? "▾" : "▸"}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Expanded detail */}
+                  {isExpanded && hasDetail && (
+                    <div
+                      className="trace-view__detail"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {Object.entries(entry.detail!).map(([key, value]) => (
+                        <div key={key} className="trace-view__detail-section">
+                          <div className="trace-view__detail-label">{key}</div>
+                          <div className="trace-view__detail-value">
+                            {renderDetailValue(value)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Time span footer */}
+      {timeline.length >= 2 && (
+        <div className="trace-view__footer">
+          <span>
+            {formatTimestamp(timeSpan.startMs)} →{" "}
+            {formatTimestamp(timeSpan.startMs + timeSpan.durationMs)}
+          </span>
+          <span className="trace-view__duration">
+            Total span: {timeSpan.durationMs.toFixed(0)}ms
           </span>
         </div>
-
-        {/* Timeline */}
-        {timeline.length === 0 ? (
-          <div className="trace-view__empty">
-            No entries found for this correlation ID.
-          </div>
-        ) : (
-          <div className="trace-view__timeline">
-            {timeline.map((entry, idx) => {
-              const relativeMs = entry.timestampMs - timeSpan.startMs;
-              const isExpanded = expandedIndex === idx;
-              const hasDetail =
-                entry.detail && Object.keys(entry.detail).length > 0;
-
-              return (
-                <div
-                  key={idx}
-                  className={`trace-view__entry trace-view__entry--${
-                    entry.kind
-                  } ${isExpanded ? "trace-view__entry--expanded" : ""}`}
-                  onClick={() =>
-                    setExpandedIndex(isExpanded ? null : hasDetail ? idx : null)
-                  }
-                >
-                  {/* Timeline gutter */}
-                  <div className="trace-view__gutter">
-                    <div className="trace-view__dot" />
-                    {idx < timeline.length - 1 && (
-                      <div className="trace-view__connector" />
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="trace-view__content">
-                    <div className="trace-view__row">
-                      <span className="trace-view__time">
-                        {shortTime(entry.timestampMs)}
-                      </span>
-                      <span
-                        className={`trace-view__badge trace-view__badge--${entry.kind}`}
-                      >
-                        {KIND_ICONS[entry.kind]} {KIND_LABELS[entry.kind]}
-                      </span>
-                      <span className="trace-view__summary">
-                        {entry.summary}
-                      </span>
-                      {relativeMs > 0 && (
-                        <span className="trace-view__offset">
-                          +{relativeMs.toFixed(0)}ms
-                        </span>
-                      )}
-                      {entry.sourceId && (
-                        <a
-                          href={`#element-${entry.sourceId}`}
-                          className="trace-view__link"
-                          onClick={(e) => e.stopPropagation()}
-                          title={`Go to ${entry.sourceId}`}
-                        >
-                          →
-                        </a>
-                      )}
-                      {hasDetail && (
-                        <button
-                          type="button"
-                          className="trace-view__expand-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedIndex(isExpanded ? null : idx);
-                          }}
-                        >
-                          {isExpanded ? "▾" : "▸"}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Expanded detail */}
-                    {isExpanded && hasDetail && (
-                      <div
-                        className="trace-view__detail"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {Object.entries(entry.detail!).map(([key, value]) => (
-                          <div key={key} className="trace-view__detail-section">
-                            <div className="trace-view__detail-label">
-                              {key}
-                            </div>
-                            <div className="trace-view__detail-value">
-                              {renderDetailValue(value)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Time span footer */}
-        {timeline.length >= 2 && (
-          <div className="trace-view__footer">
-            <span>
-              {formatTimestamp(timeSpan.startMs)} →{" "}
-              {formatTimestamp(timeSpan.startMs + timeSpan.durationMs)}
-            </span>
-            <span className="trace-view__duration">
-              Total span: {timeSpan.durationMs.toFixed(0)}ms
-            </span>
-          </div>
-        )}
-      </div>
-    </div>,
-    document.body
+      )}
+    </BaseModal>
   );
 };
 

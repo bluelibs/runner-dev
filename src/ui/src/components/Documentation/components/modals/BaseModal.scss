@@ -1,0 +1,203 @@
+// =============================================================================
+// BaseModal — shared styles for every modal in the application
+// =============================================================================
+@use "../../../../styles/variables" as *;
+
+// ---------------------------------------------------------------------------
+// Backdrop
+// ---------------------------------------------------------------------------
+.base-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  // Animate entrance
+  &--animate {
+    animation: baseModalFadeIn 0.2s ease-out both;
+  }
+}
+
+@keyframes baseModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Panel (dialog box)
+// ---------------------------------------------------------------------------
+.base-modal__panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  border-radius: var(--border-radius-xl, 12px);
+  background: var(--docs-bg-elevated, #1e1e1e);
+  border: 1px solid var(--docs-border-primary, #374151);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  color: var(--docs-text-primary);
+  overflow: hidden;
+
+  // Animate entrance
+  &--animate {
+    animation: baseModalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  // ----- Size variants -----
+  &--sm {
+    width: 90vw;
+    max-width: 480px;
+  }
+
+  &--md {
+    width: 90vw;
+    max-width: 640px;
+  }
+
+  &--lg {
+    width: 92vw;
+    max-width: 900px;
+  }
+
+  &--xl {
+    width: 95vw;
+    max-width: 1200px;
+  }
+
+  &--fullscreen {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
+
+@keyframes baseModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
+.base-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--docs-border-primary, #374151);
+  gap: 12px;
+  flex-shrink: 0;
+
+  &--minimal {
+    justify-content: flex-end;
+    border-bottom: none;
+    padding: 8px 12px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 1;
+  }
+}
+
+.base-modal__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.base-modal__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--docs-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.base-modal__subtitle {
+  font-size: 12px;
+  color: var(--docs-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.base-modal__header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.base-modal__esc-hint {
+  font-size: 11px;
+  color: var(--docs-text-disabled, #6b7280);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.base-modal__close {
+  background: none;
+  border: 1px solid var(--docs-border-primary, #374151);
+  border-radius: var(--border-radius-md, 6px);
+  color: var(--docs-text-secondary, #d1d5db);
+  cursor: pointer;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--docs-hover-bg, rgba(59, 130, 246, 0.1));
+    color: var(--docs-text-primary);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Body
+// ---------------------------------------------------------------------------
+.base-modal__body {
+  flex: 1;
+  overflow: auto;
+  min-height: 0; // allow flex shrinking
+}
+
+// ---------------------------------------------------------------------------
+// Responsive
+// ---------------------------------------------------------------------------
+@media (max-width: 768px) {
+  .base-modal__panel {
+    &--sm,
+    &--md,
+    &--lg,
+    &--xl {
+      width: 100vw;
+      max-width: 100vw;
+      max-height: 100vh;
+      height: 100vh;
+      border-radius: 0;
+    }
+  }
+}

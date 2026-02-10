@@ -69,8 +69,8 @@ const isEmptyJsonLikeValue = (value: unknown): boolean => {
   return false;
 };
 
-/** Maximum characters for the data preview shown in fullscreen log rows. */
-const MAX_DATA_PREVIEW = 200;
+/** Maximum characters shown for a message in fullscreen log rows. */
+const MAX_MESSAGE_PREVIEW = 200;
 
 export const RecentLogs: React.FC<RecentLogsProps> = ({
   logs,
@@ -151,34 +151,6 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
       parsed,
     };
   }, [selectedLog]);
-
-  /** Renders a truncated data preview for fullscreen log rows. */
-  const renderDataPreview = (log: LogEntry, idx: number): React.ReactNode => {
-    const raw = log.data?.trim();
-    if (!raw || raw.toLowerCase() === "null" || raw === "{}" || raw === "[]")
-      return null;
-    const isTruncated = raw.length > MAX_DATA_PREVIEW;
-    return (
-      <div className="recent-logs-fs__data-preview">
-        <span className="recent-logs-fs__data-label">Data:</span>
-        <span className="recent-logs-fs__data-text">
-          {isTruncated ? raw.slice(0, MAX_DATA_PREVIEW) + "…" : raw}
-        </span>
-        {isTruncated && (
-          <button
-            type="button"
-            className="recent-logs-fs__data-more"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedLogIndex(idx);
-            }}
-          >
-            More
-          </button>
-        )}
-      </div>
-    );
-  };
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -395,8 +367,23 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                   {log.level}
                 </span>
                 <div className="recent-logs-fs__message-cell">
-                  <span className="recent-logs-fs__message">{log.message}</span>
-                  {renderDataPreview(log, idx)}
+                  <span className="recent-logs-fs__message">
+                    {log.message.length > MAX_MESSAGE_PREVIEW
+                      ? log.message.slice(0, MAX_MESSAGE_PREVIEW) + "…"
+                      : log.message}
+                  </span>
+                  {log.message.length > MAX_MESSAGE_PREVIEW && (
+                    <button
+                      type="button"
+                      className="recent-logs-fs__msg-more"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedLogIndex(idx);
+                      }}
+                    >
+                      More
+                    </button>
+                  )}
                 </div>
                 {log.correlationId && (
                   <span

@@ -47,8 +47,8 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
         middleware: { fileContents: string | null };
       }>(SAMPLE_MIDDLEWARE_FILE_QUERY, { id: middleware.id });
       setFileContent(data?.middleware?.fileContents ?? null);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load file");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load file");
       setFileContent(null);
     } finally {
       setLoading(false);

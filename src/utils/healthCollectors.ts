@@ -94,7 +94,9 @@ let prevElu: EventLoopUtilization | undefined;
 
 export function getCpuEluUtilization(): number {
   try {
-    const current = performance.eventLoopUtilization(prevElu as any);
+    const current = prevElu
+      ? performance.eventLoopUtilization(prevElu)
+      : performance.eventLoopUtilization();
     prevElu = current;
     return Number.isFinite(current.utilization) ? current.utilization : 0;
   } catch {

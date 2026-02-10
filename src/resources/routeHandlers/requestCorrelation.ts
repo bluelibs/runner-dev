@@ -19,8 +19,8 @@ export function createRequestCorrelationMiddleware() {
       return next();
     }
 
-    const correlationId =
-      (req.headers["x-correlation-id"] as string) || randomUUID();
+    const raw = req.headers["x-correlation-id"];
+    const correlationId = (Array.isArray(raw) ? raw[0] : raw) || randomUUID();
 
     runContext.run({ chain: [], correlationId }, () => {
       next();

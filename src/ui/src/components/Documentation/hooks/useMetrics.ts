@@ -70,8 +70,8 @@ export function useMetrics(
       }
     `;
 
-    async function fetchAndAggregate(after?: number) {
-      setIsLoading(true);
+    async function fetchAndAggregate(after?: number, initial = false) {
+      if (initial) setIsLoading(true);
       try {
         const data = await graphqlRequest<{
           live: {
@@ -180,11 +180,8 @@ export function useMetrics(
       }
     }
 
-    fetchAndAggregate();
-    const id = window.setInterval(
-      () => fetchAndAggregate(Date.now() - pollIntervalMs),
-      pollIntervalMs
-    );
+    fetchAndAggregate(undefined, true);
+    const id = window.setInterval(() => fetchAndAggregate(), pollIntervalMs);
     return () => {
       cancelled = true;
       window.clearInterval(id);

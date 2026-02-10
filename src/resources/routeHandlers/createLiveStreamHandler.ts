@@ -64,7 +64,11 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
     /** Write a single SSE frame. */
     const sendEvent = (eventName: string, data: unknown) => {
       if (closed) return;
-      res.write(`event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`);
+      try {
+        res.write(`event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`);
+      } catch {
+        cleanup();
+      }
     };
 
     /** Read new telemetry entries since `cursor`, serialize, and push. */

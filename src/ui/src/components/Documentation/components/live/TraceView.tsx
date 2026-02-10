@@ -94,7 +94,7 @@ function buildTimeline(
       timestampMs: log.timestampMs,
       summary: `[${log.level.toUpperCase()}] ${log.message}`,
       sourceId: log.sourceId ?? undefined,
-      detail: { data: log.data || "{}" },
+      detail: log.data ? { data: log.data } : undefined,
       raw: log,
     });
   }

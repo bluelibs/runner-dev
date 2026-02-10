@@ -264,7 +264,7 @@ export function useLiveStream(
         const variables: Record<string, unknown> = {
           last: detailed ? 50 : 10,
         };
-        if (afterTimestamp) {
+        if (afterTimestamp != null) {
           variables.afterTimestamp = afterTimestamp;
         }
 
@@ -340,10 +340,15 @@ export function useLiveStream(
     es.addEventListener("telemetry", (event: MessageEvent) => {
       if (!isActiveRef.current) return;
       try {
-        const delta = JSON.parse(event.data) as Pick<
-          LiveData,
-          "logs" | "emissions" | "errors" | "runs"
+        const raw = JSON.parse(event.data) as Partial<
+          Pick<LiveData, "logs" | "emissions" | "errors" | "runs">
         >;
+        const delta = {
+          logs: raw.logs ?? [],
+          emissions: raw.emissions ?? [],
+          errors: raw.errors ?? [],
+          runs: raw.runs ?? [],
+        };
 
         setLiveData((prev) => mergeLiveData(prev, delta, true));
 

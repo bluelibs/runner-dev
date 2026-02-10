@@ -297,6 +297,7 @@ const liveService = resource({
           message,
           stack,
           data,
+          correlationId: getCorrelationId() ?? null,
         });
         trim(errors);
         notifyRecordListeners("error");

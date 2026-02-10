@@ -3,7 +3,12 @@ import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { Extension } from "@codemirror/state";
-import { ViewPlugin, DecorationSet, Decoration } from "@codemirror/view";
+import {
+  ViewPlugin,
+  DecorationSet,
+  Decoration,
+  ViewUpdate,
+} from "@codemirror/view";
 import { EditorView } from "@codemirror/view";
 import "./CodeModal.scss";
 import { graphqlRequest } from "../utils/graphqlClient";
@@ -37,8 +42,8 @@ function createLineCoverageExtension(lines: LineCoverage[]): Extension {
         this.decorations = this.buildDecorations(view);
       }
 
-      update(update: { doc: any; viewport: any }) {
-        if (update.doc.changed || update.viewportChanged) {
+      update(update: ViewUpdate) {
+        if (update.docChanged || update.viewportChanged) {
           this.decorations = this.buildDecorations(update.view);
         }
       }
@@ -47,10 +52,9 @@ function createLineCoverageExtension(lines: LineCoverage[]): Extension {
         const builder = [];
 
         lines.forEach((lineCoverage) => {
-          const line = lineCoverage.line - 1; // CodeMirror lines are 0-indexed
-          if (line >= 0 && line < view.state.doc.lines) {
-            const from = view.state.doc.line(line).from;
-            const to = view.state.doc.line(line).to;
+          const lineNum = lineCoverage.line; // CM6 doc.line() is 1-indexed
+          if (lineNum >= 1 && lineNum <= view.state.doc.lines) {
+            const from = view.state.doc.line(lineNum).from;
 
             const mark = Decoration.line({
               attributes: {
@@ -63,7 +67,7 @@ function createLineCoverageExtension(lines: LineCoverage[]): Extension {
               },
             });
 
-            builder.push(mark.range(from, to));
+            builder.push(mark.range(from));
           }
         });
 

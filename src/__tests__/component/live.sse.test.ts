@@ -122,7 +122,9 @@ describe("createLiveStreamHandler", () => {
       const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
       if (!dataLine) return false;
       const parsed = JSON.parse(dataLine.replace("data: ", ""));
-      return parsed.logs.some((l: any) => l.message === "sse-test-message");
+      return parsed.logs.some(
+        (l: { message: string }) => l.message === "sse-test-message"
+      );
     });
     expect(hasOurLog).toBe(true);
 

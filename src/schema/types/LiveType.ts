@@ -390,7 +390,7 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           last: args.last ?? undefined,
           levels: args.filter?.levels ?? undefined,
           messageIncludes: args.filter?.messageIncludes ?? undefined,
-          correlationIds: (args as any).filter?.correlationIds ?? undefined,
+          correlationIds: args.filter?.correlationIds ?? undefined,
         });
       },
     },
@@ -417,6 +417,7 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           last: args.last ?? undefined,
           eventIds: args.filter?.eventIds ?? undefined,
           emitterIds: args.filter?.emitterIds ?? undefined,
+          correlationIds: args.filter?.correlationIds ?? undefined,
         });
       },
     },
@@ -444,6 +445,7 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           sourceKinds: args.filter?.sourceKinds ?? undefined,
           sourceIds: args.filter?.sourceIds ?? undefined,
           messageIncludes: args.filter?.messageIncludes ?? undefined,
+          correlationIds: args.filter?.correlationIds ?? undefined,
         });
       },
     },
@@ -471,9 +473,9 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           nodeKinds: args.filter?.nodeKinds ?? undefined,
           nodeIds: args.filter?.nodeIds ?? undefined,
           ok: args.filter?.ok ?? undefined,
-          parentIds: (args as any).filter?.parentIds ?? undefined,
-          rootIds: (args as any).filter?.rootIds ?? undefined,
-          correlationIds: (args as any).filter?.correlationIds ?? undefined,
+          parentIds: args.filter?.parentIds ?? undefined,
+          rootIds: args.filter?.rootIds ?? undefined,
+          correlationIds: args.filter?.correlationIds ?? undefined,
         });
       },
     },

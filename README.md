@@ -552,7 +552,7 @@ Notes:
 
 In addition to GraphQL polling, the server exposes a **Server-Sent Events** endpoint at `GET /live/stream` for near-instant telemetry delivery:
 
-```
+```http
 GET /live/stream
 Accept: text/event-stream
 ```

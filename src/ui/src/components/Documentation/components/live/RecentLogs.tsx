@@ -82,7 +82,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const fsSearchInputRef = useRef<HTMLInputElement>(null);
 
-  const clearSearch = useCallback(() => setSearchQuery(""), []);
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setSelectedLogIndex(null);
+  }, []);
 
   const formatTimestamp = (timestampMs: number): string => {
     const d = new Date(timestampMs);
@@ -189,7 +192,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
             className="recent-logs__search-input"
             placeholder="Search logs… (id, source, message, level)"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setSelectedLogIndex(null);
+            }}
             aria-label="Search logs"
           />
           {searchQuery && (
@@ -308,7 +314,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                 className="recent-logs-fs__search-input"
                 placeholder="Search logs… (id, source, message, level)"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedLogIndex(null);
+                }}
                 aria-label="Search logs"
                 autoFocus
               />

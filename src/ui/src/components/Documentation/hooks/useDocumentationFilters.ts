@@ -44,7 +44,7 @@ export const useDocumentationFilters = (
       // Elements: if tag-search, match by tag ids; otherwise match by id
       result = result.filter((item) =>
         elementMatchesParsed(
-          { id: String((item as any).id), tags: (item as any).tags || [] },
+          { id: item.id, tags: item.tags || [] },
           parsedSearch
         )
       );
@@ -62,7 +62,7 @@ export const useDocumentationFilters = (
     // Tags list: keep consistent behavior — always filter by id text
     let tags = introspector.getAllTags();
     if (!showSystem) {
-      tags = tags.filter((t: any) => !isSystemElement(t));
+      tags = tags.filter((t) => !isSystemElement(t));
     }
     if (localNamespaceSearch) {
       const body = parsedSearch.isTagSearch

@@ -992,6 +992,95 @@ body {
 }
 
 // -----------------------------------------------------------------------------
+// Run Info Panel (below overview grid)
+// -----------------------------------------------------------------------------
+.overview-run-info {
+  margin-top: $spacing-xxl;
+  padding: $spacing-xl;
+  border-radius: $border-radius-xl;
+  background: var(--docs-bg-tertiary);
+  border: 1px solid var(--docs-border-primary);
+
+  h3 {
+    margin: 0 0 $spacing-lg 0;
+    font-size: $font-size-lg;
+    color: var(--docs-text-primary);
+  }
+
+  &__grid {
+    display: flex;
+    gap: $spacing-xxl;
+    flex-wrap: wrap;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    color: var(--docs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+
+  &__value {
+    font-size: $font-size-md;
+    color: var(--docs-text-primary);
+    font-weight: 500;
+  }
+
+  &__link {
+    color: var(--docs-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: var(--docs-info);
+      text-decoration: underline;
+    }
+  }
+
+  &__badge {
+    display: inline-block;
+    padding: 2px $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+
+    &--dev {
+      background: rgba(96, 165, 250, 0.18);
+      color: #60a5fa;
+    }
+
+    &--test {
+      background: rgba(251, 191, 36, 0.18);
+      color: #fbbf24;
+    }
+
+    &--prod {
+      background: rgba(52, 211, 153, 0.18);
+      color: #34d399;
+    }
+
+    &--on {
+      background: rgba(249, 115, 22, 0.18);
+      color: #f97316;
+    }
+
+    &--off {
+      background: var(--docs-hover-bg);
+      color: var(--docs-text-muted);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Component Grid
 // -----------------------------------------------------------------------------
 .docs-component-grid {

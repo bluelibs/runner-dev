@@ -48,5 +48,14 @@ describe("Introspector serialize/deserialize", () => {
     // Diagnostics can be called client-side
     const diags = clientInst.getDiagnostics();
     expect(Array.isArray(diags)).toBe(true);
+
+    // runOptions should survive round-trip
+    const opts = clientInst.getRunOptions();
+    expect(opts).toBeDefined();
+    expect(typeof opts.mode).toBe("string");
+    expect(["dev", "test", "prod"]).toContain(opts.mode);
+    expect(typeof opts.debug).toBe("boolean");
+    expect(typeof opts.rootId).toBe("string");
+    expect(opts.rootId).toBeTruthy();
   });
 });

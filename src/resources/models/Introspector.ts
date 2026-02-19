@@ -7,6 +7,7 @@ import type {
   Tag,
   Error as ErrorModel,
   AsyncContext as AsyncContextModel,
+  RunOptions,
 } from "../../schema";
 import type { Store } from "@bluelibs/runner";
 import type { DiagnosticItem } from "../../schema";
@@ -51,6 +52,7 @@ export type SerializedIntrospector = {
   missingFiles?: Array<{ id: string; filePath: string }>;
   overrideConflicts?: Array<{ targetId: string; by: string }>;
   rootId?: string | null;
+  runOptions?: RunOptions | null;
 };
 
 export class Introspector {
@@ -64,8 +66,10 @@ export class Introspector {
   public tags: Tag[] = [];
   public errors: ErrorModel[] = [];
   public asyncContexts: AsyncContextModel[] = [];
-  public store: Pick<Store, "tasks" | "resources" | "root"> | null = null;
+  public store: Pick<Store, "tasks" | "resources" | "root" | "mode"> | null =
+    null;
   public rootId: string | null = null;
+  public runOptions: RunOptions | null = null;
 
   public taskMap: Map<string, Task> = new Map();
   public hookMap: Map<string, Hook> = new Map();
@@ -78,7 +82,7 @@ export class Introspector {
 
   constructor(
     input:
-      | { store: Pick<Store, "tasks" | "resources" | "root"> }
+      | { store: Pick<Store, "tasks" | "resources" | "root" | "mode"> }
       | { data: SerializedIntrospector }
   ) {
     if ("store" in input) {
@@ -103,6 +107,7 @@ export class Introspector {
       ? data.asyncContexts
       : [];
     this.rootId = data.rootId ?? null;
+    this.runOptions = data.runOptions ?? null;
 
     // Maps
     this.taskMap = buildIdMap(this.tasks);
@@ -173,6 +178,34 @@ export class Introspector {
       : null;
     const id = idFromStore ?? this.rootId ?? this.resources[0]?.id;
     return stampElementKind(this.resourceMap.get(String(id))!, "RESOURCE");
+  }
+
+  /**
+   * Returns the effective run options that were used when the application was started.
+   * When a live store is available, options are derived from it; otherwise
+   * the previously serialized snapshot is used.
+   */
+  getRunOptions(): RunOptions {
+    if (this.store) {
+      const s = this.store;
+      const rootId =
+        s.root?.resource?.id != null
+          ? String(s.root.resource.id)
+          : this.rootId ?? "";
+      const hasDebug = s.resources.has("globals.resources.debug");
+      return {
+        mode: s.mode ?? "dev",
+        debug: hasDebug,
+        rootId,
+      };
+    }
+    // Fallback to serialized data
+    if (this.runOptions) return this.runOptions;
+    return {
+      mode: "dev",
+      debug: false,
+      rootId: this.rootId ?? "",
+    };
   }
 
   getAll(): (
@@ -867,6 +900,7 @@ export class Introspector {
         (this.store as any)?.root?.resource?.id != null
           ? String((this.store as any).root.resource.id)
           : this.rootId,
+      runOptions: this.getRunOptions(),
     };
   }
 

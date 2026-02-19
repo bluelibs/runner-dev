@@ -21,6 +21,7 @@ import {
   DiagnosticType,
   ErrorType,
   AsyncContextType,
+  RunOptionsType,
 } from "./types/index";
 import { SwappedTaskType } from "./types/SwapType";
 import type {
@@ -68,6 +69,13 @@ export const QueryType = new GraphQLObjectType({
       type: ResourceType,
       resolve: (_root, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getRoot(),
+    },
+    runOptions: {
+      description:
+        "Effective run options used when starting the application via run(). Includes mode, debug flag, and root resource id.",
+      type: new GraphQLNonNull(RunOptionsType),
+      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRunOptions(),
     },
     all: {
       description:

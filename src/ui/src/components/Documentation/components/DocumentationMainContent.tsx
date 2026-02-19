@@ -63,6 +63,7 @@ export const DocumentationMainContent: React.FC<
   sections,
 }) => {
   const rootResource = introspector.getRoot();
+  const runOptions = introspector.getRunOptions();
   const rootTitle =
     rootResource?.meta?.title || "Runner Application Documentation";
   const rootDescription =
@@ -285,6 +286,40 @@ export const DocumentationMainContent: React.FC<
               <div className="card card--connections">
                 <h3>Connections</h3>
                 <div className="count">{totalConnections}</div>
+              </div>
+            </div>
+
+            <div className="overview-run-info">
+              <h3>🚀 Run Info</h3>
+              <div className="overview-run-info__grid">
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">Root</span>
+                  <a
+                    href={`#element-${rootResource?.id}`}
+                    className="overview-run-info__value overview-run-info__link"
+                    title={rootResource?.id}
+                  >
+                    {rootResource?.meta?.title || rootResource?.id || "—"}
+                  </a>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">Mode</span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${runOptions.mode}`}
+                  >
+                    {runOptions.mode}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">Debug</span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      runOptions.debug ? "on" : "off"
+                    }`}
+                  >
+                    {runOptions.debug ? "enabled" : "disabled"}
+                  </span>
+                </div>
               </div>
             </div>
           </section>

@@ -32,6 +32,7 @@ export {
 export { CoverageInfoType } from "./CoverageType";
 export { ErrorType } from "./ErrorType";
 export { AsyncContextType } from "./AsyncContextType";
+export { RunOptionsType } from "./RunOptionsType";
 export {
   TunnelInfoType,
   TunnelModeEnum,

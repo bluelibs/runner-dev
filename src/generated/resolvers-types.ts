@@ -691,6 +691,8 @@ export type Query = {
   resources: Array<Resource>;
   /** Root application 'resource'. This is what the main run() received as argument. */
   root: Maybe<Resource>;
+  /** Effective run options used when starting the application via run(). Includes mode, debug flag, and root resource id. */
+  runOptions: RunOptions;
   /** List of tasks currently hot-swapped. */
   swappedTasks: Array<SwappedTask>;
   /** Get reverse usage for a tag id. Returns usedBy lists split by kind. */
@@ -937,6 +939,17 @@ export type RunFilterInput = {
   parentIds: InputMaybe<Array<Scalars['String']['input']>>;
   /** Only include runs with specific root ids */
   rootIds: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Effective run options that were used when starting the application via run(). */
+export type RunOptions = {
+  __typename?: 'RunOptions';
+  /** Whether the debug resource was enabled at startup. True when run() received a debug option. */
+  debug: Scalars['Boolean']['output'];
+  /** The mode in which the runner is operating: "dev", "prod", or "test". */
+  mode: Scalars['String']['output'];
+  /** The id of the root resource passed to run(). */
+  rootId: Scalars['String']['output'];
 };
 
 export type RunRecord = {
@@ -1327,6 +1340,7 @@ export type ResolversTypes = ResolversObject<{
   Resource: ResolverTypeWrapper<Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'tunnelInfo' | 'usedBy'> & { dependsOnResolved: Array<ResolversTypes['Resource']>, emits: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversTypes['BaseElement']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, registersResolved: Array<ResolversTypes['BaseElement']>, tags: Maybe<Array<ResolversTypes['Tag']>>, tunnelInfo: Maybe<ResolversTypes['TunnelInfo']>, usedBy: Array<ResolversTypes['Task']> }>;
   ResourceMiddleware: ResolverTypeWrapper<Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Resource']>, usedByDetailed: Array<ResolversTypes['MiddlewareResourceUsage']> }>;
   RunFilterInput: RunFilterInput;
+  RunOptions: ResolverTypeWrapper<RunOptions>;
   RunRecord: ResolverTypeWrapper<Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversTypes['BaseElement']> }>;
   SourceKindEnum: SourceKindEnum;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
@@ -1388,6 +1402,7 @@ export type ResolversParentTypes = ResolversObject<{
   Resource: Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'tunnelInfo' | 'usedBy'> & { dependsOnResolved: Array<ResolversParentTypes['Resource']>, emits: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversParentTypes['BaseElement']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, registersResolved: Array<ResolversParentTypes['BaseElement']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, tunnelInfo: Maybe<ResolversParentTypes['TunnelInfo']>, usedBy: Array<ResolversParentTypes['Task']> };
   ResourceMiddleware: Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Resource']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareResourceUsage']> };
   RunFilterInput: RunFilterInput;
+  RunOptions: RunOptions;
   RunRecord: Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversParentTypes['BaseElement']> };
   String: Scalars['String']['output'];
   SwapResult: SwapResult;
@@ -1724,6 +1739,7 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   resourceMiddlewares: Resolver<Array<ResolversTypes['ResourceMiddleware']>, ParentType, ContextType, QueryResourceMiddlewaresArgs>;
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType, QueryResourcesArgs>;
   root: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
+  runOptions: Resolver<ResolversTypes['RunOptions'], ParentType, ContextType>;
   swappedTasks: Resolver<Array<ResolversTypes['SwappedTask']>, ParentType, ContextType>;
   tag: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<QueryTagArgs, 'id'>>;
   tags: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
@@ -1782,6 +1798,13 @@ export type ResourceMiddlewareResolvers<ContextType = CustomGraphQLContext, Pare
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
   usedByDetailed: Resolver<Array<ResolversTypes['MiddlewareResourceUsage']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RunOptionsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunOptions'] = ResolversParentTypes['RunOptions']> = ResolversObject<{
+  debug: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  mode: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  rootId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1957,6 +1980,7 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   Query: QueryResolvers<ContextType>;
   Resource: ResourceResolvers<ContextType>;
   ResourceMiddleware: ResourceMiddlewareResolvers<ContextType>;
+  RunOptions: RunOptionsResolvers<ContextType>;
   RunRecord: RunRecordResolvers<ContextType>;
   SwapResult: SwapResultResolvers<ContextType>;
   SwappedTask: SwappedTaskResolvers<ContextType>;

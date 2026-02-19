@@ -39,6 +39,11 @@ describe("GraphQL schema (integration)", () => {
           filePath
           markdownDescription
         }
+        runOptions {
+          mode
+          debug
+          rootId
+        }
         tasks {
           id
           filePath
@@ -171,6 +176,14 @@ describe("GraphQL schema (integration)", () => {
     // Explicitly-declared event should have a filePath (comes from store symbol)
     expect(typeof evt.filePath === "string").toBe(true);
     expect(evt.filePath).toBeTruthy();
+
+    // runOptions
+    expect(data.runOptions).toBeDefined();
+    expect(typeof data.runOptions.mode).toBe("string");
+    expect(["dev", "test", "prod"]).toContain(data.runOptions.mode);
+    expect(typeof data.runOptions.debug).toBe("boolean");
+    expect(typeof data.runOptions.rootId).toBe("string");
+    expect(data.runOptions.rootId).toBeTruthy();
   });
 
   test("deep traversal from task -> middlewareResolved -> dependents", async () => {

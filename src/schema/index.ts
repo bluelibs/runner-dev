@@ -23,6 +23,7 @@ import {
   TunnelInfoType,
   TunnelModeEnum,
   TunnelTransportEnum,
+  RunOptionsType,
 } from "./types/index";
 
 export const createSchema = (_swapManager?: ISwapManager) => {
@@ -50,6 +51,7 @@ export const createSchema = (_swapManager?: ISwapManager) => {
       TunnelInfoType,
       TunnelModeEnum,
       TunnelTransportEnum,
+      RunOptionsType,
     ],
   });
 };
@@ -78,6 +80,7 @@ export const schema = new GraphQLSchema({
     TunnelInfoType,
     TunnelModeEnum,
     TunnelTransportEnum,
+    RunOptionsType,
   ],
 });
 

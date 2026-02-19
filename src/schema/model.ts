@@ -190,6 +190,13 @@ export interface AsyncContext extends BaseElement {
   providedBy: string[];
 }
 
+// Run options (effective at startup)
+export interface RunOptions {
+  mode: string;
+  debug: boolean;
+  rootId: string;
+}
+
 // Diagnostics
 export interface DiagnosticItem {
   severity: string;

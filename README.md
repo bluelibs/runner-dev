@@ -727,6 +727,18 @@ export const app = resource({
 
 #### Queries
 
+**Get the effective run options (how the app was started):**
+
+```graphql
+query {
+  runOptions {
+    mode
+    debug
+    rootId
+  }
+}
+```
+
 **Get currently swapped tasks:**
 
 ```graphql

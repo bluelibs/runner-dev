@@ -29,6 +29,11 @@ query SystemOverview {
     }
     filePath
   }
+  runOptions {
+    mode
+    debug
+    rootId
+  }
 }
 
 # Get specific element types

@@ -1,7 +1,11 @@
 import React from "react";
 import { Task } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import { formatFilePath, formatId } from "../utils/formatting";
+import {
+  formatFilePath,
+  formatId,
+  shouldDisplayConfig,
+} from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
@@ -691,7 +695,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   </div>
                   <div className="id">{usage.id}</div>
                 </a>
-                {usage.config && (
+                {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>
                     <pre className="config-block">{usage.config}</pre>

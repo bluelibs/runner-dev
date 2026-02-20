@@ -1,7 +1,12 @@
 import React from "react";
 import { Resource } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import { formatConfig, formatFilePath, formatId } from "../utils/formatting";
+import {
+  formatConfig,
+  formatFilePath,
+  formatId,
+  shouldDisplayConfig,
+} from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
@@ -414,7 +419,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                       }
                     />
                     <span className="resource-card__relations__search-count">
-                      {filteredRegisteredElements.length}/{registeredElements.length}
+                      {filteredRegisteredElements.length}/
+                      {registeredElements.length}
                     </span>
                   </div>
                 )}
@@ -459,7 +465,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   {usage.node.meta?.title || formatId(usage.id)}
                 </div>
                 <div className="id">{usage.id}</div>
-                {usage.config && (
+                {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>
                     <pre className="config-block">{usage.config}</pre>

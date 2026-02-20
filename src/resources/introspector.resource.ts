@@ -11,9 +11,10 @@ export const introspector = resource({
   },
   dependencies: {
     store: globals.resources.store,
+    runtime: globals.resources.runtime,
   },
-  async init(_, { store }) {
-    const i = new Introspector({ store });
+  async init(_, { store, runtime }) {
+    const i = new Introspector({ store, runtime });
     initializeFromStore(i, store);
     i.populateTunnelInfo();
     return i;

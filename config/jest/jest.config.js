@@ -27,7 +27,9 @@ module.exports = {
       displayName: "node",
       testEnvironment: "node",
       testMatch: ["<rootDir>/src/**/*.test.ts"],
-      testPathIgnorePatterns: ["<rootDir>/src/ui/src/components/Documentation/components/chat/"],
+      testPathIgnorePatterns: [
+        "<rootDir>/src/ui/src/components/Documentation/components/chat/",
+      ],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
@@ -41,7 +43,9 @@ module.exports = {
       rootDir: rootDir,
       displayName: "jsdom",
       testEnvironment: "jsdom",
-      testMatch: ["<rootDir>/src/ui/src/components/Documentation/components/chat/**/*.test.ts"],
+      testMatch: [
+        "<rootDir>/src/ui/src/components/Documentation/components/chat/**/*.test.ts",
+      ],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",

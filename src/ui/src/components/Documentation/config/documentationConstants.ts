@@ -2,6 +2,7 @@ export const DOCUMENTATION_CONSTANTS = {
   // LocalStorage keys
   STORAGE_KEYS: {
     SHOW_SYSTEM: "docs-show-system",
+    SHOW_PRIVATE: "docs-show-private",
     SIDEBAR_WIDTH: "docs-sidebar-width",
     CHAT_SIDEBAR_WIDTH: "docs-chat-sidebar-width",
     CHAT_OPEN: "docs-chat-open",
@@ -18,6 +19,7 @@ export const DOCUMENTATION_CONSTANTS = {
     VIEW_MODE: "list" as const,
     TREE_TYPE: "namespace" as const,
     SHOW_SYSTEM: false,
+    SHOW_PRIVATE: true,
     COMPACT_MODE: false,
   },
 

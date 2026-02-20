@@ -13,6 +13,10 @@ export interface BaseElement {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
+  // True when this element is internal to a resource exports() boundary.
+  isPrivate?: boolean;
+  // Optional debugging detail for why this element is private/public.
+  visibilityReason?: string | null;
   // Id of the resource that registered this element (if any)
   registeredBy?: string | null;
   overriddenBy?: string | null;
@@ -134,6 +138,11 @@ export interface Task extends BaseElement {
   isDurable?: boolean;
   durableResourceId?: string | null;
   flowShape?: DurableFlowShape | null;
+  // Runtime-registered per-task interceptors via taskDependency.intercept(...)
+  interceptorCount?: number;
+  hasInterceptors?: boolean;
+  // Resource ids that registered local task interceptors.
+  interceptorOwnerIds?: string[];
 }
 
 export interface Hook extends BaseElement {
@@ -159,6 +168,8 @@ export interface Resource extends BaseElement {
   middlewareDetailed?: MiddlewareUsage[];
   overrides: string[];
   registers: string[];
+  // Exposed ids from resource.exports([...]) when configured.
+  exports?: string[] | null;
   context?: string | null;
   // Tunnel information (populated when resource has globals.tags.tunnel)
   tunnelInfo?: TunnelInfo | null;
@@ -188,6 +199,38 @@ export interface AsyncContext extends BaseElement {
   requiredBy: string[];
   // Resource IDs that provide this context
   providedBy: string[];
+}
+
+// Run options (effective at startup)
+export interface RunOptions {
+  mode: string;
+  // Whether debug instrumentation is enabled.
+  debug: boolean;
+  // High-level debug mode summary when available: "normal", "verbose", "custom", or "disabled".
+  debugMode?: string | null;
+  // Whether logger output is printed (false when printThreshold is null).
+  logsEnabled: boolean;
+  // Logger print threshold summary (trace/debug/info/warn/error/critical) or null when disabled.
+  logsPrintThreshold?: string | null;
+  // Logger print strategy summary (pretty/json/minimal) when available.
+  logsPrintStrategy?: string | null;
+  // Whether logger is buffering logs.
+  logsBuffer: boolean;
+  // May be unknown when options cannot be introspected from runtime internals.
+  errorBoundary?: boolean | null;
+  // May be unknown when options cannot be introspected from runtime internals.
+  shutdownHooks?: boolean | null;
+  // Whether app was started in dryRun mode when known.
+  dryRun: boolean;
+  // Whether lazy resource mode is enabled when known.
+  lazy: boolean;
+  // Startup scheduler mode summary.
+  initMode: "sequential" | "parallel";
+  // Runtime event cycle detection toggle when known.
+  runtimeEventCycleDetection?: boolean | null;
+  // Presence flag for onUnhandledError callback.
+  hasOnUnhandledError: boolean;
+  rootId: string;
 }
 
 // Diagnostics

@@ -1,7 +1,11 @@
 import React from "react";
 import { Task } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import { formatFilePath, formatId } from "../utils/formatting";
+import {
+  formatFilePath,
+  formatId,
+  shouldDisplayConfig,
+} from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
@@ -400,6 +404,33 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
             </InfoBlock>
           )}
 
+          <InfoBlock prefix="task-card" label="Visibility:">
+            {task.isPrivate ? "Private" : "Public"}
+          </InfoBlock>
+
+          <InfoBlock prefix="task-card" label="Interceptors:">
+            {task.hasInterceptors
+              ? `${task.interceptorCount ?? 0} runtime interceptor(s)`
+              : "None"}
+          </InfoBlock>
+
+          {Array.isArray(task.interceptorOwnerIds) &&
+            task.interceptorOwnerIds.length > 0 && (
+              <InfoBlock prefix="task-card" label="Intercepted By:">
+                <div className="task-card__tags">
+                  {task.interceptorOwnerIds.map((ownerId) => (
+                    <a
+                      href={`#element-${ownerId}`}
+                      key={ownerId}
+                      className="clean-button"
+                    >
+                      {formatId(ownerId)}
+                    </a>
+                  ))}
+                </div>
+              </InfoBlock>
+            )}
+
           <InfoBlock prefix="task-card" label="Emits Events:">
             {task.emits && task.emits.length > 0 ? (
               <div className="task-card__emits-events">
@@ -424,7 +455,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 })}
               </div>
             ) : (
-              <span className="task-card__no-events">None</span>
+              "None"
             )}
           </InfoBlock>
 
@@ -664,7 +695,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                   </div>
                   <div className="id">{usage.id}</div>
                 </a>
-                {usage.config && (
+                {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>
                     <pre className="config-block">{usage.config}</pre>

@@ -106,6 +106,12 @@ export interface InfoBlockProps {
   valueClassName?: string;
 }
 
+function isEmptyInfoValue(children: React.ReactNode): boolean {
+  return (
+    typeof children === "string" && children.trim().toLowerCase() === "none"
+  );
+}
+
 export const InfoBlock: React.FC<InfoBlockProps> = ({
   prefix,
   label,
@@ -113,10 +119,20 @@ export const InfoBlock: React.FC<InfoBlockProps> = ({
   className,
   valueClassName,
 }) => {
+  const isEmptyValue = isEmptyInfoValue(children);
+
   return (
     <div className={joinClasses(`${prefix}__info-block`, className)}>
       <div className="label">{label}</div>
-      <div className={joinClasses("value", valueClassName)}>{children}</div>
+      <div
+        className={joinClasses(
+          "value",
+          valueClassName,
+          isEmptyValue && "value--empty"
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 };

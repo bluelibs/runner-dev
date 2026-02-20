@@ -40,7 +40,10 @@ const app = resource({
 
 - Fully-featured UI with AI assistance to explore your app, call tasks, emit events, diagnostics, logs and more.
 - Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters.
+- Overview tables now include `Visibility` (`Public`/`Private`) derived from Runner resource `exports()` boundaries.
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
+- Task introspection includes runtime `interceptorCount` / `hasInterceptors` (registered via `taskDependency.intercept(...)` in resource init).
+- Resource introspection includes `exports` (resolved list of ids exposed by `.exports([...])`).
 - Live: in-memory logs and event emissions
 - Live File Previews and Saving.
 - GraphQL server: deep graph navigation over your app’s topology and live data
@@ -726,6 +729,18 @@ export const app = resource({
 ### GraphQL API
 
 #### Queries
+
+**Get the effective run options (how the app was started):**
+
+```graphql
+query {
+  runOptions {
+    mode
+    debug
+    rootId
+  }
+}
+```
 
 **Get currently swapped tasks:**
 

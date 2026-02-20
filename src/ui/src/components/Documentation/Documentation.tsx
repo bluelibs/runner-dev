@@ -193,6 +193,21 @@ export const Documentation: React.FC<DocumentationProps> = ({
     filterHook.hooks.length +
     filterHook.middlewares.length;
 
+  const resolveSectionFromElementId = React.useCallback(
+    (elementId: string): string | null => {
+      if (introspector.getTask(elementId)) return "tasks";
+      if (introspector.getResource(elementId)) return "resources";
+      if (introspector.getEvent(elementId)) return "events";
+      if (introspector.getHook(elementId)) return "hooks";
+      if (introspector.getMiddleware(elementId)) return "middlewares";
+      if (introspector.getError(elementId)) return "errors";
+      if (introspector.getAsyncContext(elementId)) return "asyncContexts";
+      if (introspector.getTag(elementId)) return "tags";
+      return null;
+    },
+    [introspector]
+  );
+
   const handleSectionClick = (sectionId: string) => {
     // Update hash for deep-linking, then ensure the main content container scrolls
     window.location.hash = `#${sectionId}`;
@@ -298,6 +313,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
           treeType={viewModeHook.treeType}
           localNamespaceSearch={filterHook.localNamespaceSearch}
           showSystem={filterHook.showSystem}
+          showPrivate={filterHook.showPrivate}
           treeNodes={treeHook.treeNodes}
           sections={sections}
           totalComponents={totalComponents}
@@ -305,9 +321,11 @@ export const Documentation: React.FC<DocumentationProps> = ({
           onTreeTypeChange={viewModeHook.handleTreeTypeChange}
           onNamespaceSearchChange={filterHook.setLocalNamespaceSearch}
           onShowSystemChange={filterHook.handleShowSystemChange}
+          onShowPrivateChange={filterHook.handleShowPrivateChange}
           onTreeNodeClick={treeHook.handleTreeNodeClick}
           onToggleExpansion={treeHook.handleToggleExpansion}
           onSectionClick={handleSectionClick}
+          resolveSectionFromElementId={resolveSectionFromElementId}
         />
 
         {/* Sidebar Resizer */}

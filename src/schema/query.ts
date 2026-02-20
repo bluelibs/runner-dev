@@ -21,6 +21,8 @@ import {
   DiagnosticType,
   ErrorType,
   AsyncContextType,
+  RunOptionsType,
+  InterceptorOwnersSnapshotType,
 } from "./types/index";
 import { SwappedTaskType } from "./types/SwapType";
 import type {
@@ -68,6 +70,36 @@ export const QueryType = new GraphQLObjectType({
       type: ResourceType,
       resolve: (_root, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getRoot(),
+    },
+    runOptions: {
+      description:
+        "Effective run options used when starting the application via run(). Includes mode, debug flag, and root resource id.",
+      type: new GraphQLNonNull(RunOptionsType),
+      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRunOptions(),
+    },
+    interceptorOwners: {
+      description:
+        "Snapshot of interceptor ownership: local task interceptors by task id and middleware interceptor ownership from middleware manager.",
+      type: new GraphQLNonNull(InterceptorOwnersSnapshotType),
+      resolve: (_root, _args, ctx: CustomGraphQLContext) => {
+        const snapshot = ctx.introspector.getInterceptorOwnersSnapshot();
+        const tasksById: Record<string, string[]> = {};
+
+        for (const task of ctx.introspector.getTasks()) {
+          const ownerResourceIds = ctx.introspector.getTaskInterceptorOwnerIds(
+            task.id
+          );
+          if (ownerResourceIds.length > 0) {
+            tasksById[task.id] = ownerResourceIds;
+          }
+        }
+
+        return {
+          ...snapshot,
+          tasksById,
+        };
+      },
     },
     all: {
       description:

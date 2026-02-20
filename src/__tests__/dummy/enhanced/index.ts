@@ -125,6 +125,69 @@ import {
 import { tunnelAndDurableExampleRegistrations } from "./examples/tunnelAndDurableExample";
 
 // ====================
+// EXPORTS + INTERCEPTOR SHOWCASE
+// ====================
+
+const interceptorPublicTask = r
+  .task("app.examples.tasks.interceptorPublic")
+  .meta({
+    title: "Interceptor Public Task",
+    description: "Public task used to showcase runtime task interceptors.",
+  })
+  .run(async (input: { value: number }) => ({ value: input.value }))
+  .build();
+
+const interceptorPrivateTask = r
+  .task("app.examples.tasks.interceptorPrivate")
+  .meta({
+    title: "Interceptor Private Task",
+    description:
+      "Private task hidden behind exports() to showcase visibility boundaries.",
+  })
+  .run(async () => "private-value")
+  .build();
+
+const interceptorVisibilityModule = r
+  .resource("app.examples.resources.interceptorVisibility")
+  .meta({
+    title: "Interceptor Visibility Module",
+    description:
+      "Owns a public task and a private task; exports only the public one.",
+  })
+  .register([interceptorPublicTask, interceptorPrivateTask])
+  .exports([interceptorPublicTask])
+  .build();
+
+const interceptorInstallerResource = r
+  .resource("app.examples.resources.interceptorInstaller")
+  .meta({
+    title: "Interceptor Installer",
+    description:
+      "Installs a per-task runtime interceptor for interceptorPublicTask.",
+  })
+  .dependencies({ interceptorPublicTask })
+  .init(async (_config, { interceptorPublicTask }) => {
+    interceptorPublicTask.intercept(async (next, input) => {
+      return next({ value: input.value + 10 });
+    });
+    return {};
+  })
+  .build();
+
+const interceptorConsumerTask = r
+  .task("app.examples.tasks.interceptorConsumer")
+  .meta({
+    title: "Interceptor Consumer Task",
+    description:
+      "Calls interceptorPublicTask so the demo exposes interceptor effects.",
+  })
+  .dependencies({ interceptorPublicTask })
+  .run(async (_input, { interceptorPublicTask }) =>
+    interceptorPublicTask({ value: 1 })
+  )
+  .build();
+
+// ====================
 // MAIN ENHANCED APPLICATION
 // ====================
 
@@ -173,7 +236,10 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
       completeUserJourneyTask,
       errorHandlingDemoTask,
       contextPropagationDemoTask,
+      interceptorConsumerTask,
       ...tunnelAndDurableExampleRegistrations,
+      interceptorVisibilityModule,
+      interceptorInstallerResource,
 
       // Tunneling (optional - requires remote server)
       tunnelClient,
@@ -192,6 +258,8 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
       console.log("   ✅ Enhanced user management with security");
       console.log("   ✅ Dynamic product pricing and inventory");
       console.log("   ✅ Comprehensive error handling");
+      console.log("   ✅ Resource exports() visibility boundaries");
+      console.log("   ✅ Runtime task interceptors");
       console.log("   ✅ Integration examples and demos");
       console.log("   🔗 Tunnel showcase with server-mode policy");
       console.log("   ⏱️  Durable workflow showcase with step/sleep/note");
@@ -205,6 +273,9 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
       );
       console.log(
         "   🔄 app.examples.contextPropagation - Context propagation demo"
+      );
+      console.log(
+        "   🧪 app.examples.tasks.interceptorConsumer - exports/interceptor showcase"
       );
       console.log(
         "   🌐 app.examples.tunnel.tasks.catalogSync - Tunnel policy task sample"

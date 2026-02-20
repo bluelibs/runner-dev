@@ -20,6 +20,31 @@ export const formatConfig = (config: string | null | undefined): string => {
   }
 };
 
+export const shouldDisplayConfig = (
+  config: string | null | undefined
+): boolean => {
+  if (!config) return false;
+
+  const trimmedConfig = config.trim();
+  if (!trimmedConfig) return false;
+
+  try {
+    const parsed = JSON.parse(trimmedConfig);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed) &&
+      Object.keys(parsed).length === 0
+    ) {
+      return false;
+    }
+  } catch {
+    // For non-JSON strings, keep current behavior and show the raw value.
+  }
+
+  return true;
+};
+
 export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + "...";

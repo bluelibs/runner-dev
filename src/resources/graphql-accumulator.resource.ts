@@ -16,6 +16,7 @@ import {
   SwappedTaskType,
   SwapResultType,
   TaskType,
+  InterceptorOwnersSnapshotType,
 } from "../schema/types";
 
 export const graphqlAccumulator = resource({
@@ -44,6 +45,7 @@ export const graphqlAccumulator = resource({
         DiagnosticType,
         SwapResultType,
         SwappedTaskType,
+        InterceptorOwnersSnapshotType,
       ];
 
       return new GraphQLSchema({

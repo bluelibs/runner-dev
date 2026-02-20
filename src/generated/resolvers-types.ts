@@ -31,6 +31,8 @@ export type All = BaseElement & {
   filePath: Maybe<Scalars['String']['output']>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -39,6 +41,8 @@ export type All = BaseElement & {
   tags: Maybe<Array<Tag>>;
   /** Detailed tags associated with this element */
   tagsDetailed: Maybe<Array<TagUsage>>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -61,6 +65,8 @@ export type AsyncContext = BaseElement & {
   filePath: Maybe<Scalars['String']['output']>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -79,6 +85,8 @@ export type AsyncContext = BaseElement & {
   tagsDetailed: Maybe<Array<TagUsage>>;
   /** Tasks and resources that use this async context as a dependency */
   usedBy: Array<All>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -96,6 +104,8 @@ export type BaseElement = {
   filePath: Maybe<Scalars['String']['output']>;
   /** Stable identifier */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Optional metadata (title, description, tags) */
@@ -104,6 +114,8 @@ export type BaseElement = {
   tags: Maybe<Array<Tag>>;
   /** Detailed tags associated with this element */
   tagsDetailed: Maybe<Array<TagUsage>>;
+  /** Optional visibility explanation for this element. */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -193,6 +205,8 @@ export type Error = BaseElement & {
   filePath: Maybe<Scalars['String']['output']>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -203,6 +217,8 @@ export type Error = BaseElement & {
   tagsDetailed: Maybe<Array<TagUsage>>;
   /** Tasks and resources that throw this error */
   thrownBy: Array<All>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -260,6 +276,8 @@ export type Event = BaseElement & {
   filePath: Maybe<Scalars['String']['output']>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Ids of task/hook nodes listening to this event */
   listenedToBy: Array<Scalars['String']['output']>;
   /** Task/hook nodes listening to this event (resolved) */
@@ -280,6 +298,8 @@ export type Event = BaseElement & {
   tags: Maybe<Array<Tag>>;
   /** Detailed tags associated with this element */
   tagsDetailed: Maybe<Array<TagUsage>>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -417,6 +437,8 @@ export type Hook = BaseElement & {
   inputSchema: Maybe<Scalars['String']['output']>;
   /** Readable text representation of the input schema, if provided */
   inputSchemaReadable: Maybe<Scalars['String']['output']>;
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -439,6 +461,8 @@ export type Hook = BaseElement & {
   tags: Maybe<Array<Tag>>;
   /** Detailed tags associated with this element */
   tagsDetailed: Maybe<Array<TagUsage>>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -452,6 +476,12 @@ export type HookRunsArgs = {
   afterTimestamp: InputMaybe<Scalars['Int']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type InterceptorOwnersSnapshot = {
+  __typename?: 'InterceptorOwnersSnapshot';
+  middleware: MiddlewareInterceptorOwnersSnapshot;
+  tasksById: Array<TaskInterceptorOwnersEntry>;
 };
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
@@ -601,6 +631,8 @@ export type Middleware = BaseElement & {
   global: Maybe<GlobalMiddleware>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -627,12 +659,28 @@ export type Middleware = BaseElement & {
   usedByTasksDetailed: Array<MiddlewareTaskUsage>;
   /** Task/hook nodes that use this middleware (resolved) */
   usedByTasksResolved: Array<Task>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
 export type MiddlewareFileContentsArgs = {
   endLine: InputMaybe<Scalars['Int']['input']>;
   startLine: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type MiddlewareInterceptorOwnersEntry = {
+  __typename?: 'MiddlewareInterceptorOwnersEntry';
+  middlewareId: Scalars['String']['output'];
+  ownerResourceIds: Array<Scalars['String']['output']>;
+};
+
+export type MiddlewareInterceptorOwnersSnapshot = {
+  __typename?: 'MiddlewareInterceptorOwnersSnapshot';
+  globalResourceInterceptorOwnerIds: Array<Scalars['String']['output']>;
+  globalTaskInterceptorOwnerIds: Array<Scalars['String']['output']>;
+  perResourceMiddlewareInterceptorOwnerIds: Array<MiddlewareInterceptorOwnersEntry>;
+  perTaskMiddlewareInterceptorOwnerIds: Array<MiddlewareInterceptorOwnersEntry>;
 };
 
 export type MiddlewareResourceUsage = {
@@ -677,6 +725,8 @@ export type Query = {
   hook: Maybe<Hook>;
   /** Get all hooks (optionally filter by id prefix). */
   hooks: Array<Hook>;
+  /** Snapshot of interceptor ownership: local task interceptors by task id and middleware interceptor ownership from middleware manager. */
+  interceptorOwners: InterceptorOwnersSnapshot;
   /** Access live telemetry (logs, emissions, errors, runs, system stats). Always use filters and last to limit payload. */
   live: Live;
   /** Get a single middleware by its id. */
@@ -691,6 +741,8 @@ export type Query = {
   resources: Array<Resource>;
   /** Root application 'resource'. This is what the main run() received as argument. */
   root: Maybe<Resource>;
+  /** Effective run options used when starting the application via run(). Includes mode, debug flag, and root resource id. */
+  runOptions: RunOptions;
   /** List of tasks currently hot-swapped. */
   swappedTasks: Array<SwappedTask>;
   /** Get reverse usage for a tag id. Returns usedBy lists split by kind. */
@@ -833,12 +885,16 @@ export type Resource = BaseElement & {
   dependsOnResolved: Array<Resource>;
   /** Events emitted by tasks/hooks that depend on this resource */
   emits: Array<Event>;
+  /** Ids explicitly exported by this resource via exports([...]). Null means exports() is not configured. */
+  exports: Maybe<Array<Scalars['String']['output']>>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
   /** Path to task file */
   filePath: Maybe<Scalars['String']['output']>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -869,6 +925,8 @@ export type Resource = BaseElement & {
   tunnelInfo: Maybe<TunnelInfo>;
   /** Task nodes using this resource (resolved) */
   usedBy: Array<Task>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -897,6 +955,8 @@ export type ResourceMiddleware = BaseElement & {
   global: Maybe<GlobalMiddleware>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -915,6 +975,8 @@ export type ResourceMiddleware = BaseElement & {
   usedBy: Array<Resource>;
   /** Detailed resource usages with per-usage config */
   usedByDetailed: Array<MiddlewareResourceUsage>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -937,6 +999,41 @@ export type RunFilterInput = {
   parentIds: InputMaybe<Array<Scalars['String']['input']>>;
   /** Only include runs with specific root ids */
   rootIds: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Effective run options that were used when starting the application via run(). */
+export type RunOptions = {
+  __typename?: 'RunOptions';
+  /** Whether the debug resource was enabled at startup. True when run() received a debug option. */
+  debug: Scalars['Boolean']['output'];
+  /** High-level debug mode summary: "normal", "verbose", "custom", or "disabled". */
+  debugMode: Maybe<Scalars['String']['output']>;
+  /** Whether startup runs in dry-run mode. */
+  dryRun: Scalars['Boolean']['output'];
+  /** Whether process-level error boundaries are enabled. Null when unknown. */
+  errorBoundary: Maybe<Scalars['Boolean']['output']>;
+  /** Presence flag for an onUnhandledError callback. */
+  hasOnUnhandledError: Scalars['Boolean']['output'];
+  /** Startup scheduler mode: "sequential" or "parallel". */
+  initMode: Scalars['String']['output'];
+  /** Whether lazy resource mode is enabled. */
+  lazy: Scalars['Boolean']['output'];
+  /** Whether the logger buffers logs in memory. */
+  logsBuffer: Scalars['Boolean']['output'];
+  /** Whether logger output is printed. False when printThreshold is null. */
+  logsEnabled: Scalars['Boolean']['output'];
+  /** Effective logger print strategy when available. */
+  logsPrintStrategy: Maybe<Scalars['String']['output']>;
+  /** Effective logger print threshold, or null when disabled. */
+  logsPrintThreshold: Maybe<Scalars['String']['output']>;
+  /** The mode in which the runner is operating: "dev", "prod", or "test". */
+  mode: Scalars['String']['output'];
+  /** The id of the root resource passed to run(). */
+  rootId: Scalars['String']['output'];
+  /** Whether runtime event cycle detection is enabled. Null when unknown. */
+  runtimeEventCycleDetection: Maybe<Scalars['Boolean']['output']>;
+  /** Whether SIGINT/SIGTERM shutdown hooks are enabled. Null when unknown. */
+  shutdownHooks: Maybe<Scalars['Boolean']['output']>;
 };
 
 export type RunRecord = {
@@ -1002,6 +1099,8 @@ export type Tag = BaseElement & {
   hooks: Array<Hook>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -1013,6 +1112,8 @@ export type Tag = BaseElement & {
   /** Detailed tags associated with this element */
   tagsDetailed: Maybe<Array<TagUsage>>;
   tasks: Array<Task>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -1052,14 +1153,22 @@ export type Task = BaseElement & {
   filePath: Maybe<Scalars['String']['output']>;
   /** The workflow structure (steps, sleeps, signals, etc.) for durable tasks */
   flowShape: Maybe<DurableFlowShape>;
+  /** Whether this task has runtime interceptors registered via taskDependency.intercept(...). */
+  hasInterceptors: Scalars['Boolean']['output'];
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
   /** Prettified Zod JSON structure for the input schema, if provided */
   inputSchema: Maybe<Scalars['String']['output']>;
   /** Readable text representation of the input schema, if provided */
   inputSchemaReadable: Maybe<Scalars['String']['output']>;
+  /** Number of runtime task interceptors registered via taskDependency.intercept(...). */
+  interceptorCount: Scalars['Int']['output'];
+  /** Resource ids that registered local task interceptors for this task. */
+  interceptorOwnerIds: Array<Scalars['String']['output']>;
   /** Whether this task is a durable workflow (tagged with durable.workflow) */
   isDurable: Scalars['Boolean']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -1082,6 +1191,8 @@ export type Task = BaseElement & {
   tags: Maybe<Array<Tag>>;
   /** Detailed tags associated with this element */
   tagsDetailed: Maybe<Array<TagUsage>>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -1109,6 +1220,12 @@ export type TaskDependsOn = {
   tasks: Array<BaseElement>;
 };
 
+export type TaskInterceptorOwnersEntry = {
+  __typename?: 'TaskInterceptorOwnersEntry';
+  ownerResourceIds: Array<Scalars['String']['output']>;
+  taskId: Scalars['String']['output'];
+};
+
 export type TaskMiddleware = BaseElement & {
   __typename?: 'TaskMiddleware';
   /** Prettified Zod JSON structure for the middleware config schema, if provided */
@@ -1129,6 +1246,8 @@ export type TaskMiddleware = BaseElement & {
   global: Maybe<GlobalMiddleware>;
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
+  /** True when this element is private to a resource boundary defined by exports(). */
+  isPrivate: Scalars['Boolean']['output'];
   /** Markdown composed from meta.title and meta.description (if present) */
   markdownDescription: Scalars['String']['output'];
   /** Metadata for the element */
@@ -1147,6 +1266,8 @@ export type TaskMiddleware = BaseElement & {
   usedBy: Array<Task>;
   /** Detailed task/hook usages with per-usage config */
   usedByDetailed: Array<MiddlewareTaskUsage>;
+  /** Optional visibility explanation (useful for debugging exports() boundaries). */
+  visibilityReason: Maybe<Scalars['String']['output']>;
 };
 
 
@@ -1312,6 +1433,7 @@ export type ResolversTypes = ResolversObject<{
   Hook: ResolverTypeWrapper<Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, runs: Array<ResolversTypes['RunRecord']>, tags: Maybe<Array<ResolversTypes['Tag']>> }>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  InterceptorOwnersSnapshot: ResolverTypeWrapper<InterceptorOwnersSnapshot>;
   Live: ResolverTypeWrapper<Omit<Live, 'emissions' | 'errors' | 'runs'> & { emissions: Array<ResolversTypes['EmissionEntry']>, errors: Array<ResolversTypes['ErrorEntry']>, runs: Array<ResolversTypes['RunRecord']> }>;
   LogEntry: ResolverTypeWrapper<LogEntry>;
   LogFilterInput: LogFilterInput;
@@ -1320,6 +1442,8 @@ export type ResolversTypes = ResolversObject<{
   Meta: ResolverTypeWrapper<Meta>;
   MetaTagUsage: ResolverTypeWrapper<MetaTagUsage>;
   Middleware: ResolverTypeWrapper<Omit<Middleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedByResourcesDetailed: Array<ResolversTypes['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<ResolversTypes['Resource']>, usedByTasksDetailed: Array<ResolversTypes['MiddlewareTaskUsage']>, usedByTasksResolved: Array<ResolversTypes['Task']> }>;
+  MiddlewareInterceptorOwnersEntry: ResolverTypeWrapper<MiddlewareInterceptorOwnersEntry>;
+  MiddlewareInterceptorOwnersSnapshot: ResolverTypeWrapper<MiddlewareInterceptorOwnersSnapshot>;
   MiddlewareResourceUsage: ResolverTypeWrapper<Omit<MiddlewareResourceUsage, 'node'> & { node: ResolversTypes['Resource'] }>;
   MiddlewareTaskUsage: ResolverTypeWrapper<Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversTypes['Task'] }>;
   NodeKindEnum: NodeKindEnum;
@@ -1327,6 +1451,7 @@ export type ResolversTypes = ResolversObject<{
   Resource: ResolverTypeWrapper<Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'tunnelInfo' | 'usedBy'> & { dependsOnResolved: Array<ResolversTypes['Resource']>, emits: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversTypes['BaseElement']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, registersResolved: Array<ResolversTypes['BaseElement']>, tags: Maybe<Array<ResolversTypes['Tag']>>, tunnelInfo: Maybe<ResolversTypes['TunnelInfo']>, usedBy: Array<ResolversTypes['Task']> }>;
   ResourceMiddleware: ResolverTypeWrapper<Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Resource']>, usedByDetailed: Array<ResolversTypes['MiddlewareResourceUsage']> }>;
   RunFilterInput: RunFilterInput;
+  RunOptions: ResolverTypeWrapper<RunOptions>;
   RunRecord: ResolverTypeWrapper<Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversTypes['BaseElement']> }>;
   SourceKindEnum: SourceKindEnum;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
@@ -1336,6 +1461,7 @@ export type ResolversTypes = ResolversObject<{
   TagUsage: ResolverTypeWrapper<TagUsage>;
   Task: ResolverTypeWrapper<Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'flowShape' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversTypes['BaseElement']>, durableResource: Maybe<ResolversTypes['Resource']>, emitsResolved: Array<ResolversTypes['Event']>, flowShape: Maybe<ResolversTypes['DurableFlowShape']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, runs: Array<ResolversTypes['RunRecord']>, tags: Maybe<Array<ResolversTypes['Tag']>> }>;
   TaskDependsOn: ResolverTypeWrapper<Omit<TaskDependsOn, 'emitters' | 'hooks' | 'resources' | 'tasks'> & { emitters: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['Hook']>, resources: Array<ResolversTypes['Resource']>, tasks: Array<ResolversTypes['BaseElement']> }>;
+  TaskInterceptorOwnersEntry: ResolverTypeWrapper<TaskInterceptorOwnersEntry>;
   TaskMiddleware: ResolverTypeWrapper<Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Task']>, usedByDetailed: Array<ResolversTypes['MiddlewareTaskUsage']> }>;
   TaskMiddlewareUsage: ResolverTypeWrapper<Omit<TaskMiddlewareUsage, 'node'> & { node: ResolversTypes['TaskMiddleware'] }>;
   TunnelEventDeliveryMode: null;
@@ -1375,6 +1501,7 @@ export type ResolversParentTypes = ResolversObject<{
   Hook: Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
+  InterceptorOwnersSnapshot: InterceptorOwnersSnapshot;
   Live: Omit<Live, 'emissions' | 'errors' | 'runs'> & { emissions: Array<ResolversParentTypes['EmissionEntry']>, errors: Array<ResolversParentTypes['ErrorEntry']>, runs: Array<ResolversParentTypes['RunRecord']> };
   LogEntry: LogEntry;
   LogFilterInput: LogFilterInput;
@@ -1382,12 +1509,15 @@ export type ResolversParentTypes = ResolversObject<{
   Meta: Meta;
   MetaTagUsage: MetaTagUsage;
   Middleware: Omit<Middleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedByResourcesDetailed: Array<ResolversParentTypes['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<ResolversParentTypes['Resource']>, usedByTasksDetailed: Array<ResolversParentTypes['MiddlewareTaskUsage']>, usedByTasksResolved: Array<ResolversParentTypes['Task']> };
+  MiddlewareInterceptorOwnersEntry: MiddlewareInterceptorOwnersEntry;
+  MiddlewareInterceptorOwnersSnapshot: MiddlewareInterceptorOwnersSnapshot;
   MiddlewareResourceUsage: Omit<MiddlewareResourceUsage, 'node'> & { node: ResolversParentTypes['Resource'] };
   MiddlewareTaskUsage: Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversParentTypes['Task'] };
   Query: {};
   Resource: Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'tunnelInfo' | 'usedBy'> & { dependsOnResolved: Array<ResolversParentTypes['Resource']>, emits: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversParentTypes['BaseElement']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, registersResolved: Array<ResolversParentTypes['BaseElement']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, tunnelInfo: Maybe<ResolversParentTypes['TunnelInfo']>, usedBy: Array<ResolversParentTypes['Task']> };
   ResourceMiddleware: Omit<ResourceMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Resource']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareResourceUsage']> };
   RunFilterInput: RunFilterInput;
+  RunOptions: RunOptions;
   RunRecord: Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversParentTypes['BaseElement']> };
   String: Scalars['String']['output'];
   SwapResult: SwapResult;
@@ -1396,6 +1526,7 @@ export type ResolversParentTypes = ResolversObject<{
   TagUsage: TagUsage;
   Task: Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'flowShape' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversParentTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, durableResource: Maybe<ResolversParentTypes['Resource']>, emitsResolved: Array<ResolversParentTypes['Event']>, flowShape: Maybe<ResolversParentTypes['DurableFlowShape']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
   TaskDependsOn: Omit<TaskDependsOn, 'emitters' | 'hooks' | 'resources' | 'tasks'> & { emitters: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['Hook']>, resources: Array<ResolversParentTypes['Resource']>, tasks: Array<ResolversParentTypes['BaseElement']> };
+  TaskInterceptorOwnersEntry: TaskInterceptorOwnersEntry;
   TaskMiddleware: Omit<TaskMiddleware, 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Task']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareTaskUsage']> };
   TaskMiddlewareUsage: Omit<TaskMiddlewareUsage, 'node'> & { node: ResolversParentTypes['TaskMiddleware'] };
   TunnelInfo: Omit<TunnelInfo, 'eventsResolved' | 'tasksResolved'> & { eventsResolved: Maybe<Array<ResolversParentTypes['Event']>>, tasksResolved: Maybe<Array<ResolversParentTypes['Task']>> };
@@ -1407,10 +1538,12 @@ export type AllResolvers<ContextType = CustomGraphQLContext, ParentType extends 
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, AllFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1420,6 +1553,7 @@ export type AsyncContextResolvers<ContextType = CustomGraphQLContext, ParentType
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, AsyncContextFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   parse: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1429,6 +1563,7 @@ export type AsyncContextResolvers<ContextType = CustomGraphQLContext, ParentType
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['All']>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1437,10 +1572,12 @@ export type BaseElementResolvers<ContextType = CustomGraphQLContext, ParentType 
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, BaseElementFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 }>;
 
 export type CoverageInfoResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['CoverageInfo'] = ResolversParentTypes['CoverageInfo']> = ResolversObject<{
@@ -1489,11 +1626,13 @@ export type ErrorResolvers<ContextType = CustomGraphQLContext, ParentType extend
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, ErrorFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   thrownBy: Resolver<Array<ResolversTypes['All']>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1517,6 +1656,7 @@ export type EventResolvers<ContextType = CustomGraphQLContext, ParentType extend
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, EventFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   listenedToBy: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   listenedToByResolved: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1527,6 +1667,7 @@ export type EventResolvers<ContextType = CustomGraphQLContext, ParentType extend
   registeredByResolved: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1610,6 +1751,7 @@ export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   inputSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   inputSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1621,6 +1763,13 @@ export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends
   runs: Resolver<Array<ResolversTypes['RunRecord']>, ParentType, ContextType, HookRunsArgs>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type InterceptorOwnersSnapshotResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['InterceptorOwnersSnapshot'] = ResolversParentTypes['InterceptorOwnersSnapshot']> = ResolversObject<{
+  middleware: Resolver<ResolversTypes['MiddlewareInterceptorOwnersSnapshot'], ParentType, ContextType>;
+  tasksById: Resolver<Array<ResolversTypes['TaskInterceptorOwnersEntry']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1676,6 +1825,7 @@ export type MiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType e
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   global: Resolver<Maybe<ResolversTypes['GlobalMiddleware']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   overriddenBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1689,6 +1839,21 @@ export type MiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType e
   usedByTasks: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   usedByTasksDetailed: Resolver<Array<ResolversTypes['MiddlewareTaskUsage']>, ParentType, ContextType>;
   usedByTasksResolved: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type MiddlewareInterceptorOwnersEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MiddlewareInterceptorOwnersEntry'] = ResolversParentTypes['MiddlewareInterceptorOwnersEntry']> = ResolversObject<{
+  middlewareId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  ownerResourceIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type MiddlewareInterceptorOwnersSnapshotResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MiddlewareInterceptorOwnersSnapshot'] = ResolversParentTypes['MiddlewareInterceptorOwnersSnapshot']> = ResolversObject<{
+  globalResourceInterceptorOwnerIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  globalTaskInterceptorOwnerIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  perResourceMiddlewareInterceptorOwnerIds: Resolver<Array<ResolversTypes['MiddlewareInterceptorOwnersEntry']>, ParentType, ContextType>;
+  perTaskMiddlewareInterceptorOwnerIds: Resolver<Array<ResolversTypes['MiddlewareInterceptorOwnersEntry']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1717,6 +1882,7 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   events: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType, QueryEventsArgs>;
   hook: Resolver<Maybe<ResolversTypes['Hook']>, ParentType, ContextType, RequireFields<QueryHookArgs, 'id'>>;
   hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType, QueryHooksArgs>;
+  interceptorOwners: Resolver<ResolversTypes['InterceptorOwnersSnapshot'], ParentType, ContextType>;
   live: Resolver<ResolversTypes['Live'], ParentType, ContextType>;
   middleware: Resolver<Maybe<ResolversTypes['Middleware']>, ParentType, ContextType, RequireFields<QueryMiddlewareArgs, 'id'>>;
   middlewares: Resolver<Array<ResolversTypes['Middleware']>, ParentType, ContextType, QueryMiddlewaresArgs>;
@@ -1724,6 +1890,7 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   resourceMiddlewares: Resolver<Array<ResolversTypes['ResourceMiddleware']>, ParentType, ContextType, QueryResourceMiddlewaresArgs>;
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType, QueryResourcesArgs>;
   root: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
+  runOptions: Resolver<ResolversTypes['RunOptions'], ParentType, ContextType>;
   swappedTasks: Resolver<Array<ResolversTypes['SwappedTask']>, ParentType, ContextType>;
   tag: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<QueryTagArgs, 'id'>>;
   tags: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
@@ -1742,9 +1909,11 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   dependsOn: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOnResolved: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
+  exports: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, ResourceFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1760,6 +1929,7 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   tunnelInfo: Resolver<Maybe<ResolversTypes['TunnelInfo']>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1773,6 +1943,7 @@ export type ResourceMiddlewareResolvers<ContextType = CustomGraphQLContext, Pare
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   global: Resolver<Maybe<ResolversTypes['GlobalMiddleware']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   overriddenBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1782,6 +1953,26 @@ export type ResourceMiddlewareResolvers<ContextType = CustomGraphQLContext, Pare
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
   usedByDetailed: Resolver<Array<ResolversTypes['MiddlewareResourceUsage']>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RunOptionsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunOptions'] = ResolversParentTypes['RunOptions']> = ResolversObject<{
+  debug: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  debugMode: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  dryRun: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  errorBoundary: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  hasOnUnhandledError: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  initMode: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  lazy: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  logsBuffer: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  logsEnabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  logsPrintStrategy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  logsPrintThreshold: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  mode: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  rootId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  runtimeEventCycleDetection: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  shutdownHooks: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1824,6 +2015,7 @@ export type TagResolvers<ContextType = CustomGraphQLContext, ParentType extends 
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   middlewares: Resolver<Array<ResolversTypes['Middleware']>, ParentType, ContextType>;
@@ -1831,6 +2023,7 @@ export type TagResolvers<ContextType = CustomGraphQLContext, ParentType extends 
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   tasks: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1853,10 +2046,14 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, TaskFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   flowShape: Resolver<Maybe<ResolversTypes['DurableFlowShape']>, ParentType, ContextType>;
+  hasInterceptors: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   inputSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   inputSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  interceptorCount: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  interceptorOwnerIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   isDurable: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1868,6 +2065,7 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
   runs: Resolver<Array<ResolversTypes['RunRecord']>, ParentType, ContextType, TaskRunsArgs>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1876,6 +2074,12 @@ export type TaskDependsOnResolvers<ContextType = CustomGraphQLContext, ParentTyp
   hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
   tasks: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type TaskInterceptorOwnersEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskInterceptorOwnersEntry'] = ResolversParentTypes['TaskInterceptorOwnersEntry']> = ResolversObject<{
+  ownerResourceIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  taskId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1889,6 +2093,7 @@ export type TaskMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentTy
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   global: Resolver<Maybe<ResolversTypes['GlobalMiddleware']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
   overriddenBy: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1898,6 +2103,7 @@ export type TaskMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentTy
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
   usedByDetailed: Resolver<Array<ResolversTypes['MiddlewareTaskUsage']>, ParentType, ContextType>;
+  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1946,17 +2152,21 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   GcStats: GcStatsResolvers<ContextType>;
   GlobalMiddleware: GlobalMiddlewareResolvers<ContextType>;
   Hook: HookResolvers<ContextType>;
+  InterceptorOwnersSnapshot: InterceptorOwnersSnapshotResolvers<ContextType>;
   Live: LiveResolvers<ContextType>;
   LogEntry: LogEntryResolvers<ContextType>;
   MemoryStats: MemoryStatsResolvers<ContextType>;
   Meta: MetaResolvers<ContextType>;
   MetaTagUsage: MetaTagUsageResolvers<ContextType>;
   Middleware: MiddlewareResolvers<ContextType>;
+  MiddlewareInterceptorOwnersEntry: MiddlewareInterceptorOwnersEntryResolvers<ContextType>;
+  MiddlewareInterceptorOwnersSnapshot: MiddlewareInterceptorOwnersSnapshotResolvers<ContextType>;
   MiddlewareResourceUsage: MiddlewareResourceUsageResolvers<ContextType>;
   MiddlewareTaskUsage: MiddlewareTaskUsageResolvers<ContextType>;
   Query: QueryResolvers<ContextType>;
   Resource: ResourceResolvers<ContextType>;
   ResourceMiddleware: ResourceMiddlewareResolvers<ContextType>;
+  RunOptions: RunOptionsResolvers<ContextType>;
   RunRecord: RunRecordResolvers<ContextType>;
   SwapResult: SwapResultResolvers<ContextType>;
   SwappedTask: SwappedTaskResolvers<ContextType>;
@@ -1964,6 +2174,7 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   TagUsage: TagUsageResolvers<ContextType>;
   Task: TaskResolvers<ContextType>;
   TaskDependsOn: TaskDependsOnResolvers<ContextType>;
+  TaskInterceptorOwnersEntry: TaskInterceptorOwnersEntryResolvers<ContextType>;
   TaskMiddleware: TaskMiddlewareResolvers<ContextType>;
   TaskMiddlewareUsage: TaskMiddlewareUsageResolvers<ContextType>;
   TunnelEventDeliveryMode: TunnelEventDeliveryModeResolvers;

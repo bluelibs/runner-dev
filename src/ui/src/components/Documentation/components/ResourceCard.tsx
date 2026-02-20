@@ -1,7 +1,12 @@
 import React from "react";
 import { Resource } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
-import { formatConfig, formatFilePath, formatId } from "../utils/formatting";
+import {
+  formatConfig,
+  formatFilePath,
+  formatId,
+  shouldDisplayConfig,
+} from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
   graphqlRequest,
@@ -57,8 +62,21 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const [coverageFileContent, setCoverageFileContent] = React.useState<
     string | null
   >(null);
+  const [registeredElementsSearch, setRegisteredElementsSearch] =
+    React.useState("");
   const [coverageLoading, setCoverageLoading] = React.useState(false);
   const [coverageError, setCoverageError] = React.useState<string | null>(null);
+
+  const filteredRegisteredElements = React.useMemo(() => {
+    const query = registeredElementsSearch.trim().toLowerCase();
+    if (!query) return registeredElements;
+
+    return registeredElements.filter((element) => {
+      const id = element.id?.toLowerCase() || "";
+      const title = element.meta?.title?.toLowerCase() || "";
+      return id.includes(query) || title.includes(query);
+    });
+  }, [registeredElements, registeredElementsSearch]);
 
   async function openFileModal() {
     if (!resource?.id) return;
@@ -189,6 +207,28 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               </a>
             </InfoBlock>
           )}
+
+          <InfoBlock prefix="resource-card" label="Visibility:">
+            {resource.isPrivate ? "Private" : "Public"}
+          </InfoBlock>
+
+          <InfoBlock prefix="resource-card" label="Exports:">
+            {Array.isArray(resource.exports) && resource.exports.length > 0 ? (
+              <div className="resource-card__tags">
+                {resource.exports.map((exportedId) => (
+                  <a
+                    href={`#element-${exportedId}`}
+                    key={exportedId}
+                    className="clean-button"
+                  >
+                    {formatId(exportedId)}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              "Not configured (all registered items are public by default)"
+            )}
+          </InfoBlock>
 
           {resource.context && (
             <InfoBlock prefix="resource-card" label="Context:">
@@ -361,8 +401,31 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             {registeredElements.length > 0 && (
               <div className="resource-card__relations__category">
                 <h5>Registered Elements</h5>
-                <div className="resource-card__relations__items">
-                  {registeredElements.map((element) => (
+                {registeredElements.length > 5 && (
+                  <div className="resource-card__relations__search">
+                    <span
+                      className="resource-card__relations__search-icon"
+                      aria-hidden="true"
+                    >
+                      🔎
+                    </span>
+                    <input
+                      type="search"
+                      className="resource-card__relations__search-input"
+                      placeholder="Filter registered elements..."
+                      value={registeredElementsSearch}
+                      onChange={(event) =>
+                        setRegisteredElementsSearch(event.target.value)
+                      }
+                    />
+                    <span className="resource-card__relations__search-count">
+                      {filteredRegisteredElements.length}/
+                      {registeredElements.length}
+                    </span>
+                  </div>
+                )}
+                <div className="resource-card__relations__items resource-card__relations__items--registered">
+                  {filteredRegisteredElements.map((element) => (
                     <a
                       key={element.id}
                       href={`#element-${element.id}`}
@@ -374,6 +437,11 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                       <div className="id">{element.id}</div>
                     </a>
                   ))}
+                  {filteredRegisteredElements.length === 0 && (
+                    <div className="resource-card__relations__empty">
+                      No registered elements match this search.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -397,7 +465,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   {usage.node.meta?.title || formatId(usage.id)}
                 </div>
                 <div className="id">{usage.id}</div>
-                {usage.config && (
+                {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>
                     <pre className="config-block">{usage.config}</pre>

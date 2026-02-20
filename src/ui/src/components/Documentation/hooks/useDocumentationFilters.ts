@@ -8,6 +8,16 @@ export const useDocumentationFilters = (
   introspector: Introspector,
   namespacePrefix?: string
 ) => {
+  const readStoredBoolean = (key: string, fallback: boolean): boolean => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return fallback;
+      return raw === "1";
+    } catch {
+      return fallback;
+    }
+  };
+
   const [localNamespaceSearch, setLocalNamespaceSearch] = useState(
     namespacePrefix || ""
   );
@@ -17,28 +27,34 @@ export const useDocumentationFilters = (
     [localNamespaceSearch]
   );
 
-  const [showSystem, setShowSystem] = useState<boolean>(() => {
-    try {
-      return (
-        localStorage.getItem(
-          DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM
-        ) === "1"
-      );
-    } catch {
-      return DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_SYSTEM;
-    }
-  });
+  const [showSystem, setShowSystem] = useState<boolean>(() =>
+    readStoredBoolean(
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM,
+      DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_SYSTEM
+    )
+  );
+  const [showPrivate, setShowPrivate] = useState<boolean>(() =>
+    readStoredBoolean(
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE,
+      DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_PRIVATE
+    )
+  );
 
   useEffect(() => {
     setLocalNamespaceSearch(namespacePrefix || "");
   }, [namespacePrefix]);
 
-  const applyFilters = <T extends { id: string; tags?: string[] | null }>(
+  const applyFilters = <
+    T extends { id: string; tags?: string[] | null; isPrivate?: boolean }
+  >(
     items: T[]
   ): T[] => {
     let result = items;
     if (!showSystem) {
       result = result.filter((item) => !isSystemElement(item));
+    }
+    if (!showPrivate) {
+      result = result.filter((item) => item.isPrivate !== true);
     }
     if (localNamespaceSearch) {
       // Elements: if tag-search, match by tag ids; otherwise match by id
@@ -63,6 +79,9 @@ export const useDocumentationFilters = (
     let tags = introspector.getAllTags();
     if (!showSystem) {
       tags = tags.filter((t) => !isSystemElement(t));
+    }
+    if (!showPrivate) {
+      tags = tags.filter((t) => t.isPrivate !== true);
     }
     if (localNamespaceSearch) {
       const body = parsedSearch.isTagSearch
@@ -90,7 +109,13 @@ export const useDocumentationFilters = (
         ...tags,
       ],
     };
-  }, [introspector, showSystem, localNamespaceSearch, parsedSearch]);
+  }, [
+    introspector,
+    showSystem,
+    showPrivate,
+    localNamespaceSearch,
+    parsedSearch,
+  ]);
 
   const handleShowSystemChange = (value: boolean) => {
     setShowSystem(value);
@@ -104,16 +129,31 @@ export const useDocumentationFilters = (
     }
   };
 
+  const handleShowPrivateChange = (value: boolean) => {
+    setShowPrivate(value);
+    try {
+      localStorage.setItem(
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE,
+        value ? "1" : "0"
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
+
   const resetFilters = () => {
     setLocalNamespaceSearch("");
     handleShowSystemChange(true);
+    handleShowPrivateChange(true);
   };
 
   return {
     localNamespaceSearch,
     setLocalNamespaceSearch,
     showSystem,
+    showPrivate,
     handleShowSystemChange,
+    handleShowPrivateChange,
     resetFilters,
     isSystemElement,
     applyFilters,

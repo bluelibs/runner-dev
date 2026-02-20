@@ -82,8 +82,24 @@ export const QueryType = new GraphQLObjectType({
       description:
         "Snapshot of interceptor ownership: local task interceptors by task id and middleware interceptor ownership from middleware manager.",
       type: new GraphQLNonNull(InterceptorOwnersSnapshotType),
-      resolve: (_root, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getInterceptorOwnersSnapshot(),
+      resolve: (_root, _args, ctx: CustomGraphQLContext) => {
+        const snapshot = ctx.introspector.getInterceptorOwnersSnapshot();
+        const tasksById: Record<string, string[]> = {};
+
+        for (const task of ctx.introspector.getTasks()) {
+          const ownerResourceIds = ctx.introspector.getTaskInterceptorOwnerIds(
+            task.id
+          );
+          if (ownerResourceIds.length > 0) {
+            tasksById[task.id] = ownerResourceIds;
+          }
+        }
+
+        return {
+          ...snapshot,
+          tasksById,
+        };
+      },
     },
     all: {
       description:

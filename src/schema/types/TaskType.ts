@@ -225,14 +225,15 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
       description:
         "Number of runtime task interceptors registered via taskDependency.intercept(...).",
       type: new GraphQLNonNull(GraphQLInt),
-      resolve: (node: Task) => node.interceptorCount ?? 0,
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getTaskInterceptorCount(node.id),
     },
     hasInterceptors: {
       description:
         "Whether this task has runtime interceptors registered via taskDependency.intercept(...).",
       type: new GraphQLNonNull(GraphQLBoolean),
-      resolve: (node: Task) =>
-        node.hasInterceptors === true || (node.interceptorCount ?? 0) > 0,
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.hasTaskInterceptors(node.id),
     },
     interceptorOwnerIds: {
       description:
@@ -241,7 +242,6 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
       resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
-        node.interceptorOwnerIds ??
         ctx.introspector.getTaskInterceptorOwnerIds(node.id),
     },
 

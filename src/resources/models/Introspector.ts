@@ -42,6 +42,10 @@ export type InterceptorOwnersSnapshot = {
   middleware: MiddlewareInterceptorOwnerSnapshot;
 };
 
+type TaskInterceptorRecord = {
+  ownerResourceId?: string;
+};
+
 export type SerializedIntrospector = {
   tasks: Task[];
   hooks: Hook[];
@@ -1000,7 +1004,36 @@ export class Introspector {
   }
 
   getTaskInterceptorOwnerIds(taskId: string): string[] {
+    const taskInterceptors = this.getTaskInterceptorsFromLiveStore(taskId);
+    if (taskInterceptors != null) {
+      return Array.from(
+        new Set(
+          taskInterceptors
+            .map((record) => record.ownerResourceId)
+            .filter((value): value is string => Boolean(value))
+        )
+      );
+    }
+
     return this.interceptorOwners.tasksById[taskId] ?? [];
+  }
+
+  getTaskInterceptorCount(taskId: string): number {
+    const taskInterceptors = this.getTaskInterceptorsFromLiveStore(taskId);
+    if (taskInterceptors != null) {
+      return taskInterceptors.length;
+    }
+
+    const task = this.taskMap.get(taskId);
+    if (typeof task?.interceptorCount === "number") {
+      return task.interceptorCount;
+    }
+
+    return (this.interceptorOwners.tasksById[taskId] ?? []).length;
+  }
+
+  hasTaskInterceptors(taskId: string): boolean {
+    return this.getTaskInterceptorCount(taskId) > 0;
   }
 
   getMiddlewareInterceptorOwnerIds(middlewareId: string): string[] {
@@ -1012,6 +1045,20 @@ export class Introspector {
       this.interceptorOwners.middleware
         .perResourceMiddlewareInterceptorOwnerIds[middlewareId] ?? [];
     return Array.from(new Set([...taskOwners, ...resourceOwners]));
+  }
+
+  private getTaskInterceptorsFromLiveStore(
+    taskId: string
+  ): TaskInterceptorRecord[] | null {
+    const taskStoreEntry = this.store?.tasks.get(taskId) as
+      | { interceptors?: TaskInterceptorRecord[] }
+      | undefined;
+
+    if (!taskStoreEntry || !Array.isArray(taskStoreEntry.interceptors)) {
+      return null;
+    }
+
+    return taskStoreEntry.interceptors;
   }
 
   serialize(): SerializedIntrospector {

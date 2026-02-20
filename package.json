@@ -118,7 +118,7 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "peerDependencies": {
-    "@bluelibs/runner": "file:../runner"
+    "@bluelibs/runner": "^5.5.0"
   },
   "overrides": {
     "react": "18.3.1",

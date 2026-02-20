@@ -104,6 +104,7 @@
     "@adobe/jsonschema2md": "^8.0.5",
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
+    "@bluelibs/runner": "^5.5.0",
     "@bluelibs/smart": "^2.2.1",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@types/prismjs": "^1.26.5",
@@ -115,11 +116,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "zod": "3.25.76",
-    "zod-to-json-schema": "^3.24.6",
-    "@bluelibs/runner": "^5.5.0"
-  },
-  "peerDependencies": {
-    "@bluelibs/runner": "^5.5.0"
+    "zod-to-json-schema": "^3.24.6"
   },
   "overrides": {
     "react": "18.3.1",

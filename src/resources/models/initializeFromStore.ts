@@ -18,6 +18,107 @@ import { buildIdMap, ensureStringArray } from "./introspector.tools";
 import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
 
+const EXTERNAL_VISIBILITY_CONSUMER_ID = "runner-dev.visibility.external";
+const MIDDLEWARE_MANAGER_RESOURCE_ID = "globals.resources.middlewareManager";
+
+type TaskInterceptorRecord = {
+  ownerResourceId?: string;
+};
+
+type MiddlewareInterceptorOwnerSnapshot = {
+  globalTaskInterceptorOwnerIds?: readonly string[];
+  globalResourceInterceptorOwnerIds?: readonly string[];
+  perTaskMiddlewareInterceptorOwnerIds?: Readonly<Record<string, readonly string[]>>;
+  perResourceMiddlewareInterceptorOwnerIds?: Readonly<Record<string, readonly string[]>>;
+};
+
+function buildTaskInterceptorOwnersSnapshot(
+  store: Store
+): Record<string, string[]> {
+  const tasksById: Record<string, string[]> = {};
+  for (const [taskId, taskStore] of store.tasks.entries()) {
+    const ownerIds = Array.from(
+      new Set(
+        ((taskStore as any).interceptors as TaskInterceptorRecord[] | undefined)
+          ?.map((record) => record.ownerResourceId)
+          .filter((value): value is string => Boolean(value)) ?? []
+      )
+    );
+    if (ownerIds.length > 0) {
+      tasksById[String(taskId)] = ownerIds;
+    }
+  }
+  return tasksById;
+}
+
+function normalizeMiddlewareOwnerSnapshot(
+  snapshot: MiddlewareInterceptorOwnerSnapshot | null | undefined
+) {
+  const toStringArray = (value: readonly string[] | undefined): string[] =>
+    Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+  const toStringMap = (
+    value: Readonly<Record<string, readonly string[]>> | undefined
+  ): Record<string, string[]> => {
+    if (!value || typeof value !== "object") return {};
+    const normalized: Record<string, string[]> = {};
+    for (const [middlewareId, ownerIds] of Object.entries(value)) {
+      const ids = toStringArray(ownerIds);
+      if (ids.length > 0) normalized[middlewareId] = ids;
+    }
+    return normalized;
+  };
+
+  return {
+    globalTaskInterceptorOwnerIds: toStringArray(
+      snapshot?.globalTaskInterceptorOwnerIds
+    ),
+    globalResourceInterceptorOwnerIds: toStringArray(
+      snapshot?.globalResourceInterceptorOwnerIds
+    ),
+    perTaskMiddlewareInterceptorOwnerIds: toStringMap(
+      snapshot?.perTaskMiddlewareInterceptorOwnerIds
+    ),
+    perResourceMiddlewareInterceptorOwnerIds: toStringMap(
+      snapshot?.perResourceMiddlewareInterceptorOwnerIds
+    ),
+  };
+}
+
+function getMiddlewareInterceptorOwnersSnapshot(store: Store) {
+  const managerFromStore = (store as any).getMiddlewareManager?.();
+  const managerFromResource = (store as any).resources
+    ?.get?.(MIDDLEWARE_MANAGER_RESOURCE_ID)
+    ?.value;
+  const middlewareManager = managerFromStore ?? managerFromResource;
+  const snapshot =
+    middlewareManager &&
+    typeof middlewareManager.getInterceptorOwnerSnapshot === "function"
+      ? middlewareManager.getInterceptorOwnerSnapshot()
+      : null;
+
+  return normalizeMiddlewareOwnerSnapshot(snapshot);
+}
+
+function applyVisibilityMetadata(
+  store: Store,
+  elements: Array<{
+    id: string;
+    isPrivate?: boolean;
+    visibilityReason?: string | null;
+  }>
+): void {
+  for (const element of elements) {
+    const isVisible = store.isItemVisibleToConsumer(
+      element.id,
+      EXTERNAL_VISIBILITY_CONSUMER_ID
+    );
+    element.isPrivate = !isVisible;
+    element.visibilityReason = isVisible
+      ? "Visible outside owning resource boundary."
+      : "Hidden by resource exports() boundary.";
+  }
+}
+
 export function initializeFromStore(
   introspector: Introspector,
   store: Store
@@ -31,11 +132,16 @@ export function initializeFromStore(
 
   const s = store;
   for (const t of s.tasks.values()) {
-    introspector.tasks.push(mapStoreTaskToTaskModel(t.task));
+    introspector.tasks.push(mapStoreTaskToTaskModel(t.task, t));
   }
 
   for (const h of s.hooks.values()) {
     introspector.hooks.push(mapStoreHookToHookModel(h));
+  }
+
+  const taskInterceptorOwnersById = buildTaskInterceptorOwnersSnapshot(store);
+  for (const task of introspector.tasks) {
+    task.interceptorOwnerIds = taskInterceptorOwnersById[task.id] ?? [];
   }
 
   // Build resources
@@ -61,6 +167,8 @@ export function initializeFromStore(
     registeredBy: e.registeredBy,
     overriddenBy: e.overriddenBy,
     tags: ensureStringArray(e.tags),
+    isPrivate: false,
+    visibilityReason: null,
   }));
 
   // Build async contexts
@@ -78,6 +186,8 @@ export function initializeFromStore(
       registeredBy: c.registeredBy,
       overriddenBy: c.overriddenBy,
       tags: ensureStringArray(c.tags),
+      isPrivate: false,
+      visibilityReason: null,
     })
   );
 
@@ -170,6 +280,19 @@ export function initializeFromStore(
     ...introspector.resourceMiddlewares,
   ];
 
+  introspector.interceptorOwners = {
+    tasksById: taskInterceptorOwnersById,
+    middleware: getMiddlewareInterceptorOwnersSnapshot(store),
+  };
+
+  applyVisibilityMetadata(store, introspector.tasks);
+  applyVisibilityMetadata(store, introspector.hooks);
+  applyVisibilityMetadata(store, introspector.resources);
+  applyVisibilityMetadata(store, introspector.events);
+  applyVisibilityMetadata(store, introspector.middlewares);
+  applyVisibilityMetadata(store, introspector.errors as any);
+  applyVisibilityMetadata(store, introspector.asyncContexts as any);
+
   attachOverrides(
     s.overrideRequests,
     introspector.tasks,
@@ -219,6 +342,8 @@ export function initializeFromStore(
       meta: tag.meta,
       filePath: sanitizePath(tag[definitions.symbolFilePath]),
       configSchema: formatSchemaIfZod(tag.configSchema),
+      isPrivate: false,
+      visibilityReason: "Tags are globally discoverable metadata.",
       get tasks() {
         return getTasksWithTag(tag.id);
       },

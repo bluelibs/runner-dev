@@ -8,6 +8,7 @@ type ColumnFilters = Record<SortKey, string>;
 
 export interface BaseElement {
   id: string;
+  isPrivate?: boolean;
   meta?: {
     title?: string;
     description?: string;
@@ -368,6 +369,11 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                   />
                 </div>
               </th>
+              <th className="element-table__header element-table__header--visibility">
+                <div className="element-table__header-content">
+                  <span>Visibility</span>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -459,6 +465,9 @@ export const ElementTable: React.FC<ElementTableProps> = ({
 
                   <td className="element-table__cell element-table__cell--used-by">
                     {usedByCount}
+                  </td>
+                  <td className="element-table__cell element-table__cell--visibility">
+                    {element.isPrivate ? "Private" : "Public"}
                   </td>
                 </tr>
               );

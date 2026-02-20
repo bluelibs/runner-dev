@@ -221,6 +221,29 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
       type: GraphQLString,
       resolve: (node: Task) => convertJsonSchemaToReadable(node.inputSchema),
     },
+    interceptorCount: {
+      description:
+        "Number of runtime task interceptors registered via taskDependency.intercept(...).",
+      type: new GraphQLNonNull(GraphQLInt),
+      resolve: (node: Task) => node.interceptorCount ?? 0,
+    },
+    hasInterceptors: {
+      description:
+        "Whether this task has runtime interceptors registered via taskDependency.intercept(...).",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Task) =>
+        node.hasInterceptors === true || (node.interceptorCount ?? 0) > 0,
+    },
+    interceptorOwnerIds: {
+      description:
+        "Resource ids that registered local task interceptors for this task.",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
+        node.interceptorOwnerIds ??
+        ctx.introspector.getTaskInterceptorOwnerIds(node.id),
+    },
 
     dependsOnResolved: {
       description: "Resolved dependencies and emitted events for this task",

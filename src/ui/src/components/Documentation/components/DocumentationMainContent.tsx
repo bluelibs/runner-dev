@@ -64,6 +64,10 @@ export const DocumentationMainContent: React.FC<
 }) => {
   const rootResource = introspector.getRoot();
   const runOptions = introspector.getRunOptions();
+  const formatBooleanOption = (value: boolean | null | undefined) => {
+    if (typeof value === "boolean") return value ? "enabled" : "disabled";
+    return "unknown";
+  };
   const rootTitle =
     rootResource?.meta?.title || "Runner Application Documentation";
   const rootDescription =
@@ -292,8 +296,8 @@ export const DocumentationMainContent: React.FC<
             <div className="overview-run-info">
               <h3>🚀 Run Info</h3>
               <div className="overview-run-info__grid">
-                <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">Root</span>
+                <div className="overview-run-info__item overview-run-info__item--root">
+                  <span className="overview-run-info__label">🎯 Root</span>
                   <a
                     href={`#element-${rootResource?.id}`}
                     className="overview-run-info__value overview-run-info__link"
@@ -303,7 +307,7 @@ export const DocumentationMainContent: React.FC<
                   </a>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">Mode</span>
+                  <span className="overview-run-info__label">⚙️ Mode</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${runOptions.mode}`}
                   >
@@ -311,13 +315,127 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">Debug</span>
+                  <span className="overview-run-info__label">🐛 Debug</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
-                      runOptions.debug ? "on" : "off"
+                      runOptions.debugMode || (runOptions.debug ? "on" : "off")
                     }`}
                   >
-                    {runOptions.debug ? "enabled" : "disabled"}
+                    {runOptions.debugMode || (runOptions.debug ? "on" : "off")}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">📝 Logs</span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      runOptions.logsEnabled
+                        ? runOptions.logsPrintThreshold || "enabled"
+                        : "disabled"
+                    }`}
+                  >
+                    {runOptions.logsEnabled
+                      ? runOptions.logsPrintThreshold || "enabled"
+                      : "disabled"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">🚀 Init</span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${runOptions.initMode}`}
+                  >
+                    {runOptions.initMode}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">🏜️ Dry Run</span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      runOptions.dryRun ? "yes" : "no"
+                    }`}
+                  >
+                    {runOptions.dryRun ? "yes" : "no"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">🦥 Lazy</span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      runOptions.lazy ? "yes" : "no"
+                    }`}
+                  >
+                    {runOptions.lazy ? "yes" : "no"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    🛡️ Error Boundary
+                  </span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${formatBooleanOption(
+                      runOptions.errorBoundary
+                    )}`}
+                  >
+                    {formatBooleanOption(runOptions.errorBoundary)}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    🔌 Shutdown Hooks
+                  </span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${formatBooleanOption(
+                      runOptions.shutdownHooks
+                    )}`}
+                  >
+                    {formatBooleanOption(runOptions.shutdownHooks)}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    🔄 Cycle Detection
+                  </span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${formatBooleanOption(
+                      runOptions.runtimeEventCycleDetection
+                    )}`}
+                  >
+                    {formatBooleanOption(runOptions.runtimeEventCycleDetection)}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    ⚠️ Unhandled Handler
+                  </span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      runOptions.hasOnUnhandledError ? "present" : "missing"
+                    }`}
+                  >
+                    {runOptions.hasOnUnhandledError ? "present" : "missing"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    📋 Log Strategy
+                  </span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      runOptions.logsPrintStrategy || "unknown"
+                    }`}
+                  >
+                    {runOptions.logsPrintStrategy || "unknown"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    🗄️ Log Buffer
+                  </span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      runOptions.logsBuffer ? "enabled" : "disabled"
+                    }`}
+                  >
+                    {runOptions.logsBuffer ? "enabled" : "disabled"}
                   </span>
                 </div>
               </div>

@@ -116,6 +116,12 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
     },
+    exports: {
+      description:
+        "Ids explicitly exported by this resource via exports([...]). Null means exports() is not configured.",
+      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
+      resolve: (node: Resource) => node.exports ?? null,
+    },
     registersResolved: {
       description: "The items registered by this resource (resolved)",
       type: new GraphQLNonNull(

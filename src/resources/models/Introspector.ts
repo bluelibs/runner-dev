@@ -30,6 +30,18 @@ import {
 import { extractTunnelInfo } from "./extractTunnelInfo";
 import { hasTunnelTag } from "./tunnel.tools";
 
+export type MiddlewareInterceptorOwnerSnapshot = {
+  globalTaskInterceptorOwnerIds: string[];
+  globalResourceInterceptorOwnerIds: string[];
+  perTaskMiddlewareInterceptorOwnerIds: Record<string, string[]>;
+  perResourceMiddlewareInterceptorOwnerIds: Record<string, string[]>;
+};
+
+export type InterceptorOwnersSnapshot = {
+  tasksById: Record<string, string[]>;
+  middleware: MiddlewareInterceptorOwnerSnapshot;
+};
+
 export type SerializedIntrospector = {
   tasks: Task[];
   hooks: Hook[];
@@ -53,6 +65,7 @@ export type SerializedIntrospector = {
   overrideConflicts?: Array<{ targetId: string; by: string }>;
   rootId?: string | null;
   runOptions?: RunOptions | null;
+  interceptorOwners?: InterceptorOwnersSnapshot | null;
 };
 
 export class Introspector {
@@ -66,10 +79,19 @@ export class Introspector {
   public tags: Tag[] = [];
   public errors: ErrorModel[] = [];
   public asyncContexts: AsyncContextModel[] = [];
-  public store: Pick<Store, "tasks" | "resources" | "root" | "mode"> | null =
-    null;
+  public store: Store | null = null;
+  public runtime: any | null = null;
   public rootId: string | null = null;
   public runOptions: RunOptions | null = null;
+  public interceptorOwners: InterceptorOwnersSnapshot = {
+    tasksById: {},
+    middleware: {
+      globalTaskInterceptorOwnerIds: [],
+      globalResourceInterceptorOwnerIds: [],
+      perTaskMiddlewareInterceptorOwnerIds: {},
+      perResourceMiddlewareInterceptorOwnerIds: {},
+    },
+  };
 
   public taskMap: Map<string, Task> = new Map();
   public hookMap: Map<string, Hook> = new Map();
@@ -82,14 +104,16 @@ export class Introspector {
 
   constructor(
     input:
-      | { store: Pick<Store, "tasks" | "resources" | "root" | "mode"> }
+      | { store: Store; runtime?: any; runOptions?: RunOptions | null }
       | { data: SerializedIntrospector }
   ) {
     if ("store" in input) {
-      // this.store = input.store;
-      // this.initializeFromStore();
+      this.store = input.store;
+      this.runtime = input.runtime ?? null;
+      this.runOptions = input.runOptions ?? null;
     } else {
       this.store = null;
+      this.runtime = null;
       this.initializeFromData(input.data);
     }
   }
@@ -107,7 +131,10 @@ export class Introspector {
       ? data.asyncContexts
       : [];
     this.rootId = data.rootId ?? null;
-    this.runOptions = data.runOptions ?? null;
+    this.runOptions = data.runOptions
+      ? this.normalizeRunOptions(data.runOptions)
+      : null;
+    this.interceptorOwners = data.interceptorOwners ?? this.interceptorOwners;
 
     // Maps
     this.taskMap = buildIdMap(this.tasks);
@@ -185,27 +212,116 @@ export class Introspector {
    * When a live store is available, options are derived from it; otherwise
    * the previously serialized snapshot is used.
    */
+  private normalizeRunOptions(runOptions: Partial<RunOptions>): RunOptions {
+    const mode = runOptions.mode ?? "dev";
+    const debug = Boolean(runOptions.debug);
+    const rootId = runOptions.rootId ?? this.rootId ?? "";
+    const logsPrintThreshold =
+      runOptions.logsPrintThreshold !== undefined
+        ? runOptions.logsPrintThreshold
+        : "info";
+
+    return {
+      mode,
+      debug,
+      debugMode: runOptions.debugMode ?? (debug ? "normal" : "disabled"),
+      logsEnabled:
+        typeof runOptions.logsEnabled === "boolean"
+          ? runOptions.logsEnabled
+          : logsPrintThreshold !== null,
+      logsPrintThreshold,
+      logsPrintStrategy:
+        runOptions.logsPrintStrategy !== undefined
+          ? runOptions.logsPrintStrategy
+          : "pretty",
+      logsBuffer: Boolean(runOptions.logsBuffer),
+      errorBoundary:
+        runOptions.errorBoundary !== undefined
+          ? runOptions.errorBoundary
+          : null,
+      shutdownHooks:
+        runOptions.shutdownHooks !== undefined
+          ? runOptions.shutdownHooks
+          : null,
+      dryRun: Boolean(runOptions.dryRun),
+      lazy: Boolean(runOptions.lazy),
+      initMode: runOptions.initMode === "parallel" ? "parallel" : "sequential",
+      runtimeEventCycleDetection:
+        runOptions.runtimeEventCycleDetection !== undefined
+          ? runOptions.runtimeEventCycleDetection
+          : null,
+      hasOnUnhandledError: Boolean(runOptions.hasOnUnhandledError),
+      rootId,
+    };
+  }
+
   getRunOptions(): RunOptions {
     if (this.store) {
-      const s = this.store;
+      const sAny = this.store as any;
       const rootId =
-        s.root?.resource?.id != null
-          ? String(s.root.resource.id)
+        sAny.root?.resource?.id != null
+          ? String(sAny.root.resource.id)
           : this.rootId ?? "";
-      const hasDebug = s.resources.has("globals.resources.debug");
+      const hasDebug = !!sAny.resources?.has?.("globals.resources.debug");
+      const debugResource = sAny.resources?.get?.("globals.resources.debug");
+      const debugConfig = debugResource?.config;
+      const debugMode = !hasDebug
+        ? "disabled"
+        : debugConfig === true
+        ? "normal"
+        : typeof debugConfig === "string"
+        ? debugConfig
+        : debugConfig && typeof debugConfig === "object"
+        ? "custom"
+        : "normal";
+
+      const loggerResource = sAny.resources?.get?.("globals.resources.logger");
+      const logger = loggerResource?.value as any;
+      const logsPrintThresholdRaw = logger?.printThreshold;
+      const logsPrintStrategyRaw = logger?.printStrategy;
+      const logsBufferRaw = logger?.bufferLogs;
+
+      const logsPrintThreshold =
+        logsPrintThresholdRaw == null ? null : String(logsPrintThresholdRaw);
+      const logsPrintStrategy =
+        logsPrintStrategyRaw == null ? null : String(logsPrintStrategyRaw);
+      const logsBuffer = Boolean(logsBufferRaw);
+
+      const initMode = sAny.preferInitOrderDisposal ? "sequential" : "parallel";
+
+      const runtimeAny = this.runtime as any;
+      const lazy = Boolean(runtimeAny?.lazyOptions?.lazyMode);
+      const runtimeEventCycleDetection =
+        runtimeAny?.eventManager?.runtimeEventCycleDetection;
+
       return {
-        mode: s.mode ?? "dev",
+        mode: sAny.mode ?? "dev",
         debug: hasDebug,
+        debugMode,
+        logsEnabled: logsPrintThreshold !== null,
+        logsPrintThreshold,
+        logsPrintStrategy,
+        logsBuffer,
+        errorBoundary: null,
+        shutdownHooks: null,
+        dryRun: Boolean(this.runOptions?.dryRun),
+        lazy,
+        initMode,
+        runtimeEventCycleDetection:
+          typeof runtimeEventCycleDetection === "boolean"
+            ? runtimeEventCycleDetection
+            : null,
+        hasOnUnhandledError: typeof sAny.onUnhandledError === "function",
         rootId,
       };
     }
     // Fallback to serialized data
-    if (this.runOptions) return this.runOptions;
-    return {
+    if (this.runOptions) return this.normalizeRunOptions(this.runOptions);
+    return this.normalizeRunOptions({
       mode: "dev",
       debug: false,
       rootId: this.rootId ?? "",
-    };
+    });
   }
 
   getAll(): (
@@ -879,6 +995,25 @@ export class Introspector {
   }
 
   // Serialization API
+  getInterceptorOwnersSnapshot(): InterceptorOwnersSnapshot {
+    return this.interceptorOwners;
+  }
+
+  getTaskInterceptorOwnerIds(taskId: string): string[] {
+    return this.interceptorOwners.tasksById[taskId] ?? [];
+  }
+
+  getMiddlewareInterceptorOwnerIds(middlewareId: string): string[] {
+    const taskOwners =
+      this.interceptorOwners.middleware.perTaskMiddlewareInterceptorOwnerIds[
+        middlewareId
+      ] ?? [];
+    const resourceOwners =
+      this.interceptorOwners.middleware
+        .perResourceMiddlewareInterceptorOwnerIds[middlewareId] ?? [];
+    return Array.from(new Set([...taskOwners, ...resourceOwners]));
+  }
+
   serialize(): SerializedIntrospector {
     return {
       tasks: this.tasks,
@@ -901,6 +1036,7 @@ export class Introspector {
           ? String((this.store as any).root.resource.id)
           : this.rootId,
       runOptions: this.getRunOptions(),
+      interceptorOwners: this.getInterceptorOwnersSnapshot(),
     };
   }
 

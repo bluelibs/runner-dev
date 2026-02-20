@@ -48,7 +48,7 @@
     width: 100%;
     border-collapse: collapse;
     font-family: $font-family-base;
-    min-width: 760px;
+    min-width: 860px;
     table-layout: fixed;
   }
 
@@ -64,23 +64,28 @@
     border-bottom: 1px solid var(--docs-border-primary);
 
     &--id {
-      width: 32%;
+      width: 28%;
       min-width: 200px;
       border-top-left-radius: $border-radius-lg;
     }
 
     &--title {
-      width: 25%;
+      width: 24%;
       min-width: 150px;
     }
 
     &--description {
-      width: 30%;
+      width: 29%;
       min-width: 230px;
     }
 
     &--used-by {
-      width: 13%;
+      width: 9%;
+      min-width: 90px;
+    }
+
+    &--visibility {
+      width: 10%;
       min-width: 90px;
       border-top-right-radius: $border-radius-lg;
     }
@@ -184,6 +189,14 @@
       color: var(--docs-text-primary);
       text-align: right;
       font-family: $font-family-mono;
+      white-space: nowrap;
+      border-left: 1px solid var(--docs-border-primary);
+    }
+
+    &--visibility {
+      color: var(--docs-text-primary);
+      text-align: center;
+      font-size: $font-size-sm;
       white-space: nowrap;
       border-left: 1px solid var(--docs-border-primary);
     }

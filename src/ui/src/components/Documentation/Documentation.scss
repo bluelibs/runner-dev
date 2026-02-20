@@ -1005,32 +1005,63 @@ body {
     margin: 0 0 $spacing-lg 0;
     font-size: $font-size-lg;
     color: var(--docs-text-primary);
-  }
-
-  &__grid {
-    display: flex;
-    gap: $spacing-xxl;
-    flex-wrap: wrap;
-  }
-
-  &__item {
     display: flex;
     align-items: center;
     gap: $spacing-sm;
   }
 
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: $spacing-md;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: $spacing-xs;
+    padding: $spacing-md;
+    background: var(--docs-bg-secondary);
+    border: 1px solid var(--docs-border-secondary);
+    border-radius: $border-radius-md;
+    transition: transform 0.2s ease, box-shadow 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      border-color: var(--docs-border-primary);
+    }
+
+    &--root {
+      grid-column: 1 / -1;
+      @media (min-width: 520px) {
+        grid-column: span 2;
+      }
+    }
+  }
+
   &__label {
-    font-size: $font-size-sm;
+    font-size: $font-size-xs;
     color: var(--docs-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
   }
 
   &__value {
     font-size: $font-size-md;
     color: var(--docs-text-primary);
     font-weight: 500;
+    word-break: break-word;
+    display: flex;
+    align-items: center;
+    min-height: 24px;
   }
 
   &__link {
@@ -1053,27 +1084,38 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.04em;
 
-    &--dev {
+    &--dev,
+    &--sequential,
+    &--pretty {
       background: rgba(96, 165, 250, 0.18);
       color: #60a5fa;
     }
 
-    &--test {
+    &--test,
+    &--unknown {
       background: rgba(251, 191, 36, 0.18);
       color: #fbbf24;
     }
 
-    &--prod {
+    &--prod,
+    &--yes,
+    &--enabled,
+    &--present {
       background: rgba(52, 211, 153, 0.18);
       color: #34d399;
     }
 
-    &--on {
+    &--on,
+    &--normal,
+    &--debug {
       background: rgba(249, 115, 22, 0.18);
       color: #f97316;
     }
 
-    &--off {
+    &--off,
+    &--no,
+    &--disabled,
+    &--missing {
       background: var(--docs-hover-bg);
       color: var(--docs-text-muted);
     }

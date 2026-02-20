@@ -65,7 +65,12 @@ export function findById(collection: any, id: string): any | undefined {
 }
 
 // Mapping helpers
-export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
+export function mapStoreTaskToTaskModel(
+  task: definitions.ITask,
+  taskStoreElement?: {
+    interceptors?: Array<{ ownerResourceId?: string }>;
+  }
+): Task {
   const depsObj = normalizeDependencies(task?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
@@ -82,6 +87,13 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
   }));
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
     (task as any)?.tags
+  );
+  const interceptorOwnerIds = Array.from(
+    new Set(
+      taskStoreElement?.interceptors
+        ?.map((record) => record.ownerResourceId)
+        .filter((value): value is string => Boolean(value)) ?? []
+    )
   );
 
   return stampElementKind(
@@ -105,10 +117,15 @@ export function mapStoreTaskToTaskModel(task: definitions.ITask): Task {
       middlewareDetailed,
       registeredBy: null,
       kind: "TASK",
+      isPrivate: false,
+      visibilityReason: null,
       // Emits any events present in its dependencies
       emits: eventIdsFromDeps,
       inputSchema: formatSchemaIfZod(task.inputSchema),
       resultSchema: formatSchemaIfZod(task.resultSchema),
+      interceptorCount: taskStoreElement?.interceptors?.length ?? 0,
+      hasInterceptors: (taskStoreElement?.interceptors?.length ?? 0) > 0,
+      interceptorOwnerIds,
     },
     "TASK"
   );
@@ -160,6 +177,8 @@ export function mapStoreHookToHookModel(
       kind: "HOOK",
       events: eventIds,
       hookOrder: typeof hk?.order === "number" ? hk.order : null,
+      isPrivate: false,
+      visibilityReason: null,
     },
     "HOOK"
   );
@@ -192,6 +211,9 @@ export function mapStoreResourceToResourceModel(
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
     (resource as any)?.tags
   );
+  const exportedItems = Array.isArray(resource.exports) ? resource.exports : [];
+  const exportedIds = exportedItems.map((item) => readId(item)).filter(Boolean);
+
   return stampElementKind(
     {
       id: resource.id.toString(),
@@ -216,9 +238,12 @@ export function mapStoreResourceToResourceModel(
         .filter((o) => !!o)
         .map((o) => o.id.toString()),
       registers: register.map((r) => r.id.toString()) as string[],
+      exports: exportedIds.length > 0 ? exportedIds : null,
       context: stringifyIfObject(resource.context),
       registeredBy: null,
       configSchema: formatSchemaIfZod(resource.configSchema),
+      isPrivate: false,
+      visibilityReason: null,
     },
     "RESOURCE"
   );
@@ -262,6 +287,8 @@ export function buildEvents(store: Store): Event[] {
         listenedToBy: hooksListeningToEvent,
         registeredBy: null,
         payloadSchema: formatSchemaIfZod(e.payloadSchema),
+        isPrivate: false,
+        visibilityReason: null,
       },
       "EVENT"
     );
@@ -331,6 +358,8 @@ function buildMiddlewaresGeneric(
         registeredBy: null,
         configSchema: formatSchemaIfZod(mw.configSchema),
         type: kind,
+        isPrivate: false,
+        visibilityReason: null,
       },
       "MIDDLEWARE"
     );

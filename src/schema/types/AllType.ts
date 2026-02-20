@@ -1,4 +1,5 @@
 import {
+  GraphQLBoolean,
   GraphQLID,
   GraphQLInterfaceType,
   GraphQLNonNull,
@@ -29,6 +30,15 @@ export const BaseElementInterface: GraphQLInterfaceType =
       },
       filePath: {
         description: "Source file path when available",
+        type: GraphQLString,
+      },
+      isPrivate: {
+        description:
+          "True when this element is private to a resource boundary defined by exports().",
+        type: new GraphQLNonNull(GraphQLBoolean),
+      },
+      visibilityReason: {
+        description: "Optional visibility explanation for this element.",
         type: GraphQLString,
       },
       fileContents: {

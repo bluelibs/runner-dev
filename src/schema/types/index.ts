@@ -49,3 +49,4 @@ export {
   FlowSwitchNodeType,
   FlowNoteNodeType,
 } from "./DurableFlowTypes";
+export { InterceptorOwnersSnapshotType } from "./InterceptorOwnersType";

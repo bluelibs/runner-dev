@@ -29,6 +29,9 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
     : introspector.getResourcesUsingMiddlewareDetailed(middleware.id);
 
   const emittedEvents = introspector.getMiddlewareEmittedEvents(middleware.id);
+  const interceptorOwnerIds = introspector.getMiddlewareInterceptorOwnerIds(
+    middleware.id
+  );
 
   const usageLabel = isTaskMiddleware ? "Tasks" : "Resources";
 
@@ -123,6 +126,22 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
           <InfoBlock prefix="middleware-card" label={`Used by ${usageLabel}:`}>
             {usages.length}
           </InfoBlock>
+
+          {interceptorOwnerIds.length > 0 && (
+            <InfoBlock prefix="middleware-card" label="Intercepted By:">
+              <div className="middleware-card__tags">
+                {interceptorOwnerIds.map((ownerId) => (
+                  <a
+                    href={`#element-${ownerId}`}
+                    key={ownerId}
+                    className="clean-button"
+                  >
+                    {formatId(ownerId)}
+                  </a>
+                ))}
+              </div>
+            </InfoBlock>
+          )}
 
           {middleware.global?.enabled && (
             <div className="middleware-card__global-config">

@@ -1,4 +1,5 @@
 import {
+  GraphQLBoolean,
   GraphQLID,
   GraphQLInt,
   GraphQLList,
@@ -36,6 +37,18 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
       description: "Path to task file",
       type: GraphQLString,
       resolve: (node: any) => sanitizePath(node?.filePath ?? null),
+    },
+    isPrivate: {
+      description:
+        "True when this element is private to a resource boundary defined by exports().",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: BaseElement) => node.isPrivate === true,
+    },
+    visibilityReason: {
+      description:
+        "Optional visibility explanation (useful for debugging exports() boundaries).",
+      type: GraphQLString,
+      resolve: (node: BaseElement) => node.visibilityReason ?? null,
     },
     fileContents: {
       description:

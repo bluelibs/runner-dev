@@ -55,6 +55,33 @@ describe("Introspector serialize/deserialize", () => {
     expect(typeof opts.mode).toBe("string");
     expect(["dev", "test", "prod"]).toContain(opts.mode);
     expect(typeof opts.debug).toBe("boolean");
+    expect(opts.debugMode === null || typeof opts.debugMode === "string").toBe(
+      true
+    );
+    expect(typeof opts.logsEnabled).toBe("boolean");
+    expect(
+      opts.logsPrintThreshold === null ||
+        typeof opts.logsPrintThreshold === "string"
+    ).toBe(true);
+    expect(
+      opts.logsPrintStrategy === null ||
+        typeof opts.logsPrintStrategy === "string"
+    ).toBe(true);
+    expect(typeof opts.logsBuffer).toBe("boolean");
+    expect(
+      opts.errorBoundary === null || typeof opts.errorBoundary === "boolean"
+    ).toBe(true);
+    expect(
+      opts.shutdownHooks === null || typeof opts.shutdownHooks === "boolean"
+    ).toBe(true);
+    expect(typeof opts.dryRun).toBe("boolean");
+    expect(typeof opts.lazy).toBe("boolean");
+    expect(["sequential", "parallel"]).toContain(opts.initMode);
+    expect(
+      opts.runtimeEventCycleDetection === null ||
+        typeof opts.runtimeEventCycleDetection === "boolean"
+    ).toBe(true);
+    expect(typeof opts.hasOnUnhandledError).toBe("boolean");
     expect(typeof opts.rootId).toBe("string");
     expect(opts.rootId).toBeTruthy();
   });

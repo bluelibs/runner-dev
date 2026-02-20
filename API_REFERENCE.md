@@ -23,7 +23,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - `resourceMiddlewares(idIncludes: ID): [ResourceMiddleware!]!`
 - `resource(id: ID!): Resource`, `resources(idIncludes: ID): [Resource!]!`
 - `root: Resource`
-- `runOptions: RunOptions!` — effective run options (mode, debug, rootId)
+- `runOptions: RunOptions!` — effective run options summary (mode, debug/logs, lifecycle, root)
 - `swappedTasks: [SwappedTask!]!`
 - `live: Live!`
 - `diagnostics: [Diagnostic!]!`
@@ -87,6 +87,18 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 
 - `mode: String!` — the runner mode ("dev", "test", or "prod")
 - `debug: Boolean!` — whether debug resource was enabled at startup
+- `debugMode: String` — high-level debug mode summary (`normal`, `verbose`, `custom`, `disabled`)
+- `logsEnabled: Boolean!` — whether logs are printed (false when threshold is null)
+- `logsPrintThreshold: String` — effective log print threshold or null
+- `logsPrintStrategy: String` — effective log print strategy or null
+- `logsBuffer: Boolean!` — whether logging is buffered
+- `errorBoundary: Boolean` — process-level error boundary setting (null when unknown)
+- `shutdownHooks: Boolean` — SIGINT/SIGTERM shutdown hooks setting (null when unknown)
+- `dryRun: Boolean!` — whether runtime started in dry-run mode
+- `lazy: Boolean!` — whether lazy resource mode is enabled
+- `initMode: String!` — startup init strategy (`sequential` or `parallel`)
+- `runtimeEventCycleDetection: Boolean` — runtime event-cycle detection setting (null when unknown)
+- `hasOnUnhandledError: Boolean!` — whether an `onUnhandledError` callback is present
 - `rootId: String!` — the id of the root resource passed to run()
 
 ### Live Telemetry

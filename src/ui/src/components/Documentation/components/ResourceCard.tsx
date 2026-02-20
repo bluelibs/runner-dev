@@ -190,6 +190,28 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             </InfoBlock>
           )}
 
+          <InfoBlock prefix="resource-card" label="Visibility:">
+            {resource.isPrivate ? "Private" : "Public"}
+          </InfoBlock>
+
+          <InfoBlock prefix="resource-card" label="Exports:">
+            {Array.isArray(resource.exports) && resource.exports.length > 0 ? (
+              <div className="resource-card__tags">
+                {resource.exports.map((exportedId) => (
+                  <a
+                    href={`#element-${exportedId}`}
+                    key={exportedId}
+                    className="clean-button"
+                  >
+                    {formatId(exportedId)}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              "Not configured (all registered items are public by default)"
+            )}
+          </InfoBlock>
+
           {resource.context && (
             <InfoBlock prefix="resource-card" label="Context:">
               {resource.context}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TreeNode } from "../utils/tree-utils";
+import { TreeNode, getElementType } from "../utils/tree-utils";
 import "./NavigationView.scss";
 
 export type NavigationMode = "list" | "tree";
@@ -17,6 +17,7 @@ export interface NavigationViewProps {
   onNodeClick?: (node: TreeNode) => void;
   onSectionClick?: (sectionId: string) => void;
   onToggleExpansion?: (nodeId: string, expanded?: boolean) => void;
+  resolveSectionFromElementId?: (elementId: string) => string | null;
   searchTerm?: string;
   className?: string;
 }
@@ -28,11 +29,87 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
   onNodeClick,
   onSectionClick,
   onToggleExpansion,
+  resolveSectionFromElementId,
   searchTerm = "",
   className = "",
 }) => {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
+
+  // Sync the focused sidebar item with the URL hash so that navigating via
+  // in-content links (e.g. clicking a resource from the Tasks view) also
+  // updates the active state in the sidebar.
+  useEffect(() => {
+    const syncFocusToHash = () => {
+      const hash = window.location.hash;
+
+      if (!hash || hash === "#" || hash === "#top") {
+        setFocusedNodeId("home");
+        return;
+      }
+
+      if (hash.startsWith("#element-")) {
+        const elementId = hash.substring(9); // strip "#element-"
+
+        if (mode === "tree") {
+          // In tree mode find the exact matching node
+          const findNode = (nodeList: TreeNode[]): TreeNode | null => {
+            for (const node of nodeList) {
+              if (node.elementId === elementId || node.id === elementId) {
+                return node;
+              }
+              const found = findNode(node.children);
+              if (found) return found;
+            }
+            return null;
+          };
+          const matched = findNode(nodes);
+          if (matched) setFocusedNodeId(matched.id);
+        } else {
+          const resolvedSectionId = resolveSectionFromElementId?.(elementId);
+          if (
+            resolvedSectionId &&
+            sections.some((section) => section.id === resolvedSectionId)
+          ) {
+            setFocusedNodeId(resolvedSectionId);
+            return;
+          }
+
+          // In list mode map the element's type to its parent section
+          const TYPE_TO_SECTION: Record<string, string> = {
+            task: "tasks",
+            resource: "resources",
+            event: "events",
+            hook: "hooks",
+            middleware: "middlewares",
+            tag: "tags",
+          };
+          const type = getElementType({ id: elementId });
+          const sectionId = TYPE_TO_SECTION[type];
+          if (
+            sectionId &&
+            sections.some((section) => section.id === sectionId)
+          ) {
+            setFocusedNodeId(sectionId);
+          }
+        }
+        return;
+      }
+
+      // Plain section hash like #tasks, #resources, #overview-stats …
+      const sectionId = hash.substring(1);
+      if (sectionId === "overview") {
+        setFocusedNodeId("home");
+      } else if (sections.some((s) => s.id === sectionId)) {
+        setFocusedNodeId(sectionId);
+      }
+    };
+
+    // Sync on mount and on every subsequent hash change
+    syncFocusToHash();
+    window.addEventListener("hashchange", syncFocusToHash);
+    return () => window.removeEventListener("hashchange", syncFocusToHash);
+  }, [mode, nodes, sections, resolveSectionFromElementId]);
 
   // Handle keyboard navigation for both modes
   useEffect(() => {

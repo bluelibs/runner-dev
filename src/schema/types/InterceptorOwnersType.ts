@@ -45,7 +45,9 @@ const MiddlewareInterceptorOwnersSnapshotType = new GraphQLObjectType({
     },
     perTaskMiddlewareInterceptorOwnerIds: {
       type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(MiddlewareInterceptorOwnersEntryType))
+        new GraphQLList(
+          new GraphQLNonNull(MiddlewareInterceptorOwnersEntryType)
+        )
       ),
       resolve: (node: any) =>
         Object.entries(node?.perTaskMiddlewareInterceptorOwnerIds ?? {}).map(
@@ -57,7 +59,9 @@ const MiddlewareInterceptorOwnersSnapshotType = new GraphQLObjectType({
     },
     perResourceMiddlewareInterceptorOwnerIds: {
       type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(MiddlewareInterceptorOwnersEntryType))
+        new GraphQLList(
+          new GraphQLNonNull(MiddlewareInterceptorOwnersEntryType)
+        )
       ),
       resolve: (node: any) =>
         Object.entries(

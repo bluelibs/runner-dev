@@ -17,6 +17,7 @@ export interface DocumentationSidebarProps {
   treeType: TreeType;
   localNamespaceSearch: string;
   showSystem: boolean;
+  showPrivate: boolean;
   treeNodes: TreeNode[];
   sections: Array<{
     id: string;
@@ -30,9 +31,11 @@ export interface DocumentationSidebarProps {
   onTreeTypeChange: (type: TreeType) => void;
   onNamespaceSearchChange: (value: string) => void;
   onShowSystemChange: (value: boolean) => void;
+  onShowPrivateChange: (value: boolean) => void;
   onTreeNodeClick: (node: TreeNode) => void;
   onToggleExpansion: (nodeId: string, expanded?: boolean) => void;
   onSectionClick: (sectionId: string) => void;
+  resolveSectionFromElementId?: (elementId: string) => string | null;
 }
 
 export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
@@ -47,6 +50,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   treeType,
   localNamespaceSearch,
   showSystem,
+  showPrivate,
   treeNodes,
   sections,
   totalComponents,
@@ -54,9 +58,11 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   onTreeTypeChange,
   onNamespaceSearchChange,
   onShowSystemChange,
+  onShowPrivateChange,
   onTreeNodeClick,
   onToggleExpansion,
   onSectionClick,
+  resolveSectionFromElementId,
 }) => {
   return (
     <nav
@@ -137,25 +143,47 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
           />
         </div>
       </div>
-      <div
-        className="docs-system-toggle-container"
-        title="Toggle visibility of system-tagged elements"
-      >
-        <label className="docs-switch" htmlFor="show-system-toggle">
-          <input
-            id="show-system-toggle"
-            className="docs-switch-input"
-            type="checkbox"
-            checked={showSystem}
-            onChange={(e) => onShowSystemChange(e.target.checked)}
-          />
-          <span className="docs-switch-track">
-            <span className="docs-switch-thumb" />
-          </span>
-          <span className="docs-switch-text">
-            <span className="system-label">SYSTEM</span>
-          </span>
-        </label>
+      <div className="docs-visibility-toggles">
+        <div
+          className="docs-visibility-toggle-row"
+          title="Toggle visibility of system-tagged elements"
+        >
+          <label className="docs-switch" htmlFor="show-system-toggle">
+            <input
+              id="show-system-toggle"
+              className="docs-switch-input"
+              type="checkbox"
+              checked={showSystem}
+              onChange={(e) => onShowSystemChange(e.target.checked)}
+            />
+            <span className="docs-switch-track">
+              <span className="docs-switch-thumb" />
+            </span>
+            <span className="docs-switch-text">
+              <span className="system-label">SYSTEM</span>
+            </span>
+          </label>
+        </div>
+        <div
+          className="docs-visibility-toggle-row"
+          title="Toggle visibility of private elements"
+        >
+          <label className="docs-switch" htmlFor="show-private-toggle">
+            <input
+              id="show-private-toggle"
+              className="docs-switch-input"
+              type="checkbox"
+              checked={showPrivate}
+              onChange={(e) => onShowPrivateChange(e.target.checked)}
+            />
+            <span className="docs-switch-track">
+              <span className="docs-switch-thumb" />
+            </span>
+            <span className="docs-switch-text">
+              <span className="private-label">PRIVATE</span>
+            </span>
+          </label>
+        </div>
       </div>
 
       {/* View Mode Controls */}
@@ -217,6 +245,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
           onNodeClick={onTreeNodeClick}
           onSectionClick={onSectionClick}
           onToggleExpansion={onToggleExpansion}
+          resolveSectionFromElementId={resolveSectionFromElementId}
           searchTerm={localNamespaceSearch}
           className="docs-navigation"
         />

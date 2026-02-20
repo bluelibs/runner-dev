@@ -119,6 +119,12 @@ body {
   }
 }
 
+.value--empty,
+.docs-empty-value {
+  color: var(--docs-text-muted);
+  font-style: italic;
+}
+
 @keyframes docs-highlight-pulse {
   0% {
     background-color: transparent;
@@ -212,7 +218,7 @@ body {
 // Container-based compact rules when the sidebar is very narrow
 .docs-sidebar {
   @container (max-width: 160px) {
-    .docs-switch .docs-switch-text .system-label {
+    .docs-visibility-toggles {
       display: none;
     }
     .navigation-view--list .nav-content {
@@ -278,12 +284,6 @@ body {
   }
 }
 
-.docs-system-toggle-container {
-  margin-bottom: 20px;
-  font-family: $font-family-base;
-  text-transform: uppercase;
-}
-
 .docs-nav-header {
   margin-bottom: $spacing-xxxl;
 
@@ -305,7 +305,7 @@ body {
 }
 
 // -----------------------------------------------------------------------------
-// Main Filters (Search + Show System Toggle)
+// Main Filters (Search)
 // -----------------------------------------------------------------------------
 .docs-main-filters {
   display: flex;
@@ -329,12 +329,6 @@ body {
     flex-direction: column;
     gap: $spacing-sm;
     align-items: stretch;
-
-    .docs-system-toggle-container {
-      align-self: flex-start; // Align to left when stacked
-      justify-content: flex-start;
-      padding-top: 0; // Remove offset when stacked
-    }
 
     .docs-namespace-input {
       min-width: 200px; // Maintain minimum width when stacked
@@ -551,10 +545,30 @@ body {
 }
 
 // -----------------------------------------------------------------------------
-// System Toggle Switch
+// Visibility Toggles
 // -----------------------------------------------------------------------------
+.docs-visibility-toggles {
+  margin-bottom: $spacing-lg;
+  padding: $spacing-sm;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: $border-radius-md;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  display: grid;
+  gap: $spacing-xs;
+}
+
+.docs-visibility-toggle-row {
+  display: flex;
+}
+
 .docs-switch {
   display: inline-flex;
+  width: 100%;
+  justify-content: space-between;
   align-items: center;
   gap: $spacing-sm;
   cursor: pointer;

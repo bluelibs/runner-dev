@@ -28,8 +28,12 @@ type TaskInterceptorRecord = {
 type MiddlewareInterceptorOwnerSnapshot = {
   globalTaskInterceptorOwnerIds?: readonly string[];
   globalResourceInterceptorOwnerIds?: readonly string[];
-  perTaskMiddlewareInterceptorOwnerIds?: Readonly<Record<string, readonly string[]>>;
-  perResourceMiddlewareInterceptorOwnerIds?: Readonly<Record<string, readonly string[]>>;
+  perTaskMiddlewareInterceptorOwnerIds?: Readonly<
+    Record<string, readonly string[]>
+  >;
+  perResourceMiddlewareInterceptorOwnerIds?: Readonly<
+    Record<string, readonly string[]>
+  >;
 };
 
 function buildTaskInterceptorOwnersSnapshot(
@@ -86,9 +90,9 @@ function normalizeMiddlewareOwnerSnapshot(
 
 function getMiddlewareInterceptorOwnersSnapshot(store: Store) {
   const managerFromStore = (store as any).getMiddlewareManager?.();
-  const managerFromResource = (store as any).resources
-    ?.get?.(MIDDLEWARE_MANAGER_RESOURCE_ID)
-    ?.value;
+  const managerFromResource = (store as any).resources?.get?.(
+    MIDDLEWARE_MANAGER_RESOURCE_ID
+  )?.value;
   const middlewareManager = managerFromStore ?? managerFromResource;
   const snapshot =
     middlewareManager &&

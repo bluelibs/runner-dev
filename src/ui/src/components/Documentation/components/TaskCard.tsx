@@ -451,7 +451,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 })}
               </div>
             ) : (
-              <span className="task-card__no-events">None</span>
+              "None"
             )}
           </InfoBlock>
 

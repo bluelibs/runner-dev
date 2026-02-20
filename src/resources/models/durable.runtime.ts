@@ -3,12 +3,45 @@ import type {
   Store,
   TaskStoreElementType,
 } from "@bluelibs/runner";
-import { type DurableFlowShape, DurableResource } from "@bluelibs/runner/node";
+import type { DurableFlowShape, DurableResource } from "@bluelibs/runner/node";
 import { hasDurableWorkflowTag } from "./durable.tools";
 
 type StoreSlice = Pick<Store, "tasks" | "resources">;
+type DurableResourceConstructor = new (...args: unknown[]) => DurableResource;
+
 interface DescribeDurableTaskOptions {
   timeoutMs?: number;
+}
+
+let durableResourceConstructor: DurableResourceConstructor | null | undefined;
+
+function resolveDurableResourceConstructor():
+  | DurableResourceConstructor
+  | null {
+  if (durableResourceConstructor !== undefined) {
+    return durableResourceConstructor;
+  }
+
+  try {
+    const nodeModule = require("@bluelibs/runner/node") as {
+      DurableResource?: DurableResourceConstructor;
+    };
+    durableResourceConstructor = nodeModule.DurableResource ?? null;
+    return durableResourceConstructor;
+  } catch {
+    // Fall through to root import for older package layouts.
+  }
+
+  try {
+    const rootModule = require("@bluelibs/runner") as {
+      DurableResource?: DurableResourceConstructor;
+    };
+    durableResourceConstructor = rootModule.DurableResource ?? null;
+    return durableResourceConstructor;
+  } catch {
+    durableResourceConstructor = null;
+    return null;
+  }
 }
 
 function getStoreTask(
@@ -27,8 +60,11 @@ function getDurableDependencyFromTask(
 ): DurableResource | null {
   if (!isTaggedDurableWorkflow(storeTask)) return null;
 
+  const DurableResourceRef = resolveDurableResourceConstructor();
+  if (!DurableResourceRef) return null;
+
   for (const dep of Object.values(storeTask.computedDependencies ?? {})) {
-    if (dep instanceof DurableResource) {
+    if (dep instanceof DurableResourceRef) {
       return dep;
     }
   }

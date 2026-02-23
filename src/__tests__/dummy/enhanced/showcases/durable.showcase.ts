@@ -1,28 +1,15 @@
-import { globals, r } from "@bluelibs/runner";
+import { RegisterableItems, r } from "@bluelibs/runner";
 import {
   durableWorkflowTag,
   memoryDurableResource,
 } from "@bluelibs/runner/node";
 import { z } from "zod";
 
-const pricingMultiplierByRegion = {
-  US: 1.02,
-  EU: 1.08,
-  APAC: 1.04,
-} as const;
-
 const riskScoreByRegion = {
   US: 3,
   EU: 8,
   APAC: 5,
 } as const;
-
-function computeAdjustedPrice(
-  basePrice: number,
-  region: keyof typeof pricingMultiplierByRegion
-): number {
-  return Number((basePrice * pricingMultiplierByRegion[region]).toFixed(2));
-}
 
 function computeRiskScore(
   amount: number,
@@ -36,30 +23,6 @@ function buildApprovalReference(orderId: string, riskScore: number): string {
   const suffix = orderId.replace(/[^a-zA-Z0-9]/g, "").slice(-8) || "ORDER";
   return `APR-${suffix}-${riskScore}`;
 }
-
-const tunnelPricingPreviewInputSchema = z.object({
-  sku: z.string(),
-  basePrice: z.number().positive(),
-  region: z.enum(["US", "EU", "APAC"]).default("US"),
-});
-
-const tunnelPricingPreviewResultSchema = z.object({
-  sku: z.string(),
-  adjustedPrice: z.number().positive(),
-  ruleApplied: z.string(),
-  source: z.literal("tunnel-exposed-task"),
-});
-
-const tunnelCatalogSyncInputSchema = z.object({
-  supplierId: z.string(),
-  changedSkus: z.array(z.string()).min(1),
-});
-
-const tunnelCatalogSyncResultSchema = z.object({
-  supplierId: z.string(),
-  syncedCount: z.number().int().nonnegative(),
-  emittedEvent: z.string(),
-});
 
 const durableOrderApprovalInputSchema = z.object({
   orderId: z.string(),
@@ -101,79 +64,6 @@ const durableExecutionIdResultSchema = z.object({
   executionId: z.string(),
 });
 
-export const tunnelCatalogUpdatedEvent = r
-  .event("app.examples.tunnel.events.catalogUpdated")
-  .meta({
-    title: "Catalog Updated",
-    description:
-      "Emitted by the tunnel showcase sync task after supplier sync.",
-  })
-  .payloadSchema(z.object({ supplierId: z.string(), updatedAt: z.date() }))
-  .build();
-
-export const tunnelPricingPreviewTask = r
-  .task("app.examples.tunnel.tasks.pricingPreview")
-  .meta({
-    title: "Tunnel Pricing Preview",
-    description:
-      "Simple task that would normally be exposed through a tunnel allow-list.",
-  })
-  .inputSchema(tunnelPricingPreviewInputSchema)
-  .resultSchema(tunnelPricingPreviewResultSchema)
-  .run(async (input) => {
-    return {
-      sku: input.sku,
-      adjustedPrice: computeAdjustedPrice(input.basePrice, input.region),
-      ruleApplied: `regional_multiplier_${input.region.toLowerCase()}`,
-      source: "tunnel-exposed-task" as const,
-    };
-  })
-  .build();
-
-export const tunnelCatalogSyncTask = r
-  .task("app.examples.tunnel.tasks.catalogSync")
-  .meta({
-    title: "Tunnel Catalog Sync",
-    description:
-      "Companion task for the tunnel example that emits an exposed event.",
-  })
-  .dependencies({
-    emitCatalogUpdated: tunnelCatalogUpdatedEvent,
-  })
-  .inputSchema(tunnelCatalogSyncInputSchema)
-  .resultSchema(tunnelCatalogSyncResultSchema)
-  .run(async (input, { emitCatalogUpdated }) => {
-    await emitCatalogUpdated({
-      supplierId: input.supplierId,
-      updatedAt: new Date(),
-    });
-
-    return {
-      supplierId: input.supplierId,
-      syncedCount: input.changedSkus.length,
-      emittedEvent: tunnelCatalogUpdatedEvent.id,
-    };
-  })
-  .build();
-
-export const tunnelServerShowcaseResource = r
-  .resource("app.examples.tunnel.resources.httpExposure")
-  .meta({
-    title: "Tunnel HTTP Exposure (Showcase)",
-    description:
-      "A minimal server-mode tunnel policy so play can visualize tunnel metadata.",
-  })
-  .tags([globals.tags.tunnel])
-  .init(async () => ({
-    mode: "server" as const,
-    transport: "http" as const,
-    tasks: [tunnelPricingPreviewTask.id, tunnelCatalogSyncTask.id],
-    events: [tunnelCatalogUpdatedEvent.id],
-    endpoint: "http://localhost:31337/__runner",
-    auth: "token",
-  }))
-  .build();
-
 export const showcaseDurableResource = memoryDurableResource.fork(
   "app.examples.durable.runtime"
 );
@@ -185,7 +75,7 @@ export const durableOrderApprovalTask = r
   .meta({
     title: "Durable Order Approval Workflow",
     description:
-      "Durable example with step/sleep/note so the workflow shape is visible in play.",
+      "Durable flow with step/sleep/note so Runner-Dev can render workflow shape.",
   })
   .dependencies({ durable: showcaseDurableResource })
   .tags([durableWorkflowTag])
@@ -225,7 +115,7 @@ export const runDurableOrderApprovalTask = r
   .meta({
     title: "Run Durable Order Approval Workflow",
     description:
-      "Helper task to execute the durable workflow through durable.execute(...).",
+      "Helper task to execute durable workflow via durable.execute(...).",
   })
   .dependencies({
     durable: showcaseDurableResource,
@@ -243,7 +133,7 @@ export const startDurableOrderApprovalTask = r
   .meta({
     title: "Start Durable Order Approval Workflow",
     description:
-      "Helper task to demonstrate async durable workflow startup via startExecution(...).",
+      "Helper task to start the durable workflow and return execution id.",
   })
   .dependencies({
     durable: showcaseDurableResource,
@@ -260,11 +150,7 @@ export const startDurableOrderApprovalTask = r
   })
   .build();
 
-export const tunnelAndDurableExampleRegistrations = [
-  tunnelCatalogUpdatedEvent,
-  tunnelPricingPreviewTask,
-  tunnelCatalogSyncTask,
-  tunnelServerShowcaseResource,
+export const durableShowcaseRegistrations: RegisterableItems[] = [
   showcaseDurableRegistration,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,

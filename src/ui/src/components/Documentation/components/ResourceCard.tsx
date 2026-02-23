@@ -22,10 +22,7 @@ import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { BaseModal } from "./modals";
 import { hasTunnelTag } from "../../../../../resources/models/tunnel.tools";
 import { isSystemElement } from "../utils/isSystemElement";
-import {
-  hasWildcard,
-  matchesWildcardPattern,
-} from "../utils/wildcard-utils";
+import { hasWildcard, matchesWildcardPattern } from "../utils/wildcard-utils";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -618,27 +615,30 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         ariaLabel="Isolation wildcard matches"
       >
         <div className="resource-card__isolation-modal-content">
-          {isolationRuleModal && isolationRuleModal.matchedResources.length > 5 && (
-            <div className="resource-card__relations__search">
-              <span
-                className="resource-card__relations__search-icon"
-                aria-hidden="true"
-              >
-                S
-              </span>
-              <input
-                type="search"
-                className="resource-card__relations__search-input"
-                placeholder="Filter matched resources..."
-                value={isolationRuleSearch}
-                onChange={(event) => setIsolationRuleSearch(event.target.value)}
-              />
-              <span className="resource-card__relations__search-count">
-                {filteredIsolationMatches.length}/
-                {isolationRuleModal.matchedResources.length}
-              </span>
-            </div>
-          )}
+          {isolationRuleModal &&
+            isolationRuleModal.matchedResources.length > 5 && (
+              <div className="resource-card__relations__search">
+                <span
+                  className="resource-card__relations__search-icon"
+                  aria-hidden="true"
+                >
+                  S
+                </span>
+                <input
+                  type="search"
+                  className="resource-card__relations__search-input"
+                  placeholder="Filter matched resources..."
+                  value={isolationRuleSearch}
+                  onChange={(event) =>
+                    setIsolationRuleSearch(event.target.value)
+                  }
+                />
+                <span className="resource-card__relations__search-count">
+                  {filteredIsolationMatches.length}/
+                  {isolationRuleModal.matchedResources.length}
+                </span>
+              </div>
+            )}
 
           <div className="resource-card__isolation-modal-list">
             {filteredIsolationMatches.length > 0 ? (
@@ -650,7 +650,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   onClick={closeIsolationWildcardModal}
                 >
                   <div className="title title--resource">
-                    {matchedResource.meta?.title || formatId(matchedResource.id)}
+                    {matchedResource.meta?.title ||
+                      formatId(matchedResource.id)}
                   </div>
                   <div className="id">{matchedResource.id}</div>
                 </a>

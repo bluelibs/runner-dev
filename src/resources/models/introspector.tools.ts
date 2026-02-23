@@ -75,8 +75,8 @@ export function computeUnusedMiddleware(
       const used =
         (m.usedByTasks?.length ?? 0) > 0 ||
         (m.usedByResources?.length ?? 0) > 0;
-      const globalEnabled = Boolean(m.global?.enabled);
-      return !used && !globalEnabled;
+      const autoApplyEnabled = Boolean((m as any).autoApply?.enabled);
+      return !used && !autoApplyEnabled;
     })
     .map((m) => ({ id: m.id }));
 }

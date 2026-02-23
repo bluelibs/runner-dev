@@ -65,15 +65,14 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
       parts.push(<p key="description">{middleware.meta.description}</p>);
     }
 
-    if (middleware.global?.enabled) {
+    if (middleware.autoApply?.enabled) {
       parts.push(
         <div key="badges" className="middleware-card__global-badges">
-          <span className="middleware-card__global-badge">Global</span>
-          {middleware.global.tasks && (
-            <span className="middleware-card__global-badge">Tasks</span>
-          )}
-          {middleware.global.resources && (
-            <span className="middleware-card__global-badge">Resources</span>
+          <span className="middleware-card__global-badge">Auto</span>
+          {middleware.autoApply.scope && (
+            <span className="middleware-card__global-badge">
+              {middleware.autoApply.scope}
+            </span>
           )}
         </div>
       );
@@ -143,17 +142,21 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             </InfoBlock>
           )}
 
-          {middleware.global?.enabled && (
+          {middleware.autoApply?.enabled && (
             <div className="middleware-card__global-config">
-              <div className="title">Global Middleware Configuration</div>
+              <div className="title">Auto-Apply Configuration</div>
               <div className="content">
                 <div className="config-item">
-                  <strong>Tasks:</strong>{" "}
-                  {middleware.global.tasks ? "Enabled" : "Disabled"}
+                  <strong>Scope:</strong>{" "}
+                  {middleware.autoApply.scope || "where-visible"}
                 </div>
                 <div className="config-item">
-                  <strong>Resources:</strong>{" "}
-                  {middleware.global.resources ? "Enabled" : "Disabled"}
+                  <strong>Predicate:</strong>{" "}
+                  {middleware.autoApply.hasPredicate ? "Yes" : "No"}
+                </div>
+                <div className="config-item">
+                  <strong>Legacy everywhere:</strong>{" "}
+                  {middleware.autoApply.legacyEverywhere ? "Yes" : "No"}
                 </div>
               </div>
             </div>

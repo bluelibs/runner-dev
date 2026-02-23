@@ -192,7 +192,7 @@ export const CacheContext = r
 export const requestContextMiddleware = r.middleware
   .task("app.middleware.requestContext")
   .dependencies({ requestContext: RequestContext })
-  .everywhere((task) => !task.id.startsWith("system."))
+  .applyTo("where-visible", (task) => !task.id.startsWith("system."))
   .run(async ({ task, next }, { requestContext: _requestContext }) => {
     const _contextData = {
       requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -206,7 +206,8 @@ export const requestContextMiddleware = r.middleware
 export const auditContextMiddleware = r.middleware
   .task("app.middleware.auditContext")
   .dependencies({ auditContext: AuditContext })
-  .everywhere(
+  .applyTo(
+    "where-visible",
     (task) => task.id.startsWith("app.") || task.id.startsWith("api.")
   )
   .run(async ({ task, next }, { auditContext }) => {
@@ -230,7 +231,7 @@ export const auditContextMiddleware = r.middleware
 export const performanceContextMiddleware = r.middleware
   .task("app.middleware.performanceContext")
   .dependencies({ performanceContext: PerformanceContext })
-  .everywhere((_task) => true) // Apply to all tasks for demo
+  .applyTo("where-visible", (_task) => true) // Apply to all tasks for demo
   .run(async ({ task, next }, { performanceContext: _performanceContext }) => {
     const _performanceData = {
       operationId: `op_${Date.now()}_${Math.random()

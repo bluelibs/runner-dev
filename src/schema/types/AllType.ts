@@ -34,7 +34,7 @@ export const BaseElementInterface: GraphQLInterfaceType =
       },
       isPrivate: {
         description:
-          "True when this element is private to a resource boundary defined by exports().",
+          "True when this element is private to a resource boundary defined by isolate().",
         type: new GraphQLNonNull(GraphQLBoolean),
       },
       visibilityReason: {

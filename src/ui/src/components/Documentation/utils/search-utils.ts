@@ -1,3 +1,5 @@
+import { matchesWildcardPattern } from "./wildcard-utils";
+
 export type SearchGroup = {
   include: string[];
   exclude: string[];
@@ -67,12 +69,16 @@ export function elementMatchesParsed(
       // Include terms: all must match (AND logic)
       const includeMatch =
         group.include.length === 0 ||
-        group.include.every((token) => tags.some((tag) => tag.includes(token)));
+        group.include.every((token) =>
+          tags.some((tag) => matchesWildcardPattern(tag, token))
+        );
 
       // Exclude terms: none must match
       const excludeMatch =
         group.exclude.length === 0 ||
-        !group.exclude.some((token) => tags.some((tag) => tag.includes(token)));
+        !group.exclude.some((token) =>
+          tags.some((tag) => matchesWildcardPattern(tag, token))
+        );
 
       return includeMatch && excludeMatch;
     } else {
@@ -80,12 +86,12 @@ export function elementMatchesParsed(
       // Include terms: all must match (AND logic)
       const includeMatch =
         group.include.length === 0 ||
-        group.include.every((token) => id.includes(token));
+        group.include.every((token) => matchesWildcardPattern(id, token));
 
       // Exclude terms: none must match
       const excludeMatch =
         group.exclude.length === 0 ||
-        !group.exclude.some((token) => id.includes(token));
+        !group.exclude.some((token) => matchesWildcardPattern(id, token));
 
       return includeMatch && excludeMatch;
     }
@@ -127,12 +133,16 @@ export function treeNodeMatchesParsed(
       // Include terms: all must match (AND logic)
       const includeMatch =
         group.include.length === 0 ||
-        group.include.every((token) => tags.some((t) => t.includes(token)));
+        group.include.every((token) =>
+          tags.some((t) => matchesWildcardPattern(t, token))
+        );
 
       // Exclude terms: none must match
       const excludeMatch =
         group.exclude.length === 0 ||
-        !group.exclude.some((token) => tags.some((t) => t.includes(token)));
+        !group.exclude.some((token) =>
+          tags.some((t) => matchesWildcardPattern(t, token))
+        );
 
       return includeMatch && excludeMatch;
     } else {
@@ -141,14 +151,18 @@ export function treeNodeMatchesParsed(
       const includeMatch =
         group.include.length === 0 ||
         group.include.every(
-          (token) => label.includes(token) || elementId.includes(token)
+          (token) =>
+            matchesWildcardPattern(label, token) ||
+            matchesWildcardPattern(elementId, token)
         );
 
       // Exclude terms: none must match
       const excludeMatch =
         group.exclude.length === 0 ||
         !group.exclude.some(
-          (token) => label.includes(token) || elementId.includes(token)
+          (token) =>
+            matchesWildcardPattern(label, token) ||
+            matchesWildcardPattern(elementId, token)
         );
 
       return includeMatch && excludeMatch;

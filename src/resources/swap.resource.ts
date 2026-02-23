@@ -3,6 +3,7 @@ import { introspector } from "./introspector.resource";
 import {
   compileRunFunction,
   getTaskFromStore,
+  getTaskStoreElement,
   getTaskDependencies,
   serializeResult,
   deserializeInput,
@@ -82,9 +83,77 @@ export const swapManager = resource({
     _,
     { store, introspector, taskRunner, eventManager }
   ): Promise<ISwapManager> {
-    // Track original run functions and swap metadata
-    const originalRunFunctions = new Map<string, (...args: any[]) => any>();
+    // Track swap metadata and swap interceptor wiring (deep-freeze safe).
+    const originalRunCodeByTaskId = new Map<string, string | undefined>();
     const swappedTasks = new Map<string, SwappedTask>();
+    const swappedRunFunctions = new Map<string, (...args: any[]) => any>();
+    const installedInterceptors = new Map<
+      string,
+      (
+        next: (input: unknown) => Promise<unknown>,
+        input: unknown
+      ) => Promise<unknown>
+    >();
+
+    const ensureSwapInterceptor = (taskId: string): string | null => {
+      if (installedInterceptors.has(taskId)) {
+        return null;
+      }
+
+      const storeTaskElement = getTaskStoreElement(store, taskId) as {
+        interceptors?: Array<{ interceptor: any; ownerResourceId?: string }>;
+      } | null;
+      if (!storeTaskElement) {
+        return `Task '${taskId}' not found`;
+      }
+
+      const interceptor = async (
+        next: (input: unknown) => Promise<unknown>,
+        input: unknown
+      ): Promise<unknown> => {
+        const swappedRun = swappedRunFunctions.get(taskId);
+        if (!swappedRun) {
+          return next(input);
+        }
+
+        const dependencies = getTaskDependencies(store, taskId);
+        return swappedRun(input, dependencies);
+      };
+
+      if (!Array.isArray(storeTaskElement.interceptors)) {
+        storeTaskElement.interceptors = [];
+      }
+      storeTaskElement.interceptors.push({
+        interceptor,
+        ownerResourceId: swapManager.id,
+      });
+      installedInterceptors.set(taskId, interceptor);
+
+      return null;
+    };
+
+    const removeSwapInterceptor = (taskId: string): void => {
+      const interceptor = installedInterceptors.get(taskId);
+      if (!interceptor) return;
+
+      const storeTaskElement = getTaskStoreElement(store, taskId) as {
+        interceptors?: Array<{ interceptor: any; ownerResourceId?: string }>;
+      } | null;
+      if (storeTaskElement && Array.isArray(storeTaskElement.interceptors)) {
+        storeTaskElement.interceptors = storeTaskElement.interceptors.filter(
+          (record) => record.interceptor !== interceptor
+        );
+      }
+
+      installedInterceptors.delete(taskId);
+    };
+
+    const invalidateTaskRunnerCache = (taskId: string): void => {
+      const runnerStore = (taskRunner as any)?.runnerStore;
+      if (runnerStore && typeof runnerStore.delete === "function") {
+        runnerStore.delete(taskId);
+      }
+    };
 
     const api: ISwapManager = {
       async swap(taskId: string, runCode: string): Promise<SwapResult> {
@@ -105,19 +174,28 @@ export const swapManager = resource({
             return { success: false, error: compileResult.error, taskId };
           }
 
-          // Store original run function if not already stored
-          if (!originalRunFunctions.has(taskId)) {
-            originalRunFunctions.set(taskId, task.run);
+          // Capture original code for diagnostics/history.
+          if (!originalRunCodeByTaskId.has(taskId)) {
+            originalRunCodeByTaskId.set(
+              taskId,
+              typeof task.run === "function" ? task.run.toString() : undefined
+            );
           }
 
-          // Swap the run function
-          task.run = compileResult.func as any;
+          const installError = ensureSwapInterceptor(taskId);
+          if (installError) {
+            return { success: false, error: installError, taskId };
+          }
+
+          // Register swapped function; interceptor dispatches to this map.
+          swappedRunFunctions.set(taskId, compileResult.func as any);
+          invalidateTaskRunnerCache(taskId);
 
           // Track the swap
           swappedTasks.set(taskId, {
             taskId,
             swappedAt: Date.now(),
-            originalCode: originalRunFunctions.get(taskId)?.toString(),
+            originalCode: originalRunCodeByTaskId.get(taskId),
           });
 
           return { success: true, taskId };
@@ -144,8 +222,7 @@ export const swapManager = resource({
             };
           }
 
-          const originalRun = originalRunFunctions.get(taskId);
-          if (!originalRun) {
+          if (!swappedTasks.has(taskId)) {
             return {
               success: false,
               error: `Task '${taskId}' is not swapped`,
@@ -153,11 +230,13 @@ export const swapManager = resource({
             };
           }
 
-          // Restore original run function
-          (task as any).run = originalRun;
+          // Remove swapped run and interceptor wiring for this task.
+          swappedRunFunctions.delete(taskId);
+          removeSwapInterceptor(taskId);
+          invalidateTaskRunnerCache(taskId);
 
           // Clean up tracking
-          originalRunFunctions.delete(taskId);
+          originalRunCodeByTaskId.delete(taskId);
           swappedTasks.delete(taskId);
 
           return { success: true, taskId };
@@ -189,7 +268,7 @@ export const swapManager = resource({
       },
 
       isSwapped(taskId: string): boolean {
-        return swappedTasks.has(taskId);
+        return swappedRunFunctions.has(taskId);
       },
 
       async invokeTask(
@@ -245,7 +324,12 @@ export const swapManager = resource({
             if (pure) {
               // Pure mode: Get computed dependencies from store (no middleware pipeline)
               const dependencies = getTaskDependencies(store, taskId);
-              result = await task.run(input, dependencies);
+              const swappedRun = swappedRunFunctions.get(taskId);
+              if (swappedRun) {
+                result = await swappedRun(input, dependencies);
+              } else {
+                result = await task.run(input, dependencies);
+              }
             } else {
               // Standard mode: use taskRunner to execute through the pipeline
               result = await taskRunner.run(task, input);

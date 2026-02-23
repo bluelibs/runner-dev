@@ -650,8 +650,40 @@ export class Introspector {
     );
   }
 
+  getTaskMiddlewaresWithTag(tagId: string): Middleware[] {
+    return this.taskMiddlewares.filter((m) =>
+      ensureStringArray(m.tags).includes(tagId)
+    );
+  }
+
+  getResourceMiddlewaresWithTag(tagId: string): Middleware[] {
+    return this.resourceMiddlewares.filter((m) =>
+      ensureStringArray(m.tags).includes(tagId)
+    );
+  }
+
   getEventsWithTag(tagId: string): Event[] {
     return this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
+  }
+
+  getErrorsWithTag(tagId: string): ErrorModel[] {
+    return this.errors.filter((e) => ensureStringArray(e.tags).includes(tagId));
+  }
+
+  getTagHandlers(tagId: string): {
+    tasks: Task[];
+    hooks: Hook[];
+    resources: Resource[];
+  } {
+    const dependsOnTag = <T extends { dependsOn?: string[] | null }>(
+      item: T
+    ): boolean => ensureStringArray(item.dependsOn).includes(tagId);
+
+    return {
+      tasks: this.tasks.filter(dependsOnTag),
+      hooks: this.hooks.filter(dependsOnTag),
+      resources: this.resources.filter(dependsOnTag),
+    };
   }
 
   getAllTags(): Tag[] {

@@ -128,7 +128,12 @@ describe("GraphQL schema (integration)", () => {
           overrides
           overridesResolved { id }
           registers
-          exports
+          isolation {
+            deny
+            only
+            exports
+            exportsMode
+          }
           registersResolved { id }
           usedBy { id }
           emits { id }
@@ -201,7 +206,9 @@ describe("GraphQL schema (integration)", () => {
     // Resource config markdown exists for cacheRes
     const cache = data.resources.find((r: any) => r.id === "res.cache");
     expect(typeof cache.isPrivate).toBe("boolean");
-    expect(cache.exports === null || Array.isArray(cache.exports)).toBe(true);
+    expect(
+      cache.isolation === null || typeof cache.isolation === "object"
+    ).toBe(true);
     expect(typeof cache.configSchema).toBe("string");
     expect(cache.configSchema).toBeTruthy();
     expect(String(cache.configSchema)).toContain("ttlMs");
@@ -316,7 +323,7 @@ describe("GraphQL schema (integration)", () => {
     );
   });
 
-  test("surfaces exports()-based privacy and task interceptors", async () => {
+  test("surfaces isolate()-based privacy and task interceptors", async () => {
     let ctx: any;
 
     const visibilityPublicTask = task({
@@ -332,7 +339,7 @@ describe("GraphQL schema (integration)", () => {
     const visibilityModule = resource({
       id: "res.visibility.module",
       register: [visibilityPublicTask, visibilityPrivateTask],
-      exports: [visibilityPublicTask],
+      isolate: { exports: [visibilityPublicTask] },
     });
 
     const interceptorInstaller = resource({
@@ -376,7 +383,12 @@ describe("GraphQL schema (integration)", () => {
         }
         resources(idIncludes: "res.visibility.module") {
           id
-          exports
+          isolation {
+            deny
+            only
+            exports
+            exportsMode
+          }
           isPrivate
         }
         interceptorOwners {
@@ -418,7 +430,9 @@ describe("GraphQL schema (integration)", () => {
 
     expect(moduleResource).toBeTruthy();
     expect(moduleResource.isPrivate).toBe(false);
-    expect(moduleResource.exports).toEqual(["task.visibility.public"]);
+    expect(moduleResource.isolation.exports).toEqual([
+      "task.visibility.public",
+    ]);
 
     const ownersEntry = data.interceptorOwners.tasksById.find(
       (entry: any) => entry.taskId === "task.visibility.public"

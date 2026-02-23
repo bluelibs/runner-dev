@@ -1,4 +1,5 @@
 import {
+  GraphQLEnumType,
   GraphQLObjectType,
   GraphQLString,
   GraphQLList,
@@ -10,9 +11,23 @@ import { TaskType } from "./TaskType";
 import { ResourceType } from "./ResourceType";
 import { MiddlewareType } from "./MiddlewareType";
 import { EventType } from "./EventType";
+import { ErrorType } from "./ErrorType";
 import type { Introspector } from "../../resources/models/Introspector";
 import { BaseElementInterface } from "./AllType";
 import { baseElementCommonFields } from "./BaseElementCommon";
+
+const TagTargetType = new GraphQLEnumType({
+  name: "TagTarget",
+  values: {
+    TASKS: { value: "tasks" },
+    RESOURCES: { value: "resources" },
+    EVENTS: { value: "events" },
+    HOOKS: { value: "hooks" },
+    TASK_MIDDLEWARES: { value: "taskMiddlewares" },
+    RESOURCE_MIDDLEWARES: { value: "resourceMiddlewares" },
+    ERRORS: { value: "errors" },
+  },
+});
 
 export const TagUsageType: GraphQLObjectType<
   TagUsage,
@@ -34,6 +49,12 @@ export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
       ...baseElementCommonFields(),
       configSchema: { type: GraphQLString },
       config: { type: GraphQLString },
+      targets: {
+        type: new GraphQLNonNull(
+          new GraphQLList(new GraphQLNonNull(TagTargetType))
+        ),
+        resolve: (tag) => tag.targets ?? [],
+      },
       tasks: {
         type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(TaskType))),
         resolve: (tag, _, { introspector }) => {
@@ -54,12 +75,20 @@ export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
           return introspector.getResourcesWithTag(tag.id);
         },
       },
-      middlewares: {
+      taskMiddlewares: {
         type: new GraphQLNonNull(
           new GraphQLList(new GraphQLNonNull(MiddlewareType))
         ),
         resolve: (tag, _, { introspector }) => {
-          return introspector.getMiddlewaresWithTag(tag.id);
+          return introspector.getTaskMiddlewaresWithTag(tag.id);
+        },
+      },
+      resourceMiddlewares: {
+        type: new GraphQLNonNull(
+          new GraphQLList(new GraphQLNonNull(MiddlewareType))
+        ),
+        resolve: (tag, _, { introspector }) => {
+          return introspector.getResourceMiddlewaresWithTag(tag.id);
         },
       },
       events: {
@@ -70,17 +99,27 @@ export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
           return introspector.getEventsWithTag(tag.id);
         },
       },
+      errors: {
+        type: new GraphQLNonNull(
+          new GraphQLList(new GraphQLNonNull(ErrorType))
+        ),
+        resolve: (tag, _, { introspector }) => {
+          return introspector.getErrorsWithTag(tag.id);
+        },
+      },
       all: {
         type: new GraphQLNonNull(
           new GraphQLList(new GraphQLNonNull(BaseElementInterface))
         ),
         resolve: (tag, _, { introspector }) => {
           return [
-            ...introspector.getMiddlewaresWithTag(tag.id),
+            ...introspector.getTaskMiddlewaresWithTag(tag.id),
+            ...introspector.getResourceMiddlewaresWithTag(tag.id),
             ...introspector.getTasksWithTag(tag.id),
             ...introspector.getHooksWithTag(tag.id),
             ...introspector.getResourcesWithTag(tag.id),
             ...introspector.getEventsWithTag(tag.id),
+            ...introspector.getErrorsWithTag(tag.id),
           ];
         },
       },

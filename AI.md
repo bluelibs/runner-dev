@@ -13,7 +13,9 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 - **MCP Integration**: AI-native development environment
 - **Tags (first-class)**: Discover Tag objects and reverse usage via GraphQL (`tags`, `tag(id)`).
 - **Documentation UI Overviews**: Sortable and searchable overview tables with a `Used By` counter column for faster cross-element inspection.
-- **Visibility Awareness**: Every element exposes `isPrivate` (based on Runner `exports()` boundaries), and resources expose `exports`.
+- **Visibility Awareness**: Every element exposes `isPrivate` (based on Runner `isolate()` boundaries), and resources expose `isolation`.
+- **Isolation Wildcard Explorer**: Wildcard isolation rules can be clicked to inspect all matching resources in a searchable modal list.
+- **Tag Handlers**: Tag views separate direct tag usages from handler elements that depend on the tag id.
 - **Task Interceptor Introspection**: Tasks expose `interceptorCount` and `hasInterceptors` for runtime `task.intercept(...)` registrations.
 
 ## Available GraphQL Queries
@@ -71,7 +73,12 @@ query Architecture {
   resources {
     id
     isPrivate
-    exports
+    isolation {
+      deny
+      only
+      exports
+      exportsMode
+    }
     meta {
       title
       description

@@ -1,4 +1,5 @@
 import {
+  GraphQLEnumType,
   GraphQLID,
   GraphQLList,
   GraphQLNonNull,
@@ -20,6 +21,39 @@ import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { CoverageInfoType } from "./CoverageType";
 import { hasTunnelTag } from "../../resources/models/tunnel.tools";
+
+const IsolationExportsModeType = new GraphQLEnumType({
+  name: "IsolationExportsMode",
+  values: {
+    UNSET: { value: "unset" },
+    NONE: { value: "none" },
+    LIST: { value: "list" },
+  },
+});
+
+const ResourceIsolationType = new GraphQLObjectType({
+  name: "ResourceIsolation",
+  fields: {
+    deny: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    only: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    exports: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    exportsMode: {
+      type: new GraphQLNonNull(IsolationExportsModeType),
+    },
+  },
+});
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
@@ -116,11 +150,11 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
     },
-    exports: {
+    isolation: {
       description:
-        "Ids explicitly exported by this resource via exports([...]). Null means exports() is not configured.",
-      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
-      resolve: (node: Resource) => node.exports ?? null,
+        "Resource isolation policy generated from .isolate({ deny/only/exports }).",
+      type: ResourceIsolationType,
+      resolve: (node: Resource) => node.isolation ?? null,
     },
     registersResolved: {
       description: "The items registered by this resource (resolved)",

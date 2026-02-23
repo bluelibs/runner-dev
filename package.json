@@ -38,7 +38,7 @@
     "demo:ping": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js ping",
     "demo:query": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js query 'query { tasks { id } }' --format pretty",
     "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5",
-    "fetch:ai": "node scripts/fetch-runner-ai.js"
+    "sync:docs": "ts-node --project config/ts/tsconfig.json scripts/sync-docs.ts"
   },
   "bin": {
     "runner-dev": "dist/cli.js"
@@ -104,7 +104,7 @@
     "@adobe/jsonschema2md": "^8.0.5",
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
-    "@bluelibs/runner": "^5.5.0",
+    "@bluelibs/runner": "file:../runner",
     "@bluelibs/smart": "^2.2.1",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@types/prismjs": "^1.26.5",

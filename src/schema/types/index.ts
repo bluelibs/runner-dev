@@ -6,7 +6,10 @@ export {
   TaskMiddlewareType,
   ResourceMiddlewareType,
 } from "./MiddlewareType";
-export { MiddlewareGlobalType } from "./middleware/common";
+export {
+  MiddlewareAutoApplyType,
+  MiddlewareApplyScopeType,
+} from "./middleware/common";
 export { ResourceType } from "./ResourceType";
 export { TaskType } from "./TaskType";
 export { HookType } from "./HookType";

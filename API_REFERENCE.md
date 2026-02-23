@@ -6,6 +6,15 @@ This document provides a detailed overview of the `@bluelibs/runner-dev` GraphQL
 
 All arrays are non-null lists with non-null items, and ids are complemented by resolved fields for deep traversal.
 
+## Runner 5.6 Migration Notes
+
+| Before | After (hard switch) |
+| --- | --- |
+| `Resource.exports` | `Resource.isolation { deny, only, exports, exportsMode }` |
+| `Middleware.global` | `Middleware.autoApply { enabled, scope, hasPredicate, legacyEverywhere }` |
+| `Tag.middlewares` | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares` |
+| N/A | `Tag.errors`, `Tag.targets` |
+
 ### Common Types
 
 - `BaseElement`: `id: ID!`, `meta: Meta`, `filePath: String`, `markdownDescription: String!`, `fileContents(startLine: Int, endLine: Int): String`
@@ -51,6 +60,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - `middleware`, `middlewareResolved: [ResourceMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
 - `overrides`, `overridesResolved`
 - `registers`, `registersResolved`
+- `isolation { deny, only, exports, exportsMode }`
 - `usedBy: [Task!]!`
 - `emits: [Event!]!` (inferred from task/hook emissions)
 - `dependsOn: [String!]!`, `dependsOnResolved: [Resource!]!`
@@ -67,7 +77,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 
 #### TaskMiddleware
 
-- `global: GlobalMiddleware`
+- `autoApply: MiddlewareAutoApply`
 - `usedBy: [Task!]!`, `usedByDetailed: [MiddlewareTaskUsage!]!`
 - `emits: [Event!]!`
 - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
@@ -76,7 +86,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 
 #### ResourceMiddleware
 
-- `global: GlobalMiddleware`
+- `autoApply: MiddlewareAutoApply`
 - `usedBy: [Resource!]!`, `usedByDetailed: [MiddlewareResourceUsage!]!`
 - `emits: [Event!]!`
 - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`

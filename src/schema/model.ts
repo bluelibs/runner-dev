@@ -4,6 +4,17 @@ export interface TagUsage {
   configSchema?: string | null;
 }
 
+export type MiddlewareApplyScope = "where-visible" | "subtree";
+export type IsolationExportsMode = "unset" | "none" | "list";
+export type TagTarget =
+  | "tasks"
+  | "resources"
+  | "events"
+  | "hooks"
+  | "taskMiddlewares"
+  | "resourceMiddlewares"
+  | "errors";
+
 export interface Meta {
   title?: string | null;
   description?: string | null;
@@ -13,7 +24,7 @@ export interface BaseElement {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
-  // True when this element is internal to a resource exports() boundary.
+  // True when this element is internal to a resource isolate() boundary.
   isPrivate?: boolean;
   // Optional debugging detail for why this element is private/public.
   visibilityReason?: string | null;
@@ -35,7 +46,7 @@ export interface All extends BaseElement {
   filePath?: string | null;
 }
 
-// Events can't be overriden
+// Events can't be overridden.
 export interface Event extends Omit<BaseElement, "overriddenBy"> {
   id: string;
   meta?: Meta | null;
@@ -43,11 +54,6 @@ export interface Event extends Omit<BaseElement, "overriddenBy"> {
   listenedToBy: string[];
   // Prettified Zod schema for the event payload if provided
   payloadSchema?: string | null;
-}
-
-export interface TagUsage {
-  id: string;
-  configSchema?: string | null;
 }
 
 export interface TunnelInfo {
@@ -77,11 +83,14 @@ export interface DurableFlowShape {
 export interface Tag extends BaseElement {
   id: string;
   configSchema?: string | null;
+  targets?: TagTarget[] | null;
   tasks: Task[];
   hooks: Hook[];
   resources: Resource[];
-  middlewares: Middleware[];
+  taskMiddlewares: Middleware[];
+  resourceMiddlewares: Middleware[];
   events: Event[];
+  errors: Error[];
 }
 
 // Internal discriminator for GraphQL type resolution (non-enumerable)
@@ -100,10 +109,11 @@ export const elementKindSymbol: unique symbol = Symbol(
 // Optional typing marker for objects stamped at runtime
 export type WithElementKind<T> = T & { [elementKindSymbol]?: ElementKind };
 
-export interface MiddlewareGlobal {
+export interface MiddlewareAutoApply {
   enabled: boolean;
-  tasks: boolean;
-  resources: boolean;
+  scope: MiddlewareApplyScope | null;
+  hasPredicate: boolean;
+  legacyEverywhere: boolean;
 }
 
 export interface MiddlewareUsage {
@@ -115,7 +125,7 @@ export interface Middleware extends BaseElement {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
-  global?: MiddlewareGlobal | null;
+  autoApply: MiddlewareAutoApply;
   type: "task" | "resource";
   usedByTasks: string[];
   usedByResources: string[];
@@ -168,8 +178,13 @@ export interface Resource extends BaseElement {
   middlewareDetailed?: MiddlewareUsage[];
   overrides: string[];
   registers: string[];
-  // Exposed ids from resource.exports([...]) when configured.
-  exports?: string[] | null;
+  // Hard-switch note: `exports` was removed in favor of `isolation`.
+  isolation?: {
+    deny: string[];
+    only: string[];
+    exports: string[];
+    exportsMode: IsolationExportsMode;
+  } | null;
   context?: string | null;
   // Tunnel information (populated when resource has globals.tags.tunnel)
   tunnelInfo?: TunnelInfo | null;

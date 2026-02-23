@@ -71,6 +71,15 @@
   font-weight: 500;
 }
 
+.resource-card__wildcard-rule {
+  cursor: pointer;
+}
+
+.resource-card__wildcard-hint {
+  color: var(--docs-text-secondary);
+  font-family: $font-family-base;
+}
+
 // -----------------------------------------------------------------------------
 // Resource Card Content
 // -----------------------------------------------------------------------------
@@ -352,6 +361,11 @@
   }
 }
 
+.resource-card__relation-link {
+  text-decoration: none;
+  color: inherit;
+}
+
 // -----------------------------------------------------------------------------
 // Middleware Configuration
 // -----------------------------------------------------------------------------
@@ -521,4 +535,22 @@
 
 .resource-card__tunnel-section {
   grid-column: 1 / -1;
+}
+
+.resource-card__isolation-modal {
+  .base-modal__body {
+    padding-top: $spacing-md;
+  }
+}
+
+.resource-card__isolation-modal-content {
+  display: grid;
+  gap: $spacing-md;
+}
+
+.resource-card__isolation-modal-list {
+  display: grid;
+  gap: $spacing-sm;
+  max-height: 420px;
+  overflow-y: auto;
 }

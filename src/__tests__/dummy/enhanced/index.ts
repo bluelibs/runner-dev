@@ -142,7 +142,7 @@ const interceptorPrivateTask = r
   .meta({
     title: "Interceptor Private Task",
     description:
-      "Private task hidden behind exports() to showcase visibility boundaries.",
+      "Private task hidden behind isolate() to showcase visibility boundaries.",
   })
   .run(async () => "private-value")
   .build();
@@ -152,10 +152,10 @@ const interceptorVisibilityModule = r
   .meta({
     title: "Interceptor Visibility Module",
     description:
-      "Owns a public task and a private task; exports only the public one.",
+      "Owns a public task and a private task; exports only the public one via isolate().",
   })
   .register([interceptorPublicTask, interceptorPrivateTask])
-  .exports([interceptorPublicTask])
+  .isolate({ exports: [interceptorPublicTask] })
   .build();
 
 const interceptorInstallerResource = r
@@ -258,7 +258,7 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
       console.log("   ✅ Enhanced user management with security");
       console.log("   ✅ Dynamic product pricing and inventory");
       console.log("   ✅ Comprehensive error handling");
-      console.log("   ✅ Resource exports() visibility boundaries");
+      console.log("   ✅ Resource isolate() visibility boundaries");
       console.log("   ✅ Runtime task interceptors");
       console.log("   ✅ Integration examples and demos");
       console.log("   🔗 Tunnel showcase with server-mode policy");
@@ -275,7 +275,7 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
         "   🔄 app.examples.contextPropagation - Context propagation demo"
       );
       console.log(
-        "   🧪 app.examples.tasks.interceptorConsumer - exports/interceptor showcase"
+        "   🧪 app.examples.tasks.interceptorConsumer - isolate/interceptor showcase"
       );
       console.log(
         "   🌐 app.examples.tunnel.tasks.catalogSync - Tunnel policy task sample"

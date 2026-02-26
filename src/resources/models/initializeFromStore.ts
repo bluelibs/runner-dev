@@ -165,7 +165,7 @@ export function initializeFromStore(
 
   // Build resources
   introspector.resources = Array.from(s.resources.values()).map((r: any) =>
-    mapStoreResourceToResourceModel(r.resource)
+    mapStoreResourceToResourceModel(r.resource, r.config)
   );
 
   // Build events

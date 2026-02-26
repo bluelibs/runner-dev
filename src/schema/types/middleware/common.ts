@@ -47,11 +47,6 @@ export const MiddlewareAutoApplyType = new GraphQLObjectType({
         "True when a predicate was provided to further filter auto-application targets.",
       type: new GraphQLNonNull(GraphQLBoolean),
     },
-    legacyEverywhere: {
-      description:
-        "True when inferred from deprecated .everywhere() instead of .applyTo().",
-      type: new GraphQLNonNull(GraphQLBoolean),
-    },
   }),
 });
 

@@ -189,7 +189,8 @@ export function mapStoreHookToHookModel(
 }
 
 export function mapStoreResourceToResourceModel(
-  resource: definitions.IResource
+  resource: definitions.IResource,
+  resourceConfig?: unknown
 ): Resource {
   // TODO: We might be able to improve typesafety somehow here.
   const register =
@@ -217,6 +218,9 @@ export function mapStoreResourceToResourceModel(
     (resource as any)?.tags
   );
   const isolation = normalizeIsolation(resource);
+  const subtree = normalizeSubtreePolicy(resource);
+  const cooldown = typeof (resource as any)?.cooldown === "function";
+  const config = normalizeResourceConfig(resourceConfig);
 
   return stampElementKind(
     {
@@ -237,6 +241,7 @@ export function mapStoreResourceToResourceModel(
           (resource as any)?.path ??
           null
       ),
+      config,
       middleware: resource.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
       overrides: resource.overrides
@@ -244,6 +249,8 @@ export function mapStoreResourceToResourceModel(
         .map((o) => o.id.toString()),
       registers: register.map((r) => r.id.toString()) as string[],
       isolation,
+      subtree,
+      cooldown,
       context: stringifyIfObject(resource.context),
       registeredBy: null,
       configSchema: formatSchemaIfZod(resource.configSchema),
@@ -252,6 +259,16 @@ export function mapStoreResourceToResourceModel(
     },
     "RESOURCE"
   );
+}
+
+function normalizeResourceConfig(config: unknown): string | null {
+  if (config == null) return null;
+  if (typeof config === "object" && !Array.isArray(config)) {
+    if (Object.keys(config as Record<string, unknown>).length === 0) {
+      return null;
+    }
+  }
+  return stringifyIfObject(config);
 }
 
 export function buildEvents(store: Store): Event[] {
@@ -286,6 +303,9 @@ export function buildEvents(store: Store): Event[] {
         meta: buildMetaWithNormalizedTags((e as any)?.meta ?? null, e),
         tags: tagIds,
         tagsDetailed,
+        transactional: Boolean((e as any)?.transactional),
+        parallel: Boolean((e as any)?.parallel),
+        eventLane: extractEventLaneSummary(tagsDetailed),
         filePath: sanitizePath(
           (e && (e as any)[definitions.symbolFilePath]) ?? e?.filePath ?? null
         ),
@@ -649,18 +669,135 @@ function normalizeMiddlewareAutoApply(mw: any): Middleware["autoApply"] {
           ? applyTo.scope
           : null,
       hasPredicate: typeof applyTo.when === "function",
-      legacyEverywhere: false,
     };
   }
 
-  const everywhere = mw?.everywhere;
-  const legacyEnabled = typeof everywhere === "function" || everywhere === true;
+  return {
+    enabled: false,
+    scope: null,
+    hasPredicate: false,
+  };
+}
+
+function normalizeSubtreeValidatorCount(value: unknown): number {
+  if (Array.isArray(value)) return value.length;
+  if (typeof value === "function") return 1;
+  return 0;
+}
+
+function toSubtreeMiddlewareIds(entries: unknown): string[] {
+  if (!Array.isArray(entries)) return [];
+  const ids = entries
+    .map((entry) => (typeof entry === "string" ? entry : readId(entry)))
+    .filter(Boolean);
+  return Array.from(new Set(ids));
+}
+
+function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
+  const subtree = resource?.subtree;
+  if (!subtree || typeof subtree !== "object") return null;
+
+  const tasks = subtree.tasks
+    ? {
+        middleware: toSubtreeMiddlewareIds(subtree.tasks.middleware),
+        validatorCount: normalizeSubtreeValidatorCount(subtree.tasks.validate),
+      }
+    : null;
+  const resources = subtree.resources
+    ? {
+        middleware: toSubtreeMiddlewareIds(subtree.resources.middleware),
+        validatorCount: normalizeSubtreeValidatorCount(
+          subtree.resources.validate
+        ),
+      }
+    : null;
+  const hooks = subtree.hooks
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(subtree.hooks.validate),
+      }
+    : null;
+  const taskMiddleware = subtree.taskMiddleware
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(
+          subtree.taskMiddleware.validate
+        ),
+      }
+    : null;
+  const resourceMiddleware = subtree.resourceMiddleware
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(
+          subtree.resourceMiddleware.validate
+        ),
+      }
+    : null;
+  const events = subtree.events
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(subtree.events.validate),
+      }
+    : null;
+  const tags = subtree.tags
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(subtree.tags.validate),
+      }
+    : null;
+
+  if (
+    !tasks &&
+    !resources &&
+    !hooks &&
+    !taskMiddleware &&
+    !resourceMiddleware &&
+    !events &&
+    !tags
+  ) {
+    return null;
+  }
 
   return {
-    enabled: legacyEnabled,
-    scope: legacyEnabled ? "where-visible" : null,
-    hasPredicate: typeof everywhere === "function",
-    legacyEverywhere: legacyEnabled,
+    tasks,
+    resources,
+    hooks,
+    taskMiddleware,
+    resourceMiddleware,
+    events,
+    tags,
+  };
+}
+
+function parseTagConfigJson(config: string | null | undefined): any | null {
+  if (!config) return null;
+  try {
+    return JSON.parse(config);
+  } catch {
+    return null;
+  }
+}
+
+function extractEventLaneSummary(
+  tagsDetailed: Array<{ id: string; config: string | null }>
+): Event["eventLane"] {
+  const laneTag = tagsDetailed.find(
+    (tag) => tag.id === "globals.tags.eventLane"
+  );
+  if (!laneTag) return null;
+
+  const parsed = parseTagConfigJson(laneTag.config);
+  const lane = parsed?.lane;
+  const laneId =
+    typeof lane === "string"
+      ? lane
+      : typeof lane?.id === "string"
+      ? lane.id
+      : null;
+
+  if (!laneId) return null;
+
+  return {
+    laneId,
+    orderingKey:
+      parsed?.orderingKey != null ? String(parsed.orderingKey) : null,
+    metadata:
+      parsed?.metadata != null ? stringifyIfObject(parsed.metadata) : null,
   };
 }
 

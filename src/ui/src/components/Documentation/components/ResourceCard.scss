@@ -80,6 +80,34 @@
   font-family: $font-family-base;
 }
 
+.resource-card__event-lanes-list {
+  display: grid;
+  gap: $spacing-xs;
+  white-space: normal;
+}
+
+.resource-card__event-lanes-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  align-items: center;
+}
+
+.resource-card__event-lanes-item__lane {
+  background: var(--docs-bg-tertiary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-sm;
+  color: var(--docs-text-primary);
+  font-family: $font-family-mono;
+  font-size: $font-size-xs;
+  padding: 2px $spacing-xs;
+}
+
+.resource-card__event-lanes-item__lane--active {
+  border-color: var(--docs-primary);
+  color: var(--docs-primary);
+}
+
 // -----------------------------------------------------------------------------
 // Resource Card Content
 // -----------------------------------------------------------------------------

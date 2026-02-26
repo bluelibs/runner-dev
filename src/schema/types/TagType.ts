@@ -9,7 +9,7 @@ import type { Tag, TagUsage } from "../model";
 import { HookType } from "./HookType";
 import { TaskType } from "./TaskType";
 import { ResourceType } from "./ResourceType";
-import { MiddlewareType } from "./MiddlewareType";
+import { ResourceMiddlewareType, TaskMiddlewareType } from "./MiddlewareType";
 import { EventType } from "./EventType";
 import { ErrorType } from "./ErrorType";
 import type { Introspector } from "../../resources/models/Introspector";
@@ -77,7 +77,7 @@ export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
       },
       taskMiddlewares: {
         type: new GraphQLNonNull(
-          new GraphQLList(new GraphQLNonNull(MiddlewareType))
+          new GraphQLList(new GraphQLNonNull(TaskMiddlewareType))
         ),
         resolve: (tag, _, { introspector }) => {
           return introspector.getTaskMiddlewaresWithTag(tag.id);
@@ -85,7 +85,7 @@ export const TagType: GraphQLObjectType<Tag, { introspector: Introspector }> =
       },
       resourceMiddlewares: {
         type: new GraphQLNonNull(
-          new GraphQLList(new GraphQLNonNull(MiddlewareType))
+          new GraphQLList(new GraphQLNonNull(ResourceMiddlewareType))
         ),
         resolve: (tag, _, { introspector }) => {
           return introspector.getResourceMiddlewaresWithTag(tag.id);

@@ -1,6 +1,7 @@
-import { globals, resource, run } from "@bluelibs/runner";
+import { globals, resource, run, type Store } from "@bluelibs/runner";
 import { graphql } from "graphql";
 import { introspector } from "../../resources/introspector.resource";
+import type { Introspector } from "../../resources/models/Introspector";
 import { schema } from "../../schema";
 import {
   catalogSearchTask,
@@ -14,13 +15,21 @@ import {
   isolationBoundaryResource,
   privateCacheResource,
   publicCatalogResource,
+  showcaseDurableResource,
   supportRequestContext,
   tunnelPricingPreviewTask,
   tunnelServerShowcaseResource,
 } from "../dummy/enhanced";
 
+type TestContextValue = {
+  introspector: Introspector;
+  store: Store;
+  live: { logs: unknown[] };
+  logger: Console;
+};
+
 describe("Enhanced play showcase app", () => {
-  let contextValue: any;
+  let contextValue: TestContextValue;
   let runtime: Awaited<ReturnType<typeof run>> | null = null;
 
   beforeAll(async () => {
@@ -34,6 +43,7 @@ describe("Enhanced play showcase app", () => {
         contextValue = {
           introspector,
           store,
+          // Required by GraphQL context contract for live resolvers.
           live: { logs: [] },
           logger: console,
         };
@@ -42,6 +52,7 @@ describe("Enhanced play showcase app", () => {
 
     const app = createEnhancedSuperApp([introspector, probe]);
     runtime = await run(app);
+    contextValue.introspector.populateTunnelInfo();
   });
 
   afterAll(async () => {
@@ -99,6 +110,7 @@ describe("Enhanced play showcase app", () => {
     );
 
     const handlers = contextValue.introspector.getTagHandlers(featuredTag.id);
+    expect(handlers).toBeTruthy();
     expect(handlers.tasks.map((task: { id: string }) => task.id)).toEqual(
       expect.arrayContaining([featuredInspectorTask.id])
     );
@@ -197,8 +209,6 @@ describe("Enhanced play showcase app", () => {
   });
 
   test("links tunnel tasks to tunnel resource metadata", () => {
-    contextValue.introspector.populateTunnelInfo();
-
     const tunnelResource = contextValue.introspector.getResource(
       tunnelServerShowcaseResource.id
     );
@@ -237,7 +247,7 @@ describe("Enhanced play showcase app", () => {
     expect(durableData.task.id).toBe(durableOrderApprovalTask.id);
     expect(durableData.task.isDurable).toBe(true);
     expect(durableData.task.durableResource.id).toBe(
-      "app.examples.durable.runtime"
+      showcaseDurableResource.id
     );
 
     const asyncContextIds = contextValue.introspector

@@ -17,6 +17,10 @@ describe("Introspector serialize/deserialize", () => {
     const app = createDummyApp([introspectorResource, probe]);
     await run(app);
 
+    const originalTaskMiddlewareCount = inst.getTaskMiddlewares().length;
+    const originalResourceMiddlewareCount =
+      inst.getResourceMiddlewares().length;
+
     // Serialize
     const data = inst.serialize();
     expect(Array.isArray(data.tasks)).toBe(true);
@@ -32,6 +36,12 @@ describe("Introspector serialize/deserialize", () => {
     expect(clientInst.getResources().length).toBeGreaterThan(0);
     expect(clientInst.getEvents().length).toBeGreaterThan(0);
     expect(clientInst.getMiddlewares().length).toBeGreaterThan(0);
+    expect(clientInst.getTaskMiddlewares().length).toBe(
+      originalTaskMiddlewareCount
+    );
+    expect(clientInst.getResourceMiddlewares().length).toBe(
+      originalResourceMiddlewareCount
+    );
 
     // Root should be available
     const root = clientInst.getRoot();
@@ -76,7 +86,14 @@ describe("Introspector serialize/deserialize", () => {
     ).toBe(true);
     expect(typeof opts.dryRun).toBe("boolean");
     expect(typeof opts.lazy).toBe("boolean");
-    expect(["sequential", "parallel"]).toContain(opts.initMode);
+    expect(["sequential", "parallel"]).toContain(opts.lifecycleMode);
+    expect(
+      opts.disposeBudgetMs === null || typeof opts.disposeBudgetMs === "number"
+    ).toBe(true);
+    expect(
+      opts.disposeDrainBudgetMs === null ||
+        typeof opts.disposeDrainBudgetMs === "number"
+    ).toBe(true);
     expect(
       opts.runtimeEventCycleDetection === null ||
         typeof opts.runtimeEventCycleDetection === "boolean"

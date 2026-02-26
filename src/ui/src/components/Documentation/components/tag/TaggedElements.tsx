@@ -338,13 +338,13 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({
                     return (
                       <div
                         key={error.id}
-                        className="tag-card__relation-item tag-card__relation-item--event"
+                        className="tag-card__relation-item tag-card__relation-item--error"
                       >
                         <a
                           href={`#element-${error.id}`}
                           className="tag-card__relation-link"
                         >
-                          <div className="title title--event">
+                          <div className="title title--error">
                             {error.meta?.title || formatId(error.id)}
                           </div>
                           <div className="id">{error.id}</div>

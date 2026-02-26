@@ -22,7 +22,10 @@ import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { BaseModal } from "./modals";
 import { hasTunnelTag } from "../../../../../resources/models/tunnel.tools";
 import { isSystemElement } from "../utils/isSystemElement";
-import { hasWildcard, matchesWildcardPattern } from "../utils/wildcard-utils";
+import { matchesWildcardPattern } from "../utils/wildcard-utils";
+import { ResourceIsolationSection } from "./ResourceIsolationSection";
+import { ResourceSubtreeSection } from "./ResourceSubtreeSection";
+import { ResourceEventLanesSection } from "./ResourceEventLanesSection";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -101,15 +104,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     });
   }, [isolationRuleModal, isolationRuleSearch]);
 
-  const hasIsolationWildcardRules = React.useMemo(() => {
-    if (!resource.isolation) return false;
-    const allRules = [
-      ...resource.isolation.exports,
-      ...resource.isolation.deny,
-      ...resource.isolation.only,
-    ];
-    return allRules.some((rule) => hasWildcard(rule));
-  }, [resource.isolation]);
+  const isEventLanesResource =
+    resource.id === "globals.resources.node.eventLanes";
 
   const openIsolationWildcardModal = React.useCallback(
     (source: IsolationRuleSource, rule: string) => {
@@ -183,40 +179,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       setCoverageLoading(false);
     }
   }
-
-  const renderIsolationEntry = (
-    source: IsolationRuleSource,
-    value: string,
-    asLink: boolean = false
-  ) => {
-    if (hasWildcard(value)) {
-      return (
-        <button
-          type="button"
-          key={`${source}-${value}`}
-          className="clean-button resource-card__wildcard-rule"
-          onClick={() => openIsolationWildcardModal(source, value)}
-          title={`Show resources matching ${value}`}
-        >
-          {formatId(value)}
-        </button>
-      );
-    }
-
-    if (asLink) {
-      return (
-        <a
-          href={`#element-${value}`}
-          key={`${source}-${value}`}
-          className="clean-button"
-        >
-          {formatId(value)}
-        </a>
-      );
-    }
-
-    return <span key={`${source}-${value}`}>{value}</span>;
-  };
 
   return (
     <ElementCard
@@ -300,58 +262,29 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             {resource.isolation?.exportsMode ?? "unset"}
           </InfoBlock>
 
+          <InfoBlock prefix="resource-card" label="Cooldown Hook:">
+            {resource.cooldown ? "Yes" : "No"}
+          </InfoBlock>
+
           {resource.isolation && (
-            <>
-              <InfoBlock prefix="resource-card" label="Isolation Exports:">
-                {resource.isolation.exports.length > 0 ? (
-                  <div className="resource-card__tags">
-                    {resource.isolation.exports.map((exportedId) =>
-                      renderIsolationEntry("exports", exportedId, true)
-                    )}
-                  </div>
-                ) : (
-                  "None"
-                )}
-              </InfoBlock>
-
-              <InfoBlock prefix="resource-card" label="Isolation Deny:">
-                {resource.isolation.deny.length > 0 ? (
-                  <div className="resource-card__tags">
-                    {resource.isolation.deny.map((id) =>
-                      renderIsolationEntry("deny", id)
-                    )}
-                  </div>
-                ) : (
-                  "None"
-                )}
-              </InfoBlock>
-
-              <InfoBlock prefix="resource-card" label="Isolation Only:">
-                {resource.isolation.only.length > 0 ? (
-                  <div className="resource-card__tags">
-                    {resource.isolation.only.map((id) =>
-                      renderIsolationEntry("only", id)
-                    )}
-                  </div>
-                ) : (
-                  "None"
-                )}
-              </InfoBlock>
-
-              {hasIsolationWildcardRules && (
-                <InfoBlock prefix="resource-card" label="Wildcard Rules:">
-                  <span className="resource-card__wildcard-hint">
-                    Click a wildcard rule to inspect matched resources.
-                  </span>
-                </InfoBlock>
-              )}
-            </>
+            <ResourceIsolationSection
+              isolation={resource.isolation}
+              onOpenWildcard={openIsolationWildcardModal}
+            />
           )}
 
           {resource.context && (
             <InfoBlock prefix="resource-card" label="Context:">
               {resource.context}
             </InfoBlock>
+          )}
+
+          {resource.subtree && (
+            <ResourceSubtreeSection subtree={resource.subtree} />
+          )}
+
+          {isEventLanesResource && (
+            <ResourceEventLanesSection resourceConfig={resource.config} />
           )}
 
           <InfoBlock prefix="resource-card" label="Used By Tasks:">
@@ -622,7 +555,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                   className="resource-card__relations__search-icon"
                   aria-hidden="true"
                 >
-                  S
+                  🔎
                 </span>
                 <input
                   type="search"

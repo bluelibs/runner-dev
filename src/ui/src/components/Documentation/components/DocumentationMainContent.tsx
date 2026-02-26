@@ -339,11 +339,31 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">🚀 Init</span>
+                  <span className="overview-run-info__label">🚀 Lifecycle</span>
                   <span
-                    className={`overview-run-info__badge overview-run-info__badge--${runOptions.initMode}`}
+                    className={`overview-run-info__badge overview-run-info__badge--${runOptions.lifecycleMode}`}
                   >
-                    {runOptions.initMode}
+                    {runOptions.lifecycleMode}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    ⏱️ Dispose Budget
+                  </span>
+                  <span className="overview-run-info__value">
+                    {typeof runOptions.disposeBudgetMs === "number"
+                      ? `${runOptions.disposeBudgetMs}ms`
+                      : "unknown"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    ⌛ Drain Budget
+                  </span>
+                  <span className="overview-run-info__value">
+                    {typeof runOptions.disposeDrainBudgetMs === "number"
+                      ? `${runOptions.disposeDrainBudgetMs}ms`
+                      : "unknown"}
                   </span>
                 </div>
                 <div className="overview-run-info__item">

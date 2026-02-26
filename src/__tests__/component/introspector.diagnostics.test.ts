@@ -10,6 +10,7 @@ describe("Graph diagnostics (component)", () => {
 
     // Define an event without hooks/emitters
     const orphanEvt = event({ id: "evt.orphan" });
+    const durableInternalOrphanEvt = event({ id: "durable.audit.appended" });
 
     // Define a middleware that is not used anywhere
     const unusedMw = resourceMiddleware({
@@ -30,7 +31,7 @@ describe("Graph diagnostics (component)", () => {
 
     const probe = resource({
       id: "probe.diagnostics",
-      register: [orphanEvt, unusedMw, unusedErr],
+      register: [orphanEvt, durableInternalOrphanEvt, unusedMw, unusedErr],
       dependencies: { introspector },
       async init(_config, { introspector }) {
         ctx = {
@@ -61,6 +62,11 @@ describe("Graph diagnostics (component)", () => {
       (d) => d.code === "ORPHAN_EVENT" && d.nodeId === "evt.orphan"
     );
     expect(hasOrphan).toBe(true);
+
+    const hasDurableInternalOrphan = diags.some(
+      (d) => d.code === "ORPHAN_EVENT" && d.nodeId === "durable.audit.appended"
+    );
+    expect(hasDurableInternalOrphan).toBe(false);
 
     const hasUnused = diags.some(
       (d) => d.code === "UNUSED_MIDDLEWARE" && d.nodeId === "mw.unused"

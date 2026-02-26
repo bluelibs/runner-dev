@@ -127,9 +127,10 @@ export class Introspector {
     this.hooks = Array.isArray(data.hooks) ? data.hooks : [];
     this.resources = Array.isArray(data.resources) ? data.resources : [];
     this.events = Array.isArray(data.events) ? data.events : [];
-    this.taskMiddlewares = [];
-    this.resourceMiddlewares = [];
     this.middlewares = Array.isArray(data.middlewares) ? data.middlewares : [];
+    const splitMiddlewares = this.splitMiddlewaresByType(this.middlewares);
+    this.taskMiddlewares = splitMiddlewares.taskMiddlewares;
+    this.resourceMiddlewares = splitMiddlewares.resourceMiddlewares;
     this.errors = Array.isArray(data.errors) ? data.errors : [];
     this.asyncContexts = Array.isArray(data.asyncContexts)
       ? data.asyncContexts
@@ -169,6 +170,41 @@ export class Introspector {
     for (const tag of this.tags) {
       this.tagMap.set(tag.id, tag);
     }
+  }
+
+  private splitMiddlewaresByType(middlewares: Middleware[]): {
+    taskMiddlewares: Middleware[];
+    resourceMiddlewares: Middleware[];
+  } {
+    const taskMiddlewares: Middleware[] = [];
+    const resourceMiddlewares: Middleware[] = [];
+
+    for (const middleware of middlewares) {
+      if (middleware.type === "task") {
+        taskMiddlewares.push(middleware);
+        continue;
+      }
+
+      if (middleware.type === "resource") {
+        resourceMiddlewares.push(middleware);
+        continue;
+      }
+
+      const usedByTasksLength = Array.isArray(middleware.usedByTasks)
+        ? middleware.usedByTasks.length
+        : 0;
+      const usedByResourcesLength = Array.isArray(middleware.usedByResources)
+        ? middleware.usedByResources.length
+        : 0;
+
+      if (usedByTasksLength > 0 || usedByResourcesLength === 0) {
+        taskMiddlewares.push(middleware);
+      } else {
+        resourceMiddlewares.push(middleware);
+      }
+    }
+
+    return { taskMiddlewares, resourceMiddlewares };
   }
 
   // Helper function for building runs options
@@ -249,7 +285,16 @@ export class Introspector {
           : null,
       dryRun: Boolean(runOptions.dryRun),
       lazy: Boolean(runOptions.lazy),
-      initMode: runOptions.initMode === "parallel" ? "parallel" : "sequential",
+      lifecycleMode:
+        runOptions.lifecycleMode === "parallel" ? "parallel" : "sequential",
+      disposeBudgetMs:
+        typeof runOptions.disposeBudgetMs === "number"
+          ? runOptions.disposeBudgetMs
+          : null,
+      disposeDrainBudgetMs:
+        typeof runOptions.disposeDrainBudgetMs === "number"
+          ? runOptions.disposeDrainBudgetMs
+          : null,
       runtimeEventCycleDetection:
         runOptions.runtimeEventCycleDetection !== undefined
           ? runOptions.runtimeEventCycleDetection
@@ -291,7 +336,15 @@ export class Introspector {
         logsPrintStrategyRaw == null ? null : String(logsPrintStrategyRaw);
       const logsBuffer = Boolean(logsBufferRaw);
 
-      const initMode = sAny.preferInitOrderDisposal ? "sequential" : "parallel";
+      const lifecycleMode = sAny.preferInitOrderDisposal
+        ? "sequential"
+        : "parallel";
+      const disposeBudgetMs =
+        typeof sAny.disposeBudgetMs === "number" ? sAny.disposeBudgetMs : null;
+      const disposeDrainBudgetMs =
+        typeof sAny.disposeDrainBudgetMs === "number"
+          ? sAny.disposeDrainBudgetMs
+          : null;
 
       const runtimeAny = this.runtime as any;
       const lazy = Boolean(runtimeAny?.lazyOptions?.lazyMode);
@@ -310,7 +363,9 @@ export class Introspector {
         shutdownHooks: null,
         dryRun: Boolean(this.runOptions?.dryRun),
         lazy,
-        initMode,
+        lifecycleMode,
+        disposeBudgetMs,
+        disposeDrainBudgetMs,
         runtimeEventCycleDetection:
           typeof runtimeEventCycleDetection === "boolean"
             ? runtimeEventCycleDetection

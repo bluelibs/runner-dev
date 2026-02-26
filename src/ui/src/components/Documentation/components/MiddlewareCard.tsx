@@ -154,10 +154,6 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                   <strong>Predicate:</strong>{" "}
                   {middleware.autoApply.hasPredicate ? "Yes" : "No"}
                 </div>
-                <div className="config-item">
-                  <strong>Legacy everywhere:</strong>{" "}
-                  {middleware.autoApply.legacyEverywhere ? "Yes" : "No"}
-                </div>
               </div>
             </div>
           )}

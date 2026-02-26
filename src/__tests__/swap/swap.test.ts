@@ -294,7 +294,7 @@ describe("SwapManager", () => {
       expect(result.result).toContain("original");
     });
 
-    test("should preserve task output when app-wide audit middleware wraps execution", async () => {
+    test("should preserve task output when app-wide request-context middleware wraps execution", async () => {
       const result = await swapManager.invokeTask("app.test.middleware-return");
 
       expect(result.success).toBe(true);

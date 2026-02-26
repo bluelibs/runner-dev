@@ -50,7 +50,9 @@ describe("GraphQL schema (integration)", () => {
           shutdownHooks
           dryRun
           lazy
-          initMode
+          lifecycleMode
+          disposeBudgetMs
+          disposeDrainBudgetMs
           runtimeEventCycleDetection
           hasOnUnhandledError
           rootId
@@ -123,6 +125,7 @@ describe("GraphQL schema (integration)", () => {
         resources {
           id
           isPrivate
+          config
           middleware
           middlewareResolved { id }
           overrides
@@ -144,6 +147,9 @@ describe("GraphQL schema (integration)", () => {
           id
           isPrivate
           filePath
+          transactional
+          parallel
+          eventLane { laneId orderingKey metadata }
           payloadSchema
           payloadSchemaReadable
           emittedBy
@@ -212,6 +218,8 @@ describe("GraphQL schema (integration)", () => {
     expect(typeof cache.configSchema).toBe("string");
     expect(cache.configSchema).toBeTruthy();
     expect(String(cache.configSchema)).toContain("ttlMs");
+    expect(typeof cache.config).toBe("string");
+    expect(String(cache.config)).toContain("ttlMs");
     expect(typeof cache.configSchemaReadable === "string").toBe(true);
     expect(cache.configSchemaReadable).toContain("ttlMs");
 
@@ -259,7 +267,15 @@ describe("GraphQL schema (integration)", () => {
     ).toBe(true);
     expect(typeof data.runOptions.dryRun).toBe("boolean");
     expect(typeof data.runOptions.lazy).toBe("boolean");
-    expect(["sequential", "parallel"]).toContain(data.runOptions.initMode);
+    expect(["sequential", "parallel"]).toContain(data.runOptions.lifecycleMode);
+    expect(
+      data.runOptions.disposeBudgetMs === null ||
+        typeof data.runOptions.disposeBudgetMs === "number"
+    ).toBe(true);
+    expect(
+      data.runOptions.disposeDrainBudgetMs === null ||
+        typeof data.runOptions.disposeDrainBudgetMs === "number"
+    ).toBe(true);
     expect(
       data.runOptions.runtimeEventCycleDetection === null ||
         typeof data.runOptions.runtimeEventCycleDetection === "boolean"

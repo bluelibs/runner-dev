@@ -399,7 +399,10 @@ export const swapManager = resource({
         }
 
         const startTime = Date.now();
-        await eventManager.emit(eventDefinition.event, input, swapManager.id);
+        await eventManager.emit(eventDefinition.event, input, {
+          kind: "runtime",
+          id: swapManager.id,
+        });
         const executionTimeMs = Date.now() - startTime;
 
         return { success: true, executionTimeMs, invocationId };

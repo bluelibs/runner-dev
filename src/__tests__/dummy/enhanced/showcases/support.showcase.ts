@@ -43,7 +43,6 @@ function readRequestIdFromInput(input: unknown): string | null {
 export const supportRequestContextMiddleware = r.middleware
   .task("app.examples.middleware.requestContext")
   .dependencies({ supportRequestContext })
-  .applyTo("where-visible", () => true)
   .run(async ({ task, next }, { supportRequestContext }) => {
     const requestId =
       readRequestIdFromInput(task.input) || `req-${Date.now().toString(36)}`;

@@ -52,6 +52,13 @@ export interface Event extends Omit<BaseElement, "overriddenBy"> {
   meta?: Meta | null;
   filePath?: string | null;
   listenedToBy: string[];
+  transactional: boolean;
+  parallel: boolean;
+  eventLane?: {
+    laneId: string;
+    orderingKey?: string | null;
+    metadata?: string | null;
+  } | null;
   // Prettified Zod schema for the event payload if provided
   payloadSchema?: string | null;
 }
@@ -113,7 +120,6 @@ export interface MiddlewareAutoApply {
   enabled: boolean;
   scope: MiddlewareApplyScope | null;
   hasPredicate: boolean;
-  legacyEverywhere: boolean;
 }
 
 export interface MiddlewareUsage {
@@ -185,6 +191,32 @@ export interface Resource extends BaseElement {
     exports: string[];
     exportsMode: IsolationExportsMode;
   } | null;
+  subtree?: {
+    tasks?: {
+      middleware: string[];
+      validatorCount: number;
+    } | null;
+    resources?: {
+      middleware: string[];
+      validatorCount: number;
+    } | null;
+    hooks?: {
+      validatorCount: number;
+    } | null;
+    taskMiddleware?: {
+      validatorCount: number;
+    } | null;
+    resourceMiddleware?: {
+      validatorCount: number;
+    } | null;
+    events?: {
+      validatorCount: number;
+    } | null;
+    tags?: {
+      validatorCount: number;
+    } | null;
+  } | null;
+  cooldown?: boolean;
   context?: string | null;
   // Tunnel information (populated when resource has globals.tags.tunnel)
   tunnelInfo?: TunnelInfo | null;
@@ -240,7 +272,11 @@ export interface RunOptions {
   // Whether lazy resource mode is enabled when known.
   lazy: boolean;
   // Startup scheduler mode summary.
-  initMode: "sequential" | "parallel";
+  lifecycleMode: "sequential" | "parallel";
+  // Shutdown disposal total budget in milliseconds.
+  disposeBudgetMs?: number | null;
+  // Shutdown drain wait budget in milliseconds.
+  disposeDrainBudgetMs?: number | null;
   // Runtime event cycle detection toggle when known.
   runtimeEventCycleDetection?: boolean | null;
   // Presence flag for onUnhandledError callback.

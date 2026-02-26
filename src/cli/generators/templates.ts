@@ -183,7 +183,8 @@ export const ${camel} = taskMiddleware<${pascal}Config, ${pascal}Input, ${pascal
     title: '${pascal} Task Middleware',
     description: 'TODO: Add description for ${pascal} task middleware',
   },
-  // everywhere: true,
+  // Auto-apply globally via resource.subtree({ tasks: { middleware: [${camel}] } })
+  // or intercept executions with globals.resources.taskRunner.intercept(...).
   run: async ({ task, next }, deps, config) => {
     // pre-process task.input
     const result = await next(task.input as ${pascal}Input);

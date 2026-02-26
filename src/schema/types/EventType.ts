@@ -1,4 +1,5 @@
 import {
+  GraphQLBoolean,
   GraphQLID,
   GraphQLList,
   GraphQLNonNull,
@@ -6,7 +7,7 @@ import {
   GraphQLString,
   type GraphQLFieldConfigMap,
 } from "graphql";
-import { GraphQLBoolean, GraphQLInputObjectType } from "graphql";
+import { GraphQLInputObjectType } from "graphql";
 
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
@@ -16,6 +17,15 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { HookType } from "./HookType";
+
+const EventLaneSummaryType = new GraphQLObjectType({
+  name: "EventLaneSummary",
+  fields: {
+    laneId: { type: new GraphQLNonNull(GraphQLString) },
+    orderingKey: { type: GraphQLString },
+    metadata: { type: GraphQLString },
+  },
+});
 
 export const EventType: GraphQLObjectType = new GraphQLObjectType({
   name: "Event",
@@ -33,6 +43,19 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
       description:
         "Prettified Zod JSON structure for the event payload schema, if provided",
       type: GraphQLString,
+    },
+    transactional: {
+      description: "Whether this event uses transactional listener semantics.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+    },
+    parallel: {
+      description: "Whether this event allows parallel listener execution.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+    },
+    eventLane: {
+      description:
+        "Event lane summary derived from globals.tags.eventLane when present.",
+      type: EventLaneSummaryType,
     },
     payloadSchemaReadable: {
       description:

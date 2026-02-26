@@ -1,5 +1,7 @@
 import {
+  GraphQLBoolean,
   GraphQLEnumType,
+  GraphQLInt,
   GraphQLID,
   GraphQLList,
   GraphQLNonNull,
@@ -52,6 +54,38 @@ const ResourceIsolationType = new GraphQLObjectType({
     exportsMode: {
       type: new GraphQLNonNull(IsolationExportsModeType),
     },
+  },
+});
+
+const ResourceSubtreeBranchType = new GraphQLObjectType({
+  name: "ResourceSubtreeBranch",
+  fields: {
+    middleware: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    validatorCount: { type: new GraphQLNonNull(GraphQLInt) },
+  },
+});
+
+const ResourceSubtreeValidationBranchType = new GraphQLObjectType({
+  name: "ResourceSubtreeValidationBranch",
+  fields: {
+    validatorCount: { type: new GraphQLNonNull(GraphQLInt) },
+  },
+});
+
+const ResourceSubtreePolicyType = new GraphQLObjectType({
+  name: "ResourceSubtreePolicy",
+  fields: {
+    tasks: { type: ResourceSubtreeBranchType },
+    resources: { type: ResourceSubtreeBranchType },
+    hooks: { type: ResourceSubtreeValidationBranchType },
+    taskMiddleware: { type: ResourceSubtreeValidationBranchType },
+    resourceMiddleware: { type: ResourceSubtreeValidationBranchType },
+    events: { type: ResourceSubtreeValidationBranchType },
+    tags: { type: ResourceSubtreeValidationBranchType },
   },
 });
 
@@ -155,6 +189,18 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
         "Resource isolation policy generated from .isolate({ deny/only/exports }).",
       type: ResourceIsolationType,
       resolve: (node: Resource) => node.isolation ?? null,
+    },
+    subtree: {
+      description:
+        "Resource subtree governance policy summary from resource.subtree(...).",
+      type: ResourceSubtreePolicyType,
+      resolve: (node: Resource) => node.subtree ?? null,
+    },
+    cooldown: {
+      description:
+        "True when this resource defines a cooldown() lifecycle hook.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Resource) => Boolean(node.cooldown),
     },
     registersResolved: {
       description: "The items registered by this resource (resolved)",

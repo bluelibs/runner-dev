@@ -153,6 +153,43 @@ export const EventCard: React.FC<EventCardProps> = ({
             {status.text}
           </InfoBlock>
 
+          <InfoBlock prefix="event-card" label="Transactional:">
+            {event.transactional ? "Yes" : "No"}
+          </InfoBlock>
+
+          <InfoBlock prefix="event-card" label="Parallel:">
+            {event.parallel ? "Yes" : "No"}
+          </InfoBlock>
+
+          {event.eventLane && (
+            <InfoBlock prefix="event-card" label="Event Lane:">
+              <div className="event-card__tags">
+                <span>{event.eventLane.laneId}</span>
+                {event.eventLane.orderingKey && (
+                  <span>ordering: {event.eventLane.orderingKey}</span>
+                )}
+              </div>
+            </InfoBlock>
+          )}
+
+          {event.transactional && event.parallel && (
+            <div className="event-card__alert event-card__alert--danger">
+              <div className="title">Invalid configuration</div>
+              <div className="content">
+                Transactional events cannot run in parallel.
+              </div>
+            </div>
+          )}
+
+          {event.transactional && event.eventLane && (
+            <div className="event-card__alert event-card__alert--warning">
+              <div className="title">Invalid lane combination</div>
+              <div className="content">
+                Transactional events are incompatible with event lanes.
+              </div>
+            </div>
+          )}
+
           {event.listenedToBy && event.listenedToBy.length > 0 && (
             <InfoBlock prefix="event-card" label="Listened To By:">
               <div className="event-card__listeners-list">

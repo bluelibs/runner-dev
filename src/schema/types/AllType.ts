@@ -162,7 +162,7 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       return false; // Resource
     }
     if (
-      Array.isArray(value?.usedByTasks) &&
+      Array.isArray(value?.usedByTasks) ||
       Array.isArray(value?.usedByResources)
     ) {
       return false; // Middleware

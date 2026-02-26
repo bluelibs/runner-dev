@@ -101,7 +101,8 @@ export const ElementTable: React.FC<ElementTableProps> = ({
       Array.isArray(element.middlewares) ||
       Array.isArray(element.taskMiddlewares) ||
       Array.isArray(element.resourceMiddlewares) ||
-      Array.isArray(element.events)
+      Array.isArray(element.events) ||
+      Array.isArray(element.errors)
     ) {
       return (
         (element.tasks?.length ?? 0) +

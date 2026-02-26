@@ -13,3 +13,9 @@ yarn-error.log
 yarn.lock
 .vscode
 .aider*
+
+# Auto-generated docs synced from ../runner
+readmes/runner-AI.md
+readmes/runner-tunnels.md
+readmes/runner-durable-workflows.md
+readmes/runner-full-guide.md

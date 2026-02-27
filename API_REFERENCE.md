@@ -6,6 +6,17 @@ This document provides a detailed overview of the `@bluelibs/runner-dev` GraphQL
 
 All arrays are non-null lists with non-null items, and ids are complemented by resolved fields for deep traversal.
 
+## Runner 6.0 Migration Notes
+
+| Before | After (hard switch) |
+| --- | --- |
+| `Resource.exports` | `Resource.isolation { deny, only, exports, exportsMode }` |
+| `Middleware.global` | `Middleware.autoApply { enabled, scope, hasPredicate }` |
+| `Tag.middlewares` | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares` |
+| N/A | `Tag.errors`, `Tag.targets` |
+| `RunOptions.initMode` | `RunOptions.lifecycleMode` |
+| `Resource.tunnelInfo` | Removed (hard switch to Event Lane + RPC Lane surfaces) |
+
 ### Common Types
 
 - `BaseElement`: `id: ID!`, `meta: Meta`, `filePath: String`, `markdownDescription: String!`, `fileContents(startLine: Int, endLine: Int): String`
@@ -42,7 +53,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - Shared: `dependsOn: [String!]!`
 - Shared: `middleware: [String!]!`, `middlewareResolved: [TaskMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
 - Shared: `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
-- Task-specific: `inputSchema: String`, `inputSchemaReadable: String`, `dependsOnResolved { tasks { id } hooks { id } resources { id } emitters { id } }`
+- Task-specific: `inputSchema: String`, `inputSchemaReadable: String`, `rpcLane { laneId }`, `dependsOnResolved { tasks { id } hooks { id } resources { id } emitters { id } }`
 - Hook-specific: `event: String!`, `hookOrder: Int`, `inputSchema: String`, `inputSchemaReadable: String`
 
 #### Resources
@@ -51,6 +62,9 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - `middleware`, `middlewareResolved: [ResourceMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
 - `overrides`, `overridesResolved`
 - `registers`, `registersResolved`
+- `isolation { deny, only, exports, exportsMode }`
+- `subtree { tasks/resources/hooks/taskMiddleware/resourceMiddleware/events/tags }`
+- `cooldown: Boolean!`
 - `usedBy: [Task!]!`
 - `emits: [Event!]!` (inferred from task/hook emissions)
 - `dependsOn: [String!]!`, `dependsOnResolved: [Resource!]!`
@@ -62,12 +76,15 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - `emittedBy: [String!]!`, `emittedByResolved: [BaseElement!]!`
 - `listenedToBy: [String!]!`, `listenedToByResolved: [Hook!]!`
 - `payloadSchema: String`, `payloadSchemaReadable: String`
+- `transactional: Boolean!`, `parallel: Boolean!`
+- `eventLane { laneId, orderingKey, metadata }`
+- `rpcLane { laneId }`
 - `registeredBy: String`, `registeredByResolved: Resource`
 - `tags: [Tag!]!`
 
 #### TaskMiddleware
 
-- `global: GlobalMiddleware`
+- `autoApply: MiddlewareAutoApply`
 - `usedBy: [Task!]!`, `usedByDetailed: [MiddlewareTaskUsage!]!`
 - `emits: [Event!]!`
 - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
@@ -76,7 +93,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 
 #### ResourceMiddleware
 
-- `global: GlobalMiddleware`
+- `autoApply: MiddlewareAutoApply`
 - `usedBy: [Resource!]!`, `usedByDetailed: [MiddlewareResourceUsage!]!`
 - `emits: [Event!]!`
 - `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
@@ -96,10 +113,17 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - `shutdownHooks: Boolean` — SIGINT/SIGTERM shutdown hooks setting (null when unknown)
 - `dryRun: Boolean!` — whether runtime started in dry-run mode
 - `lazy: Boolean!` — whether lazy resource mode is enabled
-- `initMode: String!` — startup init strategy (`sequential` or `parallel`)
+- `lifecycleMode: String!` — startup init strategy (`sequential` or `parallel`)
+- `disposeBudgetMs: Float` - total shutdown disposal budget in milliseconds
+- `disposeDrainBudgetMs: Float` - shutdown drain wait budget in milliseconds
 - `runtimeEventCycleDetection: Boolean` — runtime event-cycle detection setting (null when unknown)
 - `hasOnUnhandledError: Boolean!` — whether an `onUnhandledError` callback is present
 - `rootId: String!` — the id of the root resource passed to run()
+
+#### Lifecycle Events
+
+- `globals.events.disposing`
+- `globals.events.drained`
 
 ### Live Telemetry
 
@@ -125,7 +149,8 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 ### Diagnostics
 
 - `Diagnostic { severity: String!, code: String!, message: String!, nodeId: ID, nodeKind: String }`
-- Example codes: `ORPHAN_EVENT`, `UNEMITTED_EVENT`, `UNUSED_MIDDLEWARE`, `MISSING_FILE`, `OVERRIDE_CONFLICT`.
+- Example codes: `ORPHAN_EVENT`, `UNEMITTED_EVENT`, `UNUSED_MIDDLEWARE`, `MISSING_FILE`, `OVERRIDE_CONFLICT`.
+- Runner 6 errors to track: `runner.errors.subtreeValidationFailed`, `runner.errors.shutdownLockdown`, `runner.errors.runtimeAccessViolation`, `runner.errors.eventLanes.queueNotInitialized`, `runner.errors.eventLanes.profileNotFound`, `runner.errors.eventLanes.bindingNotFound`, `runner.errors.eventLanes.eventNotRegistered`, `runner.errors.eventLanes.messageMalformed`.
 
 ### System Health
 
@@ -137,3 +162,4 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
   - Fields: `lag` (ms, avg delay via `monitorEventLoopDelay`)
 - **gc(windowMs: Float): `GcStats!`**
   - Fields: `collections` (count), `duration` (ms)
+

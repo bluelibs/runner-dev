@@ -3,9 +3,9 @@ import { resources } from "../../index";
 import type { ISwapManager } from "../../resources/swap.resource";
 import { createDummyApp } from "../dummy/dummyApp";
 import {
-  AuditContext,
-  auditContextMiddleware,
-} from "../dummy/enhanced/contexts";
+  supportRequestContext,
+  supportRequestContextMiddleware,
+} from "../dummy/enhanced";
 
 describe("SwapManager", () => {
   let swapManager: ISwapManager;
@@ -33,7 +33,11 @@ describe("SwapManager", () => {
 
   const middlewareResource = resource({
     id: "test.middleware.resource",
-    register: [AuditContext, auditContextMiddleware, middlewareReturnTask],
+    register: [
+      supportRequestContext,
+      supportRequestContextMiddleware,
+      middlewareReturnTask,
+    ],
   });
 
   // Probe resource to capture dependencies after initialization
@@ -290,7 +294,7 @@ describe("SwapManager", () => {
       expect(result.result).toContain("original");
     });
 
-    test("should preserve task output when app-wide audit middleware wraps execution", async () => {
+    test("should preserve task output when app-wide request-context middleware wraps execution", async () => {
       const result = await swapManager.invokeTask("app.test.middleware-return");
 
       expect(result.success).toBe(true);

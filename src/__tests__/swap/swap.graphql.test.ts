@@ -521,14 +521,8 @@ describe("Swap GraphQL Integration", () => {
     test("should swap task with debug logging and capture in live telemetry", async () => {
       const debugCode = `
         async function run(input, deps) {
-          // Add debug logging using the proper logging event
-          if (deps.emitLog) {
-            await deps.emitLog({
-              timestamp: new Date(),
-              level: "info",
-              message: "🔍 DEBUG: Task execution started",
-              data: { input }
-            });
+          if (deps.logger?.info) {
+            deps.logger.info("DEBUG: Task execution started", { input });
           }
           
           const result = { 
@@ -539,13 +533,8 @@ describe("Swap GraphQL Integration", () => {
             } 
           };
           
-          if (deps.emitLog) {
-            await deps.emitLog({
-              timestamp: new Date(),
-              level: "info", 
-              message: "🔍 DEBUG: Task execution completed",
-              data: { result }
-            });
+          if (deps.logger?.info) {
+            deps.logger.info("DEBUG: Task execution completed", { result });
           }
           return result;
         }
@@ -577,21 +566,12 @@ describe("Swap GraphQL Integration", () => {
         expect(swapResult.success).toBe(true);
       }
 
-      // Execute the swapped task to generate logs
-      const taskContainer = context.store.tasks.get("test.graphql.task")?.task;
-      if (taskContainer) {
-        // Provide the emitLog dependency that the swapped task expects
-        const mockDeps = {
-          emitLog: async (logData: any) => {
-            context.live.recordLog(
-              logData.level,
-              logData.message,
-              logData.data
-            );
-          },
-        };
-        await taskContainer.run({ testInput: "debug test" }, mockDeps);
-      }
+      // Execute through swap manager path to ensure swap interception works.
+      await context.swapManager.invokeTask(
+        "test.graphql.task",
+        JSON.stringify({ testInput: "debug test" }),
+        true
+      );
 
       // Query recent logs to verify debug output was captured
       const logsQuery = `
@@ -621,7 +601,7 @@ describe("Swap GraphQL Integration", () => {
 
         // Look for our debug logs
         const debugLogs = logs.filter((log: any) =>
-          log.message.includes("🔍 DEBUG: Task execution")
+          log.message.includes("DEBUG: Task execution")
         );
         expect(debugLogs.length).toBeGreaterThan(0);
       }

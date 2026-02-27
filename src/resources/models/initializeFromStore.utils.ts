@@ -7,6 +7,11 @@ import type {
 } from "../../schema/model";
 
 import { definitions, Store } from "@bluelibs/runner";
+import {
+  EVENT_LANE_TAG_ID,
+  RPC_LANE_TAG_ID,
+  extractLaneId,
+} from "../../utils/lane-resources";
 import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
 import {
@@ -76,6 +81,7 @@ export function mapStoreTaskToTaskModel(
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
+  const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
   const middlewareDetailed = (task.middleware || []).map((m: any) => ({
     id: String(m.id),
     // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
@@ -112,6 +118,7 @@ export function mapStoreTaskToTaskModel(
         ...resourceIdsFromDeps,
         ...taskIdsFromDeps,
         ...errorIdsFromDeps,
+        ...tagIdsFromDeps,
       ],
       middleware: task.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
@@ -123,6 +130,7 @@ export function mapStoreTaskToTaskModel(
       emits: eventIdsFromDeps,
       inputSchema: formatSchemaIfZod(task.inputSchema),
       resultSchema: formatSchemaIfZod(task.resultSchema),
+      rpcLane: extractRpcLaneSummary(tagsDetailed),
       interceptorCount: taskStoreElement?.interceptors?.length ?? 0,
       hasInterceptors: (taskStoreElement?.interceptors?.length ?? 0) > 0,
       interceptorOwnerIds,
@@ -146,6 +154,7 @@ export function mapStoreHookToHookModel(
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
+  const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(hk.tags);
 
   const eventIds = Array.isArray(hk.on)
@@ -169,6 +178,7 @@ export function mapStoreHookToHookModel(
         ...resourceIdsFromDeps,
         ...taskIdsFromDeps,
         ...errorIdsFromDeps,
+        ...tagIdsFromDeps,
       ],
       middleware: [],
       middlewareDetailed: [],
@@ -185,7 +195,8 @@ export function mapStoreHookToHookModel(
 }
 
 export function mapStoreResourceToResourceModel(
-  resource: definitions.IResource
+  resource: definitions.IResource,
+  resourceConfig?: unknown
 ): Resource {
   // TODO: We might be able to improve typesafety somehow here.
   const register =
@@ -198,6 +209,7 @@ export function mapStoreResourceToResourceModel(
   const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
+  const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
   const middlewareDetailed = (resource.middleware || []).map((m: any) => ({
     id: String(m.id),
     // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
@@ -211,8 +223,10 @@ export function mapStoreResourceToResourceModel(
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
     (resource as any)?.tags
   );
-  const exportedItems = Array.isArray(resource.exports) ? resource.exports : [];
-  const exportedIds = exportedItems.map((item) => readId(item)).filter(Boolean);
+  const isolation = normalizeIsolation(resource);
+  const subtree = normalizeSubtreePolicy(resource);
+  const cooldown = typeof (resource as any)?.cooldown === "function";
+  const config = normalizeResourceConfig(resourceConfig);
 
   return stampElementKind(
     {
@@ -225,6 +239,7 @@ export function mapStoreResourceToResourceModel(
         ...resourceIdsFromDeps,
         ...taskIdsFromDeps,
         ...errorIdsFromDeps,
+        ...tagIdsFromDeps,
       ],
       filePath: sanitizePath(
         (resource as any)?.[definitions.symbolFilePath] ??
@@ -232,13 +247,16 @@ export function mapStoreResourceToResourceModel(
           (resource as any)?.path ??
           null
       ),
+      config,
       middleware: resource.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
       overrides: resource.overrides
         .filter((o) => !!o)
         .map((o) => o.id.toString()),
       registers: register.map((r) => r.id.toString()) as string[],
-      exports: exportedIds.length > 0 ? exportedIds : null,
+      isolation,
+      subtree,
+      cooldown,
       context: stringifyIfObject(resource.context),
       registeredBy: null,
       configSchema: formatSchemaIfZod(resource.configSchema),
@@ -247,6 +265,16 @@ export function mapStoreResourceToResourceModel(
     },
     "RESOURCE"
   );
+}
+
+function normalizeResourceConfig(config: unknown): string | null {
+  if (config == null) return null;
+  if (typeof config === "object" && !Array.isArray(config)) {
+    if (Object.keys(config as Record<string, unknown>).length === 0) {
+      return null;
+    }
+  }
+  return stringifyIfObject(config);
 }
 
 export function buildEvents(store: Store): Event[] {
@@ -281,6 +309,10 @@ export function buildEvents(store: Store): Event[] {
         meta: buildMetaWithNormalizedTags((e as any)?.meta ?? null, e),
         tags: tagIds,
         tagsDetailed,
+        transactional: Boolean((e as any)?.transactional),
+        parallel: Boolean((e as any)?.parallel),
+        eventLane: extractEventLaneSummary(tagsDetailed),
+        rpcLane: extractRpcLaneSummary(tagsDetailed),
         filePath: sanitizePath(
           (e && (e as any)[definitions.symbolFilePath]) ?? e?.filePath ?? null
         ),
@@ -315,19 +347,7 @@ function buildMiddlewaresGeneric(
     const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
       (mw as any)?.tags
     );
-
-    const isEverywhereTasks = mw.everywhere;
-    const isEverywhereResources = mw.everywhere;
-
-    const hasEverywhere = isEverywhereTasks || isEverywhereResources;
-
-    const globalValue = hasEverywhere
-      ? {
-          enabled: true,
-          tasks: isEverywhereTasks,
-          resources: isEverywhereResources,
-        }
-      : { enabled: false, tasks: false, resources: false };
+    const autoApply = normalizeMiddlewareAutoApply(mw);
 
     const usedByTasks =
       kind === "task"
@@ -351,7 +371,7 @@ function buildMiddlewaresGeneric(
         filePath: sanitizePath(
           mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null
         ),
-        global: globalValue,
+        autoApply,
         usedByTasks,
         usedByResources,
         overriddenBy: mw?.overriddenBy ?? null,
@@ -537,8 +557,259 @@ export function extractAllDependenciesFromDependencies(
     ...extractResourceIdsFromDependencies(deps),
     ...extractTaskIdsFromDependencies(deps),
     ...extractErrorIdsFromDependencies(deps),
+    ...extractTagIdsFromDependencies(deps),
     ...extractAsyncContextIdsFromDependencies(deps),
   ];
+}
+
+function unwrapOptionalDependency(value: unknown): unknown {
+  let current = value;
+  for (let i = 0; i < 4; i += 1) {
+    if (
+      current &&
+      typeof current === "object" &&
+      Reflect.get(current, (definitions as any).symbolOptionalDependency) ===
+        true &&
+      "inner" in (current as any)
+    ) {
+      current = (current as any).inner;
+      continue;
+    }
+    break;
+  }
+  return current;
+}
+
+function extractTagIdFromDependencyValue(value: unknown): string | null {
+  const unwrapped = unwrapOptionalDependency(value);
+  if (
+    !unwrapped ||
+    (typeof unwrapped !== "object" && typeof unwrapped !== "function")
+  ) {
+    return null;
+  }
+
+  if (Reflect.get(unwrapped, (definitions as any).symbolTag) === true) {
+    return readId(unwrapped);
+  }
+
+  if (
+    Reflect.get(
+      unwrapped,
+      (definitions as any).symbolTagBeforeInitDependency
+    ) === true &&
+    (unwrapped as any).tag
+  ) {
+    const startupTag = unwrapOptionalDependency((unwrapped as any).tag);
+    if (
+      startupTag &&
+      Reflect.get(startupTag, (definitions as any).symbolTag) === true
+    ) {
+      return readId(startupTag);
+    }
+  }
+
+  return null;
+}
+
+export function extractTagIdsFromDependencies(
+  deps: Record<string | symbol, unknown>
+): string[] {
+  const ids = new Set<string>();
+  for (const value of Object.values(deps)) {
+    const id = extractTagIdFromDependencyValue(value);
+    if (id) {
+      ids.add(id);
+    }
+  }
+  return Array.from(ids);
+}
+
+function toIsolationIds(entries: unknown): string[] {
+  if (!Array.isArray(entries)) return [];
+  const ids = entries
+    .map((entry) => (typeof entry === "string" ? entry : readId(entry)))
+    .filter(Boolean);
+  return Array.from(new Set(ids));
+}
+
+function normalizeIsolation(resource: any): Resource["isolation"] {
+  const isolate = resource?.isolate;
+  const legacyExports = Array.isArray(resource?.exports)
+    ? resource.exports
+    : [];
+
+  if (!isolate && legacyExports.length === 0) {
+    return null;
+  }
+
+  const deny = toIsolationIds(isolate?.deny);
+  const only = toIsolationIds(isolate?.only);
+
+  const hasIsolateExports = Boolean(isolate && "exports" in isolate);
+  const rawExports = hasIsolateExports
+    ? isolate.exports
+    : !isolate
+    ? legacyExports
+    : undefined;
+
+  let exports: string[] = [];
+  let exportsMode: "unset" | "none" | "list" = "unset";
+
+  if (rawExports === "none") {
+    exportsMode = "none";
+  } else if (Array.isArray(rawExports)) {
+    exports = toIsolationIds(rawExports);
+    exportsMode = exports.length > 0 ? "list" : "none";
+  }
+
+  return { deny, only, exports, exportsMode };
+}
+
+function normalizeMiddlewareAutoApply(mw: any): Middleware["autoApply"] {
+  const applyTo = mw?.applyTo;
+  if (applyTo && typeof applyTo === "object") {
+    return {
+      enabled: true,
+      scope:
+        applyTo.scope === "subtree" || applyTo.scope === "where-visible"
+          ? applyTo.scope
+          : null,
+      hasPredicate: typeof applyTo.when === "function",
+    };
+  }
+
+  return {
+    enabled: false,
+    scope: null,
+    hasPredicate: false,
+  };
+}
+
+function normalizeSubtreeValidatorCount(value: unknown): number {
+  if (Array.isArray(value)) return value.length;
+  if (typeof value === "function") return 1;
+  return 0;
+}
+
+function toSubtreeMiddlewareIds(entries: unknown): string[] {
+  if (!Array.isArray(entries)) return [];
+  const ids = entries
+    .map((entry) => (typeof entry === "string" ? entry : readId(entry)))
+    .filter(Boolean);
+  return Array.from(new Set(ids));
+}
+
+function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
+  const subtree = resource?.subtree;
+  if (!subtree || typeof subtree !== "object") return null;
+
+  const tasks = subtree.tasks
+    ? {
+        middleware: toSubtreeMiddlewareIds(subtree.tasks.middleware),
+        validatorCount: normalizeSubtreeValidatorCount(subtree.tasks.validate),
+      }
+    : null;
+  const resources = subtree.resources
+    ? {
+        middleware: toSubtreeMiddlewareIds(subtree.resources.middleware),
+        validatorCount: normalizeSubtreeValidatorCount(
+          subtree.resources.validate
+        ),
+      }
+    : null;
+  const hooks = subtree.hooks
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(subtree.hooks.validate),
+      }
+    : null;
+  const taskMiddleware = subtree.taskMiddleware
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(
+          subtree.taskMiddleware.validate
+        ),
+      }
+    : null;
+  const resourceMiddleware = subtree.resourceMiddleware
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(
+          subtree.resourceMiddleware.validate
+        ),
+      }
+    : null;
+  const events = subtree.events
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(subtree.events.validate),
+      }
+    : null;
+  const tags = subtree.tags
+    ? {
+        validatorCount: normalizeSubtreeValidatorCount(subtree.tags.validate),
+      }
+    : null;
+
+  if (
+    !tasks &&
+    !resources &&
+    !hooks &&
+    !taskMiddleware &&
+    !resourceMiddleware &&
+    !events &&
+    !tags
+  ) {
+    return null;
+  }
+
+  return {
+    tasks,
+    resources,
+    hooks,
+    taskMiddleware,
+    resourceMiddleware,
+    events,
+    tags,
+  };
+}
+
+function parseTagConfigJson(config: string | null | undefined): any | null {
+  if (!config) return null;
+  try {
+    return JSON.parse(config);
+  } catch {
+    return null;
+  }
+}
+
+function extractEventLaneSummary(
+  tagsDetailed: Array<{ id: string; config: string | null }>
+): Event["eventLane"] {
+  const laneTag = tagsDetailed.find((tag) => tag.id === EVENT_LANE_TAG_ID);
+  if (!laneTag) return null;
+
+  const parsed = parseTagConfigJson(laneTag.config);
+  const laneId = extractLaneId(parsed?.lane);
+  if (!laneId) return null;
+
+  return {
+    laneId,
+    orderingKey:
+      parsed?.orderingKey != null ? String(parsed.orderingKey) : null,
+    metadata:
+      parsed?.metadata != null ? stringifyIfObject(parsed.metadata) : null,
+  };
+}
+
+function extractRpcLaneSummary(
+  tagsDetailed: Array<{ id: string; config: string | null }>
+): Task["rpcLane"] {
+  const laneTag = tagsDetailed.find((tag) => tag.id === RPC_LANE_TAG_ID);
+  if (!laneTag) return null;
+
+  const parsed = parseTagConfigJson(laneTag.config);
+  const laneId = extractLaneId(parsed?.lane);
+  if (!laneId) return null;
+
+  return { laneId };
 }
 
 export function extractEventIdsFromDependencies(

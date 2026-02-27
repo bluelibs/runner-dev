@@ -19,13 +19,24 @@ import { SchemaRenderer } from "./SchemaRenderer";
 import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
-import { hasTunnelTag } from "../../../../../resources/models/tunnel.tools";
+import { BaseModal } from "./modals";
 import { isSystemElement } from "../utils/isSystemElement";
+import { matchesWildcardPattern } from "../utils/wildcard-utils";
+import { ResourceIsolationSection } from "./ResourceIsolationSection";
+import { ResourceSubtreeSection } from "./ResourceSubtreeSection";
+import { ResourceEventLanesSection } from "./ResourceEventLanesSection";
+import { ResourceRpcLanesSection } from "./ResourceRpcLanesSection";
+import {
+  isEventLanesResource,
+  isRpcLanesResource,
+} from "../../../../../utils/lane-resources";
 
 export interface ResourceCardProps {
   resource: Resource;
   introspector: Introspector;
 }
+
+type IsolationRuleSource = "exports" | "deny" | "only";
 
 export const ResourceCard: React.FC<ResourceCardProps> = ({
   resource,
@@ -44,15 +55,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     ...introspector.getHooksByIds(resource.registers),
   ];
 
-  // Check if this is a tunnel resource
-  const isTunnel = hasTunnelTag(resource.tags || null);
-  const tunneledTasks = isTunnel
-    ? introspector.getTunneledTasks(resource.id)
-    : [];
-  const tunneledEvents = isTunnel
-    ? introspector.getTunneledEvents(resource.id)
-    : [];
-
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [fileContent, setFileContent] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -66,6 +68,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     React.useState("");
   const [coverageLoading, setCoverageLoading] = React.useState(false);
   const [coverageError, setCoverageError] = React.useState<string | null>(null);
+  const [isolationRuleModal, setIsolationRuleModal] = React.useState<{
+    source: IsolationRuleSource;
+    rule: string;
+    matchedResources: Resource[];
+  } | null>(null);
+  const [isolationRuleSearch, setIsolationRuleSearch] = React.useState("");
 
   const filteredRegisteredElements = React.useMemo(() => {
     const query = registeredElementsSearch.trim().toLowerCase();
@@ -77,6 +85,39 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       return id.includes(query) || title.includes(query);
     });
   }, [registeredElements, registeredElementsSearch]);
+
+  const filteredIsolationMatches = React.useMemo(() => {
+    if (!isolationRuleModal) return [];
+
+    const query = isolationRuleSearch.trim().toLowerCase();
+    if (!query) return isolationRuleModal.matchedResources;
+
+    return isolationRuleModal.matchedResources.filter((item) => {
+      const id = item.id.toLowerCase();
+      const title = item.meta?.title?.toLowerCase() || "";
+      return id.includes(query) || title.includes(query);
+    });
+  }, [isolationRuleModal, isolationRuleSearch]);
+
+  const hasEventLanesSurface = isEventLanesResource(resource);
+  const hasRpcLanesSurface = isRpcLanesResource(resource);
+
+  const openIsolationWildcardModal = React.useCallback(
+    (source: IsolationRuleSource, rule: string) => {
+      const matchedResources = introspector
+        .getResources()
+        .filter((item) => matchesWildcardPattern(item.id, rule));
+
+      setIsolationRuleModal({ source, rule, matchedResources });
+      setIsolationRuleSearch("");
+    },
+    [introspector]
+  );
+
+  const closeIsolationWildcardModal = React.useCallback(() => {
+    setIsolationRuleModal(null);
+    setIsolationRuleSearch("");
+  }, []);
 
   async function openFileModal() {
     if (!resource?.id) return;
@@ -143,12 +184,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       title={
         <>
           {resource.meta?.title || formatId(resource.id)}
-          {isTunnel && (
+          {hasRpcLanesSurface && (
             <span
-              className="resource-card__tunnel-badge"
-              title="Tunnel Resource"
+              className="resource-card__rpc-lanes-badge"
+              title="RPC Lanes Resource"
             >
-              🚇
+              RPC LANES
             </span>
           )}
         </>
@@ -212,28 +253,37 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             {resource.isPrivate ? "Private" : "Public"}
           </InfoBlock>
 
-          <InfoBlock prefix="resource-card" label="Exports:">
-            {Array.isArray(resource.exports) && resource.exports.length > 0 ? (
-              <div className="resource-card__tags">
-                {resource.exports.map((exportedId) => (
-                  <a
-                    href={`#element-${exportedId}`}
-                    key={exportedId}
-                    className="clean-button"
-                  >
-                    {formatId(exportedId)}
-                  </a>
-                ))}
-              </div>
-            ) : (
-              "Not configured (all registered items are public by default)"
-            )}
+          <InfoBlock prefix="resource-card" label="Isolation Exports Mode:">
+            {resource.isolation?.exportsMode ?? "unset"}
           </InfoBlock>
+
+          <InfoBlock prefix="resource-card" label="Cooldown Hook:">
+            {resource.cooldown ? "Yes" : "No"}
+          </InfoBlock>
+
+          {resource.isolation && (
+            <ResourceIsolationSection
+              isolation={resource.isolation}
+              onOpenWildcard={openIsolationWildcardModal}
+            />
+          )}
 
           {resource.context && (
             <InfoBlock prefix="resource-card" label="Context:">
               {resource.context}
             </InfoBlock>
+          )}
+
+          {resource.subtree && (
+            <ResourceSubtreeSection subtree={resource.subtree} />
+          )}
+
+          {hasEventLanesSurface && (
+            <ResourceEventLanesSection resourceConfig={resource.config} />
+          )}
+
+          {hasRpcLanesSurface && (
+            <ResourceRpcLanesSection resourceConfig={resource.config} />
           )}
 
           <InfoBlock prefix="resource-card" label="Used By Tasks:">
@@ -281,83 +331,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             <SchemaRenderer schemaString={resource.configSchema} />
           </div>
         </CardSection>
-
-        {isTunnel && (
-          <CardSection
-            prefix="resource-card"
-            title="🚇 Tunnel Configuration"
-            className="resource-card__tunnel-section"
-            contentClassName="resource-card__tunnel"
-          >
-            <div className="resource-card__tunnel__overview">
-              <InfoBlock prefix="resource-card" label="Mode:">
-                <span className="resource-card__tunnel__mode">
-                  {resource.tunnelInfo?.mode || "Unknown"}
-                </span>
-              </InfoBlock>
-              <InfoBlock prefix="resource-card" label="Transport:">
-                {resource.tunnelInfo?.transport || "Unknown"}
-              </InfoBlock>
-              {resource.tunnelInfo?.endpoint && (
-                <InfoBlock prefix="resource-card" label="Endpoint:">
-                  {resource.tunnelInfo.endpoint}
-                </InfoBlock>
-              )}
-              {resource.tunnelInfo?.auth && (
-                <InfoBlock prefix="resource-card" label="Authentication:">
-                  {resource.tunnelInfo.auth}
-                </InfoBlock>
-              )}
-            </div>
-
-            {(tunneledTasks.length > 0 || tunneledEvents.length > 0) && (
-              <div className="resource-card__tunnel__routes">
-                <h5>Tunneled Elements</h5>
-                <div className="resource-card__tunnel__elements">
-                  {tunneledTasks.length > 0 && (
-                    <div className="resource-card__tunnel__category">
-                      <h6>Tasks ({tunneledTasks.length})</h6>
-                      <div className="resource-card__tunnel__list">
-                        {tunneledTasks.map((task) => (
-                          <a
-                            key={task.id}
-                            href={`#element-${task.id}`}
-                            className="resource-card__tunnel__item resource-card__tunnel__item--task"
-                          >
-                            <div className="title">
-                              {task.meta?.title || formatId(task.id)}
-                            </div>
-                            <div className="id">{task.id}</div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {tunneledEvents.length > 0 && (
-                    <div className="resource-card__tunnel__category">
-                      <h6>Events ({tunneledEvents.length})</h6>
-                      <div className="resource-card__tunnel__list">
-                        {tunneledEvents.map((event) => (
-                          <a
-                            key={event.id}
-                            href={`#element-${event.id}`}
-                            className="resource-card__tunnel__item resource-card__tunnel__item--event"
-                          >
-                            <div className="title">
-                              {event.meta?.title || formatId(event.id)}
-                            </div>
-                            <div className="id">{event.id}</div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardSection>
-        )}
       </div>
 
       {(dependencies.tasks.length > 0 ||
@@ -483,6 +456,70 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         className="resource-card__tags-section"
       />
 
+      <BaseModal
+        isOpen={Boolean(isolationRuleModal)}
+        onClose={closeIsolationWildcardModal}
+        title="Isolation Wildcard Matches"
+        subtitle={
+          isolationRuleModal
+            ? `${isolationRuleModal.source} rule: ${isolationRuleModal.rule}`
+            : undefined
+        }
+        size="lg"
+        className="resource-card__isolation-modal"
+        ariaLabel="Isolation wildcard matches"
+      >
+        <div className="resource-card__isolation-modal-content">
+          {isolationRuleModal &&
+            isolationRuleModal.matchedResources.length > 5 && (
+              <div className="resource-card__relations__search">
+                <span
+                  className="resource-card__relations__search-icon"
+                  aria-hidden="true"
+                >
+                  🔎
+                </span>
+                <input
+                  type="search"
+                  className="resource-card__relations__search-input"
+                  placeholder="Filter matched resources..."
+                  value={isolationRuleSearch}
+                  onChange={(event) =>
+                    setIsolationRuleSearch(event.target.value)
+                  }
+                />
+                <span className="resource-card__relations__search-count">
+                  {filteredIsolationMatches.length}/
+                  {isolationRuleModal.matchedResources.length}
+                </span>
+              </div>
+            )}
+
+          <div className="resource-card__isolation-modal-list">
+            {filteredIsolationMatches.length > 0 ? (
+              filteredIsolationMatches.map((matchedResource) => (
+                <a
+                  key={matchedResource.id}
+                  href={`#element-${matchedResource.id}`}
+                  className="resource-card__relation-item resource-card__relation-item--resource resource-card__relation-link"
+                  onClick={closeIsolationWildcardModal}
+                >
+                  <div className="title title--resource">
+                    {matchedResource.meta?.title ||
+                      formatId(matchedResource.id)}
+                  </div>
+                  <div className="id">{matchedResource.id}</div>
+                </a>
+              ))
+            ) : (
+              <div className="resource-card__relations__empty">
+                No resources match this wildcard rule.
+              </div>
+            )}
+          </div>
+        </div>
+      </BaseModal>
+
       <CodeModal
         title={resource.meta?.title || formatId(resource.id)}
         subtitle={resource.filePath || undefined}
@@ -496,7 +533,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       <CodeModal
         title={`${
           resource.meta?.title || formatId(resource.id)
-        } — Coverage Details`}
+        } - Coverage Details`}
         subtitle={resource.filePath || undefined}
         isOpen={coverageDetailsOpen}
         onClose={() => setCoverageDetailsOpen(false)}

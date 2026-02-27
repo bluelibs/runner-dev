@@ -1,8 +1,10 @@
 import {
   GraphQLBoolean,
+  GraphQLEnumType,
   GraphQLID,
   GraphQLList,
   GraphQLNonNull,
+  GraphQLObjectType,
   GraphQLString,
   type GraphQLFieldConfigMap,
 } from "graphql";
@@ -20,20 +22,29 @@ import {
 } from "./UsageTypes";
 import { TaskType } from "../TaskType";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-export const MiddlewareGlobalType = new (require("graphql").GraphQLObjectType)({
-  name: "GlobalMiddleware",
+export const MiddlewareApplyScopeType = new GraphQLEnumType({
+  name: "MiddlewareApplyScope",
+  values: {
+    WHERE_VISIBLE: { value: "where-visible" },
+    SUBTREE: { value: "subtree" },
+  },
+});
+
+export const MiddlewareAutoApplyType = new GraphQLObjectType({
+  name: "MiddlewareAutoApply",
   fields: (): GraphQLFieldConfigMap<any, any> => ({
     enabled: {
-      description: "Whether the middleware is active globally",
+      description: "Whether middleware auto-application is enabled.",
       type: new GraphQLNonNull(GraphQLBoolean),
     },
-    tasks: {
-      description: "Globally enabled for tasks",
-      type: new GraphQLNonNull(GraphQLBoolean),
+    scope: {
+      description:
+        "Auto-application scope. `where-visible` respects isolation visibility, `subtree` stays within owner subtree.",
+      type: MiddlewareApplyScopeType,
     },
-    resources: {
-      description: "Globally enabled for resources",
+    hasPredicate: {
+      description:
+        "True when a predicate was provided to further filter auto-application targets.",
       type: new GraphQLNonNull(GraphQLBoolean),
     },
   }),
@@ -48,9 +59,9 @@ export function middlewareCommonFields(): GraphQLFieldConfigMap<any, any> {
       type: GraphQLString,
       resolve: (node: any) => sanitizePath(node?.filePath ?? null),
     },
-    global: {
-      description: "Global middleware configuration",
-      type: MiddlewareGlobalType,
+    autoApply: {
+      description: "Automatic middleware application configuration.",
+      type: new GraphQLNonNull(MiddlewareAutoApplyType),
     },
     emits: {
       description: "Events emitted by task/hook nodes that use this middleware",

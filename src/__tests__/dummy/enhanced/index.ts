@@ -1,476 +1,53 @@
-// ====================
-// ENHANCED DUMMY SUPER APP
-// ====================
-
-// Core exports
-export {
-  // Error definitions
-  UserDomainErrors,
-  ProductDomainErrors,
-  OrderDomainErrors,
-  SystemErrors,
-  AllErrors,
-} from "./errors";
+import { RegisterableItems, r } from "@bluelibs/runner";
+import { enhancedShowcaseRegistrations } from "./showcases";
 
 export {
-  // Async context definitions
-  CoreContexts,
-  BusinessContexts,
-  SystemContexts,
-  AllContexts,
-  ContextMiddleware,
-} from "./contexts";
-
-export {
-  // Tunneling components
-  tunnelClient,
-  enhancedRegisterUserTask,
-  enhancedProductSyncTask,
-  enhancedProcessOrderTask,
-  generateBusinessReportTask,
-  tunnelClientApp,
-  startTunnelClient,
-  demonstrateTunneling,
-  testTunnelConnectivity,
-  benchmarkTunnelPerformance,
-} from "./tunneling";
-export {
-  validatePaymentTask,
-  fetchExternalInventoryTask,
-  generateReportTask,
-  fraudDetectionTask,
-  httpExposure,
-  remoteServer,
-  startRemoteServer,
-} from "./tunneling/server";
-
-export {
-  // Enhanced domain components
-  userEnhancedRegisteredEvent,
-  userAuthenticationFailedEvent,
-  userSuspiciousActivityEvent,
-  enhancedUserDatabaseResource,
-  userSecurityServiceResource,
-  enhancedRegisterUserTask as userEnhancedRegisterUserTask,
-  enhancedAuthenticateUserTask,
-  userRegistrationSecurityHook,
-  userSuspiciousActivityHook,
-  productEnhancedCreatedEvent,
-  productInventoryCriticalEvent,
-  productPriceChangeRequestedEvent,
-  enhancedProductDatabaseResource,
-  productPricingEngineResource,
-  enhancedCreateProductTask,
-  enhancedUpdateInventoryTask,
-  productPriceOptimizationHook,
-  productInventoryRestockHook,
-} from "./domains";
-
-export {
-  // Integration examples
-  completeUserJourneyTask,
-  errorHandlingDemoTask,
-  contextPropagationDemoTask,
-  integrationDemoApp,
-  runIntegrationDemo,
-} from "./examples/integrationExample";
-
-export {
-  tunnelCatalogUpdatedEvent,
-  tunnelPricingPreviewTask,
-  tunnelCatalogSyncTask,
-  tunnelServerShowcaseResource,
+  featuredTag,
+  publicCatalogResource,
+  privateCacheResource,
+  catalogSearchTask,
+  featuredInspectorTask,
+  isolationBoundaryResource,
+  interceptorBaseTask,
+  interceptorInstallerResource,
+  interceptorConsumerTask,
+  rpcLaneCatalogUpdatedEvent,
+  eventLaneCatalogProjectionUpdatedEvent,
+  rpcLanePricingPreviewTask,
+  rpcLaneCatalogSyncTask,
+  rpcLanesShowcaseResource,
+  rpcLanesShowcaseRegistration,
+  eventLanesShowcaseResource,
+  eventLanesShowcaseRegistration,
   showcaseDurableResource,
   showcaseDurableRegistration,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,
   startDurableOrderApprovalTask,
-  tunnelAndDurableExampleRegistrations,
-} from "./examples/tunnelAndDurableExample";
-
-import { r, run, RegisterableItems } from "@bluelibs/runner";
-import { AllContexts, ContextMiddleware } from "./contexts";
-import { AllErrors } from "./errors";
-import {
-  enhancedUserDatabaseResource,
-  userSecurityServiceResource,
-  enhancedRegisterUserTask,
-  enhancedAuthenticateUserTask,
-  userRegistrationSecurityHook,
-  userSuspiciousActivityHook,
-  enhancedProductDatabaseResource,
-  productPricingEngineResource,
-  enhancedCreateProductTask,
-  enhancedUpdateInventoryTask,
-  productPriceOptimizationHook,
-  productInventoryRestockHook,
-  tunnelClient,
-  userEnhancedRegisteredEvent,
-  userSuspiciousActivityEvent,
-  productPriceChangeRequestedEvent,
-  productInventoryCriticalEvent,
-} from "./domains";
-import { startRemoteServer } from "./tunneling/server";
-import {
-  demonstrateTunneling,
-  enhancedProcessOrderTask,
-  generateBusinessReportTask,
-} from "./tunneling";
-import {
-  completeUserJourneyTask,
-  errorHandlingDemoTask,
-  contextPropagationDemoTask,
-  runIntegrationDemo,
-} from "./examples/integrationExample";
-import { tunnelAndDurableExampleRegistrations } from "./examples/tunnelAndDurableExample";
-
-// ====================
-// EXPORTS + INTERCEPTOR SHOWCASE
-// ====================
-
-const interceptorPublicTask = r
-  .task("app.examples.tasks.interceptorPublic")
-  .meta({
-    title: "Interceptor Public Task",
-    description: "Public task used to showcase runtime task interceptors.",
-  })
-  .run(async (input: { value: number }) => ({ value: input.value }))
-  .build();
-
-const interceptorPrivateTask = r
-  .task("app.examples.tasks.interceptorPrivate")
-  .meta({
-    title: "Interceptor Private Task",
-    description:
-      "Private task hidden behind exports() to showcase visibility boundaries.",
-  })
-  .run(async () => "private-value")
-  .build();
-
-const interceptorVisibilityModule = r
-  .resource("app.examples.resources.interceptorVisibility")
-  .meta({
-    title: "Interceptor Visibility Module",
-    description:
-      "Owns a public task and a private task; exports only the public one.",
-  })
-  .register([interceptorPublicTask, interceptorPrivateTask])
-  .exports([interceptorPublicTask])
-  .build();
-
-const interceptorInstallerResource = r
-  .resource("app.examples.resources.interceptorInstaller")
-  .meta({
-    title: "Interceptor Installer",
-    description:
-      "Installs a per-task runtime interceptor for interceptorPublicTask.",
-  })
-  .dependencies({ interceptorPublicTask })
-  .init(async (_config, { interceptorPublicTask }) => {
-    interceptorPublicTask.intercept(async (next, input) => {
-      return next({ value: input.value + 10 });
-    });
-    return {};
-  })
-  .build();
-
-const interceptorConsumerTask = r
-  .task("app.examples.tasks.interceptorConsumer")
-  .meta({
-    title: "Interceptor Consumer Task",
-    description:
-      "Calls interceptorPublicTask so the demo exposes interceptor effects.",
-  })
-  .dependencies({ interceptorPublicTask })
-  .run(async (_input, { interceptorPublicTask }) =>
-    interceptorPublicTask({ value: 1 })
-  )
-  .build();
-
-// ====================
-// MAIN ENHANCED APPLICATION
-// ====================
+  supportRequestContext,
+  supportRequestContextMiddleware,
+  invalidInputError,
+  supportContextAndErrorProbeTask,
+  enhancedShowcaseModules,
+  enhancedShowcaseRegistrations,
+  type EnhancedShowcaseModule,
+} from "./showcases";
 
 export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
   return r
     .resource("enhanced.superapp")
     .meta({
-      title: "Enhanced E-Commerce Super App",
+      title: "Enhanced Play Showcase App",
       description:
-        "Comprehensive e-commerce application with advanced Runner features",
+        "Lean Runner-Dev showcase app focused on tags, isolation, interceptors, lane metadata, durable flows, and support primitives.",
     })
-    .register([
-      // Core contexts
-      ...Object.values(AllContexts),
-
-      // Error definitions
-      ...Object.values(AllErrors),
-
-      // Context middleware
-      ...Object.values(ContextMiddleware),
-
-      userEnhancedRegisteredEvent,
-      userSuspiciousActivityEvent,
-      productPriceChangeRequestedEvent,
-      productInventoryCriticalEvent,
-      enhancedProcessOrderTask,
-      generateBusinessReportTask,
-
-      // Enhanced domains
-      enhancedUserDatabaseResource,
-      userSecurityServiceResource,
-      enhancedProductDatabaseResource,
-      productPricingEngineResource,
-
-      // Domain tasks and hooks
-      enhancedRegisterUserTask,
-      enhancedAuthenticateUserTask,
-      userRegistrationSecurityHook,
-      userSuspiciousActivityHook,
-      enhancedCreateProductTask,
-      enhancedUpdateInventoryTask,
-      productPriceOptimizationHook,
-      productInventoryRestockHook,
-
-      // Demo tasks
-      completeUserJourneyTask,
-      errorHandlingDemoTask,
-      contextPropagationDemoTask,
-      interceptorConsumerTask,
-      ...tunnelAndDurableExampleRegistrations,
-      interceptorVisibilityModule,
-      interceptorInstallerResource,
-
-      // Tunneling (optional - requires remote server)
-      tunnelClient,
-
-      // Extra registrations
-      ...extra,
-    ])
-    .init(async (_config, _deps) => {
-      console.log("🚀 Enhanced Super App Initialized with Errors and Contexts");
-      console.log("================================");
-      console.log("🔧 Advanced Features:");
-      console.log("   ✅ Fluent error builders with domain-specific errors");
-      console.log("   ✅ Async context propagation with middleware");
-      console.log("   ✅ Performance monitoring and tracking");
-      console.log("   ✅ Multi-tenant and business context support");
-      console.log("   ✅ Enhanced user management with security");
-      console.log("   ✅ Dynamic product pricing and inventory");
-      console.log("   ✅ Comprehensive error handling");
-      console.log("   ✅ Resource exports() visibility boundaries");
-      console.log("   ✅ Runtime task interceptors");
-      console.log("   ✅ Integration examples and demos");
-      console.log("   🔗 Tunnel showcase with server-mode policy");
-      console.log("   ⏱️  Durable workflow showcase with step/sleep/note");
-      console.log("");
-      console.log("📊 Available Demo Tasks:");
+    .register([...enhancedShowcaseRegistrations, ...extra])
+    .init(async () => {
+      console.log("[enhanced.play] Lean showcase app ready.");
       console.log(
-        "   🎭 app.examples.completeUserJourney - Full e-commerce journey"
+        "[enhanced.play] Features: tags/handlers, isolation wildcard rules, interceptors, lanes, durable, support."
       );
-      console.log(
-        "   ⚠️  app.examples.errorHandlingDemo - Error handling patterns"
-      );
-      console.log(
-        "   🔄 app.examples.contextPropagation - Context propagation demo"
-      );
-      console.log(
-        "   🧪 app.examples.tasks.interceptorConsumer - exports/interceptor showcase"
-      );
-      console.log(
-        "   🌐 app.examples.tunnel.tasks.catalogSync - Tunnel policy task sample"
-      );
-      console.log(
-        "   ⏱️  app.examples.durable.tasks.runOrderApprovalWorkflow - Durable workflow runner"
-      );
-      console.log(
-        "   🏁 app.examples.durable.tasks.startOrderApprovalWorkflow - Returns durable execution id"
-      );
-      console.log("");
-      console.log("🛍️  Available Business Tasks:");
-      console.log(
-        "   👤 app.users.tasks.enhancedRegister - Enhanced user registration"
-      );
-      console.log(
-        "   🔐 app.users.tasks.enhancedAuthenticate - Enhanced authentication"
-      );
-      console.log(
-        "   📦 app.products.tasks.enhancedCreate - Enhanced product creation"
-      );
-      console.log(
-        "   📊 app.products.tasks.enhancedUpdateInventory - Enhanced inventory management"
-      );
-      console.log("");
-      console.log("🎯 Ready for advanced Runner demonstrations!");
       return {};
     })
     .build();
 };
-
-// ====================
-// QUICK START FUNCTIONS
-// ====================
-
-/**
- * Quick start the enhanced demo application
- */
-export async function startEnhancedDemo() {
-  console.log("🎬 Starting Enhanced Demo Application");
-  console.log("=====================================");
-
-  const app = createEnhancedSuperApp();
-  const runtime = await run(app, { debug: "verbose" });
-
-  // Auto-start integration demo if this file is run directly
-  if (require.main === module) {
-    await runIntegrationDemo();
-  }
-
-  // Graceful shutdown
-  process.on("SIGINT", async () => {
-    console.log("\n🛑 Shutting down Enhanced Demo Application...");
-    await runtime.dispose();
-    process.exit(0);
-  });
-
-  return runtime;
-}
-
-/**
- * Quick tunneling demo with both server and client
- */
-export async function quickTunnelingDemo() {
-  console.log("🌐 Quick Tunneling Demo");
-  console.log("=======================");
-
-  // Start remote server
-  console.log("\n🚀 Starting Remote Server...");
-  const serverRuntime = await startRemoteServer();
-
-  // Wait for server to be ready
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  try {
-    // Run tunneling demonstration
-    await demonstrateTunneling();
-  } catch (error) {
-    console.error("❌ Tunneling demo failed:", error);
-  } finally {
-    await serverRuntime.dispose();
-  }
-}
-
-/**
- * Quick error handling demonstration
- */
-export async function quickErrorDemo() {
-  console.log("⚠️  Quick Error Handling Demo");
-  console.log("=============================");
-
-  const app = createEnhancedSuperApp();
-  const runtime = await run(app, { debug: "verbose" });
-
-  try {
-    const results = await runtime.runTask(errorHandlingDemoTask, {
-      scenarios: [
-        "validation_error",
-        "user_not_found",
-        "insufficient_stock",
-        "payment_failed",
-        "rate_limit",
-      ],
-    });
-
-    console.log("\n📊 Error Handling Results:");
-    results?.results?.forEach((result: unknown) => {
-      const res = result as {
-        scenario: string;
-        handled: boolean;
-        errorType: string;
-      };
-      console.log(
-        `  ${res.scenario}: ${res.handled ? "✅ Handled" : "❌ Failed"} - ${
-          res.errorType
-        }`
-      );
-    });
-  } finally {
-    await runtime.dispose();
-  }
-}
-
-/**
- * Quick context propagation demonstration
- */
-export async function quickContextDemo() {
-  console.log("🔄 Quick Context Propagation Demo");
-  console.log("=================================");
-
-  const app = createEnhancedSuperApp();
-  const runtime = await run(app, { debug: "verbose" });
-
-  try {
-    const results = await runtime.runTask(contextPropagationDemoTask, {
-      enableNestedTasks: true,
-      enableContextModification: true,
-    });
-
-    console.log("\n📊 Context Propagation Results:");
-    console.log(
-      `  Contexts modified: ${results?.contextModifications?.length || 0}`
-    );
-    console.log(
-      `  Performance checkpoints: ${
-        results?.performanceData?.checkpointsCount || 0
-      }`
-    );
-    console.log(
-      `  Total duration: ${results?.performanceData?.totalDuration || 0}ms`
-    );
-  } finally {
-    await runtime.dispose();
-  }
-}
-
-// ====================
-// COMPREHENSIVE DEMO FUNCTION
-// ====================
-
-/**
- * Run all demonstrations in sequence
- */
-export async function runAllDemos() {
-  console.log("🎭 Running All Enhanced Demos");
-  console.log("=============================");
-
-  try {
-    // Demo 1: Error Handling
-    console.log("\n1️⃣ Error Handling Demo");
-    await quickErrorDemo();
-
-    // Demo 2: Context Propagation
-    console.log("\n2️⃣ Context Propagation Demo");
-    await quickContextDemo();
-
-    // Demo 3: Tunneling (if environment supports it)
-    console.log("\n3️⃣ Tunneling Demo");
-    try {
-      await quickTunnelingDemo();
-    } catch (_error) {
-      console.log("⚠️  Tunneling demo skipped (requires environment setup)");
-    }
-
-    // Demo 4: Complete Integration
-    console.log("\n4️⃣ Complete Integration Demo");
-    await startEnhancedDemo();
-
-    console.log("\n🎉 All demos completed successfully!");
-  } catch (error) {
-    console.error("\n❌ Demo execution failed:", error);
-  }
-}
-
-// Auto-start if this file is run directly
-if (require.main === module) {
-  runAllDemos().catch(console.error);
-}

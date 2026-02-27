@@ -27,8 +27,10 @@ import {
   findDurableDependencyId,
   hasDurableWorkflowTag,
 } from "./durable.tools";
-import { extractTunnelInfo } from "./extractTunnelInfo";
-import { hasTunnelTag } from "./tunnel.tools";
+import {
+  collectRpcLaneIdsFromResourceConfig,
+  isRpcLanesResource,
+} from "../../utils/lane-resources";
 
 export type MiddlewareInterceptorOwnerSnapshot = {
   globalTaskInterceptorOwnerIds: string[];
@@ -127,9 +129,10 @@ export class Introspector {
     this.hooks = Array.isArray(data.hooks) ? data.hooks : [];
     this.resources = Array.isArray(data.resources) ? data.resources : [];
     this.events = Array.isArray(data.events) ? data.events : [];
-    this.taskMiddlewares = [];
-    this.resourceMiddlewares = [];
     this.middlewares = Array.isArray(data.middlewares) ? data.middlewares : [];
+    const splitMiddlewares = this.splitMiddlewaresByType(this.middlewares);
+    this.taskMiddlewares = splitMiddlewares.taskMiddlewares;
+    this.resourceMiddlewares = splitMiddlewares.resourceMiddlewares;
     this.errors = Array.isArray(data.errors) ? data.errors : [];
     this.asyncContexts = Array.isArray(data.asyncContexts)
       ? data.asyncContexts
@@ -169,6 +172,41 @@ export class Introspector {
     for (const tag of this.tags) {
       this.tagMap.set(tag.id, tag);
     }
+  }
+
+  private splitMiddlewaresByType(middlewares: Middleware[]): {
+    taskMiddlewares: Middleware[];
+    resourceMiddlewares: Middleware[];
+  } {
+    const taskMiddlewares: Middleware[] = [];
+    const resourceMiddlewares: Middleware[] = [];
+
+    for (const middleware of middlewares) {
+      if (middleware.type === "task") {
+        taskMiddlewares.push(middleware);
+        continue;
+      }
+
+      if (middleware.type === "resource") {
+        resourceMiddlewares.push(middleware);
+        continue;
+      }
+
+      const usedByTasksLength = Array.isArray(middleware.usedByTasks)
+        ? middleware.usedByTasks.length
+        : 0;
+      const usedByResourcesLength = Array.isArray(middleware.usedByResources)
+        ? middleware.usedByResources.length
+        : 0;
+
+      if (usedByTasksLength > 0 || usedByResourcesLength === 0) {
+        taskMiddlewares.push(middleware);
+      } else {
+        resourceMiddlewares.push(middleware);
+      }
+    }
+
+    return { taskMiddlewares, resourceMiddlewares };
   }
 
   // Helper function for building runs options
@@ -249,7 +287,16 @@ export class Introspector {
           : null,
       dryRun: Boolean(runOptions.dryRun),
       lazy: Boolean(runOptions.lazy),
-      initMode: runOptions.initMode === "parallel" ? "parallel" : "sequential",
+      lifecycleMode:
+        runOptions.lifecycleMode === "parallel" ? "parallel" : "sequential",
+      disposeBudgetMs:
+        typeof runOptions.disposeBudgetMs === "number"
+          ? runOptions.disposeBudgetMs
+          : null,
+      disposeDrainBudgetMs:
+        typeof runOptions.disposeDrainBudgetMs === "number"
+          ? runOptions.disposeDrainBudgetMs
+          : null,
       runtimeEventCycleDetection:
         runOptions.runtimeEventCycleDetection !== undefined
           ? runOptions.runtimeEventCycleDetection
@@ -291,7 +338,15 @@ export class Introspector {
         logsPrintStrategyRaw == null ? null : String(logsPrintStrategyRaw);
       const logsBuffer = Boolean(logsBufferRaw);
 
-      const initMode = sAny.preferInitOrderDisposal ? "sequential" : "parallel";
+      const lifecycleMode = sAny.preferInitOrderDisposal
+        ? "sequential"
+        : "parallel";
+      const disposeBudgetMs =
+        typeof sAny.disposeBudgetMs === "number" ? sAny.disposeBudgetMs : null;
+      const disposeDrainBudgetMs =
+        typeof sAny.disposeDrainBudgetMs === "number"
+          ? sAny.disposeDrainBudgetMs
+          : null;
 
       const runtimeAny = this.runtime as any;
       const lazy = Boolean(runtimeAny?.lazyOptions?.lazyMode);
@@ -310,7 +365,9 @@ export class Introspector {
         shutdownHooks: null,
         dryRun: Boolean(this.runOptions?.dryRun),
         lazy,
-        initMode,
+        lifecycleMode,
+        disposeBudgetMs,
+        disposeDrainBudgetMs,
         runtimeEventCycleDetection:
           typeof runtimeEventCycleDetection === "boolean"
             ? runtimeEventCycleDetection
@@ -650,8 +707,40 @@ export class Introspector {
     );
   }
 
+  getTaskMiddlewaresWithTag(tagId: string): Middleware[] {
+    return this.taskMiddlewares.filter((m) =>
+      ensureStringArray(m.tags).includes(tagId)
+    );
+  }
+
+  getResourceMiddlewaresWithTag(tagId: string): Middleware[] {
+    return this.resourceMiddlewares.filter((m) =>
+      ensureStringArray(m.tags).includes(tagId)
+    );
+  }
+
   getEventsWithTag(tagId: string): Event[] {
     return this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
+  }
+
+  getErrorsWithTag(tagId: string): ErrorModel[] {
+    return this.errors.filter((e) => ensureStringArray(e.tags).includes(tagId));
+  }
+
+  getTagHandlers(tagId: string): {
+    tasks: Task[];
+    hooks: Hook[];
+    resources: Resource[];
+  } {
+    const dependsOnTag = <T extends { dependsOn?: string[] | null }>(
+      item: T
+    ): boolean => ensureStringArray(item.dependsOn).includes(tagId);
+
+    return {
+      tasks: this.tasks.filter(dependsOnTag),
+      hooks: this.hooks.filter(dependsOnTag),
+      resources: this.resources.filter(dependsOnTag),
+    };
   }
 
   getAllTags(): Tag[] {
@@ -888,83 +977,50 @@ export class Introspector {
     return context?.requiredBy?.includes(elementId) ?? false;
   }
 
-  // Tunnel-related methods (enhance existing methods)
-  getTunnelResources(): Resource[] {
-    // Resources with populated tunnelInfo (set during store initialization)
-    return this.resources.filter((resource) => resource.tunnelInfo != null);
+  // RPC lane-related methods
+  getRpcLanesResources(): Resource[] {
+    return this.resources.filter((resource) => isRpcLanesResource(resource));
   }
 
-  getTunneledTasks(tunnelResourceId: string): Task[] {
-    const tunnel = this.getResource(tunnelResourceId);
-    if (!tunnel?.tunnelInfo?.tasks) return [];
-    return this.getTasksByIds(tunnel.tunnelInfo.tasks);
+  getTasksByRpcLane(rpcLaneId: string): Task[] {
+    return this.tasks.filter((task) => task.rpcLane?.laneId === rpcLaneId);
   }
 
-  getTunneledEvents(tunnelResourceId: string): Event[] {
-    const tunnel = this.getResource(tunnelResourceId);
-    if (!tunnel?.tunnelInfo?.events) return [];
-    return this.getEventsByIds(tunnel.tunnelInfo.events);
+  getEventsByRpcLane(rpcLaneId: string): Event[] {
+    return this.events.filter((event) => event.rpcLane?.laneId === rpcLaneId);
   }
 
-  getTunnelForTask(taskId: string): Resource | null {
-    const task = this.getTask(taskId);
-    if (!task) return null;
-
-    // Find tunnel resource that owns this task
-    return (
-      this.getTunnelResources().find((tunnel) =>
-        tunnel.tunnelInfo?.tasks?.includes(taskId)
-      ) ?? null
-    );
+  getRpcLaneForTask(taskId: string): string | null {
+    return this.getTask(taskId)?.rpcLane?.laneId ?? null;
   }
 
-  getTunnelForEvent(eventId: string): Resource | null {
-    // Find tunnel resource that tunnels this event
-    return (
-      this.getTunnelResources().find((tunnel) =>
-        tunnel.tunnelInfo?.events?.includes(eventId)
-      ) ?? null
-    );
+  getRpcLaneForEvent(eventId: string): string | null {
+    return this.getEvent(eventId)?.rpcLane?.laneId ?? null;
   }
 
-  /**
-   * Populates tunnelInfo for resources with the tunnel tag.
-   * Call this method after all resources have been initialized to ensure
-   * tunnel resource values are available.
-   */
-  populateTunnelInfo(): void {
-    const s = this.store as {
-      resources: Map<
-        string,
-        { resource: { id: unknown; tags?: unknown[] }; value: unknown }
-      >;
-    } | null;
-    if (!s?.resources) return;
+  getRpcLaneResourceForTask(taskId: string): Resource | null {
+    const laneId = this.getRpcLaneForTask(taskId);
+    if (!laneId) return null;
+    return this.findRpcLanesResourceByLaneId(laneId);
+  }
 
-    const allTaskIds = this.tasks.map((t) => t.id);
-    const allEventIds = this.events.map((e) => e.id);
+  getRpcLaneResourceForEvent(eventId: string): Resource | null {
+    const laneId = this.getRpcLaneForEvent(eventId);
+    if (!laneId) return null;
+    return this.findRpcLanesResourceByLaneId(laneId);
+  }
 
-    for (const storeEntry of s.resources.values()) {
-      const resourceDef = storeEntry.resource;
-      const resourceValue = storeEntry.value;
-      const resourceId = String(resourceDef.id);
+  private findRpcLanesResourceByLaneId(laneId: string): Resource | null {
+    const rpcLanesResources = this.getRpcLanesResources();
+    if (rpcLanesResources.length === 0) return null;
 
-      // Find the corresponding model resource
-      const modelResource = this.resources.find((r) => r.id === resourceId);
-      if (!modelResource) continue;
-
-      // Check if resource has tunnel tag using the already-normalized tags
-      if (hasTunnelTag(modelResource.tags) && resourceValue) {
-        const tunnelInfo = extractTunnelInfo(
-          resourceValue,
-          allTaskIds,
-          allEventIds
-        );
-        if (tunnelInfo) {
-          modelResource.tunnelInfo = tunnelInfo;
-        }
-      }
+    for (const resource of rpcLanesResources) {
+      const laneIds = collectRpcLaneIdsFromResourceConfig(resource.config);
+      if (laneIds.has(laneId)) return resource;
     }
+
+    // Fallback: if exactly one rpcLanes resource exists, prefer it.
+    return rpcLanesResources.length === 1 ? rpcLanesResources[0] : null;
   }
 
   // Durable workflow-related methods

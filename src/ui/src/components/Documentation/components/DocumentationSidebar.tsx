@@ -117,6 +117,11 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
                       but NOT test)
                     </li>
                     <li>
+                      <span className="keyword">Wildcard with *:</span>{" "}
+                      <span className="example">app.*.create</span> (namespace
+                      wildcard matching)
+                    </li>
+                    <li>
                       <span className="keyword">Tags search:</span>{" "}
                       <span className="example">:api,debug</span> (search tags
                       for api AND debug)

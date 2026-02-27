@@ -31,7 +31,9 @@ export const introspectorCli = resource({
               shutdownHooks: null,
               dryRun: true,
               lazy: false,
-              initMode: "sequential",
+              lifecycleMode: "sequential",
+              disposeBudgetMs: null,
+              disposeDrainBudgetMs: null,
               runtimeEventCycleDetection: null,
               hasOnUnhandledError: true,
               rootId:

@@ -1,5 +1,6 @@
 import {
   GraphQLBoolean,
+  GraphQLFloat,
   GraphQLNonNull,
   GraphQLObjectType,
   GraphQLString,
@@ -60,9 +61,20 @@ export const RunOptionsType = new GraphQLObjectType({
       description: "Whether lazy resource mode is enabled.",
       type: new GraphQLNonNull(GraphQLBoolean),
     },
-    initMode: {
-      description: 'Startup scheduler mode: "sequential" or "parallel".',
+    lifecycleMode: {
+      description:
+        'Startup/disposal scheduler mode: "sequential" or "parallel".',
       type: new GraphQLNonNull(GraphQLString),
+    },
+    disposeBudgetMs: {
+      description:
+        "Total shutdown disposal budget in milliseconds. Null when unknown.",
+      type: GraphQLFloat,
+    },
+    disposeDrainBudgetMs: {
+      description:
+        "Drain wait budget in milliseconds during shutdown. Null when unknown.",
+      type: GraphQLFloat,
     },
     runtimeEventCycleDetection: {
       description:

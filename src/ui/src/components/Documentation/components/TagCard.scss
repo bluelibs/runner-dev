@@ -129,7 +129,7 @@
 // -----------------------------------------------------------------------------
 .tag-card__stats {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: $spacing-sm;
 
   @media (max-width: 768px) {
@@ -178,6 +178,14 @@
 
   &--hooks .tag-card__stat__value {
     color: var(--docs-info);
+  }
+
+  &--errors .tag-card__stat__value {
+    color: var(--docs-danger);
+  }
+
+  &--handlers .tag-card__stat__value {
+    color: var(--docs-text-primary);
   }
 }
 
@@ -312,6 +320,11 @@
     border-left-color: var(--docs-info);
   }
 
+  &--error {
+    background: var(--docs-danger-bg);
+    border-left-color: var(--docs-danger);
+  }
+
   .title {
     font-weight: 600;
     margin-bottom: $spacing-xs;
@@ -330,6 +343,9 @@
     }
     &--hook {
       color: var(--docs-info);
+    }
+    &--error {
+      color: var(--docs-danger);
     }
   }
 

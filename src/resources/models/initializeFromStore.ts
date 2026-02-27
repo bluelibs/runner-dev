@@ -20,6 +20,21 @@ import { sanitizePath } from "../../utils/path";
 
 const EXTERNAL_VISIBILITY_CONSUMER_ID = "runner-dev.visibility.external";
 const MIDDLEWARE_MANAGER_RESOURCE_ID = "globals.resources.middlewareManager";
+const TAG_TARGETS = new Set([
+  "tasks",
+  "resources",
+  "events",
+  "hooks",
+  "taskMiddlewares",
+  "resourceMiddlewares",
+  "errors",
+]);
+
+function isTagTarget(
+  value: string
+): value is NonNullable<Tag["targets"]>[number] {
+  return TAG_TARGETS.has(value);
+}
 
 type TaskInterceptorRecord = {
   ownerResourceId?: string;
@@ -118,8 +133,8 @@ function applyVisibilityMetadata(
     );
     element.isPrivate = !isVisible;
     element.visibilityReason = isVisible
-      ? "Visible outside owning resource boundary."
-      : "Hidden by resource exports() boundary.";
+      ? "Visible outside owning resource isolation boundary."
+      : "Hidden by resource isolate() boundary.";
   }
 }
 
@@ -127,7 +142,7 @@ export function initializeFromStore(
   introspector: Introspector,
   store: Store
 ): void {
-  // Set store reference for methods that need it (e.g., populateTunnelInfo)
+  // Set store reference for methods that need access to live runtime state.
   introspector.store = store;
 
   // Build tasks
@@ -150,16 +165,11 @@ export function initializeFromStore(
 
   // Build resources
   introspector.resources = Array.from(s.resources.values()).map((r: any) =>
-    mapStoreResourceToResourceModel(r.resource)
+    mapStoreResourceToResourceModel(r.resource, r.config)
   );
 
   // Build events
   introspector.events = buildEvents(store);
-
-  // Best effort: when resource values are available, this populates tunnel metadata.
-  // In early init phases values may not exist yet; callers can invoke populateTunnelInfo()
-  // again later (for example on demand in resolvers or docs routes).
-  introspector.populateTunnelInfo();
 
   // Build errors
   introspector.errors = Array.from(store.errors.values()).map((e: any) => ({
@@ -331,12 +341,20 @@ export function initializeFromStore(
     introspector.resources.filter((r) =>
       ensureStringArray(r.tags).includes(tagId)
     );
-  const getMiddlewaresWithTag = (tagId: string) =>
-    introspector.middlewares.filter((m) =>
+  const getTaskMiddlewaresWithTag = (tagId: string) =>
+    introspector.taskMiddlewares.filter((m) =>
+      ensureStringArray(m.tags).includes(tagId)
+    );
+  const getResourceMiddlewaresWithTag = (tagId: string) =>
+    introspector.resourceMiddlewares.filter((m) =>
       ensureStringArray(m.tags).includes(tagId)
     );
   const getEventsWithTag = (tagId: string) =>
     introspector.events.filter((e) =>
+      ensureStringArray(e.tags).includes(tagId)
+    );
+  const getErrorsWithTag = (tagId: string) =>
+    introspector.errors.filter((e) =>
       ensureStringArray(e.tags).includes(tagId)
     );
 
@@ -346,6 +364,11 @@ export function initializeFromStore(
       meta: tag.meta,
       filePath: sanitizePath(tag[definitions.symbolFilePath]),
       configSchema: formatSchemaIfZod(tag.configSchema),
+      targets: Array.isArray((tag as any).targets)
+        ? ((tag as any).targets as unknown[])
+            .map((target) => String(target))
+            .filter(isTagTarget)
+        : null,
       isPrivate: false,
       visibilityReason: "Tags are globally discoverable metadata.",
       get tasks() {
@@ -357,11 +380,17 @@ export function initializeFromStore(
       get resources() {
         return getResourcesWithTag(tag.id);
       },
-      get middlewares() {
-        return getMiddlewaresWithTag(tag.id);
+      get taskMiddlewares() {
+        return getTaskMiddlewaresWithTag(tag.id);
+      },
+      get resourceMiddlewares() {
+        return getResourceMiddlewaresWithTag(tag.id);
       },
       get events() {
         return getEventsWithTag(tag.id);
+      },
+      get errors() {
+        return getErrorsWithTag(tag.id);
       },
     };
   });

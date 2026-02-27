@@ -34,7 +34,7 @@ export const BaseElementInterface: GraphQLInterfaceType =
       },
       isPrivate: {
         description:
-          "True when this element is private to a resource boundary defined by exports().",
+          "True when this element is private to a resource boundary defined by isolate().",
         type: new GraphQLNonNull(GraphQLBoolean),
       },
       visibilityReason: {
@@ -162,7 +162,7 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       return false; // Resource
     }
     if (
-      Array.isArray(value?.usedByTasks) &&
+      Array.isArray(value?.usedByTasks) ||
       Array.isArray(value?.usedByResources)
     ) {
       return false; // Middleware

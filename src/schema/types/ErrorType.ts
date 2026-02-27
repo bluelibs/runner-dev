@@ -17,7 +17,7 @@ export const ErrorType = new GraphQLObjectType<
   name: "Error",
   description:
     "A defined application error that can be thrown by tasks or resources",
-  interfaces: [BaseElementInterface],
+  interfaces: () => [BaseElementInterface],
   fields: () => ({
     ...baseElementCommonFields(),
     dataSchema: {

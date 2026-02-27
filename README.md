@@ -40,15 +40,34 @@ const app = resource({
 
 - Fully-featured UI with AI assistance to explore your app, call tasks, emit events, diagnostics, logs and more.
 - Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters.
-- Overview tables now include `Visibility` (`Public`/`Private`) derived from Runner resource `exports()` boundaries.
+- Overview tables now include `Visibility` (`Public`/`Private`) derived from Runner resource `isolate()` boundaries.
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
 - Task introspection includes runtime `interceptorCount` / `hasInterceptors` (registered via `taskDependency.intercept(...)` in resource init).
-- Resource introspection includes `exports` (resolved list of ids exposed by `.exports([...])`).
+- Resource introspection includes `isolation` (`deny`, `only`, `exports`, `exportsMode`) from `.isolate(...)`.
+- Resource introspection includes `subtree` governance summaries (middleware attachment counts and validator counts per branch).
+- Resource introspection indicates whether a resource exposes a `cooldown()` hook for shutdown lifecycle.
+- Isolation wildcard rules are clickable in the docs UI and open a modal showing matched resources with inline filtering when lists are large.
+- Event introspection includes `transactional`, `parallel`, optional `eventLane { laneId, orderingKey, metadata }`, and optional `rpcLane { laneId }`.
+- Task introspection includes optional `rpcLane { laneId }`.
+- Tag pages distinguish between directly tagged elements and tag handlers (elements that depend on the tag id).
 - Live: in-memory logs and event emissions
 - Live File Previews and Saving.
 - GraphQL server: deep graph navigation over your app’s topology and live data
 - CLI with scaffolding, query-ing capabilities on a live endpoint or via dry-run mode.
 - MCP server: allow your AI to do introspection for you.
+
+## Runner 6.0 Migration Notes
+
+| Before | After (hard switch) |
+| --- | --- |
+| `Resource.exports` | `Resource.isolation { deny, only, exports, exportsMode }` |
+| `Middleware.global` | `Middleware.autoApply { enabled, scope, hasPredicate }` |
+| `Tag.middlewares` | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares` |
+| N/A | `Tag.errors`, `Tag.targets` |
+| `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ `disposeBudgetMs`, `disposeDrainBudgetMs`) |
+| N/A | `Resource.subtree`, `Resource.cooldown` |
+| N/A | `Event.transactional`, `Event.parallel`, `Event.eventLane`, `Event.rpcLane`, `Task.rpcLane` |
+| `Resource.tunnelInfo` | Removed (hard switch to lane surfaces) |
 
 ## Table of Contents
 

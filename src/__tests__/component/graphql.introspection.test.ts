@@ -50,7 +50,9 @@ describe("GraphQL schema (integration)", () => {
           shutdownHooks
           dryRun
           lazy
-          initMode
+          lifecycleMode
+          disposeBudgetMs
+          disposeDrainBudgetMs
           runtimeEventCycleDetection
           hasOnUnhandledError
           rootId
@@ -86,6 +88,7 @@ describe("GraphQL schema (integration)", () => {
           hasInterceptors
           interceptorOwnerIds
           emits
+          rpcLane { laneId }
           emitsResolved { id }
           dependsOn
           middleware
@@ -123,12 +126,18 @@ describe("GraphQL schema (integration)", () => {
         resources {
           id
           isPrivate
+          config
           middleware
           middlewareResolved { id }
           overrides
           overridesResolved { id }
           registers
-          exports
+          isolation {
+            deny
+            only
+            exports
+            exportsMode
+          }
           registersResolved { id }
           usedBy { id }
           emits { id }
@@ -139,6 +148,10 @@ describe("GraphQL schema (integration)", () => {
           id
           isPrivate
           filePath
+          transactional
+          parallel
+          eventLane { laneId orderingKey metadata }
+          rpcLane { laneId }
           payloadSchema
           payloadSchemaReadable
           emittedBy
@@ -181,12 +194,14 @@ describe("GraphQL schema (integration)", () => {
     expect(typeof helloTask.hasInterceptors).toBe("boolean");
     expect(Array.isArray(helloTask.interceptorOwnerIds)).toBe(true);
     expect(helloTask.emits).toEqual(expect.arrayContaining(["evt.hello"]));
+    expect("rpcLane" in helloTask).toBe(true);
     expect(helloTask.emitsResolved.map((e: any) => e.id)).toEqual(
       expect.arrayContaining(["evt.hello"])
     );
 
     const evt = data.events.find((e: any) => e.id === "evt.hello");
     expect(Array.isArray(evt.listenedToBy)).toBe(true);
+    expect("rpcLane" in evt).toBe(true);
 
     expect(typeof evt.payloadSchema).toBe("string");
     expect(evt.payloadSchema).toBeTruthy();
@@ -201,10 +216,14 @@ describe("GraphQL schema (integration)", () => {
     // Resource config markdown exists for cacheRes
     const cache = data.resources.find((r: any) => r.id === "res.cache");
     expect(typeof cache.isPrivate).toBe("boolean");
-    expect(cache.exports === null || Array.isArray(cache.exports)).toBe(true);
+    expect(
+      cache.isolation === null || typeof cache.isolation === "object"
+    ).toBe(true);
     expect(typeof cache.configSchema).toBe("string");
     expect(cache.configSchema).toBeTruthy();
     expect(String(cache.configSchema)).toContain("ttlMs");
+    expect(typeof cache.config).toBe("string");
+    expect(String(cache.config)).toContain("ttlMs");
     expect(typeof cache.configSchemaReadable === "string").toBe(true);
     expect(cache.configSchemaReadable).toContain("ttlMs");
 
@@ -252,7 +271,15 @@ describe("GraphQL schema (integration)", () => {
     ).toBe(true);
     expect(typeof data.runOptions.dryRun).toBe("boolean");
     expect(typeof data.runOptions.lazy).toBe("boolean");
-    expect(["sequential", "parallel"]).toContain(data.runOptions.initMode);
+    expect(["sequential", "parallel"]).toContain(data.runOptions.lifecycleMode);
+    expect(
+      data.runOptions.disposeBudgetMs === null ||
+        typeof data.runOptions.disposeBudgetMs === "number"
+    ).toBe(true);
+    expect(
+      data.runOptions.disposeDrainBudgetMs === null ||
+        typeof data.runOptions.disposeDrainBudgetMs === "number"
+    ).toBe(true);
     expect(
       data.runOptions.runtimeEventCycleDetection === null ||
         typeof data.runOptions.runtimeEventCycleDetection === "boolean"
@@ -263,6 +290,68 @@ describe("GraphQL schema (integration)", () => {
     expect(data.interceptorOwners).toBeDefined();
     expect(Array.isArray(data.interceptorOwners.tasksById)).toBe(true);
     expect(data.interceptorOwners.middleware).toBeDefined();
+  });
+
+  test("removes Resource.tunnelInfo and exposes rpcLane on Task/Event", async () => {
+    let ctx: any;
+
+    const probe = resource({
+      id: "probe.graphql-lanes-schema",
+      dependencies: { introspector, store: globals.resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    const app = createDummyApp([introspector, probe]);
+    await run(app);
+
+    const schemaQuery = `
+      query SchemaLanes {
+        resourceType: __type(name: "Resource") {
+          fields { name }
+        }
+        taskType: __type(name: "Task") {
+          fields { name type { kind name ofType { kind name } } }
+        }
+        eventType: __type(name: "Event") {
+          fields { name type { kind name ofType { kind name } } }
+        }
+      }
+    `;
+
+    const result = await graphql({
+      schema,
+      source: schemaQuery,
+      contextValue: ctx,
+    });
+
+    expect(result.errors).toBeUndefined();
+    const data: any = result.data;
+
+    const resourceFields = data.resourceType.fields.map((f: any) => f.name);
+    expect(resourceFields).not.toContain("tunnelInfo");
+
+    const taskRpcLaneField = data.taskType.fields.find(
+      (field: any) => field.name === "rpcLane"
+    );
+    const eventRpcLaneField = data.eventType.fields.find(
+      (field: any) => field.name === "rpcLane"
+    );
+    expect(taskRpcLaneField).toBeTruthy();
+    expect(eventRpcLaneField).toBeTruthy();
+
+    const taskRpcLaneTypeName =
+      taskRpcLaneField.type.name ?? taskRpcLaneField.type.ofType?.name;
+    const eventRpcLaneTypeName =
+      eventRpcLaneField.type.name ?? eventRpcLaneField.type.ofType?.name;
+    expect(taskRpcLaneTypeName).toBe("RpcLaneSummary");
+    expect(eventRpcLaneTypeName).toBe("RpcLaneSummary");
   });
 
   test("deep traversal from task -> middlewareResolved -> dependents", async () => {
@@ -316,7 +405,7 @@ describe("GraphQL schema (integration)", () => {
     );
   });
 
-  test("surfaces exports()-based privacy and task interceptors", async () => {
+  test("surfaces isolate()-based privacy and task interceptors", async () => {
     let ctx: any;
 
     const visibilityPublicTask = task({
@@ -332,7 +421,7 @@ describe("GraphQL schema (integration)", () => {
     const visibilityModule = resource({
       id: "res.visibility.module",
       register: [visibilityPublicTask, visibilityPrivateTask],
-      exports: [visibilityPublicTask],
+      isolate: { exports: [visibilityPublicTask] },
     });
 
     const interceptorInstaller = resource({
@@ -376,7 +465,12 @@ describe("GraphQL schema (integration)", () => {
         }
         resources(idIncludes: "res.visibility.module") {
           id
-          exports
+          isolation {
+            deny
+            only
+            exports
+            exportsMode
+          }
           isPrivate
         }
         interceptorOwners {
@@ -418,7 +512,9 @@ describe("GraphQL schema (integration)", () => {
 
     expect(moduleResource).toBeTruthy();
     expect(moduleResource.isPrivate).toBe(false);
-    expect(moduleResource.exports).toEqual(["task.visibility.public"]);
+    expect(moduleResource.isolation.exports).toEqual([
+      "task.visibility.public",
+    ]);
 
     const ownersEntry = data.interceptorOwners.tasksById.find(
       (entry: any) => entry.taskId === "task.visibility.public"

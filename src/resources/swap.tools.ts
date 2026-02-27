@@ -103,21 +103,24 @@ export function compileRunFunction(
   }
 }
 
+export function getTaskStoreElement(store: Store, taskId: string): any | null {
+  if (taskId.includes("Symbol")) {
+    for (const taskElement of store.tasks.values()) {
+      if (taskElement.task.id.toString() === taskId) {
+        return taskElement;
+      }
+    }
+    return null;
+  }
+
+  return store.tasks.get(taskId) ?? null;
+}
+
 /**
  * Get task from store by ID
  */
 export function getTaskFromStore(store: Store, taskId: string) {
-  if (taskId.includes("Symbol")) {
-    for (const taskElement of store.tasks.values()) {
-      if (taskElement.task.id.toString() === taskId) {
-        return taskElement.task;
-      }
-    }
-  }
-
-  const taskStoreElement = store.tasks.get(taskId);
-
-  return taskStoreElement?.task;
+  return getTaskStoreElement(store, taskId)?.task;
 }
 
 /**

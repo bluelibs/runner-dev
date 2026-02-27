@@ -13,8 +13,24 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 - **MCP Integration**: AI-native development environment
 - **Tags (first-class)**: Discover Tag objects and reverse usage via GraphQL (`tags`, `tag(id)`).
 - **Documentation UI Overviews**: Sortable and searchable overview tables with a `Used By` counter column for faster cross-element inspection.
-- **Visibility Awareness**: Every element exposes `isPrivate` (based on Runner `exports()` boundaries), and resources expose `exports`.
+- **Visibility Awareness**: Every element exposes `isPrivate` (based on Runner `isolate()` boundaries), and resources expose `isolation`.
+- **Subtree Governance Awareness**: Resources expose normalized `subtree` policy summaries (middleware and validator counts per branch).
+- **Lifecycle Awareness**: Resources expose `cooldown` support and run options expose `lifecycleMode`, `disposeBudgetMs`, `disposeDrainBudgetMs`.
+- **Lane Awareness**: Events expose optional `eventLane` summaries (`globals.tags.eventLane`) and both tasks/events expose optional `rpcLane` summaries (`globals.tags.rpcLane`).
+- **Isolation Wildcard Explorer**: Wildcard isolation rules can be clicked to inspect all matching resources in a searchable modal list.
+- **Tag Handlers**: Tag views separate direct tag usages from handler elements that depend on the tag id.
 - **Task Interceptor Introspection**: Tasks expose `interceptorCount` and `hasInterceptors` for runtime `task.intercept(...)` registrations.
+
+## Runner 6.0 Migration Notes
+
+| Before | After (hard switch) |
+| --- | --- |
+| `Resource.exports` | `Resource.isolation { deny, only, exports, exportsMode }` |
+| `Middleware.global` | `Middleware.autoApply { enabled, scope, hasPredicate }` |
+| `Tag.middlewares` | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares` |
+| N/A | `Tag.errors`, `Tag.targets` |
+| `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ disposal budgets) |
+| `Resource.tunnelInfo` | Removed (hard switch to Event Lane + RPC Lane surfaces) |
 
 ## Available GraphQL Queries
 
@@ -44,7 +60,7 @@ query SystemOverview {
     shutdownHooks
     dryRun
     lazy
-    initMode
+    lifecycleMode
     runtimeEventCycleDetection
     hasOnUnhandledError
     rootId
@@ -71,7 +87,12 @@ query Architecture {
   resources {
     id
     isPrivate
-    exports
+    isolation {
+      deny
+      only
+      exports
+      exportsMode
+    }
     meta {
       title
       description

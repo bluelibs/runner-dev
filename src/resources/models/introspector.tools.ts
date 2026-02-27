@@ -75,8 +75,8 @@ export function computeUnusedMiddleware(
       const used =
         (m.usedByTasks?.length ?? 0) > 0 ||
         (m.usedByResources?.length ?? 0) > 0;
-      const globalEnabled = Boolean(m.global?.enabled);
-      return !used && !globalEnabled;
+      const autoApplyEnabled = Boolean(m.autoApply?.enabled);
+      return !used && !autoApplyEnabled;
     })
     .map((m) => ({ id: m.id }));
 }
@@ -188,7 +188,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
   ];
 
   for (const e of computeOrphanEvents(introspector)) {
-    if (isSystemEventId(e.id)) continue;
+    if (isIgnoredEventDiagnosticId(e.id)) continue;
     diags.push({
       severity: "warning",
       code: "ORPHAN_EVENT",
@@ -198,7 +198,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
     });
   }
   for (const e of computeUnemittedEvents(introspector)) {
-    if (isSystemEventId(e.id)) continue;
+    if (isIgnoredEventDiagnosticId(e.id)) continue;
     diags.push({
       severity: "warning",
       code: "UNEMITTED_EVENT",
@@ -262,6 +262,20 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
 export function isSystemEventId(eventId: string): boolean {
   const id = String(eventId).toLowerCase();
   return id.startsWith("globals.") || id === "*";
+}
+
+function isIgnoredEventDiagnosticId(eventId: string): boolean {
+  if (isSystemEventId(eventId)) return true;
+
+  const id = String(eventId).toLowerCase();
+  // Durable workflow runtime emits framework-owned internal events that are not
+  // application-level extension points and should not be treated as diagnostics noise.
+  return (
+    id.startsWith("durable.audit.") ||
+    id.startsWith("durable.emit.") ||
+    id.startsWith("durable.execution.") ||
+    id.startsWith("durable.note.")
+  );
 }
 
 // Internal helper to stamp a non-enumerable discriminator used by GraphQL type resolution

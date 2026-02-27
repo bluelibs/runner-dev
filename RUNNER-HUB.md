@@ -37,13 +37,13 @@ The Hub launches lean. These constraints shape every decision below:
 
 ## Core Concepts
 
-| Term | Definition |
-|---|---|
-| **Runner Hub** | The central registry — web portal + API backing the Store. |
-| **Store** | The runner-dev UI panel that surfaces Hub data inside the local DevTools. |
-| **Runner Manager** | The admin-side portal for adding packages and managing versions. Initially operated solely by the Hub admin; opened to maintainers later. |
-| **Listing** | A single package entry in the Hub, scoped to one npm package and one Git repository. |
-| **Snapshot** | Pre-computed **deep** introspection data (tasks, resources, events, hooks, middleware, tags, schemas, diagnostics — including all nested sub-resources) extracted at publish time for a specific semver version. Stored as a JSON column in the Hub database. |
+| Term               | Definition                                                                                                                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Runner Hub**     | The central registry — web portal + API backing the Store.                                                                                                                                                                                                    |
+| **Store**          | The runner-dev UI panel that surfaces Hub data inside the local DevTools.                                                                                                                                                                                     |
+| **Runner Manager** | The admin-side portal for adding packages and managing versions. Initially operated solely by the Hub admin; opened to maintainers later.                                                                                                                     |
+| **Listing**        | A single package entry in the Hub, scoped to one npm package and one Git repository.                                                                                                                                                                          |
+| **Snapshot**       | Pre-computed **deep** introspection data (tasks, resources, events, hooks, middleware, tags, schemas, diagnostics — including all nested sub-resources) extracted at publish time for a specific semver version. Stored as a JSON column in the Hub database. |
 
 ---
 
@@ -68,18 +68,19 @@ A new **"Store"** section is added to the runner-dev sidebar, giving developers 
 
 When a listing is selected, the Store opens a detail view with:
 
-| Section | Content |
-|---|---|
-| **Overview** | Title, description, author, license, links (npm, source code, docs). |
-| **Dependencies** | Runner-level dependencies this package declares — other Runner packages it depends on. Each dependency links to its own Hub listing (if published). |
-| **Explore** | Opens a **read-only runner-dev documentation instance** for the package. No live telemetry, no hot-swapping, no task invocation — purely static introspection. Full navigation, tree view, cards (tasks, resources, events, hooks, middleware, tags), schema rendering, and file previews. This is powered by the pre-computed **Snapshot**. |
-| **Compatibility** | Semver range of `@bluelibs/runner` supported. BC guarantee status per major version. |
-| **Support** | Consulting availability (YES/NO), implementation consulting (YES/NO), donation link, direct contact with maintainer. |
-| **Security** | Liability disclaimer, known CVEs (if any), last audit date, license. |
+| Section           | Content                                                                                                                                                                                                                                                                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Overview**      | Title, description, author, license, links (npm, source code, docs).                                                                                                                                                                                                                                                                         |
+| **Dependencies**  | Runner-level dependencies this package declares — other Runner packages it depends on. Each dependency links to its own Hub listing (if published).                                                                                                                                                                                          |
+| **Explore**       | Opens a **read-only runner-dev documentation instance** for the package. No live telemetry, no hot-swapping, no task invocation — purely static introspection. Full navigation, tree view, cards (tasks, resources, events, hooks, middleware, tags), schema rendering, and file previews. This is powered by the pre-computed **Snapshot**. |
+| **Compatibility** | Semver range of `@bluelibs/runner` supported. BC guarantee status per major version.                                                                                                                                                                                                                                                         |
+| **Support**       | Consulting availability (YES/NO), implementation consulting (YES/NO), donation link, direct contact with maintainer.                                                                                                                                                                                                                         |
+| **Security**      | Liability disclaimer, known CVEs (if any), last audit date, license.                                                                                                                                                                                                                                                                         |
 
 #### Dependency Exploration
 
 Snapshots are **deep** — they capture the entire resource tree including all nested sub-resources, even those coming from other packages. This means:
+
 - The Explore view shows the full architecture as one tree, exactly as runner-dev would show it locally.
 - If a dependency is itself a Hub listing, its name appears as a clickable link that opens **that package's own listing** — so the user can jump to its dedicated page, see its support options, version history, etc.
 - This keeps exploration seamless: you see everything in context, but can always drill into a dependency's Hub listing for its metadata.
@@ -94,6 +95,7 @@ A single **"Install"** button on any listing:
 4. Post-install, refreshes the Store badge and optionally shows a quick-start snippet for registering the resource.
 
 Detection logic:
+
 ```
 1. Read closest package.json (dependencies + devDependencies)
 2. Match against listing npm package name
@@ -145,10 +147,10 @@ Packages declare their root via a `"runner"` field in `package.json`:
 }
 ```
 
-| Field | Required | Description |
-|---|---|---|
-| `runner.root` | Yes | Path to the file containing the root resource export (relative to package root). Typically `dist/index.js` for published packages or `src/index.ts` for source extraction. |
-| `runner.export` | No | Named export to use. If omitted, the Hub looks for `default` export first, then an export named `app`. |
+| Field           | Required | Description                                                                                                                                                                |
+| --------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runner.root`   | Yes      | Path to the file containing the root resource export (relative to package root). Typically `dist/index.js` for published packages or `src/index.ts` for source extraction. |
+| `runner.export` | No       | Named export to use. If omitted, the Hub looks for `default` export first, then an export named `app`.                                                                     |
 
 #### Resolution Order
 
@@ -168,23 +170,19 @@ For **Phase 1**, root resolution is strict and deterministic:
 
 ```ts
 // src/index.ts
-import { resource } from '@bluelibs/runner';
-import { authTask } from './tasks/auth.task';
-import { sessionResource } from './resources/session.resource';
-import { userRegisteredEvent } from './events/userRegistered.event';
+import { resource } from "@bluelibs/runner";
+import { authTask } from "./tasks/auth.task";
+import { sessionResource } from "./resources/session.resource";
+import { userRegisteredEvent } from "./events/userRegistered.event";
 
 // The root resource — this is what the Hub introspects
 export const authResource = resource({
-  id: 'acme.auth',
+  id: "acme.auth",
   meta: {
-    title: 'Acme Auth',
-    description: 'Authentication and session management for Runner apps',
+    title: "Acme Auth",
+    description: "Authentication and session management for Runner apps",
   },
-  register: [
-    authTask,
-    sessionResource,
-    userRegisteredEvent,
-  ],
+  register: [authTask, sessionResource, userRegisteredEvent],
 });
 ```
 
@@ -202,12 +200,12 @@ export const authResource = resource({
 Users install and register it:
 
 ```ts
-import { authResource } from '@acme/auth';
+import { authResource } from "@acme/auth";
 
 const app = resource({
-  id: 'app',
+  id: "app",
   register: [
-    authResource,         // or authResource.with({ ... }) for configuration
+    authResource, // or authResource.with({ ... }) for configuration
     dev.with({ port: 1337 }),
   ],
 });
@@ -228,31 +226,31 @@ Every listing in the Hub represents exactly one npm package and one Git reposito
 
 ### Required Metadata
 
-| Field | Source | Description |
-|---|---|---|
-| `npmPackage` | Publisher | npm package name (scoped or unscoped). |
-| `sourceUrl` | Publisher | Git repository URL. Must be public. |
-| `title` | Publisher | Human-friendly name. |
-| `description` | Publisher | Short description (max 280 chars). |
-| `runnerVersionRange` | Publisher | Supported `@bluelibs/runner` semver range. |
-| `license` | Extracted | From `package.json`. |
-| `version` | Extracted | From `package.json`. Semver enforced. |
-| `runner.root` | Extracted | From `package.json` `runner` field. Must point to a valid file. |
-| `runner.export` | Extracted | From `package.json` `runner` field. Named export or `default`. |
+| Field                | Source    | Description                                                     |
+| -------------------- | --------- | --------------------------------------------------------------- |
+| `npmPackage`         | Publisher | npm package name (scoped or unscoped).                          |
+| `sourceUrl`          | Publisher | Git repository URL. Must be public.                             |
+| `title`              | Publisher | Human-friendly name.                                            |
+| `description`        | Publisher | Short description (max 280 chars).                              |
+| `runnerVersionRange` | Publisher | Supported `@bluelibs/runner` semver range.                      |
+| `license`            | Extracted | From `package.json`.                                            |
+| `version`            | Extracted | From `package.json`. Semver enforced.                           |
+| `runner.root`        | Extracted | From `package.json` `runner` field. Must point to a valid file. |
+| `runner.export`      | Extracted | From `package.json` `runner` field. Named export or `default`.  |
 
 ### Optional Metadata
 
-| Field | Description |
-|---|---|
-| `category` | E.g., `auth`, `database`, `messaging`, `payments`, `monitoring`. |
-| `tags` | Free-form searchable tags. |
-| `consultingAvailable` | Maintainer is available for paid consulting. |
-| `implementationConsulting` | Maintainer offers hands-on implementation help. |
-| `contactEmail` | Direct contact (shown only to authenticated users). |
-| `donationUrl` | Stripe / GitHub Sponsors / Open Collective link. |
-| `bcGuarantee` | Backward-compatibility guarantee statement per major version. |
-| `securityPolicy` | Link to `SECURITY.md` or inline policy text. |
-| `logoUrl` | Package logo/icon (optional). |
+| Field                      | Description                                                      |
+| -------------------------- | ---------------------------------------------------------------- |
+| `category`                 | E.g., `auth`, `database`, `messaging`, `payments`, `monitoring`. |
+| `tags`                     | Free-form searchable tags.                                       |
+| `consultingAvailable`      | Maintainer is available for paid consulting.                     |
+| `implementationConsulting` | Maintainer offers hands-on implementation help.                  |
+| `contactEmail`             | Direct contact (shown only to authenticated users).              |
+| `donationUrl`              | Stripe / GitHub Sponsors / Open Collective link.                 |
+| `bcGuarantee`              | Backward-compatibility guarantee statement per major version.    |
+| `securityPolicy`           | Link to `SECURITY.md` or inline policy text.                     |
+| `logoUrl`                  | Package logo/icon (optional).                                    |
 
 ---
 
@@ -276,11 +274,11 @@ When a new version needs to be snapshotted, the Hub admin triggers extraction (o
 
 When a maintainer publishes a new version to npm, the Hub needs to know. Options (in order of preference for Phase 1):
 
-| Strategy | How it works | Pros | Cons |
-|---|---|---|---|
+| Strategy                   | How it works                                                                                                                                                              | Pros                                          | Cons                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
 | **GitHub Release Webhook** | Maintainer adds a webhook on their repo pointing to `hub.runner.bluelibs.com/webhooks/release`. On each GitHub Release, the Hub receives the tag and triggers extraction. | Real-time, reliable, standard GitHub feature. | Requires maintainer to add the webhook (or a GitHub App install). |
-| **Manual trigger** | Hub admin clicks "Sync" on a listing in the Runner Manager. Hub fetches latest npm version, compares, extracts if new. | Simplest. No infra. Full control. | Doesn't scale; requires admin attention. |
-| **npm registry polling** | A cron job polls the npm registry for each listed package every N hours, compares versions, triggers extraction on new ones. | Fully automatic, no maintainer setup. | Slight delay (up to N hours). Extra infra (cron worker). |
+| **Manual trigger**         | Hub admin clicks "Sync" on a listing in the Runner Manager. Hub fetches latest npm version, compares, extracts if new.                                                    | Simplest. No infra. Full control.             | Doesn't scale; requires admin attention.                          |
+| **npm registry polling**   | A cron job polls the npm registry for each listed package every N hours, compares versions, triggers extraction on new ones.                                              | Fully automatic, no maintainer setup.         | Slight delay (up to N hours). Extra infra (cron worker).          |
 
 **Phase 1 recommendation:** Start with **manual trigger** (admin clicks Sync). Add **GitHub Release Webhook** as the first automation step — it's the most natural fit since source repos are already required to be on GitHub. Polling can be a fallback for non-GitHub repos later.
 
@@ -288,15 +286,16 @@ When a maintainer publishes a new version to npm, the Hub needs to know. Options
 
 Each `package@version` has an explicit lifecycle status so UI/API behavior is deterministic:
 
-| Status | Meaning | User-facing behavior |
-|---|---|---|
-| `queued` | Version discovered, extraction pending. | Show "Snapshot pending". |
-| `extracting` | Extractor is currently running. | Show in-progress state + startedAt. |
-| `ready` | Snapshot extracted and validated. | Explore enabled. |
-| `failed` | Extraction failed or timed out. | Explore disabled, show failure reason. |
-| `stale` | Snapshot exists but is marked stale after policy/rule changes. | Explore allowed with warning; re-sync suggested. |
+| Status       | Meaning                                                        | User-facing behavior                             |
+| ------------ | -------------------------------------------------------------- | ------------------------------------------------ |
+| `queued`     | Version discovered, extraction pending.                        | Show "Snapshot pending".                         |
+| `extracting` | Extractor is currently running.                                | Show in-progress state + startedAt.              |
+| `ready`      | Snapshot extracted and validated.                              | Explore enabled.                                 |
+| `failed`     | Extraction failed or timed out.                                | Explore disabled, show failure reason.           |
+| `stale`      | Snapshot exists but is marked stale after policy/rule changes. | Explore allowed with warning; re-sync suggested. |
 
 Required version fields in Hub API:
+
 - `status`
 - `statusUpdatedAt`
 - `extractionStartedAt`
@@ -315,6 +314,7 @@ The Store's "Explore" view renders the Snapshot using the same UI components as 
 - `NavigationView` for sidebar navigation
 
 **Disabled features** (since there's no live server):
+
 - Live telemetry (logs, emissions, errors, runs)
 - Hot-swapping / task invocation
 - Coverage visualization (no runtime)
@@ -326,12 +326,13 @@ This is essentially the runner-dev UI in **static documentation mode**, powered 
 
 To avoid mixed behavior, the documentation renderer runs in one explicit mode:
 
-| Mode | Data source | Allowed operations |
-|---|---|---|
-| `live` | GraphQL endpoint (`/graphql`) | Full docs + live panels + mutations (dev policy dependent). |
-| `snapshot` | Hub snapshot payload only | Read-only docs only. No GraphQL fetches for file contents/coverage/live data. |
+| Mode       | Data source                   | Allowed operations                                                            |
+| ---------- | ----------------------------- | ----------------------------------------------------------------------------- |
+| `live`     | GraphQL endpoint (`/graphql`) | Full docs + live panels + mutations (dev policy dependent).                   |
+| `snapshot` | Hub snapshot payload only     | Read-only docs only. No GraphQL fetches for file contents/coverage/live data. |
 
 Snapshot payload must include everything needed by read-only docs:
+
 - Introspector-like graph data (tasks/resources/events/hooks/middleware/tags/errors/async contexts)
 - Pre-resolved file preview data required by cards/modals
 - Schema render inputs
@@ -343,13 +344,14 @@ If a field is unavailable in snapshot mode, UI must show a deterministic "not av
 
 Dependencies are modeled as three distinct relations:
 
-| Dependency Type | Source | Meaning |
-|---|---|---|
-| `packageDependencies` | `package.json` (`dependencies`/`peerDependencies`) | npm-level package relation. |
-| `runnerDependencies` | Hub metadata (`dependsOnPackages`) | Declared Runner package-to-package relation for discovery. |
-| `architectureDependencies` | Snapshot introspection (`dependsOn`, middleware usage, emitted/listened relations) | Element-level runtime architecture relation. |
+| Dependency Type            | Source                                                                             | Meaning                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `packageDependencies`      | `package.json` (`dependencies`/`peerDependencies`)                                 | npm-level package relation.                                |
+| `runnerDependencies`       | Hub metadata (`dependsOnPackages`)                                                 | Declared Runner package-to-package relation for discovery. |
+| `architectureDependencies` | Snapshot introspection (`dependsOn`, middleware usage, emitted/listened relations) | Element-level runtime architecture relation.               |
 
 Linking rules:
+
 - Listing "Dependencies" section uses `runnerDependencies` (fallback to `packageDependencies` when explicitly mapped).
 - Explore graph uses `architectureDependencies`.
 - If a dependency package exists as a Hub listing, show a listing link alongside architectural context.
@@ -363,10 +365,10 @@ Linking rules:
 
 All monetary transactions (support purchases, monthly donations) follow a fixed split:
 
-| Recipient | Share | Purpose |
-|---|---|---|
-| **Hub Operations** | 20% | Hosting, CI/CD, snapshot extraction infra, moderation, platform maintenance. |
-| **Package Maintainer / Contractor** | 80% | Direct compensation to the person/org maintaining the package. |
+| Recipient                           | Share | Purpose                                                                      |
+| ----------------------------------- | ----- | ---------------------------------------------------------------------------- |
+| **Hub Operations**                  | 20%   | Hosting, CI/CD, snapshot extraction infra, moderation, platform maintenance. |
+| **Package Maintainer / Contractor** | 80%   | Direct compensation to the person/org maintaining the package.               |
 
 > **Phase 1 note:** Initially you are the sole operator and may also be the sole maintainer. The 80/20 split is designed-in for when third-party maintainers join. In the meantime, 100% goes to the Hub account. Stripe Connect is wired up from the start so adding payout recipients later is trivial.
 
@@ -374,16 +376,17 @@ All monetary transactions (support purchases, monthly donations) follow a fixed 
 
 Maintainers can define their own tiers, but the Hub provides sensible defaults:
 
-| Tier | Description |
-|---|---|
-| **Community** | Free. GitHub issues only. No SLA. |
-| **Monthly Donation** | Recurring contribution. No guaranteed response time. Shows supporter badge. |
-| **Priority Support** | Paid. Guaranteed response within X business days. Private channel (email / Discord / Slack). |
+| Tier                          | Description                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Community**                 | Free. GitHub issues only. No SLA.                                                               |
+| **Monthly Donation**          | Recurring contribution. No guaranteed response time. Shows supporter badge.                     |
+| **Priority Support**          | Paid. Guaranteed response within X business days. Private channel (email / Discord / Slack).    |
 | **Implementation Consulting** | Paid. Hourly/project-based. Maintainer builds or integrates the package into your architecture. |
 
 ### Visibility in the Store
 
 Each listing card clearly shows:
+
 - 🟢 **Available for consulting** / 🔴 **Not available**
 - 🟢 **Implementation consulting** / 🔴 **Not available**
 - **"Contact Maintainer"** button (requires Hub authentication)
@@ -419,6 +422,7 @@ Each listing card clearly shows:
 ### Future: Self-Service Runner Manager
 
 When the ecosystem grows, the portal opens to maintainers:
+
 - OAuth login via GitHub.
 - Account linked to npm username for ownership verification.
 - Maintainers submit packages, admin approves.
@@ -430,15 +434,15 @@ When the ecosystem grows, the portal opens to maintainers:
 
 ### Hard Rules
 
-| Rule | Rationale |
-|---|---|
-| **One repo per package** | No monorepos publishing multiple Hub listings from the same repo. Keeps ownership, versioning, and snapshot extraction clean. If you need multiple packages, use multiple repos. |
-| **Semver required** | All versions must follow [semver](https://semver.org/). Non-semver versions are rejected. |
-| **Public source required** | Open-source only (initially). Source URL must be publicly accessible at all times. |
+| Rule                                 | Rationale                                                                                                                                                                                          |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **One repo per package**             | No monorepos publishing multiple Hub listings from the same repo. Keeps ownership, versioning, and snapshot extraction clean. If you need multiple packages, use multiple repos.                   |
+| **Semver required**                  | All versions must follow [semver](https://semver.org/). Non-semver versions are rejected.                                                                                                          |
+| **Public source required**           | Open-source only (initially). Source URL must be publicly accessible at all times.                                                                                                                 |
 | **`runner` field in `package.json`** | Must declare `runner.root` pointing to the file that exports the package's root resource. This is how the Hub discovers what to introspect. See [Root Export Convention](#root-export-convention). |
-| **Valid Runner export** | The declared root export must resolve to a valid Runner resource. Dry-run extraction must succeed. |
-| **npm ownership** | Admin verifies the submitter owns the npm package (checked manually in Phase 1; automated via npm provenance later). |
-| **MIT / Apache-2.0 / ISC / BSD** | Only OSI-approved permissive licenses accepted (initially). Copyleft may be supported later with clear labeling. |
+| **Valid Runner export**              | The declared root export must resolve to a valid Runner resource. Dry-run extraction must succeed.                                                                                                 |
+| **npm ownership**                    | Admin verifies the submitter owns the npm package (checked manually in Phase 1; automated via npm provenance later).                                                                               |
+| **MIT / Apache-2.0 / ISC / BSD**     | Only OSI-approved permissive licenses accepted (initially). Copyleft may be supported later with clear labeling.                                                                                   |
 
 ### Soft Guidelines
 
@@ -456,6 +460,7 @@ When the ecosystem grows, the portal opens to maintainers:
 ### Snapshot Sandbox
 
 Dry-run extraction runs in an **isolated sandbox**:
+
 - Ephemeral container with no network access (post dependency install).
 - Resource limits (CPU, memory, time).
 - No access to Hub infra or other packages.
@@ -471,14 +476,14 @@ Dry-run extraction runs in an **isolated sandbox**:
 
 ### Trust Signals
 
-| Signal | Meaning |
-|---|---|
-| ✅ **Verified Publisher** | npm ownership confirmed. |
-| 🛡️ **Snapshot OK** | Dry-run extraction succeeded for latest version. |
-| 📋 **Has Security Policy** | `SECURITY.md` present in repo. |
-| 🧪 **CI Passing** | GitHub Actions / CI badge detected and green. |
-| 📦 **BC Guaranteed** | Maintainer has declared BC guarantee for current major. |
-| ⚠️ **Security Advisory** | Active reported issue, unresolved. |
+| Signal                     | Meaning                                                 |
+| -------------------------- | ------------------------------------------------------- |
+| ✅ **Verified Publisher**  | npm ownership confirmed.                                |
+| 🛡️ **Snapshot OK**         | Dry-run extraction succeeded for latest version.        |
+| 📋 **Has Security Policy** | `SECURITY.md` present in repo.                          |
+| 🧪 **CI Passing**          | GitHub Actions / CI badge detected and green.           |
+| 📦 **BC Guaranteed**       | Maintainer has declared BC guarantee for current major. |
+| ⚠️ **Security Advisory**   | Active reported issue, unresolved.                      |
 
 ---
 
@@ -512,13 +517,13 @@ Dry-run extraction runs in an **isolated sandbox**:
 
 ### Key Components
 
-| Component | Responsibility |
-|---|---|
-| **Hub API** | RESTful (or GraphQL) API serving listing data, snapshots, search. Hosted at `hub.runner.bluelibs.com`. |
-| **Snapshot Extractor** | On-demand process (triggered by admin or webhook). Clones repo, runs dry-run extraction, stores snapshot JSON in the DB. |
-| **Admin Panel (Runner Manager)** | Admin-only interface (Phase 1) to add/edit/approve packages, trigger syncs, view stats. |
-| **Hub Database** | Single database storing listings metadata, snapshot JSON columns, payment records. No blob store needed. |
-| **Store Panel** | New section in the runner-dev UI — fetches from Hub API, renders snapshots using existing documentation components. Always online (no offline mode). |
+| Component                        | Responsibility                                                                                                                                       |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hub API**                      | RESTful (or GraphQL) API serving listing data, snapshots, search. Hosted at `hub.runner.bluelibs.com`.                                               |
+| **Snapshot Extractor**           | On-demand process (triggered by admin or webhook). Clones repo, runs dry-run extraction, stores snapshot JSON in the DB.                             |
+| **Admin Panel (Runner Manager)** | Admin-only interface (Phase 1) to add/edit/approve packages, trigger syncs, view stats.                                                              |
+| **Hub Database**                 | Single database storing listings metadata, snapshot JSON columns, payment records. No blob store needed.                                             |
+| **Store Panel**                  | New section in the runner-dev UI — fetches from Hub API, renders snapshots using existing documentation components. Always online (no offline mode). |
 
 ### Data Flow: Publish
 
@@ -552,18 +557,18 @@ Dry-run extraction runs in an **isolated sandbox**:
 
 Resolved questions and their outcomes:
 
-| # | Decision | Outcome |
-|---|---|---|
-| 1 | **Hub hosting** | `hub.runner.bluelibs.com` — managed, single instance. |
-| 2 | **Snapshot storage** | JSON column in the Hub database. No blob store. Snapshots are small (50KB–2MB) and volume is low (tens to hundreds of packages). |
-| 3 | **Version sync** | Manual "Sync" button in Phase 1. GitHub Release Webhook as first automation. npm polling as future fallback. See [Version Sync](#version-sync). |
-| 4 | **Package scoping** | Both scoped (`@scope/pkg`) and unscoped packages are accepted. No restriction. |
-| 5 | **Private packages** | Not in Phase 1. Future enterprise feature. |
-| 6 | **Snapshot depth** | **Deep.** Snapshots capture the full resource tree including all nested sub-resources from dependencies. |
-| 7 | **Payment provider** | Stripe Connect. Designed for 80/20 split but initially solo-operated (100% to Hub account). |
-| 8 | **Moderation** | Admin-only manual review in Phase 1. |
-| 9 | **Offline Store** | No. Store always requires network access to `hub.runner.bluelibs.com`. |
-| 10 | **CLI install command** | No. Standard `npm install` / `yarn add` / `pnpm add` is sufficient. The Store UI triggers npm directly. |
+| #   | Decision                | Outcome                                                                                                                                         |
+| --- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Hub hosting**         | `hub.runner.bluelibs.com` — managed, single instance.                                                                                           |
+| 2   | **Snapshot storage**    | JSON column in the Hub database. No blob store. Snapshots are small (50KB–2MB) and volume is low (tens to hundreds of packages).                |
+| 3   | **Version sync**        | Manual "Sync" button in Phase 1. GitHub Release Webhook as first automation. npm polling as future fallback. See [Version Sync](#version-sync). |
+| 4   | **Package scoping**     | Both scoped (`@scope/pkg`) and unscoped packages are accepted. No restriction.                                                                  |
+| 5   | **Private packages**    | Not in Phase 1. Future enterprise feature.                                                                                                      |
+| 6   | **Snapshot depth**      | **Deep.** Snapshots capture the full resource tree including all nested sub-resources from dependencies.                                        |
+| 7   | **Payment provider**    | Stripe Connect. Designed for 80/20 split but initially solo-operated (100% to Hub account).                                                     |
+| 8   | **Moderation**          | Admin-only manual review in Phase 1.                                                                                                            |
+| 9   | **Offline Store**       | No. Store always requires network access to `hub.runner.bluelibs.com`.                                                                          |
+| 10  | **CLI install command** | No. Standard `npm install` / `yarn add` / `pnpm add` is sufficient. The Store UI triggers npm directly.                                         |
 
 ---
 
@@ -571,10 +576,10 @@ Resolved questions and their outcomes:
 
 Remaining items to figure out:
 
-| # | Question | Considerations |
-|---|---|---|
-| 1 | **Hub tech stack** | Runner-based backend (eat your own dogfood)? Or a lightweight Node/Express API? Database: PostgreSQL (JSONB for snapshots) vs SQLite for simplicity? |
-| 2 | **Store UI design** | How tightly integrated with the existing runner-dev sidebar? New top-level tab? Or a dedicated section within the Documentation panel? |
-| 3 | **Snapshot extraction environment** | Docker container? GitHub Actions workflow? Local script on the Hub server? Needs sandboxing for untrusted code. |
-| 4 | **Authentication for Store** | Is Hub auth required to browse? Or only for contact/support actions? Recommendation: browse is public, auth for contact + install tracking. |
-| 5 | **Submission flow** | Simple Google Form? GitHub issue template? Dedicated submission page on `hub.runner.bluelibs.com`? |
+| #   | Question                            | Considerations                                                                                                                                       |
+| --- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Hub tech stack**                  | Runner-based backend (eat your own dogfood)? Or a lightweight Node/Express API? Database: PostgreSQL (JSONB for snapshots) vs SQLite for simplicity? |
+| 2   | **Store UI design**                 | How tightly integrated with the existing runner-dev sidebar? New top-level tab? Or a dedicated section within the Documentation panel?               |
+| 3   | **Snapshot extraction environment** | Docker container? GitHub Actions workflow? Local script on the Hub server? Needs sandboxing for untrusted code.                                      |
+| 4   | **Authentication for Store**        | Is Hub auth required to browse? Or only for contact/support actions? Recommendation: browse is public, auth for contact + install tracking.          |
+| 5   | **Submission flow**                 | Simple Google Form? GitHub issue template? Dedicated submission page on `hub.runner.bluelibs.com`?                                                   |

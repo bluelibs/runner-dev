@@ -3,7 +3,7 @@ import { durableShowcaseRegistrations } from "./durable.showcase";
 import { interceptorShowcaseRegistrations } from "./interceptors.showcase";
 import { supportShowcaseRegistrations } from "./support.showcase";
 import { tagsIsolationShowcaseRegistrations } from "./tagsIsolation.showcase";
-import { tunnelShowcaseRegistrations } from "./tunnel.showcase";
+import { lanesShowcaseRegistrations } from "./lanes.showcase";
 
 export {
   featuredTag,
@@ -23,12 +23,16 @@ export {
 } from "./interceptors.showcase";
 
 export {
-  tunnelCatalogUpdatedEvent,
-  tunnelPricingPreviewTask,
-  tunnelCatalogSyncTask,
-  tunnelServerShowcaseResource,
-  tunnelShowcaseRegistrations,
-} from "./tunnel.showcase";
+  rpcLaneCatalogUpdatedEvent,
+  eventLaneCatalogProjectionUpdatedEvent,
+  rpcLanePricingPreviewTask,
+  rpcLaneCatalogSyncTask,
+  rpcLanesShowcaseResource,
+  rpcLanesShowcaseRegistration,
+  eventLanesShowcaseResource,
+  eventLanesShowcaseRegistration,
+  lanesShowcaseRegistrations,
+} from "./lanes.showcase";
 
 export {
   showcaseDurableResource,
@@ -62,8 +66,8 @@ export const enhancedShowcaseModules: EnhancedShowcaseModule[] = [
     registrations: interceptorShowcaseRegistrations,
   },
   {
-    id: "tunnel",
-    registrations: tunnelShowcaseRegistrations,
+    id: "lanes",
+    registrations: lanesShowcaseRegistrations,
   },
   {
     id: "durable",

@@ -36,12 +36,7 @@ export { CoverageInfoType } from "./CoverageType";
 export { ErrorType } from "./ErrorType";
 export { AsyncContextType } from "./AsyncContextType";
 export { RunOptionsType } from "./RunOptionsType";
-export {
-  TunnelInfoType,
-  TunnelModeEnum,
-  TunnelTransportEnum,
-  TunnelEventDeliveryModeEnum,
-} from "./TunnelInfoType";
+export { EventLaneSummaryType, RpcLaneSummaryType } from "./LaneSummaryTypes";
 export {
   DurableFlowShapeType,
   FlowNodeType,

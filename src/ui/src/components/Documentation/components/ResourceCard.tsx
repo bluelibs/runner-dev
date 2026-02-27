@@ -20,12 +20,16 @@ import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { BaseModal } from "./modals";
-import { hasTunnelTag } from "../../../../../resources/models/tunnel.tools";
 import { isSystemElement } from "../utils/isSystemElement";
 import { matchesWildcardPattern } from "../utils/wildcard-utils";
 import { ResourceIsolationSection } from "./ResourceIsolationSection";
 import { ResourceSubtreeSection } from "./ResourceSubtreeSection";
 import { ResourceEventLanesSection } from "./ResourceEventLanesSection";
+import { ResourceRpcLanesSection } from "./ResourceRpcLanesSection";
+import {
+  isEventLanesResource,
+  isRpcLanesResource,
+} from "../../../../../utils/lane-resources";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -50,15 +54,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     ...introspector.getEventsByIds(resource.registers),
     ...introspector.getHooksByIds(resource.registers),
   ];
-
-  // Check if this is a tunnel resource
-  const isTunnel = hasTunnelTag(resource.tags || null);
-  const tunneledTasks = isTunnel
-    ? introspector.getTunneledTasks(resource.id)
-    : [];
-  const tunneledEvents = isTunnel
-    ? introspector.getTunneledEvents(resource.id)
-    : [];
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [fileContent, setFileContent] = React.useState<string | null>(null);
@@ -104,8 +99,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     });
   }, [isolationRuleModal, isolationRuleSearch]);
 
-  const isEventLanesResource =
-    resource.id === "globals.resources.node.eventLanes";
+  const hasEventLanesSurface = isEventLanesResource(resource);
+  const hasRpcLanesSurface = isRpcLanesResource(resource);
 
   const openIsolationWildcardModal = React.useCallback(
     (source: IsolationRuleSource, rule: string) => {
@@ -189,12 +184,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       title={
         <>
           {resource.meta?.title || formatId(resource.id)}
-          {isTunnel && (
+          {hasRpcLanesSurface && (
             <span
-              className="resource-card__tunnel-badge"
-              title="Tunnel Resource"
+              className="resource-card__rpc-lanes-badge"
+              title="RPC Lanes Resource"
             >
-              🚇
+              RPC LANES
             </span>
           )}
         </>
@@ -283,8 +278,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             <ResourceSubtreeSection subtree={resource.subtree} />
           )}
 
-          {isEventLanesResource && (
+          {hasEventLanesSurface && (
             <ResourceEventLanesSection resourceConfig={resource.config} />
+          )}
+
+          {hasRpcLanesSurface && (
+            <ResourceRpcLanesSection resourceConfig={resource.config} />
           )}
 
           <InfoBlock prefix="resource-card" label="Used By Tasks:">
@@ -332,83 +331,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             <SchemaRenderer schemaString={resource.configSchema} />
           </div>
         </CardSection>
-
-        {isTunnel && (
-          <CardSection
-            prefix="resource-card"
-            title="🚇 Tunnel Configuration"
-            className="resource-card__tunnel-section"
-            contentClassName="resource-card__tunnel"
-          >
-            <div className="resource-card__tunnel__overview">
-              <InfoBlock prefix="resource-card" label="Mode:">
-                <span className="resource-card__tunnel__mode">
-                  {resource.tunnelInfo?.mode || "Unknown"}
-                </span>
-              </InfoBlock>
-              <InfoBlock prefix="resource-card" label="Transport:">
-                {resource.tunnelInfo?.transport || "Unknown"}
-              </InfoBlock>
-              {resource.tunnelInfo?.endpoint && (
-                <InfoBlock prefix="resource-card" label="Endpoint:">
-                  {resource.tunnelInfo.endpoint}
-                </InfoBlock>
-              )}
-              {resource.tunnelInfo?.auth && (
-                <InfoBlock prefix="resource-card" label="Authentication:">
-                  {resource.tunnelInfo.auth}
-                </InfoBlock>
-              )}
-            </div>
-
-            {(tunneledTasks.length > 0 || tunneledEvents.length > 0) && (
-              <div className="resource-card__tunnel__routes">
-                <h5>Tunneled Elements</h5>
-                <div className="resource-card__tunnel__elements">
-                  {tunneledTasks.length > 0 && (
-                    <div className="resource-card__tunnel__category">
-                      <h6>Tasks ({tunneledTasks.length})</h6>
-                      <div className="resource-card__tunnel__list">
-                        {tunneledTasks.map((task) => (
-                          <a
-                            key={task.id}
-                            href={`#element-${task.id}`}
-                            className="resource-card__tunnel__item resource-card__tunnel__item--task"
-                          >
-                            <div className="title">
-                              {task.meta?.title || formatId(task.id)}
-                            </div>
-                            <div className="id">{task.id}</div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {tunneledEvents.length > 0 && (
-                    <div className="resource-card__tunnel__category">
-                      <h6>Events ({tunneledEvents.length})</h6>
-                      <div className="resource-card__tunnel__list">
-                        {tunneledEvents.map((event) => (
-                          <a
-                            key={event.id}
-                            href={`#element-${event.id}`}
-                            className="resource-card__tunnel__item resource-card__tunnel__item--event"
-                          >
-                            <div className="title">
-                              {event.meta?.title || formatId(event.id)}
-                            </div>
-                            <div className="id">{event.id}</div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardSection>
-        )}
       </div>
 
       {(dependencies.tasks.length > 0 ||
@@ -611,7 +533,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       <CodeModal
         title={`${
           resource.meta?.title || formatId(resource.id)
-        } — Coverage Details`}
+        } - Coverage Details`}
         subtitle={resource.filePath || undefined}
         isOpen={coverageDetailsOpen}
         onClose={() => setCoverageDetailsOpen(false)}

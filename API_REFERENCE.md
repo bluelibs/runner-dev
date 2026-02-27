@@ -15,6 +15,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 | `Tag.middlewares` | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares` |
 | N/A | `Tag.errors`, `Tag.targets` |
 | `RunOptions.initMode` | `RunOptions.lifecycleMode` |
+| `Resource.tunnelInfo` | Removed (hard switch to Event Lane + RPC Lane surfaces) |
 
 ### Common Types
 
@@ -52,7 +53,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - Shared: `dependsOn: [String!]!`
 - Shared: `middleware: [String!]!`, `middlewareResolved: [TaskMiddleware!]!`, `middlewareResolvedDetailed: [TaskMiddlewareUsage!]!`
 - Shared: `overriddenBy: String`, `registeredBy: String`, `registeredByResolved: Resource`
-- Task-specific: `inputSchema: String`, `inputSchemaReadable: String`, `dependsOnResolved { tasks { id } hooks { id } resources { id } emitters { id } }`
+- Task-specific: `inputSchema: String`, `inputSchemaReadable: String`, `rpcLane { laneId }`, `dependsOnResolved { tasks { id } hooks { id } resources { id } emitters { id } }`
 - Hook-specific: `event: String!`, `hookOrder: Int`, `inputSchema: String`, `inputSchemaReadable: String`
 
 #### Resources
@@ -77,6 +78,7 @@ All arrays are non-null lists with non-null items, and ids are complemented by r
 - `payloadSchema: String`, `payloadSchemaReadable: String`
 - `transactional: Boolean!`, `parallel: Boolean!`
 - `eventLane { laneId, orderingKey, metadata }`
+- `rpcLane { laneId }`
 - `registeredBy: String`, `registeredByResolved: Resource`
 - `tags: [Tag!]!`
 

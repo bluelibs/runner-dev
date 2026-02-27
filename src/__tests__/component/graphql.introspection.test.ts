@@ -88,6 +88,7 @@ describe("GraphQL schema (integration)", () => {
           hasInterceptors
           interceptorOwnerIds
           emits
+          rpcLane { laneId }
           emitsResolved { id }
           dependsOn
           middleware
@@ -150,6 +151,7 @@ describe("GraphQL schema (integration)", () => {
           transactional
           parallel
           eventLane { laneId orderingKey metadata }
+          rpcLane { laneId }
           payloadSchema
           payloadSchemaReadable
           emittedBy
@@ -192,12 +194,14 @@ describe("GraphQL schema (integration)", () => {
     expect(typeof helloTask.hasInterceptors).toBe("boolean");
     expect(Array.isArray(helloTask.interceptorOwnerIds)).toBe(true);
     expect(helloTask.emits).toEqual(expect.arrayContaining(["evt.hello"]));
+    expect("rpcLane" in helloTask).toBe(true);
     expect(helloTask.emitsResolved.map((e: any) => e.id)).toEqual(
       expect.arrayContaining(["evt.hello"])
     );
 
     const evt = data.events.find((e: any) => e.id === "evt.hello");
     expect(Array.isArray(evt.listenedToBy)).toBe(true);
+    expect("rpcLane" in evt).toBe(true);
 
     expect(typeof evt.payloadSchema).toBe("string");
     expect(evt.payloadSchema).toBeTruthy();
@@ -286,6 +290,68 @@ describe("GraphQL schema (integration)", () => {
     expect(data.interceptorOwners).toBeDefined();
     expect(Array.isArray(data.interceptorOwners.tasksById)).toBe(true);
     expect(data.interceptorOwners.middleware).toBeDefined();
+  });
+
+  test("removes Resource.tunnelInfo and exposes rpcLane on Task/Event", async () => {
+    let ctx: any;
+
+    const probe = resource({
+      id: "probe.graphql-lanes-schema",
+      dependencies: { introspector, store: globals.resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    const app = createDummyApp([introspector, probe]);
+    await run(app);
+
+    const schemaQuery = `
+      query SchemaLanes {
+        resourceType: __type(name: "Resource") {
+          fields { name }
+        }
+        taskType: __type(name: "Task") {
+          fields { name type { kind name ofType { kind name } } }
+        }
+        eventType: __type(name: "Event") {
+          fields { name type { kind name ofType { kind name } } }
+        }
+      }
+    `;
+
+    const result = await graphql({
+      schema,
+      source: schemaQuery,
+      contextValue: ctx,
+    });
+
+    expect(result.errors).toBeUndefined();
+    const data: any = result.data;
+
+    const resourceFields = data.resourceType.fields.map((f: any) => f.name);
+    expect(resourceFields).not.toContain("tunnelInfo");
+
+    const taskRpcLaneField = data.taskType.fields.find(
+      (field: any) => field.name === "rpcLane"
+    );
+    const eventRpcLaneField = data.eventType.fields.find(
+      (field: any) => field.name === "rpcLane"
+    );
+    expect(taskRpcLaneField).toBeTruthy();
+    expect(eventRpcLaneField).toBeTruthy();
+
+    const taskRpcLaneTypeName =
+      taskRpcLaneField.type.name ?? taskRpcLaneField.type.ofType?.name;
+    const eventRpcLaneTypeName =
+      eventRpcLaneField.type.name ?? eventRpcLaneField.type.ofType?.name;
+    expect(taskRpcLaneTypeName).toBe("RpcLaneSummary");
+    expect(eventRpcLaneTypeName).toBe("RpcLaneSummary");
   });
 
   test("deep traversal from task -> middlewareResolved -> dependents", async () => {

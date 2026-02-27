@@ -11,10 +11,14 @@ export {
   interceptorBaseTask,
   interceptorInstallerResource,
   interceptorConsumerTask,
-  tunnelCatalogUpdatedEvent,
-  tunnelPricingPreviewTask,
-  tunnelCatalogSyncTask,
-  tunnelServerShowcaseResource,
+  rpcLaneCatalogUpdatedEvent,
+  eventLaneCatalogProjectionUpdatedEvent,
+  rpcLanePricingPreviewTask,
+  rpcLaneCatalogSyncTask,
+  rpcLanesShowcaseResource,
+  rpcLanesShowcaseRegistration,
+  eventLanesShowcaseResource,
+  eventLanesShowcaseRegistration,
   showcaseDurableResource,
   showcaseDurableRegistration,
   durableOrderApprovalTask,
@@ -35,13 +39,13 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
     .meta({
       title: "Enhanced Play Showcase App",
       description:
-        "Lean Runner-Dev showcase app focused on tags, isolation, interceptors, tunnel metadata, durable flows, and support primitives.",
+        "Lean Runner-Dev showcase app focused on tags, isolation, interceptors, lane metadata, durable flows, and support primitives.",
     })
     .register([...enhancedShowcaseRegistrations, ...extra])
     .init(async () => {
       console.log("[enhanced.play] Lean showcase app ready.");
       console.log(
-        "[enhanced.play] Features: tags/handlers, isolation wildcard rules, interceptors, tunnel, durable, support."
+        "[enhanced.play] Features: tags/handlers, isolation wildcard rules, interceptors, lanes, durable, support."
       );
       return {};
     })

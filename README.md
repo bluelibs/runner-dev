@@ -47,7 +47,8 @@ const app = resource({
 - Resource introspection includes `subtree` governance summaries (middleware attachment counts and validator counts per branch).
 - Resource introspection indicates whether a resource exposes a `cooldown()` hook for shutdown lifecycle.
 - Isolation wildcard rules are clickable in the docs UI and open a modal showing matched resources with inline filtering when lists are large.
-- Event introspection includes `transactional`, `parallel`, and optional `eventLane { laneId, orderingKey, metadata }`.
+- Event introspection includes `transactional`, `parallel`, optional `eventLane { laneId, orderingKey, metadata }`, and optional `rpcLane { laneId }`.
+- Task introspection includes optional `rpcLane { laneId }`.
 - Tag pages distinguish between directly tagged elements and tag handlers (elements that depend on the tag id).
 - Live: in-memory logs and event emissions
 - Live File Previews and Saving.
@@ -65,7 +66,8 @@ const app = resource({
 | N/A | `Tag.errors`, `Tag.targets` |
 | `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ `disposeBudgetMs`, `disposeDrainBudgetMs`) |
 | N/A | `Resource.subtree`, `Resource.cooldown` |
-| N/A | `Event.transactional`, `Event.parallel`, `Event.eventLane` |
+| N/A | `Event.transactional`, `Event.parallel`, `Event.eventLane`, `Event.rpcLane`, `Task.rpcLane` |
+| `Resource.tunnelInfo` | Removed (hard switch to lane surfaces) |
 
 ## Table of Contents
 

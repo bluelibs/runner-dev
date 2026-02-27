@@ -16,7 +16,7 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 - **Visibility Awareness**: Every element exposes `isPrivate` (based on Runner `isolate()` boundaries), and resources expose `isolation`.
 - **Subtree Governance Awareness**: Resources expose normalized `subtree` policy summaries (middleware and validator counts per branch).
 - **Lifecycle Awareness**: Resources expose `cooldown` support and run options expose `lifecycleMode`, `disposeBudgetMs`, `disposeDrainBudgetMs`.
-- **Event Lane Awareness**: Events expose optional `eventLane` summaries when tagged with `globals.tags.eventLane`.
+- **Lane Awareness**: Events expose optional `eventLane` summaries (`globals.tags.eventLane`) and both tasks/events expose optional `rpcLane` summaries (`globals.tags.rpcLane`).
 - **Isolation Wildcard Explorer**: Wildcard isolation rules can be clicked to inspect all matching resources in a searchable modal list.
 - **Tag Handlers**: Tag views separate direct tag usages from handler elements that depend on the tag id.
 - **Task Interceptor Introspection**: Tasks expose `interceptorCount` and `hasInterceptors` for runtime `task.intercept(...)` registrations.
@@ -30,6 +30,7 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 | `Tag.middlewares` | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares` |
 | N/A | `Tag.errors`, `Tag.targets` |
 | `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ disposal budgets) |
+| `Resource.tunnelInfo` | Removed (hard switch to Event Lane + RPC Lane surfaces) |
 
 ## Available GraphQL Queries
 

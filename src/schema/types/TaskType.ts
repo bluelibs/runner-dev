@@ -23,6 +23,7 @@ import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
 import { DurableFlowShapeType } from "./DurableFlowTypes";
+import { RpcLaneSummaryType } from "./LaneSummaryTypes";
 import {
   describeDurableTaskFromStore,
   findDurableResourceIdFromStore,
@@ -124,6 +125,11 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
+    },
+    rpcLane: {
+      description:
+        "RPC lane summary derived from globals.tags.rpcLane when present.",
+      type: RpcLaneSummaryType,
     },
     dependsOn: {
       description: "Ids of resources/tasks this task depends on",

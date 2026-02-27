@@ -27,8 +27,10 @@ import {
   findDurableDependencyId,
   hasDurableWorkflowTag,
 } from "./durable.tools";
-import { extractTunnelInfo } from "./extractTunnelInfo";
-import { hasTunnelTag } from "./tunnel.tools";
+import {
+  collectRpcLaneIdsFromResourceConfig,
+  isRpcLanesResource,
+} from "../../utils/lane-resources";
 
 export type MiddlewareInterceptorOwnerSnapshot = {
   globalTaskInterceptorOwnerIds: string[];
@@ -975,83 +977,50 @@ export class Introspector {
     return context?.requiredBy?.includes(elementId) ?? false;
   }
 
-  // Tunnel-related methods (enhance existing methods)
-  getTunnelResources(): Resource[] {
-    // Resources with populated tunnelInfo (set during store initialization)
-    return this.resources.filter((resource) => resource.tunnelInfo != null);
+  // RPC lane-related methods
+  getRpcLanesResources(): Resource[] {
+    return this.resources.filter((resource) => isRpcLanesResource(resource));
   }
 
-  getTunneledTasks(tunnelResourceId: string): Task[] {
-    const tunnel = this.getResource(tunnelResourceId);
-    if (!tunnel?.tunnelInfo?.tasks) return [];
-    return this.getTasksByIds(tunnel.tunnelInfo.tasks);
+  getTasksByRpcLane(rpcLaneId: string): Task[] {
+    return this.tasks.filter((task) => task.rpcLane?.laneId === rpcLaneId);
   }
 
-  getTunneledEvents(tunnelResourceId: string): Event[] {
-    const tunnel = this.getResource(tunnelResourceId);
-    if (!tunnel?.tunnelInfo?.events) return [];
-    return this.getEventsByIds(tunnel.tunnelInfo.events);
+  getEventsByRpcLane(rpcLaneId: string): Event[] {
+    return this.events.filter((event) => event.rpcLane?.laneId === rpcLaneId);
   }
 
-  getTunnelForTask(taskId: string): Resource | null {
-    const task = this.getTask(taskId);
-    if (!task) return null;
-
-    // Find tunnel resource that owns this task
-    return (
-      this.getTunnelResources().find((tunnel) =>
-        tunnel.tunnelInfo?.tasks?.includes(taskId)
-      ) ?? null
-    );
+  getRpcLaneForTask(taskId: string): string | null {
+    return this.getTask(taskId)?.rpcLane?.laneId ?? null;
   }
 
-  getTunnelForEvent(eventId: string): Resource | null {
-    // Find tunnel resource that tunnels this event
-    return (
-      this.getTunnelResources().find((tunnel) =>
-        tunnel.tunnelInfo?.events?.includes(eventId)
-      ) ?? null
-    );
+  getRpcLaneForEvent(eventId: string): string | null {
+    return this.getEvent(eventId)?.rpcLane?.laneId ?? null;
   }
 
-  /**
-   * Populates tunnelInfo for resources with the tunnel tag.
-   * Call this method after all resources have been initialized to ensure
-   * tunnel resource values are available.
-   */
-  populateTunnelInfo(): void {
-    const s = this.store as {
-      resources: Map<
-        string,
-        { resource: { id: unknown; tags?: unknown[] }; value: unknown }
-      >;
-    } | null;
-    if (!s?.resources) return;
+  getRpcLaneResourceForTask(taskId: string): Resource | null {
+    const laneId = this.getRpcLaneForTask(taskId);
+    if (!laneId) return null;
+    return this.findRpcLanesResourceByLaneId(laneId);
+  }
 
-    const allTaskIds = this.tasks.map((t) => t.id);
-    const allEventIds = this.events.map((e) => e.id);
+  getRpcLaneResourceForEvent(eventId: string): Resource | null {
+    const laneId = this.getRpcLaneForEvent(eventId);
+    if (!laneId) return null;
+    return this.findRpcLanesResourceByLaneId(laneId);
+  }
 
-    for (const storeEntry of s.resources.values()) {
-      const resourceDef = storeEntry.resource;
-      const resourceValue = storeEntry.value;
-      const resourceId = String(resourceDef.id);
+  private findRpcLanesResourceByLaneId(laneId: string): Resource | null {
+    const rpcLanesResources = this.getRpcLanesResources();
+    if (rpcLanesResources.length === 0) return null;
 
-      // Find the corresponding model resource
-      const modelResource = this.resources.find((r) => r.id === resourceId);
-      if (!modelResource) continue;
-
-      // Check if resource has tunnel tag using the already-normalized tags
-      if (hasTunnelTag(modelResource.tags) && resourceValue) {
-        const tunnelInfo = extractTunnelInfo(
-          resourceValue,
-          allTaskIds,
-          allEventIds
-        );
-        if (tunnelInfo) {
-          modelResource.tunnelInfo = tunnelInfo;
-        }
-      }
+    for (const resource of rpcLanesResources) {
+      const laneIds = collectRpcLaneIdsFromResourceConfig(resource.config);
+      if (laneIds.has(laneId)) return resource;
     }
+
+    // Fallback: if exactly one rpcLanes resource exists, prefer it.
+    return rpcLanesResources.length === 1 ? rpcLanesResources[0] : null;
   }
 
   // Durable workflow-related methods

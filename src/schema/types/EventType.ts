@@ -17,15 +17,7 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { HookType } from "./HookType";
-
-const EventLaneSummaryType = new GraphQLObjectType({
-  name: "EventLaneSummary",
-  fields: {
-    laneId: { type: new GraphQLNonNull(GraphQLString) },
-    orderingKey: { type: GraphQLString },
-    metadata: { type: GraphQLString },
-  },
-});
+import { EventLaneSummaryType, RpcLaneSummaryType } from "./LaneSummaryTypes";
 
 export const EventType: GraphQLObjectType = new GraphQLObjectType({
   name: "Event",
@@ -56,6 +48,11 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
       description:
         "Event lane summary derived from globals.tags.eventLane when present.",
       type: EventLaneSummaryType,
+    },
+    rpcLane: {
+      description:
+        "RPC lane summary derived from globals.tags.rpcLane when present.",
+      type: RpcLaneSummaryType,
     },
     payloadSchemaReadable: {
       description:

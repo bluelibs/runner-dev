@@ -7,6 +7,11 @@ import type {
 } from "../../schema/model";
 
 import { definitions, Store } from "@bluelibs/runner";
+import {
+  EVENT_LANE_TAG_ID,
+  RPC_LANE_TAG_ID,
+  extractLaneId,
+} from "../../utils/lane-resources";
 import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
 import {
@@ -125,6 +130,7 @@ export function mapStoreTaskToTaskModel(
       emits: eventIdsFromDeps,
       inputSchema: formatSchemaIfZod(task.inputSchema),
       resultSchema: formatSchemaIfZod(task.resultSchema),
+      rpcLane: extractRpcLaneSummary(tagsDetailed),
       interceptorCount: taskStoreElement?.interceptors?.length ?? 0,
       hasInterceptors: (taskStoreElement?.interceptors?.length ?? 0) > 0,
       interceptorOwnerIds,
@@ -306,6 +312,7 @@ export function buildEvents(store: Store): Event[] {
         transactional: Boolean((e as any)?.transactional),
         parallel: Boolean((e as any)?.parallel),
         eventLane: extractEventLaneSummary(tagsDetailed),
+        rpcLane: extractRpcLaneSummary(tagsDetailed),
         filePath: sanitizePath(
           (e && (e as any)[definitions.symbolFilePath]) ?? e?.filePath ?? null
         ),
@@ -776,20 +783,11 @@ function parseTagConfigJson(config: string | null | undefined): any | null {
 function extractEventLaneSummary(
   tagsDetailed: Array<{ id: string; config: string | null }>
 ): Event["eventLane"] {
-  const laneTag = tagsDetailed.find(
-    (tag) => tag.id === "globals.tags.eventLane"
-  );
+  const laneTag = tagsDetailed.find((tag) => tag.id === EVENT_LANE_TAG_ID);
   if (!laneTag) return null;
 
   const parsed = parseTagConfigJson(laneTag.config);
-  const lane = parsed?.lane;
-  const laneId =
-    typeof lane === "string"
-      ? lane
-      : typeof lane?.id === "string"
-      ? lane.id
-      : null;
-
+  const laneId = extractLaneId(parsed?.lane);
   if (!laneId) return null;
 
   return {
@@ -799,6 +797,19 @@ function extractEventLaneSummary(
     metadata:
       parsed?.metadata != null ? stringifyIfObject(parsed.metadata) : null,
   };
+}
+
+function extractRpcLaneSummary(
+  tagsDetailed: Array<{ id: string; config: string | null }>
+): Task["rpcLane"] {
+  const laneTag = tagsDetailed.find((tag) => tag.id === RPC_LANE_TAG_ID);
+  if (!laneTag) return null;
+
+  const parsed = parseTagConfigJson(laneTag.config);
+  const laneId = extractLaneId(parsed?.lane);
+  if (!laneId) return null;
+
+  return { laneId };
 }
 
 export function extractEventIdsFromDependencies(

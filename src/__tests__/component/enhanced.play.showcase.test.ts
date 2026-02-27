@@ -13,12 +13,14 @@ import {
   interceptorInstallerResource,
   invalidInputError,
   isolationBoundaryResource,
+  eventLaneCatalogProjectionUpdatedEvent,
   privateCacheResource,
   publicCatalogResource,
+  rpcLaneCatalogUpdatedEvent,
+  rpcLanePricingPreviewTask,
+  rpcLanesShowcaseResource,
   showcaseDurableResource,
   supportRequestContext,
-  tunnelPricingPreviewTask,
-  tunnelServerShowcaseResource,
 } from "../dummy/enhanced";
 
 type TestContextValue = {
@@ -52,7 +54,6 @@ describe("Enhanced play showcase app", () => {
 
     const app = createEnhancedSuperApp([introspector, probe]);
     runtime = await run(app);
-    contextValue.introspector.populateTunnelInfo();
   });
 
   afterAll(async () => {
@@ -72,7 +73,7 @@ describe("Enhanced play showcase app", () => {
       contextValue.introspector.getTask(durableOrderApprovalTask.id)
     ).toBeTruthy();
     expect(
-      contextValue.introspector.getResource(tunnelServerShowcaseResource.id)
+      contextValue.introspector.getResource(rpcLanesShowcaseResource.id)
     ).toBeTruthy();
   });
 
@@ -208,17 +209,35 @@ describe("Enhanced play showcase app", () => {
     );
   });
 
-  test("links tunnel tasks to tunnel resource metadata", () => {
-    const tunnelResource = contextValue.introspector.getResource(
-      tunnelServerShowcaseResource.id
+  test("links rpc lane members to rpc lanes resource metadata", () => {
+    const rpcLanesResource = contextValue.introspector.getResource(
+      rpcLanesShowcaseResource.id
     );
-    expect(tunnelResource).toBeTruthy();
-    expect(tunnelResource?.tunnelInfo).toBeTruthy();
+    expect(rpcLanesResource).toBeTruthy();
 
-    const owner = contextValue.introspector.getTunnelForTask(
-      tunnelPricingPreviewTask.id
+    const taskLaneId = contextValue.introspector.getRpcLaneForTask(
+      rpcLanePricingPreviewTask.id
     );
-    expect(owner?.id).toBe(tunnelServerShowcaseResource.id);
+    expect(taskLaneId).toBe("app.examples.lanes.rpc.pricing-preview");
+
+    const owner = contextValue.introspector.getRpcLaneResourceForTask(
+      rpcLanePricingPreviewTask.id
+    );
+    expect(owner?.id).toBe(rpcLanesShowcaseResource.id);
+
+    const laneEvent = contextValue.introspector.getEvent(
+      rpcLaneCatalogUpdatedEvent.id
+    );
+    expect(laneEvent?.rpcLane?.laneId).toBe(
+      "app.examples.lanes.rpc.catalog-updates"
+    );
+
+    const eventLaneEvent = contextValue.introspector.getEvent(
+      eventLaneCatalogProjectionUpdatedEvent.id
+    );
+    expect(eventLaneEvent?.eventLane?.laneId).toBe(
+      "app.examples.lanes.event.catalog-updates"
+    );
   });
 
   test("keeps durable metadata and support sections visible", async () => {

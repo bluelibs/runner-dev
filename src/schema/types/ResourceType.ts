@@ -22,7 +22,6 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { CoverageInfoType } from "./CoverageType";
-import { hasTunnelTag } from "../../resources/models/tunnel.tools";
 
 const IsolationExportsModeType = new GraphQLEnumType({
   name: "IsolationExportsMode",
@@ -235,23 +234,6 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     context: {
       description: "Serialized context (if any)",
       type: GraphQLString,
-    },
-    tunnelInfo: {
-      description:
-        "Tunnel configuration (present when resource has tunnel tag)",
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      type: require("./TunnelInfoType").TunnelInfoType,
-      resolve: (resource, _args, ctx: CustomGraphQLContext) => {
-        if (!hasTunnelTag(resource.tags || null)) return null;
-
-        // Refresh from live store-backed values when available.
-        ctx.introspector.populateTunnelInfo();
-        return (
-          ctx.introspector.getResource(resource.id)?.tunnelInfo ||
-          resource.tunnelInfo ||
-          null
-        );
-      },
     },
     coverage: {
       description:

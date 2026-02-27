@@ -25,6 +25,9 @@ export const EventCard: React.FC<EventCardProps> = ({
 }) => {
   const emitters = introspector.getEmittersOfEvent(event.id);
   const hooks = introspector.getHooksOfEvent(event.id);
+  const rpcLaneResource = event.rpcLane
+    ? introspector.getRpcLaneResourceForEvent(event.id)
+    : null;
   const isGlobalEvent = event.id === "*";
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -167,6 +170,20 @@ export const EventCard: React.FC<EventCardProps> = ({
                 <span>{event.eventLane.laneId}</span>
                 {event.eventLane.orderingKey && (
                   <span>ordering: {event.eventLane.orderingKey}</span>
+                )}
+              </div>
+            </InfoBlock>
+          )}
+
+          {event.rpcLane && (
+            <InfoBlock prefix="event-card" label="RPC Lane:">
+              <div className="event-card__tags">
+                <span>{event.rpcLane.laneId}</span>
+                {rpcLaneResource && (
+                  <a href={`#element-${rpcLaneResource.id}`}>
+                    {rpcLaneResource.meta?.title ||
+                      formatId(rpcLaneResource.id)}
+                  </a>
                 )}
               </div>
             </InfoBlock>

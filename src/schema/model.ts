@@ -46,6 +46,10 @@ export interface All extends BaseElement {
   filePath?: string | null;
 }
 
+export interface RpcLaneSummary {
+  laneId: string;
+}
+
 // Events can't be overridden.
 export interface Event extends Omit<BaseElement, "overriddenBy"> {
   id: string;
@@ -59,18 +63,9 @@ export interface Event extends Omit<BaseElement, "overriddenBy"> {
     orderingKey?: string | null;
     metadata?: string | null;
   } | null;
+  rpcLane?: RpcLaneSummary | null;
   // Prettified Zod schema for the event payload if provided
   payloadSchema?: string | null;
-}
-
-export interface TunnelInfo {
-  mode: "client" | "server" | "both";
-  transport: "http" | "other";
-  tasks?: string[]; // tunneled task IDs
-  events?: string[]; // tunneled event IDs
-  endpoint?: string; // for client tunnels
-  auth?: string; // auth method
-  eventDeliveryMode?: string; // e.g., "mirror", "remote-only", "local-only", "remote-first"
 }
 
 export interface DurableFlowNode {
@@ -159,6 +154,7 @@ export interface Task extends BaseElement {
   hasInterceptors?: boolean;
   // Resource ids that registered local task interceptors.
   interceptorOwnerIds?: string[];
+  rpcLane?: RpcLaneSummary | null;
 }
 
 export interface Hook extends BaseElement {
@@ -218,8 +214,6 @@ export interface Resource extends BaseElement {
   } | null;
   cooldown?: boolean;
   context?: string | null;
-  // Tunnel information (populated when resource has globals.tags.tunnel)
-  tunnelInfo?: TunnelInfo | null;
 }
 
 export interface Error extends BaseElement {

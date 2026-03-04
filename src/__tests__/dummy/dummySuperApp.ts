@@ -1,4 +1,5 @@
 import {
+  Match,
   taskMiddleware,
   resource,
   task,
@@ -6,7 +7,14 @@ import {
   event,
   tag,
 } from "@bluelibs/runner";
-import { z } from "zod";
+import {
+  defineSchema as createSchema,
+  finiteNumberPattern as finiteNumber,
+  integerNumberPattern as integerNumber,
+  minimumLengthPattern as minimumLength,
+  nonNegativeIntegerPattern as nonNegativeInteger,
+  positiveNumberPattern as positiveNumber,
+} from "./schemas";
 
 // ====================
 // CROSS-CUTTING CONCERNS
@@ -16,19 +24,20 @@ import { z } from "zod";
 export const performanceTag = tag<{ warnAboveMs: number }>({
   id: "app.tags.performance",
   meta: { title: "xxx yyy" },
-  configSchema: z.object({
-    warnAboveMs: z.number().int().positive(),
+  configSchema: createSchema({
+    warnAboveMs: Match.PositiveInteger,
   }),
 });
 
 export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
   id: "app.tags.security",
-  configSchema: z
-    .object({
-      requiresAuth: z.boolean(),
-      roles: z.array(z.string()).optional(),
-    })
-    .strict(),
+  configSchema: createSchema(
+    {
+      requiresAuth: Boolean,
+      roles: Match.Optional([String]),
+    },
+    { exact: true },
+  ),
 });
 
 export const domainTag = tag<{ domain: string }>({
@@ -37,14 +46,14 @@ export const domainTag = tag<{ domain: string }>({
     title: "Domain",
     description: "Tags related to the domain layer",
   },
-  configSchema: z.object({ domain: z.string() }),
+  configSchema: createSchema({ domain: String }),
 });
 
 export const apiTag = tag<{ method: string; path: string }>({
   id: "app.tags.api",
-  configSchema: z
-    .object({
-      method: z.enum([
+  configSchema: createSchema(
+    {
+      method: Match.OneOf(
         "GET",
         "POST",
         "PUT",
@@ -52,10 +61,11 @@ export const apiTag = tag<{ method: string; path: string }>({
         "DELETE",
         "OPTIONS",
         "HEAD",
-      ]),
-      path: z.string(),
-    })
-    .strict(),
+      ),
+      path: String,
+    },
+    { exact: true },
+  ),
 });
 
 // Global middleware
@@ -68,12 +78,13 @@ export const validationMiddleware = taskMiddleware<{
     title: "Input Validation Middleware",
     description: "Validates task inputs and results using schemas",
   },
-  configSchema: z
-    .object({
-      enabled: z.boolean().optional(),
-      mode: z.enum(["loose", "strict"]).optional(),
-    })
-    .strict(),
+  configSchema: createSchema(
+    {
+      enabled: Match.Optional(Boolean),
+      mode: Match.Optional(Match.OneOf("loose", "strict")),
+    },
+    { exact: true },
+  ),
   async run({ task, next }, _evt, _config) {
     // In a real app, you'd validate against task.inputSchema
     return next(task.input);
@@ -88,11 +99,14 @@ export const loggingMiddleware = taskMiddleware<{
     title: "Activity Logging Middleware",
     description: "Logs all task executions with performance metrics",
   },
-  configSchema: z
-    .object({
-      logLevel: z.enum(["debug", "info", "warn", "error"]).optional(),
-    })
-    .strict(),
+  configSchema: createSchema(
+    {
+      logLevel: Match.Optional(
+        Match.OneOf("debug", "info", "warn", "error"),
+      ),
+    },
+    { exact: true },
+  ),
   async run({ task, next }, _evt, _config) {
     const start = Date.now();
     const result = await next(task.input);
@@ -109,7 +123,7 @@ export const authMiddleware = taskMiddleware<{ required: boolean }>({
     title: "Authentication Middleware",
     description: "Validates user authentication and permissions",
   },
-  configSchema: z.object({ required: z.boolean() }).strict(),
+  configSchema: createSchema({ required: Boolean }, { exact: true }),
   async run({ task, next }, _, config) {
     if (config.required) {
       // In a real app, check for valid session/token
@@ -130,13 +144,14 @@ export const userRegisteredEvent = event<{
   registrationMethod: string;
 }>({
   id: "app.users.events.registered",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      registrationMethod: z.string(),
-    })
-    .strict(),
+  payloadSchema: createSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      registrationMethod: String,
+    },
+    { exact: true },
+  ),
 });
 
 export const userLoggedInEvent = event<{
@@ -145,13 +160,14 @@ export const userLoggedInEvent = event<{
   ipAddress: string;
 }>({
   id: "app.users.events.loggedIn",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      loginMethod: z.string(),
-      ipAddress: z.string(),
-    })
-    .strict(),
+  payloadSchema: createSchema(
+    {
+      userId: String,
+      loginMethod: String,
+      ipAddress: String,
+    },
+    { exact: true },
+  ),
 });
 
 export const passwordResetRequestedEvent = event<{
@@ -160,13 +176,14 @@ export const passwordResetRequestedEvent = event<{
   resetToken: string;
 }>({
   id: "app.users.events.passwordResetRequested",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      resetToken: z.string(),
-    })
-    .strict(),
+  payloadSchema: createSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      resetToken: String,
+    },
+    { exact: true },
+  ),
 });
 
 // Resources
@@ -191,9 +208,9 @@ export const sessionStoreResource = resource({
     title: "Session Store",
     description: "Redis-based session storage",
   },
-  configSchema: z.object({
-    ttlSeconds: z.number().int().positive(),
-    redisUrl: z.string().url(),
+  configSchema: createSchema({
+    ttlSeconds: Match.PositiveInteger,
+    redisUrl: Match.URL,
   }),
   tags: [domainTag.with({ domain: "users" })],
   async init(config: { ttlSeconds: number; redisUrl: string }) {
@@ -226,20 +243,21 @@ export const registerUserTask = task({
     apiTag.with({ method: "POST", path: "/api/users/register" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
-    password: z.string().min(8),
-    firstName: z.string(),
-    lastName: z.string(),
+  inputSchema: createSchema({
+    email: Match.Email,
+    password: minimumLength(8),
+    firstName: String,
+    lastName: String,
   }),
-  resultSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      verificationToken: z.string(),
-    })
-    .strict(),
-  async run(input, { emitUserRegistered }) {
+  resultSchema: createSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      verificationToken: String,
+    },
+    { exact: true },
+  ),
+  async run(input: any, { emitUserRegistered }) {
     // Simulate user creation
     const userId = `user_${Date.now()}`;
     const verificationToken = `verify_${Math.random()
@@ -284,19 +302,20 @@ export const authenticateUserTask = task({
     apiTag.with({ method: "POST", path: "/api/users/login" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
-    password: z.string(),
-    ipAddress: z.string(),
+  inputSchema: createSchema({
+    email: Match.Email,
+    password: String,
+    ipAddress: String,
   }),
-  resultSchema: z
-    .object({
-      userId: z.string(),
-      sessionToken: z.string(),
-      expiresAt: z.date(),
-    })
-    .strict(),
-  async run(input, { emitUserLoggedIn }) {
+  resultSchema: createSchema(
+    {
+      userId: String,
+      sessionToken: String,
+      expiresAt: Date,
+    },
+    { exact: true },
+  ),
+  async run(input: any, { emitUserLoggedIn }) {
     // Simulate authentication
     const userId = `user_${Date.now()}`;
     const sessionToken = `session_${Math.random().toString(36).substr(2, 9)}`;
@@ -337,14 +356,14 @@ export const requestPasswordResetTask = task({
     apiTag.with({ method: "POST", path: "/api/users/forgot-password" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
+  inputSchema: createSchema({
+    email: Match.Email,
   }),
-  resultSchema: z.object({
-    success: z.boolean(),
-    resetToken: z.string(),
+  resultSchema: createSchema({
+    success: Boolean,
+    resetToken: String,
   }),
-  async run(input, { emitPasswordResetRequested }) {
+  async run(input: any, { emitPasswordResetRequested }) {
     const resetToken = `reset_${Math.random().toString(36).substr(2, 9)}`;
     const userId = `user_lookup_${input.email}`;
 
@@ -410,14 +429,15 @@ export const productCreatedEvent = event<{
   price: number;
 }>({
   id: "app.products.events.created",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      category: z.string(),
-      price: z.number().positive(),
-    })
-    .strict(),
+  payloadSchema: createSchema(
+    {
+      productId: String,
+      name: String,
+      category: String,
+      price: positiveNumber,
+    },
+    { exact: true },
+  ),
 });
 
 export const inventoryUpdatedEvent = event<{
@@ -427,14 +447,15 @@ export const inventoryUpdatedEvent = event<{
   changeReason: string;
 }>({
   id: "app.products.events.inventoryUpdated",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      oldStock: z.number().int(),
-      newStock: z.number().int(),
-      changeReason: z.string(),
-    })
-    .strict(),
+  payloadSchema: createSchema(
+    {
+      productId: String,
+      oldStock: integerNumber,
+      newStock: integerNumber,
+      changeReason: String,
+    },
+    { exact: true },
+  ),
 });
 
 export const productOutOfStockEvent = event<{
@@ -443,13 +464,14 @@ export const productOutOfStockEvent = event<{
   waitingListCount: number;
 }>({
   id: "app.products.events.outOfStock",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      waitingListCount: z.number().int(),
-    })
-    .strict(),
+  payloadSchema: createSchema(
+    {
+      productId: String,
+      name: String,
+      waitingListCount: integerNumber,
+    },
+    { exact: true },
+  ),
 });
 
 // Resources
@@ -474,9 +496,9 @@ export const inventoryCacheResource = resource({
     title: "Inventory Cache",
     description: "Redis cache for inventory levels",
   },
-  configSchema: z.object({
-    ttlSeconds: z.number().int().positive(),
-    redisUrl: z.string().url(),
+  configSchema: createSchema({
+    ttlSeconds: Match.PositiveInteger,
+    redisUrl: Match.URL,
   }),
   tags: [domainTag.with({ domain: "products" })],
   async init(config: { ttlSeconds: number; redisUrl: string }) {
@@ -509,23 +531,24 @@ export const createProductTask = task({
     apiTag.with({ method: "POST", path: "/api/products" }),
     securityTag.with({ requiresAuth: true, roles: ["admin", "merchant"] }),
   ],
-  inputSchema: z.object({
-    name: z.string().min(1),
-    description: z.string(),
-    category: z.string(),
-    price: z.number().positive(),
-    initialStock: z.number().int().min(0),
-    sku: z.string(),
+  inputSchema: createSchema({
+    name: Match.NonEmptyString,
+    description: String,
+    category: String,
+    price: positiveNumber,
+    initialStock: nonNegativeInteger,
+    sku: String,
   }),
-  resultSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      category: z.string(),
-      price: z.number(),
-    })
-    .strict(),
-  async run(input, { emitProductCreated }) {
+  resultSchema: createSchema(
+    {
+      productId: String,
+      name: String,
+      category: String,
+      price: finiteNumber,
+    },
+    { exact: true },
+  ),
+  async run(input: any, { emitProductCreated }) {
     const productId = `product_${Date.now()}`;
 
     console.log(`Creating product: ${input.name}`);
@@ -568,20 +591,21 @@ export const updateInventoryTask = task({
     apiTag.with({ method: "PATCH", path: "/api/products/{id}/inventory" }),
     securityTag.with({ requiresAuth: true, roles: ["admin", "merchant"] }),
   ],
-  inputSchema: z.object({
-    productId: z.string(),
-    newStock: z.number().int().min(0),
-    changeReason: z.string(),
+  inputSchema: createSchema({
+    productId: String,
+    newStock: nonNegativeInteger,
+    changeReason: String,
   }),
-  resultSchema: z
-    .object({
-      productId: z.string(),
-      oldStock: z.number(),
-      newStock: z.number(),
-      isOutOfStock: z.boolean(),
-    })
-    .strict(),
-  async run(input, { emitInventoryUpdated, emitOutOfStock }) {
+  resultSchema: createSchema(
+    {
+      productId: String,
+      oldStock: finiteNumber,
+      newStock: finiteNumber,
+      isOutOfStock: Boolean,
+    },
+    { exact: true },
+  ),
+  async run(input: any, { emitInventoryUpdated, emitOutOfStock }) {
     const oldStock = Math.floor(Math.random() * 100); // Simulate DB lookup
 
     console.log(
@@ -624,17 +648,17 @@ export const orderCreatedEvent = event<{
   items: Array<{ productId: string; quantity: number; price: number }>;
 }>({
   id: "app.orders.events.created",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    userId: z.string(),
-    totalAmount: z.number().positive(),
-    items: z.array(
-      z.object({
-        productId: z.string(),
-        quantity: z.number().int().positive(),
-        price: z.number().positive(),
-      })
-    ),
+  payloadSchema: createSchema({
+    orderId: String,
+    userId: String,
+    totalAmount: positiveNumber,
+    items: [
+      createSchema({
+        productId: String,
+        quantity: Match.PositiveInteger,
+        price: positiveNumber,
+      }),
+    ],
   }),
 });
 
@@ -645,11 +669,11 @@ export const orderPaidEvent = event<{
   paymentMethod: string;
 }>({
   id: "app.orders.events.paid",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    paymentId: z.string(),
-    amount: z.number().positive(),
-    paymentMethod: z.string(),
+  payloadSchema: createSchema({
+    orderId: String,
+    paymentId: String,
+    amount: positiveNumber,
+    paymentMethod: String,
   }),
 });
 
@@ -660,11 +684,11 @@ export const orderShippedEvent = event<{
   estimatedDelivery: Date;
 }>({
   id: "app.orders.events.shipped",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    trackingNumber: z.string(),
-    carrier: z.string(),
-    estimatedDelivery: z.date(),
+  payloadSchema: createSchema({
+    orderId: String,
+    trackingNumber: String,
+    carrier: String,
+    estimatedDelivery: Date,
   }),
 });
 
@@ -706,24 +730,24 @@ export const createOrderTask = task({
     apiTag.with({ method: "POST", path: "/api/orders" }),
     securityTag.with({ requiresAuth: true }),
   ],
-  inputSchema: z.object({
-    userId: z.string(),
-    items: z.array(
-      z.object({
-        productId: z.string(),
-        quantity: z.number().int().positive(),
-      })
-    ),
+  inputSchema: createSchema({
+    userId: String,
+    items: [
+      createSchema({
+        productId: String,
+        quantity: Match.PositiveInteger,
+      }),
+    ],
   }),
-  resultSchema: z.object({
-    orderId: z.string(),
-    totalAmount: z.number(),
-    status: z.string(),
+  resultSchema: createSchema({
+    orderId: String,
+    totalAmount: finiteNumber,
+    status: String,
   }),
-  async run(input, { emitOrderCreated }) {
+  async run(input: any, { emitOrderCreated }) {
     const orderId = `order_${Date.now()}`;
     const totalAmount = input.items.reduce(
-      (sum, item) => sum + item.quantity * 29.99,
+      (sum: number, item: any) => sum + item.quantity * 29.99,
       0
     ); // Mock pricing
 
@@ -733,7 +757,7 @@ export const createOrderTask = task({
       orderId,
       userId: input.userId,
       totalAmount,
-      items: input.items.map((item) => ({
+      items: input.items.map((item: any) => ({
         productId: item.productId,
         quantity: item.quantity,
         price: 29.99, // Mock price
@@ -768,20 +792,20 @@ export const processPaymentTask = task({
     apiTag.with({ method: "POST", path: "/api/orders/{id}/payment" }),
     securityTag.with({ requiresAuth: true }),
   ],
-  inputSchema: z.object({
-    orderId: z.string(),
-    paymentMethod: z.string(),
-    paymentDetails: z.object({
-      cardToken: z.string(),
-      amount: z.number().positive(),
+  inputSchema: createSchema({
+    orderId: String,
+    paymentMethod: String,
+    paymentDetails: createSchema({
+      cardToken: String,
+      amount: positiveNumber,
     }),
   }),
-  resultSchema: z.object({
-    paymentId: z.string(),
-    status: z.string(),
-    orderId: z.string(),
+  resultSchema: createSchema({
+    paymentId: String,
+    status: String,
+    orderId: String,
   }),
-  async run(input, { emitOrderPaid }) {
+  async run(input: any, { emitOrderPaid }) {
     const paymentId = `payment_${Date.now()}`;
 
     console.log(`Processing payment for order ${input.orderId}`);
@@ -816,11 +840,11 @@ export const emailSentEvent = event<{
   metadata: Record<string, any>;
 }>({
   id: "app.notifications.events.emailSent",
-  payloadSchema: z.object({
-    emailId: z.string(),
-    to: z.string().email(),
-    template: z.string(),
-    metadata: z.record(z.any()),
+  payloadSchema: createSchema({
+    emailId: String,
+    to: Match.Email,
+    template: String,
+    metadata: Match.MapOf(Match.Any),
   }),
 });
 
@@ -831,11 +855,11 @@ export const webhookDeliveredEvent = event<{
   statusCode: number;
 }>({
   id: "app.notifications.events.webhookDelivered",
-  payloadSchema: z.object({
-    webhookId: z.string(),
-    url: z.string().url(),
-    payload: z.record(z.any()),
-    statusCode: z.number().int(),
+  payloadSchema: createSchema({
+    webhookId: String,
+    url: Match.URL,
+    payload: Match.MapOf(Match.Any),
+    statusCode: integerNumber,
   }),
 });
 
@@ -846,10 +870,10 @@ export const emailServiceResource = resource({
     title: "Email Service",
     description: "SendGrid email delivery service",
   },
-  configSchema: z.object({
-    apiKey: z.string(),
-    fromEmail: z.string().email(),
-    fromName: z.string(),
+  configSchema: createSchema({
+    apiKey: String,
+    fromEmail: Match.Email,
+    fromName: String,
   }),
   tags: [domainTag.with({ domain: "notifications" })],
   async init(config: { apiKey: string; fromEmail: string; fromName: string }) {
@@ -878,16 +902,16 @@ export const sendWelcomeEmailTask = task({
     domainTag.with({ domain: "notifications" }),
     apiTag.with({ method: "POST", path: "/api/notifications/welcome-email" }),
   ],
-  inputSchema: z.object({
-    userId: z.string(),
-    email: z.string().email(),
-    firstName: z.string(),
+  inputSchema: createSchema({
+    userId: String,
+    email: Match.Email,
+    firstName: String,
   }),
-  resultSchema: z.object({
-    emailId: z.string(),
-    sent: z.boolean(),
+  resultSchema: createSchema({
+    emailId: String,
+    sent: Boolean,
   }),
-  async run(input, { emitEmailSent }) {
+  async run(input: any, { emitEmailSent }) {
     const emailId = `email_${Date.now()}`;
 
     console.log(`Sending welcome email to ${input.email}`);
@@ -938,7 +962,7 @@ export const welcomeEmailOnRegistrationHook = hook({
     console.log(`Triggering welcome email for new user: ${event.data.email}`);
 
     // In a real app, you'd get user details from DB
-    await sendWelcomeEmail({
+    await (sendWelcomeEmail as any)({
       userId: event.data.userId,
       email: event.data.email,
       firstName: "New User", // Would look up from DB

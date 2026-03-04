@@ -1,42 +1,63 @@
-import { RegisterableItems, r } from "@bluelibs/runner";
-import { z } from "zod";
+import { globals, r } from "@bluelibs/runner/node";
+import type { OverridableElements, RegisterableItems } from "@bluelibs/runner";
+import {
+  eventLanesResource,
+  rpcLanesResource,
+  type IEventLaneQueue,
+  type EventLanesResourceConfig,
+  type RpcLanesResourceConfig,
+} from "@bluelibs/runner/node";
+import {
+  LaneCatalogProjectionUpdatedPayloadSchema,
+  LaneCatalogUpdatedPayloadSchema,
+  RpcCatalogSyncInputSchema,
+  RpcCatalogSyncResultSchema,
+  RpcPricingPreviewInputSchema,
+  RpcPricingPreviewResultSchema,
+} from "./schemas";
 
-const rpcLaneTag = (laneId: string) => ({
-  id: "globals.tags.rpcLane",
-  config: { lane: { id: laneId } },
-});
+const rpcLaneTag = (laneId: string) =>
+  globals.tags.rpcLane.with({ lane: { id: laneId } });
 
 const eventLaneTag = (
   laneId: string,
-  orderingKey: string,
-  metadata: Record<string, unknown>
-) => ({
-  id: "globals.tags.eventLane",
-  config: { lane: { id: laneId }, orderingKey, metadata },
-});
+  _orderingKey: string,
+  _metadata: Record<string, unknown>
+) =>
+  globals.tags.eventLane.with({
+    lane: { id: laneId },
+  });
 
-const rpcPricingPreviewInputSchema = z.object({
-  sku: z.string(),
-  basePrice: z.number().positive(),
-  region: z.enum(["US", "EU", "APAC"]).default("US"),
-});
+const createRpcCommunicatorResource = (id: string) =>
+  r
+    .resource(id)
+    .init(async () => ({
+      task: async (_taskId: string, _input?: unknown) => null,
+      event: async (_eventId: string, _data?: unknown) => undefined,
+    }))
+    .build();
 
-const rpcPricingPreviewResultSchema = z.object({
-  sku: z.string(),
-  adjustedPrice: z.number().positive(),
-  source: z.literal("rpc-lane-task"),
-});
+const catalogUpdatesQueueResource = r
+  .resource("app.examples.queues.catalog-updates")
+  .init(async (): Promise<IEventLaneQueue> => ({
+    enqueue: async () => "message-1",
+    consume: async () => undefined,
+    ack: async () => undefined,
+    nack: async () => undefined,
+  }))
+  .build();
 
-const rpcCatalogSyncInputSchema = z.object({
-  supplierId: z.string(),
-  changedSkus: z.array(z.string()).min(1),
-});
+const pricingCommunicatorResource = createRpcCommunicatorResource(
+  "app.examples.communicators.pricing"
+);
 
-const rpcCatalogSyncResultSchema = z.object({
-  supplierId: z.string(),
-  syncedCount: z.number().int().nonnegative(),
-  emittedEvent: z.string(),
-});
+const catalogSyncCommunicatorResource = createRpcCommunicatorResource(
+  "app.examples.communicators.catalog-sync"
+);
+
+const catalogEventsCommunicatorResource = createRpcCommunicatorResource(
+  "app.examples.communicators.catalog-events"
+);
 
 export const rpcLaneCatalogUpdatedEvent = r
   .event("app.examples.lanes.events.catalogUpdated")
@@ -45,12 +66,7 @@ export const rpcLaneCatalogUpdatedEvent = r
     description: "RPC lane tagged showcase event.",
   })
   .tags([rpcLaneTag("app.examples.lanes.rpc.catalog-updates")])
-  .payloadSchema(
-    z.object({
-      supplierId: z.string(),
-      updatedAt: z.date(),
-    })
-  )
+  .payloadSchema(LaneCatalogUpdatedPayloadSchema)
   .build();
 
 export const eventLaneCatalogProjectionUpdatedEvent = r
@@ -64,12 +80,7 @@ export const eventLaneCatalogProjectionUpdatedEvent = r
       domain: "catalog",
     }),
   ])
-  .payloadSchema(
-    z.object({
-      supplierId: z.string(),
-      projectedAt: z.date(),
-    })
-  )
+  .payloadSchema(LaneCatalogProjectionUpdatedPayloadSchema)
   .build();
 
 export const rpcLanePricingPreviewTask = r
@@ -79,8 +90,8 @@ export const rpcLanePricingPreviewTask = r
     description: "Task tagged with globals.tags.rpcLane.",
   })
   .tags([rpcLaneTag("app.examples.lanes.rpc.pricing-preview")])
-  .inputSchema(rpcPricingPreviewInputSchema)
-  .resultSchema(rpcPricingPreviewResultSchema)
+  .inputSchema(RpcPricingPreviewInputSchema)
+  .resultSchema(RpcPricingPreviewResultSchema)
   .run(async (input) => ({
     sku: input.sku,
     adjustedPrice: Number((input.basePrice * 1.03).toFixed(2)),
@@ -99,8 +110,8 @@ export const rpcLaneCatalogSyncTask = r
   .dependencies({
     emitCatalogUpdated: rpcLaneCatalogUpdatedEvent,
   })
-  .inputSchema(rpcCatalogSyncInputSchema)
-  .resultSchema(rpcCatalogSyncResultSchema)
+  .inputSchema(RpcCatalogSyncInputSchema)
+  .resultSchema(RpcCatalogSyncResultSchema)
   .run(async (input, { emitCatalogUpdated }) => {
     await emitCatalogUpdated({
       supplierId: input.supplierId,
@@ -115,31 +126,25 @@ export const rpcLaneCatalogSyncTask = r
   })
   .build();
 
-export const rpcLanesShowcaseResource = r
-  .resource("platform.node.resources.rpcLanes")
-  .meta({
-    title: "RPC Lanes Showcase Resource",
-    description: "Resource config used by Runner-Dev RPC lanes section.",
-  })
-  .tags([{ id: "globals.tags.rpcLanes" }])
-  .build();
+export const rpcLanesShowcaseResource: typeof rpcLanesResource =
+  rpcLanesResource;
 
-export const rpcLanesShowcaseRegistration = rpcLanesShowcaseResource.with({
-  mode: "service",
+const rpcLanesShowcaseConfig: RpcLanesResourceConfig = {
+  mode: "network",
   profile: "catalog",
   topology: {
     bindings: [
       {
         lane: { id: "app.examples.lanes.rpc.pricing-preview" },
-        communicator: { id: "app.examples.communicators.pricing" },
+        communicator: pricingCommunicatorResource,
       },
       {
         lane: { id: "app.examples.lanes.rpc.catalog-sync" },
-        communicator: { id: "app.examples.communicators.catalog-sync" },
+        communicator: catalogSyncCommunicatorResource,
       },
       {
         lane: { id: "app.examples.lanes.rpc.catalog-updates" },
-        communicator: { id: "app.examples.communicators.catalog-events" },
+        communicator: catalogEventsCommunicatorResource,
       },
     ],
     profiles: {
@@ -152,25 +157,23 @@ export const rpcLanesShowcaseRegistration = rpcLanesShowcaseResource.with({
       },
     },
   },
-});
+};
 
-export const eventLanesShowcaseResource = r
-  .resource("globals.resources.node.eventLanes")
-  .meta({
-    title: "Event Lanes Showcase Resource",
-    description: "Resource config used by Runner-Dev event lanes section.",
-  })
-  .build();
+export const rpcLanesShowcaseRegistration: RegisterableItems =
+  rpcLanesShowcaseResource.with(rpcLanesShowcaseConfig);
 
-export const eventLanesShowcaseRegistration = eventLanesShowcaseResource.with({
-  mode: "consumer",
+export const eventLanesShowcaseResource: typeof eventLanesResource =
+  eventLanesResource;
+
+const eventLanesShowcaseConfig: EventLanesResourceConfig = {
+  mode: "network",
   profile: "catalog-events",
   topology: {
     relaySourcePrefix: "runner.event-lanes.relay:",
     bindings: [
       {
         lane: { id: "app.examples.lanes.event.catalog-updates" },
-        queue: { id: "app.examples.queues.catalog-updates" },
+        queue: catalogUpdatesQueueResource,
         prefetch: 8,
       },
     ],
@@ -180,9 +183,45 @@ export const eventLanesShowcaseRegistration = eventLanesShowcaseResource.with({
       },
     },
   },
-});
+};
+
+export const eventLanesShowcaseRegistration: RegisterableItems =
+  eventLanesShowcaseResource.with(eventLanesShowcaseConfig);
+
+const rpcLanesShowcaseOverride = r.override(
+  rpcLanesShowcaseResource,
+  (async (config, _dependencies, _context) => ({
+    profile: config.profile,
+    mode: "network",
+    serveTaskIds: [],
+    serveEventIds: [],
+    taskAllowAsyncContext: {},
+    eventAllowAsyncContext: {},
+    taskAsyncContextAllowList: {},
+    eventAsyncContextAllowList: {},
+    communicatorByLaneId: new Map(),
+    exposure: null,
+  })) satisfies NonNullable<typeof rpcLanesShowcaseResource.init>
+);
+
+const eventLanesShowcaseOverride = r.override(
+  eventLanesShowcaseResource,
+  (async (config, _dependencies, _context) => ({
+    profile: config.profile,
+    consumers: 0,
+  })) satisfies NonNullable<typeof eventLanesShowcaseResource.init>
+);
+
+export const lanesShowcaseOverrides: OverridableElements[] = [
+  rpcLanesShowcaseOverride,
+  eventLanesShowcaseOverride,
+];
 
 export const lanesShowcaseRegistrations: RegisterableItems[] = [
+  pricingCommunicatorResource,
+  catalogSyncCommunicatorResource,
+  catalogEventsCommunicatorResource,
+  catalogUpdatesQueueResource,
   rpcLaneCatalogUpdatedEvent,
   eventLaneCatalogProjectionUpdatedEvent,
   rpcLanePricingPreviewTask,

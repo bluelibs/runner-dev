@@ -19,8 +19,8 @@ export const introspectorCli = resource({
         process.env.RUNNER_DEV_DRY_RUN === "1"
           ? {
               mode: cli.store.mode ?? "dev",
-              debug: !!cli.store.resources?.has?.("globals.resources.debug"),
-              debugMode: cli.store.resources?.has?.("globals.resources.debug")
+              debug: !!cli.store.resources?.has?.("runner.debug"),
+              debugMode: cli.store.resources?.has?.("runner.debug")
                 ? "normal"
                 : "disabled",
               logsEnabled: true,

@@ -19,7 +19,7 @@ import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
 
 const EXTERNAL_VISIBILITY_CONSUMER_ID = "runner-dev.visibility.external";
-const MIDDLEWARE_MANAGER_RESOURCE_ID = "globals.resources.middlewareManager";
+const MIDDLEWARE_MANAGER_RESOURCE_ID = "system.middlewareManager";
 const TAG_TARGETS = new Set([
   "tasks",
   "resources",
@@ -176,7 +176,7 @@ export function initializeFromStore(
     id: e.id,
     meta: e.meta,
     filePath: sanitizePath(e[definitions.symbolFilePath]),
-    dataSchema: e.dataSchema,
+    dataSchema: formatSchemaIfZod(e.dataSchema),
     thrownBy: e.thrownBy || [],
     registeredBy: e.registeredBy,
     overriddenBy: e.overriddenBy,

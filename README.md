@@ -11,7 +11,7 @@ Runner Dev Tools provide introspection, live telemetry, and a GraphQL API to exp
 
 The way it works, is that this is a resource that opens a graphql server which opens your application to introspection.
 
-If you use `zod` for schemas of your runner primitives, you will get them beautifully transformed to JSON Schemas. This can be made to work with any schema that supports conversion to JSON Schemas.
+If your runner primitives expose `toJSONSchema()` (for example matcher-based normalized schemas), runner-dev uses that as first-class schema export. `zod` schemas are also supported and converted to JSON Schema.
 
 ## Install
 

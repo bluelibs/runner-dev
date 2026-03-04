@@ -1,5 +1,5 @@
 import { RegisterableItems, r } from "@bluelibs/runner";
-import { enhancedShowcaseRegistrations } from "./showcases";
+import { enhancedShowcaseRegistrations, enhancedShowcaseOverrides } from "./showcases";
 
 export {
   featuredTag,
@@ -29,6 +29,7 @@ export {
   invalidInputError,
   supportContextAndErrorProbeTask,
   enhancedShowcaseModules,
+  enhancedShowcaseOverrides,
   enhancedShowcaseRegistrations,
   type EnhancedShowcaseModule,
 } from "./showcases";
@@ -42,6 +43,7 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
         "Lean Runner-Dev showcase app focused on tags, isolation, interceptors, lane metadata, durable flows, and support primitives.",
     })
     .register([...enhancedShowcaseRegistrations, ...extra])
+    .overrides(enhancedShowcaseOverrides)
     .init(async () => {
       console.log("[enhanced.play] Lean showcase app ready.");
       console.log(

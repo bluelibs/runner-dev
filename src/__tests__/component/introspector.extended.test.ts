@@ -1,4 +1,4 @@
-import { resource, run } from "@bluelibs/runner";
+import { r, resource, run } from "@bluelibs/runner";
 import { introspector } from "../../resources/introspector.resource";
 import { createDummyApp, logMw } from "../dummy/dummyApp";
 
@@ -141,9 +141,10 @@ describe("introspector (extended)", () => {
   test("overrides mapping sets overriddenBy for middleware", async () => {
     let snapshot: any = {};
 
+    const logMwOverride = r.override(logMw, async ({ next }) => next());
     const overrideRes = resource({
       id: "res.override",
-      overrides: [logMw],
+      overrides: [logMwOverride],
       async init() {
         return {};
       },

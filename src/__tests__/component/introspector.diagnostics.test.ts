@@ -21,9 +21,10 @@ describe("Graph diagnostics (component)", () => {
     });
     const unusedErr = r.error("err.unused").build();
 
+    const logMwOverride = r.override(logMw, async ({ next }) => next());
     const overrideRes = resource({
       id: "res.override.for.diagnostics",
-      overrides: [logMw],
+      overrides: [logMwOverride],
       async init() {
         return {};
       },

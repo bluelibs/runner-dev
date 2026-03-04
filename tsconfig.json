@@ -1,0 +1,17 @@
+{
+  "extends": "./config/ts/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/custom.d.ts"
+  ],
+  "exclude": [
+    "src/ui/**",
+    "node_modules"
+  ]
+}

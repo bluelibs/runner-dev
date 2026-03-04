@@ -110,15 +110,32 @@
 
 .resource-card__rpc-lanes-list {
   display: grid;
-  gap: $spacing-xs;
+  gap: $spacing-sm;
   white-space: normal;
 }
 
-.resource-card__rpc-lanes-item {
+.resource-card__rpc-lanes-profiles {
+  display: grid;
+  gap: $spacing-md;
+  white-space: normal;
+}
+
+.resource-card__rpc-lanes-profile {
+  display: grid;
+  gap: $spacing-sm;
+}
+
+.resource-card__rpc-lanes-profile__header {
   display: flex;
   flex-wrap: wrap;
   gap: $spacing-xs;
   align-items: center;
+}
+
+.resource-card__rpc-lanes-profile__communicator {
+  font-size: $font-size-xs;
+  color: var(--docs-text-secondary);
+  font-family: $font-family-mono;
 }
 
 .resource-card__rpc-lanes-item__lane {
@@ -196,6 +213,15 @@
 
     // Allow wrapping when value contains flex children (e.g. tags)
     &:has(.resource-card__tags) {
+      white-space: normal;
+      overflow: visible;
+    }
+
+    // Allow wrapping and scroll for lane list containers
+    &:has(.resource-card__rpc-lanes-list),
+    &:has(.resource-card__rpc-lanes-profiles),
+    &:has(.resource-card__event-lanes-list),
+    &:has(.searchable-list) {
       white-space: normal;
       overflow: visible;
     }
@@ -293,80 +319,6 @@
   &__items {
     display: grid;
     gap: 10px;
-
-    &--registered {
-      max-height: 320px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding-right: $spacing-xs;
-      scrollbar-width: thin;
-      scrollbar-color: var(--docs-border-primary) var(--docs-bg-tertiary);
-
-      &::-webkit-scrollbar {
-        width: 10px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: var(--docs-bg-tertiary);
-        border-radius: $border-radius-pill;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: var(--docs-border-primary);
-        border-radius: $border-radius-pill;
-        border: 2px solid var(--docs-bg-tertiary);
-      }
-
-      &::-webkit-scrollbar-thumb:hover {
-        background: var(--docs-text-muted);
-      }
-    }
-  }
-
-  &__search {
-    display: flex;
-    align-items: center;
-    gap: $spacing-sm;
-    margin-bottom: $spacing-sm;
-    padding: $spacing-xs $spacing-sm;
-    border: 1px solid var(--docs-border-primary);
-    border-radius: $border-radius-lg;
-    background: var(--docs-bg-secondary);
-  }
-
-  &__search-icon {
-    font-size: $font-size-sm;
-    opacity: 0.85;
-  }
-
-  &__search-input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    outline: none;
-    background: transparent;
-    color: var(--docs-text-primary);
-    font-size: $font-size-sm;
-
-    &::placeholder {
-      color: var(--docs-text-muted);
-    }
-  }
-
-  &__search-count {
-    font-size: $font-size-xs;
-    color: var(--docs-text-secondary);
-    font-family: $font-family-mono;
-    white-space: nowrap;
-  }
-
-  &__empty {
-    padding: $spacing-sm;
-    border: 1px dashed var(--docs-border-primary);
-    border-radius: $border-radius-md;
-    color: var(--docs-text-secondary);
-    font-size: $font-size-sm;
-    background: var(--docs-bg-secondary);
   }
 }
 

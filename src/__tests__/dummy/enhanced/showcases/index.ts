@@ -3,7 +3,10 @@ import { durableShowcaseRegistrations } from "./durable.showcase";
 import { interceptorShowcaseRegistrations } from "./interceptors.showcase";
 import { supportShowcaseRegistrations } from "./support.showcase";
 import { tagsIsolationShowcaseRegistrations } from "./tagsIsolation.showcase";
-import { lanesShowcaseRegistrations } from "./lanes.showcase";
+import {
+  lanesShowcaseOverrides,
+  lanesShowcaseRegistrations,
+} from "./lanes.showcase";
 
 export {
   featuredTag,
@@ -31,6 +34,7 @@ export {
   rpcLanesShowcaseRegistration,
   eventLanesShowcaseResource,
   eventLanesShowcaseRegistration,
+  lanesShowcaseOverrides,
   lanesShowcaseRegistrations,
 } from "./lanes.showcase";
 
@@ -81,3 +85,5 @@ export const enhancedShowcaseModules: EnhancedShowcaseModule[] = [
 
 export const enhancedShowcaseRegistrations: RegisterableItems[] =
   enhancedShowcaseModules.flatMap((module) => module.registrations);
+
+export const enhancedShowcaseOverrides = lanesShowcaseOverrides;

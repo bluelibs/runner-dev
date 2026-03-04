@@ -39,5 +39,5 @@ export const DOCUMENTATION_CONSTANTS = {
   },
 
   // System tag identifier
-  SYSTEM_TAG_ID: "globals.tags.system",
+  SYSTEM_TAG_ID: "system.tags.internal",
 } as const;

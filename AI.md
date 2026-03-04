@@ -20,6 +20,7 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 - **Isolation Wildcard Explorer**: Wildcard isolation rules can be clicked to inspect all matching resources in a searchable modal list.
 - **Tag Handlers**: Tag views separate direct tag usages from handler elements that depend on the tag id.
 - **Task Interceptor Introspection**: Tasks expose `interceptorCount` and `hasInterceptors` for runtime `task.intercept(...)` registrations.
+- **Schema Export Compatibility**: Schema fields prefer `toJSONSchema()` exporters (including matcher-normalized schemas), with `zod` conversion as compatibility fallback.
 
 ## Runner 6.0 Migration Notes
 

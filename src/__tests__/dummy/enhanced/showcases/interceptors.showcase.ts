@@ -1,14 +1,8 @@
 import { RegisterableItems, r } from "@bluelibs/runner";
-import { z } from "zod";
-
-const interceptorInputSchema = z.object({
-  value: z.number(),
-});
-
-const interceptorResultSchema = z.object({
-  value: z.number(),
-  intercepted: z.boolean(),
-});
+import {
+  InterceptorInputSchema,
+  InterceptorResultSchema,
+} from "./schemas";
 
 export const interceptorBaseTask = r
   .task("app.examples.interceptors.tasks.base")
@@ -16,8 +10,8 @@ export const interceptorBaseTask = r
     title: "Interceptor Base Task",
     description: "Task wrapped by a runtime interceptor during resource init.",
   })
-  .inputSchema(interceptorInputSchema)
-  .resultSchema(interceptorResultSchema)
+  .inputSchema(InterceptorInputSchema)
+  .resultSchema(InterceptorResultSchema)
   .run(async (input) => ({
     value: input.value,
     intercepted: false,
@@ -54,7 +48,7 @@ export const interceptorConsumerTask = r
       "Calls the intercepted task to show runtime interceptor behavior.",
   })
   .dependencies({ interceptorBaseTask })
-  .resultSchema(interceptorResultSchema)
+  .resultSchema(InterceptorResultSchema)
   .run(async (_input, { interceptorBaseTask }) =>
     interceptorBaseTask({ value: 1 })
   )

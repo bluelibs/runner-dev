@@ -1,20 +1,10 @@
 import { RegisterableItems, r } from "@bluelibs/runner";
-import { z } from "zod";
-
-const supportProbeInputSchema = z.object({
-  fail: z.boolean().optional().default(false),
-  requestId: z.string().optional(),
-});
-
-const supportProbeResultSchema = z.object({
-  ok: z.boolean(),
-  requestId: z.string(),
-});
-
-const invalidInputErrorDataSchema = z.object({
-  field: z.string(),
-  message: z.string(),
-});
+import {
+  InvalidInputErrorData,
+  InvalidInputErrorDataSchema,
+  SupportProbeInputSchema,
+  SupportProbeResultSchema,
+} from "./schemas";
 
 export const supportRequestContext = r
   .asyncContext<{ requestId: string }>("app.examples.contexts.request")
@@ -53,10 +43,8 @@ export const supportRequestContextMiddleware = r.middleware
   .build();
 
 export const invalidInputError = r
-  .error<z.infer<typeof invalidInputErrorDataSchema>>(
-    "app.examples.errors.invalidInput"
-  )
-  .dataSchema(invalidInputErrorDataSchema)
+  .error<InvalidInputErrorData>("app.examples.errors.invalidInput")
+  .dataSchema(InvalidInputErrorDataSchema)
   .httpCode(400)
   .meta({
     title: "Invalid Input Error",
@@ -76,10 +64,10 @@ export const supportContextAndErrorProbeTask = r
     invalidInputError,
   })
   .middleware([supportRequestContextMiddleware])
-  .inputSchema(supportProbeInputSchema)
-  .resultSchema(supportProbeResultSchema)
+  .inputSchema(SupportProbeInputSchema)
+  .resultSchema(SupportProbeResultSchema)
   .run(async (input, { supportRequestContext, invalidInputError }) => {
-    if (input.fail) {
+    if (input.fail ?? false) {
       invalidInputError.throw({
         field: "fail",
         message: "Forced failure for support showcase.",

@@ -61,7 +61,7 @@ export function computeUnemittedEvents(
   const events = introspector.getEvents();
   return events
     .filter((e) => introspector.getEmittersOfEvent(e.id).length === 0)
-    .filter((e) => e.id !== "globals.events.ready")
+    .filter((e) => e.id !== "system.events.ready" && e.id !== "globals.events.ready")
     .filter((e) => e.id !== "*")
     .map((e) => ({ id: e.id }));
 }
@@ -261,7 +261,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
 // System events helpers
 export function isSystemEventId(eventId: string): boolean {
   const id = String(eventId).toLowerCase();
-  return id.startsWith("globals.") || id === "*";
+  return id.startsWith("globals.") || id.startsWith("system.") || id.startsWith("runner.") || id === "*";
 }
 
 function isIgnoredEventDiagnosticId(eventId: string): boolean {

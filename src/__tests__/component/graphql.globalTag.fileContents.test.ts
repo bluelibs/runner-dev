@@ -46,7 +46,8 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
         }
       }
     `;
-    const variables = { id: "globals.tags.excludeFromGlobalHooks" };
+    const tagId = globals.tags.excludeFromGlobalHooks.id;
+    const variables = { id: tagId };
     const result = await graphql({
       schema,
       source: q,
@@ -56,7 +57,7 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
     expect(result.errors).toBeUndefined();
 
     const tag: any = (result.data as any)?.tag;
-    expect(tag?.id).toBe("globals.tags.excludeFromGlobalHooks");
+    expect(tag?.id).toBe(tagId);
     expect(typeof tag?.filePath).toBe("string");
     const isNodeModules = tag?.filePath.includes("node_modules:");
     const isLocalLink = tag?.filePath.includes("runner");

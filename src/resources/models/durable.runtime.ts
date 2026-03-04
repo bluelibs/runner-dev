@@ -4,8 +4,8 @@ import type {
   TaskStoreElementType,
 } from "@bluelibs/runner";
 import * as runnerCore from "@bluelibs/runner";
-import type { DurableFlowShape, DurableResource } from "@bluelibs/runner/node";
 import * as runnerNode from "@bluelibs/runner/node";
+import type { DurableFlowShape, DurableResource } from "@bluelibs/runner/node";
 import { hasDurableWorkflowTag } from "./durable.tools";
 
 type StoreSlice = Pick<Store, "tasks" | "resources">;

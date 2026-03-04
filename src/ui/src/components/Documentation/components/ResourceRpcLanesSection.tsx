@@ -1,5 +1,6 @@
 import React from "react";
 import { InfoBlock } from "./common/ElementCard";
+import { SearchableList } from "./common/SearchableList";
 import {
   collectRpcCommunicatorIds,
   getRpcLaneBindings,
@@ -54,17 +55,16 @@ export const ResourceRpcLanesSection: React.FC<
         {rpcLaneBindings.length > 0 ? (
           <div className="resource-card__rpc-lanes-list">
             {rpcLaneBindings.map((binding) => (
-              <div
+              <a
                 key={`${binding.laneId}:${binding.communicatorId ?? "none"}`}
-                className="resource-card__rpc-lanes-item"
+                href={`#element-${binding.laneId}`}
+                className="resource-card__relation-item resource-card__relation-item--task resource-card__relation-link"
               >
-                <span className="resource-card__rpc-lanes-item__lane">
-                  {binding.laneId}
-                </span>
-                <span>
+                <div className="title title--task">{binding.laneId}</div>
+                <div className="id">
                   communicator: {binding.communicatorId || "(not specified)"}
-                </span>
-              </div>
+                </div>
+              </a>
             ))}
           </div>
         ) : (
@@ -73,32 +73,36 @@ export const ResourceRpcLanesSection: React.FC<
       </InfoBlock>
       <InfoBlock prefix="resource-card" label="Profiles:">
         {rpcLaneProfiles.length > 0 ? (
-          <div className="resource-card__rpc-lanes-list">
+          <div className="resource-card__rpc-lanes-profiles">
             {rpcLaneProfiles.map((profile) => {
               const isActive = profile.profileId === rpcLanesConfig?.profile;
               return (
                 <div
                   key={profile.profileId}
-                  className="resource-card__rpc-lanes-item"
+                  className="resource-card__rpc-lanes-profile"
                 >
-                  <span
-                    className={`resource-card__rpc-lanes-item__lane ${
-                      isActive
-                        ? "resource-card__rpc-lanes-item__lane--active"
-                        : ""
-                    }`}
-                  >
-                    {profile.profileId}
-                  </span>
-                  <span>
-                    serve:{" "}
-                    {profile.serveLaneIds.length > 0
-                      ? profile.serveLaneIds.join(", ")
-                      : "(none)"}
-                  </span>
-                  {profile.communicatorId && (
-                    <span>communicator: {profile.communicatorId}</span>
-                  )}
+                  <div className="resource-card__rpc-lanes-profile__header">
+                    <span
+                      className={`resource-card__rpc-lanes-item__lane ${
+                        isActive
+                          ? "resource-card__rpc-lanes-item__lane--active"
+                          : ""
+                      }`}
+                    >
+                      {profile.profileId}
+                    </span>
+                    {profile.communicatorId && (
+                      <span className="resource-card__rpc-lanes-profile__communicator">
+                        communicator: {profile.communicatorId}
+                      </span>
+                    )}
+                  </div>
+                  <SearchableList
+                    items={profile.serveLaneIds.map((id) => ({ id }))}
+                    placeholder="Filter serve lanes..."
+                    emptyMessage="No lanes match this search."
+                    itemVariant="task"
+                  />
                 </div>
               );
             })}

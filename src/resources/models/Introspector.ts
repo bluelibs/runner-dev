@@ -155,18 +155,6 @@ export class Introspector {
     // Populate thrownBy for errors based on dependencies (after maps are built)
     this.populateErrorThrownBy();
 
-    // Tags
-    const _getTasksWithTag = (tagId: string) =>
-      this.tasks.filter((t) => ensureStringArray(t.tags).includes(tagId));
-    const _getHooksWithTag = (tagId: string) =>
-      this.hooks.filter((h) => ensureStringArray(h.tags).includes(tagId));
-    const _getResourcesWithTag = (tagId: string) =>
-      this.resources.filter((r) => ensureStringArray(r.tags).includes(tagId));
-    const _getMiddlewaresWithTag = (tagId: string) =>
-      this.middlewares.filter((m) => ensureStringArray(m.tags).includes(tagId));
-    const _getEventsWithTag = (tagId: string) =>
-      this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
-
     this.tags = data.tags;
     this.tagMap = new Map<string, Tag>();
     for (const tag of this.tags) {
@@ -313,8 +301,8 @@ export class Introspector {
         sAny.root?.resource?.id != null
           ? String(sAny.root.resource.id)
           : this.rootId ?? "";
-      const hasDebug = !!sAny.resources?.has?.("globals.resources.debug");
-      const debugResource = sAny.resources?.get?.("globals.resources.debug");
+      const hasDebug = !!sAny.resources?.has?.("runner.debug");
+      const debugResource = sAny.resources?.get?.("runner.debug");
       const debugConfig = debugResource?.config;
       const debugMode = !hasDebug
         ? "disabled"
@@ -326,7 +314,7 @@ export class Introspector {
         ? "custom"
         : "normal";
 
-      const loggerResource = sAny.resources?.get?.("globals.resources.logger");
+      const loggerResource = sAny.resources?.get?.("runner.logger");
       const logger = loggerResource?.value as any;
       const logsPrintThresholdRaw = logger?.printThreshold;
       const logsPrintStrategyRaw = logger?.printStrategy;
@@ -724,7 +712,9 @@ export class Introspector {
   }
 
   getErrorsWithTag(tagId: string): ErrorModel[] {
-    return this.errors.filter((e) => ensureStringArray(e.tags).includes(tagId));
+    return this.errors
+      .filter((e) => ensureStringArray(e.tags).includes(tagId))
+      .map((error) => stampElementKind(error, "ERROR"));
   }
 
   getTagHandlers(tagId: string): {
@@ -850,11 +840,12 @@ export class Introspector {
 
   // Error-related methods
   getErrors(): ErrorModel[] {
-    return this.errors;
+    return this.errors.map((error) => stampElementKind(error, "ERROR"));
   }
 
   getError(id: string): ErrorModel | null {
-    return this.errorMap.get(id) ?? null;
+    const error = this.errorMap.get(id);
+    return error ? stampElementKind(error, "ERROR") : null;
   }
 
   getTasksUsingError(errorId: string): Task[] {

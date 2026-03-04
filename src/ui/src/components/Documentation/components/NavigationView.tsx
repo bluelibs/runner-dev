@@ -273,7 +273,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
 
             <span className="nav-node-label">
               {highlightSearchTerm(node.label, searchTerm)}
-              {node.element?.tags?.includes("globals.tags.system") && (
+              {node.element?.tags?.includes("system.tags.internal") && (
                 <span className="system-label">SYS</span>
               )}
             </span>

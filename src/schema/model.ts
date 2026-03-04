@@ -102,7 +102,8 @@ export type ElementKind =
   | "HOOK"
   | "RESOURCE"
   | "MIDDLEWARE"
-  | "EVENT";
+  | "EVENT"
+  | "ERROR";
 
 export const elementKindSymbol: unique symbol = Symbol(
   "runner-dev.elementKind"

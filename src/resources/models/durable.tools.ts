@@ -1,4 +1,4 @@
-export const DURABLE_WORKFLOW_TAG_ID = "globals.tags.durableWorkflow";
+export const DURABLE_WORKFLOW_TAG_ID = "runner.tags.durableWorkflow";
 
 function readTagId(tagLike: unknown): string | null {
   if (typeof tagLike === "string") return tagLike;

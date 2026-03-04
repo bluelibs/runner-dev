@@ -26,6 +26,7 @@ import { ResourceIsolationSection } from "./ResourceIsolationSection";
 import { ResourceSubtreeSection } from "./ResourceSubtreeSection";
 import { ResourceEventLanesSection } from "./ResourceEventLanesSection";
 import { ResourceRpcLanesSection } from "./ResourceRpcLanesSection";
+import { SearchableList } from "./common/SearchableList";
 import {
   isEventLanesResource,
   isRpcLanesResource,
@@ -64,8 +65,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const [coverageFileContent, setCoverageFileContent] = React.useState<
     string | null
   >(null);
-  const [registeredElementsSearch, setRegisteredElementsSearch] =
-    React.useState("");
   const [coverageLoading, setCoverageLoading] = React.useState(false);
   const [coverageError, setCoverageError] = React.useState<string | null>(null);
   const [isolationRuleModal, setIsolationRuleModal] = React.useState<{
@@ -73,31 +72,6 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     rule: string;
     matchedResources: Resource[];
   } | null>(null);
-  const [isolationRuleSearch, setIsolationRuleSearch] = React.useState("");
-
-  const filteredRegisteredElements = React.useMemo(() => {
-    const query = registeredElementsSearch.trim().toLowerCase();
-    if (!query) return registeredElements;
-
-    return registeredElements.filter((element) => {
-      const id = element.id?.toLowerCase() || "";
-      const title = element.meta?.title?.toLowerCase() || "";
-      return id.includes(query) || title.includes(query);
-    });
-  }, [registeredElements, registeredElementsSearch]);
-
-  const filteredIsolationMatches = React.useMemo(() => {
-    if (!isolationRuleModal) return [];
-
-    const query = isolationRuleSearch.trim().toLowerCase();
-    if (!query) return isolationRuleModal.matchedResources;
-
-    return isolationRuleModal.matchedResources.filter((item) => {
-      const id = item.id.toLowerCase();
-      const title = item.meta?.title?.toLowerCase() || "";
-      return id.includes(query) || title.includes(query);
-    });
-  }, [isolationRuleModal, isolationRuleSearch]);
 
   const hasEventLanesSurface = isEventLanesResource(resource);
   const hasRpcLanesSurface = isRpcLanesResource(resource);
@@ -109,14 +83,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         .filter((item) => matchesWildcardPattern(item.id, rule));
 
       setIsolationRuleModal({ source, rule, matchedResources });
-      setIsolationRuleSearch("");
     },
     [introspector]
   );
 
   const closeIsolationWildcardModal = React.useCallback(() => {
     setIsolationRuleModal(null);
-    setIsolationRuleSearch("");
   }, []);
 
   async function openFileModal() {
@@ -374,48 +346,15 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             {registeredElements.length > 0 && (
               <div className="resource-card__relations__category">
                 <h5>Registered Elements</h5>
-                {registeredElements.length > 5 && (
-                  <div className="resource-card__relations__search">
-                    <span
-                      className="resource-card__relations__search-icon"
-                      aria-hidden="true"
-                    >
-                      🔎
-                    </span>
-                    <input
-                      type="search"
-                      className="resource-card__relations__search-input"
-                      placeholder="Filter registered elements..."
-                      value={registeredElementsSearch}
-                      onChange={(event) =>
-                        setRegisteredElementsSearch(event.target.value)
-                      }
-                    />
-                    <span className="resource-card__relations__search-count">
-                      {filteredRegisteredElements.length}/
-                      {registeredElements.length}
-                    </span>
-                  </div>
-                )}
-                <div className="resource-card__relations__items resource-card__relations__items--registered">
-                  {filteredRegisteredElements.map((element) => (
-                    <a
-                      key={element.id}
-                      href={`#element-${element.id}`}
-                      className="resource-card__relation-item resource-card__relation-item--registered resource-card__relation-link"
-                    >
-                      <div className="title title--registered">
-                        {element.meta?.title || formatId(element.id)}
-                      </div>
-                      <div className="id">{element.id}</div>
-                    </a>
-                  ))}
-                  {filteredRegisteredElements.length === 0 && (
-                    <div className="resource-card__relations__empty">
-                      No registered elements match this search.
-                    </div>
-                  )}
-                </div>
+                <SearchableList
+                  items={registeredElements.map((el) => ({
+                    id: el.id,
+                    title: el.meta?.title || formatId(el.id),
+                  }))}
+                  placeholder="Filter registered elements..."
+                  emptyMessage="No registered elements match this search."
+                  itemVariant="registered"
+                />
               </div>
             )}
           </div>
@@ -470,53 +409,18 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         ariaLabel="Isolation wildcard matches"
       >
         <div className="resource-card__isolation-modal-content">
-          {isolationRuleModal &&
-            isolationRuleModal.matchedResources.length > 5 && (
-              <div className="resource-card__relations__search">
-                <span
-                  className="resource-card__relations__search-icon"
-                  aria-hidden="true"
-                >
-                  🔎
-                </span>
-                <input
-                  type="search"
-                  className="resource-card__relations__search-input"
-                  placeholder="Filter matched resources..."
-                  value={isolationRuleSearch}
-                  onChange={(event) =>
-                    setIsolationRuleSearch(event.target.value)
-                  }
-                />
-                <span className="resource-card__relations__search-count">
-                  {filteredIsolationMatches.length}/
-                  {isolationRuleModal.matchedResources.length}
-                </span>
-              </div>
-            )}
-
-          <div className="resource-card__isolation-modal-list">
-            {filteredIsolationMatches.length > 0 ? (
-              filteredIsolationMatches.map((matchedResource) => (
-                <a
-                  key={matchedResource.id}
-                  href={`#element-${matchedResource.id}`}
-                  className="resource-card__relation-item resource-card__relation-item--resource resource-card__relation-link"
-                  onClick={closeIsolationWildcardModal}
-                >
-                  <div className="title title--resource">
-                    {matchedResource.meta?.title ||
-                      formatId(matchedResource.id)}
-                  </div>
-                  <div className="id">{matchedResource.id}</div>
-                </a>
-              ))
-            ) : (
-              <div className="resource-card__relations__empty">
-                No resources match this wildcard rule.
-              </div>
-            )}
-          </div>
+          {isolationRuleModal && (
+            <SearchableList
+              items={isolationRuleModal.matchedResources.map((r) => ({
+                id: r.id,
+                title: r.meta?.title || formatId(r.id),
+              }))}
+              placeholder="Filter matched resources..."
+              emptyMessage="No resources match this wildcard rule."
+              itemVariant="resource"
+              onItemClick={closeIsolationWildcardModal}
+            />
+          )}
         </div>
       </BaseModal>
 

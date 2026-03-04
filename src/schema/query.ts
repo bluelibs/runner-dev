@@ -164,6 +164,7 @@ export const QueryType = new GraphQLObjectType({
             (e) =>
               !e.id.startsWith("runner-dev.") &&
               !e.id.startsWith("globals.events") &&
+              !e.id.startsWith("system.events") &&
               !isSystemEventId(e.id)
           );
         }

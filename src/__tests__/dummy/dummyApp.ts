@@ -1,4 +1,5 @@
 import {
+  Match,
   taskMiddleware,
   resource,
   task,
@@ -7,9 +8,9 @@ import {
   tag,
   resourceMiddleware,
 } from "@bluelibs/runner";
-import { z } from "zod";
 import { createDummySuperApp } from "./largeApp";
 import { dev } from "../../resources/dev.resource";
+import { defineSchema } from "./schemas";
 
 // Middleware
 export const logMw = resourceMiddleware({
@@ -43,7 +44,7 @@ export const cacheRes = resource({
     title: "Cache resource",
     description: "Cache with TTL configuration used for tests",
   },
-  configSchema: z.object({ ttlMs: z.number().int().positive() }),
+  configSchema: defineSchema({ ttlMs: Match.PositiveInteger }),
   async init(config: { ttlMs: number }) {
     return { ttlMs: config.ttlMs };
   },
@@ -52,7 +53,7 @@ export const cacheRes = resource({
 // Event
 export const evtHello = event<{ name: string }>({
   id: "evt.hello",
-  payloadSchema: z.object({ name: z.string() }),
+  payloadSchema: defineSchema({ name: String }),
 });
 
 const logMwTask = taskMiddleware({
@@ -116,7 +117,7 @@ export const tagMw = taskMiddleware<{ label: string }>({
     title: "Tagging middleware",
     description: "Configurable middleware used to tag tasks in tests",
   },
-  configSchema: z.object({ label: z.string() }),
+  configSchema: defineSchema({ label: String }),
   async run({ next }) {
     return next();
   },

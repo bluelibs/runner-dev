@@ -525,11 +525,12 @@ export function extractAsyncContextIdsFromDependencies(
  * and pull the context ID from the configured config object.
  */
 export const REQUIRE_CONTEXT_MIDDLEWARE_ID =
-  "globals.middleware.task.requireContext";
+  "runner.middleware.task.requireContext";
 
 const REQUIRE_CONTEXT_MIDDLEWARE_IDS = [
   REQUIRE_CONTEXT_MIDDLEWARE_ID,
-  // Legacy id used by older Runner versions
+  // Legacy ids used by older Runner versions
+  "globals.middleware.task.requireContext",
   "globals.middleware.requireContext",
 ] as const;
 

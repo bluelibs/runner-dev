@@ -1,4 +1,5 @@
 import {
+  Match,
   taskMiddleware,
   resource,
   task,
@@ -6,8 +7,13 @@ import {
   event,
   tag,
 } from "@bluelibs/runner";
-import { z } from "zod";
 import { dev } from "../../resources/dev.resource";
+import {
+  defineSchema,
+  minimumLengthPattern as minLength,
+  nonNegativeIntegerPattern as nonNegativeInteger,
+  positiveNumberPattern as positiveNumber,
+} from "./schemas";
 
 // ====================
 // CROSS-CUTTING CONCERNS
@@ -17,42 +23,36 @@ import { dev } from "../../resources/dev.resource";
 export const performanceTag = tag<{ warnAboveMs: number }>({
   id: "app.tags.performance",
   meta: { title: "xxx yyy" },
-  configSchema: z.object({
-    warnAboveMs: z.number().int().positive(),
+  configSchema: defineSchema({
+    warnAboveMs: Match.PositiveInteger,
   }),
 });
 
 export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
   id: "app.tags.security",
-  configSchema: z
-    .object({
-      requiresAuth: z.boolean(),
-      roles: z.array(z.string()).optional(),
-    })
-    .strict(),
+  configSchema: defineSchema(
+    {
+      requiresAuth: Boolean,
+      roles: Match.Optional(Match.ArrayOf(String)),
+    },
+    { exact: true }
+  ),
 });
 
 export const domainTag = tag<{ domain: string }>({
   id: "app.tags.domain",
-  configSchema: z.object({ domain: z.string() }),
+  configSchema: defineSchema({ domain: String }),
 });
 
 export const apiTag = tag<{ method: string; path: string }>({
   id: "app.tags.api",
-  configSchema: z
-    .object({
-      method: z.enum([
-        "GET",
-        "POST",
-        "PUT",
-        "PATCH",
-        "DELETE",
-        "OPTIONS",
-        "HEAD",
-      ]),
-      path: z.string(),
-    })
-    .strict(),
+  configSchema: defineSchema(
+    {
+      method: Match.OneOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"),
+      path: String,
+    },
+    { exact: true }
+  ),
 });
 
 // Global middleware
@@ -65,12 +65,13 @@ export const validationMiddleware = taskMiddleware<{
     title: "Input Validation Middleware",
     description: "Validates task inputs and results using schemas",
   },
-  configSchema: z
-    .object({
-      enabled: z.boolean().optional(),
-      mode: z.enum(["loose", "strict"]).optional(),
-    })
-    .strict(),
+  configSchema: defineSchema(
+    {
+      enabled: Match.Optional(Boolean),
+      mode: Match.Optional(Match.OneOf("loose", "strict")),
+    },
+    { exact: true }
+  ),
   async run({ task, next }, _evt, _config) {
     // In a real app, you'd validate against task.inputSchema
     return next(task.input);
@@ -85,11 +86,12 @@ export const loggingMiddleware = taskMiddleware<{
     title: "Activity Logging Middleware",
     description: "Logs all task executions with performance metrics",
   },
-  configSchema: z
-    .object({
-      logLevel: z.enum(["debug", "info", "warn", "error"]).optional(),
-    })
-    .strict(),
+  configSchema: defineSchema(
+    {
+      logLevel: Match.Optional(Match.OneOf("debug", "info", "warn", "error")),
+    },
+    { exact: true }
+  ),
   async run({ task, next }, _evt, _config) {
     const start = Date.now();
     const result = await next(task.input);
@@ -106,7 +108,7 @@ export const authMiddleware = taskMiddleware<{ required: boolean }>({
     title: "Authentication Middleware",
     description: "Validates user authentication and permissions",
   },
-  configSchema: z.object({ required: z.boolean() }).strict(),
+  configSchema: defineSchema({ required: Boolean }, { exact: true }),
   async run({ task, next }, _, config) {
     if (config.required) {
       // In a real app, check for valid session/token
@@ -127,13 +129,14 @@ export const userRegisteredEvent = event<{
   registrationMethod: string;
 }>({
   id: "app.users.events.registered",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      registrationMethod: z.string(),
-    })
-    .strict(),
+  payloadSchema: defineSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      registrationMethod: String,
+    },
+    { exact: true }
+  ),
 });
 
 export const userLoggedInEvent = event<{
@@ -142,13 +145,14 @@ export const userLoggedInEvent = event<{
   ipAddress: string;
 }>({
   id: "app.users.events.loggedIn",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      loginMethod: z.string(),
-      ipAddress: z.string(),
-    })
-    .strict(),
+  payloadSchema: defineSchema(
+    {
+      userId: String,
+      loginMethod: String,
+      ipAddress: String,
+    },
+    { exact: true }
+  ),
 });
 
 export const passwordResetRequestedEvent = event<{
@@ -157,13 +161,14 @@ export const passwordResetRequestedEvent = event<{
   resetToken: string;
 }>({
   id: "app.users.events.passwordResetRequested",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      resetToken: z.string(),
-    })
-    .strict(),
+  payloadSchema: defineSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      resetToken: String,
+    },
+    { exact: true }
+  ),
 });
 
 // Resources
@@ -188,9 +193,9 @@ export const sessionStoreResource = resource({
     title: "Session Store",
     description: "Redis-based session storage",
   },
-  configSchema: z.object({
-    ttlSeconds: z.number().int().positive(),
-    redisUrl: z.string().url(),
+  configSchema: defineSchema({
+    ttlSeconds: Match.PositiveInteger,
+    redisUrl: Match.URL,
   }),
   tags: [domainTag.with({ domain: "users" })],
   async init(config: { ttlSeconds: number; redisUrl: string }) {
@@ -223,19 +228,20 @@ export const registerUserTask = task({
     apiTag.with({ method: "POST", path: "/api/users/register" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
-    password: z.string().min(8),
-    firstName: z.string(),
-    lastName: z.string(),
+  inputSchema: defineSchema({
+    email: Match.Email,
+    password: minLength(8),
+    firstName: String,
+    lastName: String,
   }),
-  resultSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      verificationToken: z.string(),
-    })
-    .strict(),
+  resultSchema: defineSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      verificationToken: String,
+    },
+    { exact: true }
+  ),
   async run(input, { emitUserRegistered }) {
     // Simulate user creation
     const userId = `user_${Date.now()}`;
@@ -281,18 +287,19 @@ export const authenticateUserTask = task({
     apiTag.with({ method: "POST", path: "/api/users/login" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
-    password: z.string(),
-    ipAddress: z.string(),
+  inputSchema: defineSchema({
+    email: Match.Email,
+    password: String,
+    ipAddress: String,
   }),
-  resultSchema: z
-    .object({
-      userId: z.string(),
-      sessionToken: z.string(),
-      expiresAt: z.date(),
-    })
-    .strict(),
+  resultSchema: defineSchema(
+    {
+      userId: String,
+      sessionToken: String,
+      expiresAt: Date,
+    },
+    { exact: true }
+  ),
   async run(input, { emitUserLoggedIn }) {
     // Simulate authentication
     const userId = `user_${Date.now()}`;
@@ -334,12 +341,12 @@ export const requestPasswordResetTask = task({
     apiTag.with({ method: "POST", path: "/api/users/forgot-password" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
+  inputSchema: defineSchema({
+    email: Match.Email,
   }),
-  resultSchema: z.object({
-    success: z.boolean(),
-    resetToken: z.string(),
+  resultSchema: defineSchema({
+    success: Boolean,
+    resetToken: String,
   }),
   async run(input, { emitPasswordResetRequested }) {
     const resetToken = `reset_${Math.random().toString(36).substr(2, 9)}`;
@@ -407,14 +414,15 @@ export const productCreatedEvent = event<{
   price: number;
 }>({
   id: "app.products.events.created",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      category: z.string(),
-      price: z.number().positive(),
-    })
-    .strict(),
+  payloadSchema: defineSchema(
+    {
+      productId: String,
+      name: String,
+      category: String,
+      price: positiveNumber,
+    },
+    { exact: true }
+  ),
 });
 
 export const inventoryUpdatedEvent = event<{
@@ -424,14 +432,15 @@ export const inventoryUpdatedEvent = event<{
   changeReason: string;
 }>({
   id: "app.products.events.inventoryUpdated",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      oldStock: z.number().int(),
-      newStock: z.number().int(),
-      changeReason: z.string(),
-    })
-    .strict(),
+  payloadSchema: defineSchema(
+    {
+      productId: String,
+      oldStock: Match.Integer,
+      newStock: Match.Integer,
+      changeReason: String,
+    },
+    { exact: true }
+  ),
 });
 
 export const productOutOfStockEvent = event<{
@@ -440,13 +449,14 @@ export const productOutOfStockEvent = event<{
   waitingListCount: number;
 }>({
   id: "app.products.events.outOfStock",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      waitingListCount: z.number().int(),
-    })
-    .strict(),
+  payloadSchema: defineSchema(
+    {
+      productId: String,
+      name: String,
+      waitingListCount: Match.Integer,
+    },
+    { exact: true }
+  ),
 });
 
 // Resources
@@ -471,9 +481,9 @@ export const inventoryCacheResource = resource({
     title: "Inventory Cache",
     description: "Redis cache for inventory levels",
   },
-  configSchema: z.object({
-    ttlSeconds: z.number().int().positive(),
-    redisUrl: z.string().url(),
+  configSchema: defineSchema({
+    ttlSeconds: Match.PositiveInteger,
+    redisUrl: Match.URL,
   }),
   tags: [domainTag.with({ domain: "products" })],
   async init(config: { ttlSeconds: number; redisUrl: string }) {
@@ -506,22 +516,23 @@ export const createProductTask = task({
     apiTag.with({ method: "POST", path: "/api/products" }),
     securityTag.with({ requiresAuth: true, roles: ["admin", "merchant"] }),
   ],
-  inputSchema: z.object({
-    name: z.string().min(1),
-    description: z.string(),
-    category: z.string(),
-    price: z.number().positive(),
-    initialStock: z.number().int().min(0),
-    sku: z.string(),
+  inputSchema: defineSchema({
+    name: Match.NonEmptyString,
+    description: String,
+    category: String,
+    price: positiveNumber,
+    initialStock: nonNegativeInteger,
+    sku: String,
   }),
-  resultSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      category: z.string(),
-      price: z.number(),
-    })
-    .strict(),
+  resultSchema: defineSchema(
+    {
+      productId: String,
+      name: String,
+      category: String,
+      price: Number,
+    },
+    { exact: true }
+  ),
   async run(input, { emitProductCreated }) {
     const productId = `product_${Date.now()}`;
 
@@ -565,19 +576,20 @@ export const updateInventoryTask = task({
     apiTag.with({ method: "PATCH", path: "/api/products/{id}/inventory" }),
     securityTag.with({ requiresAuth: true, roles: ["admin", "merchant"] }),
   ],
-  inputSchema: z.object({
-    productId: z.string(),
-    newStock: z.number().int().min(0),
-    changeReason: z.string(),
+  inputSchema: defineSchema({
+    productId: String,
+    newStock: nonNegativeInteger,
+    changeReason: String,
   }),
-  resultSchema: z
-    .object({
-      productId: z.string(),
-      oldStock: z.number(),
-      newStock: z.number(),
-      isOutOfStock: z.boolean(),
-    })
-    .strict(),
+  resultSchema: defineSchema(
+    {
+      productId: String,
+      oldStock: Number,
+      newStock: Number,
+      isOutOfStock: Boolean,
+    },
+    { exact: true }
+  ),
   async run(input, { emitInventoryUpdated, emitOutOfStock }) {
     const oldStock = Math.floor(Math.random() * 100); // Simulate DB lookup
 
@@ -621,15 +633,15 @@ export const orderCreatedEvent = event<{
   items: Array<{ productId: string; quantity: number; price: number }>;
 }>({
   id: "app.orders.events.created",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    userId: z.string(),
-    totalAmount: z.number().positive(),
-    items: z.array(
-      z.object({
-        productId: z.string(),
-        quantity: z.number().int().positive(),
-        price: z.number().positive(),
+  payloadSchema: defineSchema({
+    orderId: String,
+    userId: String,
+    totalAmount: positiveNumber,
+    items: Match.ArrayOf(
+      defineSchema({
+        productId: String,
+        quantity: Match.PositiveInteger,
+        price: positiveNumber,
       })
     ),
   }),
@@ -642,11 +654,11 @@ export const orderPaidEvent = event<{
   paymentMethod: string;
 }>({
   id: "app.orders.events.paid",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    paymentId: z.string(),
-    amount: z.number().positive(),
-    paymentMethod: z.string(),
+  payloadSchema: defineSchema({
+    orderId: String,
+    paymentId: String,
+    amount: positiveNumber,
+    paymentMethod: String,
   }),
 });
 
@@ -657,11 +669,11 @@ export const orderShippedEvent = event<{
   estimatedDelivery: Date;
 }>({
   id: "app.orders.events.shipped",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    trackingNumber: z.string(),
-    carrier: z.string(),
-    estimatedDelivery: z.date(),
+  payloadSchema: defineSchema({
+    orderId: String,
+    trackingNumber: String,
+    carrier: String,
+    estimatedDelivery: Date,
   }),
 });
 
@@ -703,19 +715,19 @@ export const createOrderTask = task({
     apiTag.with({ method: "POST", path: "/api/orders" }),
     securityTag.with({ requiresAuth: true }),
   ],
-  inputSchema: z.object({
-    userId: z.string(),
-    items: z.array(
-      z.object({
-        productId: z.string(),
-        quantity: z.number().int().positive(),
+  inputSchema: defineSchema({
+    userId: String,
+    items: Match.ArrayOf(
+      defineSchema({
+        productId: String,
+        quantity: Match.PositiveInteger,
       })
     ),
   }),
-  resultSchema: z.object({
-    orderId: z.string(),
-    totalAmount: z.number(),
-    status: z.string(),
+  resultSchema: defineSchema({
+    orderId: String,
+    totalAmount: Number,
+    status: String,
   }),
   async run(input, { emitOrderCreated }) {
     const orderId = `order_${Date.now()}`;
@@ -765,18 +777,18 @@ export const processPaymentTask = task({
     apiTag.with({ method: "POST", path: "/api/orders/{id}/payment" }),
     securityTag.with({ requiresAuth: true }),
   ],
-  inputSchema: z.object({
-    orderId: z.string(),
-    paymentMethod: z.string(),
-    paymentDetails: z.object({
-      cardToken: z.string(),
-      amount: z.number().positive(),
+  inputSchema: defineSchema({
+    orderId: String,
+    paymentMethod: String,
+    paymentDetails: defineSchema({
+      cardToken: String,
+      amount: positiveNumber,
     }),
   }),
-  resultSchema: z.object({
-    paymentId: z.string(),
-    status: z.string(),
-    orderId: z.string(),
+  resultSchema: defineSchema({
+    paymentId: String,
+    status: String,
+    orderId: String,
   }),
   async run(input, { emitOrderPaid }) {
     const paymentId = `payment_${Date.now()}`;
@@ -813,11 +825,11 @@ export const emailSentEvent = event<{
   metadata: Record<string, any>;
 }>({
   id: "app.notifications.events.emailSent",
-  payloadSchema: z.object({
-    emailId: z.string(),
-    to: z.string().email(),
-    template: z.string(),
-    metadata: z.record(z.any()),
+  payloadSchema: defineSchema({
+    emailId: String,
+    to: Match.Email,
+    template: String,
+    metadata: Match.MapOf(Match.Any),
   }),
 });
 
@@ -828,11 +840,11 @@ export const webhookDeliveredEvent = event<{
   statusCode: number;
 }>({
   id: "app.notifications.events.webhookDelivered",
-  payloadSchema: z.object({
-    webhookId: z.string(),
-    url: z.string().url(),
-    payload: z.record(z.any()),
-    statusCode: z.number().int(),
+  payloadSchema: defineSchema({
+    webhookId: String,
+    url: Match.URL,
+    payload: Match.MapOf(Match.Any),
+    statusCode: Match.Integer,
   }),
 });
 
@@ -843,10 +855,10 @@ export const emailServiceResource = resource({
     title: "Email Service",
     description: "SendGrid email delivery service",
   },
-  configSchema: z.object({
-    apiKey: z.string(),
-    fromEmail: z.string().email(),
-    fromName: z.string(),
+  configSchema: defineSchema({
+    apiKey: String,
+    fromEmail: Match.Email,
+    fromName: String,
   }),
   tags: [domainTag.with({ domain: "notifications" })],
   async init(config: { apiKey: string; fromEmail: string; fromName: string }) {
@@ -875,14 +887,14 @@ export const sendWelcomeEmailTask = task({
     domainTag.with({ domain: "notifications" }),
     apiTag.with({ method: "POST", path: "/api/notifications/welcome-email" }),
   ],
-  inputSchema: z.object({
-    userId: z.string(),
-    email: z.string().email(),
-    firstName: z.string(),
+  inputSchema: defineSchema({
+    userId: String,
+    email: Match.Email,
+    firstName: String,
   }),
-  resultSchema: z.object({
-    emailId: z.string(),
-    sent: z.boolean(),
+  resultSchema: defineSchema({
+    emailId: String,
+    sent: Boolean,
   }),
   async run(input, { emitEmailSent }) {
     const emailId = `email_${Date.now()}`;
@@ -1162,11 +1174,12 @@ export function createRandomApp(config: RandomAppConfig = {}) {
     tag<{ note?: string }>({
       id: `app.random.tags.${String(i + 1).padStart(3, "0")}`,
       meta: { title: `Random Tag ${i + 1}`, description: "Auto-generated" },
-      configSchema: z
-        .object({
-          note: z.string().optional(),
-        })
-        .strict(),
+      configSchema: defineSchema(
+        {
+          note: Match.Optional(String),
+        },
+        { exact: true }
+      ),
     })
   );
 
@@ -1180,11 +1193,12 @@ export function createRandomApp(config: RandomAppConfig = {}) {
           title: `Random Middleware ${i + 1}`,
           description: "Auto-generated middleware",
         },
-        configSchema: z
-          .object({
-            level: z.enum(["debug", "info", "warn", "error"]).optional(),
-          })
-          .strict(),
+        configSchema: defineSchema(
+          {
+            level: Match.Optional(Match.OneOf("debug", "info", "warn", "error")),
+          },
+          { exact: true }
+        ),
         async run({ task, next }, _evt, _config) {
           const start = Date.now();
           const res = await next(task.input);
@@ -1202,12 +1216,13 @@ export function createRandomApp(config: RandomAppConfig = {}) {
   const eventDefs = Array.from({ length: EVT_COUNT }, (_, i) =>
     event<{ seq: number; payload: Record<string, any> }>({
       id: `app.random.events.${String(i + 1).padStart(3, "0")}`,
-      payloadSchema: z
-        .object({
-          seq: z.number().int(),
-          payload: z.record(z.any()),
-        })
-        .strict(),
+      payloadSchema: defineSchema(
+        {
+          seq: Match.Integer,
+          payload: Match.MapOf(Match.Any),
+        },
+        { exact: true }
+      ),
       tags: maybeTags(rng, tagDefs, 2),
     })
   );
@@ -1274,15 +1289,21 @@ export function createRandomApp(config: RandomAppConfig = {}) {
         description: "Auto-generated task",
       },
       tags: maybeTags(rng, tagDefs, 3),
-      inputSchema: z
-        .object({
-          input: z.any().optional(),
-          n: z.number().int().optional(),
-        })
-        .strict(),
-      resultSchema: z
-        .object({ ok: z.boolean(), id: z.string(), tookMs: z.number().int() })
-        .strict(),
+      inputSchema: defineSchema(
+        {
+          input: Match.Optional(Match.Any),
+          n: Match.Optional(Match.Integer),
+        },
+        { exact: true }
+      ),
+      resultSchema: defineSchema(
+        {
+          ok: Boolean,
+          id: String,
+          tookMs: Match.Integer,
+        },
+        { exact: true }
+      ),
       async run(input, deps: Record<string, any>) {
         const t0 = Date.now();
         // Emit any events present in deps (keys starting with 'emit') once

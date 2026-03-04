@@ -3,7 +3,11 @@ import {
   durableWorkflowTag,
   memoryDurableResource,
 } from "@bluelibs/runner/node";
-import { z } from "zod";
+import {
+  DurableExecutionIdResultSchema,
+  DurableOrderApprovalInputSchema,
+  DurableOrderApprovalResultSchema,
+} from "./schemas";
 
 const riskScoreByRegion = {
   US: 3,
@@ -24,14 +28,11 @@ function buildApprovalReference(orderId: string, riskScore: number): string {
   return `APR-${suffix}-${riskScore}`;
 }
 
-const durableOrderApprovalInputSchema = z.object({
-  orderId: z.string(),
-  amount: z.number().positive(),
-  region: z.enum(["US", "EU", "APAC"]),
-});
-type DurableOrderApprovalInput = z.infer<
-  typeof durableOrderApprovalInputSchema
->;
+type DurableOrderApprovalInput = {
+  orderId: string;
+  amount: number;
+  region: "US" | "EU" | "APAC";
+};
 
 function normalizeDurableOrderApprovalInput(
   input: DurableOrderApprovalInput | null | undefined
@@ -52,18 +53,6 @@ function normalizeDurableOrderApprovalInput(
   return { orderId, amount, region };
 }
 
-const durableOrderApprovalResultSchema = z.object({
-  orderId: z.string(),
-  status: z.literal("approved"),
-  riskScore: z.number().min(0).max(100),
-  approvalReference: z.string(),
-  cooldownMs: z.number().int().nonnegative(),
-});
-
-const durableExecutionIdResultSchema = z.object({
-  executionId: z.string(),
-});
-
 export const showcaseDurableResource = memoryDurableResource.fork(
   "app.examples.durable.runtime"
 );
@@ -79,8 +68,8 @@ export const durableOrderApprovalTask = r
   })
   .dependencies({ durable: showcaseDurableResource })
   .tags([durableWorkflowTag])
-  .inputSchema(durableOrderApprovalInputSchema)
-  .resultSchema(durableOrderApprovalResultSchema)
+  .inputSchema(DurableOrderApprovalInputSchema)
+  .resultSchema(DurableOrderApprovalResultSchema)
   .run(async (input, { durable }) => {
     const ctx = durable.use();
     const workflowInput = normalizeDurableOrderApprovalInput(input);
@@ -121,8 +110,8 @@ export const runDurableOrderApprovalTask = r
     durable: showcaseDurableResource,
     durableOrderApprovalTask,
   })
-  .inputSchema(durableOrderApprovalInputSchema)
-  .resultSchema(durableOrderApprovalResultSchema)
+  .inputSchema(DurableOrderApprovalInputSchema)
+  .resultSchema(DurableOrderApprovalResultSchema)
   .run(async (input, { durable }) =>
     durable.execute(durableOrderApprovalTask, input)
   )
@@ -139,8 +128,8 @@ export const startDurableOrderApprovalTask = r
     durable: showcaseDurableResource,
     durableOrderApprovalTask,
   })
-  .inputSchema(durableOrderApprovalInputSchema)
-  .resultSchema(durableExecutionIdResultSchema)
+  .inputSchema(DurableOrderApprovalInputSchema)
+  .resultSchema(DurableExecutionIdResultSchema)
   .run(async (input, { durable }) => {
     const executionId = await durable.startExecution(
       durableOrderApprovalTask,

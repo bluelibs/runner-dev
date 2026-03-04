@@ -1,8 +1,5 @@
 import { RegisterableItems, r } from "@bluelibs/runner";
-import {
-  InterceptorInputSchema,
-  InterceptorResultSchema,
-} from "./schemas";
+import { InterceptorInputSchema, InterceptorResultSchema } from "./schemas";
 
 export const interceptorBaseTask = r
   .task("app.examples.interceptors.tasks.base")

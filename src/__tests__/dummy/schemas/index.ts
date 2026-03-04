@@ -36,5 +36,6 @@ export const nonNegativeIntegerPattern = Match.Where(
 
 export const minimumLengthPattern = (length: number) =>
   Match.Where(
-    (value): value is string => typeof value === "string" && value.length >= length
+    (value): value is string =>
+      typeof value === "string" && value.length >= length
   );

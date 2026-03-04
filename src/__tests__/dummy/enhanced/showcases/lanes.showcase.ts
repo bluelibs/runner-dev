@@ -39,12 +39,14 @@ const createRpcCommunicatorResource = (id: string) =>
 
 const catalogUpdatesQueueResource = r
   .resource("app.examples.queues.catalog-updates")
-  .init(async (): Promise<IEventLaneQueue> => ({
-    enqueue: async () => "message-1",
-    consume: async () => undefined,
-    ack: async () => undefined,
-    nack: async () => undefined,
-  }))
+  .init(
+    async (): Promise<IEventLaneQueue> => ({
+      enqueue: async () => "message-1",
+      consume: async () => undefined,
+      ack: async () => undefined,
+      nack: async () => undefined,
+    })
+  )
   .build();
 
 const pricingCommunicatorResource = createRpcCommunicatorResource(
@@ -188,21 +190,22 @@ const eventLanesShowcaseConfig: EventLanesResourceConfig = {
 export const eventLanesShowcaseRegistration: RegisterableItems =
   eventLanesShowcaseResource.with(eventLanesShowcaseConfig);
 
-const rpcLanesShowcaseOverride = r.override(
-  rpcLanesShowcaseResource,
-  (async (config, _dependencies, _context) => ({
-    profile: config.profile,
-    mode: "network",
-    serveTaskIds: [],
-    serveEventIds: [],
-    taskAllowAsyncContext: {},
-    eventAllowAsyncContext: {},
-    taskAsyncContextAllowList: {},
-    eventAsyncContextAllowList: {},
-    communicatorByLaneId: new Map(),
-    exposure: null,
-  })) satisfies NonNullable<typeof rpcLanesShowcaseResource.init>
-);
+const rpcLanesShowcaseOverride = r.override(rpcLanesShowcaseResource, (async (
+  config,
+  _dependencies,
+  _context
+) => ({
+  profile: config.profile,
+  mode: "network",
+  serveTaskIds: [],
+  serveEventIds: [],
+  taskAllowAsyncContext: {},
+  eventAllowAsyncContext: {},
+  taskAsyncContextAllowList: {},
+  eventAsyncContextAllowList: {},
+  communicatorByLaneId: new Map(),
+  exposure: null,
+})) satisfies NonNullable<typeof rpcLanesShowcaseResource.init>);
 
 const eventLanesShowcaseOverride = r.override(
   eventLanesShowcaseResource,

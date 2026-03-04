@@ -48,7 +48,15 @@ export const apiTag = tag<{ method: string; path: string }>({
   id: "app.tags.api",
   configSchema: defineSchema(
     {
-      method: Match.OneOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"),
+      method: Match.OneOf(
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS",
+        "HEAD"
+      ),
       path: String,
     },
     { exact: true }
@@ -1195,7 +1203,9 @@ export function createRandomApp(config: RandomAppConfig = {}) {
         },
         configSchema: defineSchema(
           {
-            level: Match.Optional(Match.OneOf("debug", "info", "warn", "error")),
+            level: Match.Optional(
+              Match.OneOf("debug", "info", "warn", "error")
+            ),
           },
           { exact: true }
         ),

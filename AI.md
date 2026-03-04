@@ -24,14 +24,14 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 
 ## Runner 6.0 Migration Notes
 
-| Before | After (hard switch) |
-| --- | --- |
-| `Resource.exports` | `Resource.isolation { deny, only, exports, exportsMode }` |
-| `Middleware.global` | `Middleware.autoApply { enabled, scope, hasPredicate }` |
-| `Tag.middlewares` | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares` |
-| N/A | `Tag.errors`, `Tag.targets` |
-| `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ disposal budgets) |
-| `Resource.tunnelInfo` | Removed (hard switch to Event Lane + RPC Lane surfaces) |
+| Before                | After (hard switch)                                       |
+| --------------------- | --------------------------------------------------------- |
+| `Resource.exports`    | `Resource.isolation { deny, only, exports, exportsMode }` |
+| `Middleware.global`   | `Middleware.autoApply { enabled, scope, hasPredicate }`   |
+| `Tag.middlewares`     | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares`         |
+| N/A                   | `Tag.errors`, `Tag.targets`                               |
+| `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ disposal budgets)           |
+| `Resource.tunnelInfo` | Removed (hard switch to Event Lane + RPC Lane surfaces)   |
 
 ## Available GraphQL Queries
 

@@ -1,5 +1,8 @@
 import { RegisterableItems, r } from "@bluelibs/runner";
-import { enhancedShowcaseRegistrations, enhancedShowcaseOverrides } from "./showcases";
+import {
+  enhancedShowcaseRegistrations,
+  enhancedShowcaseOverrides,
+} from "./showcases";
 
 export {
   featuredTag,

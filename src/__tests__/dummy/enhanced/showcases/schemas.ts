@@ -53,7 +53,11 @@ export class CatalogSearchResultSchema {
   total!: number;
 }
 applyField(CatalogSearchResultSchema.prototype, "query", String);
-applyField(CatalogSearchResultSchema.prototype, "total", nonNegativeIntegerPattern);
+applyField(
+  CatalogSearchResultSchema.prototype,
+  "total",
+  nonNegativeIntegerPattern
+);
 
 @schema()
 export class FeaturedInspectorResultSchema {
@@ -78,7 +82,11 @@ export class RpcPricingPreviewInputSchema {
   region?: "US" | "EU" | "APAC";
 }
 applyField(RpcPricingPreviewInputSchema.prototype, "sku", String);
-applyField(RpcPricingPreviewInputSchema.prototype, "basePrice", positiveNumberPattern);
+applyField(
+  RpcPricingPreviewInputSchema.prototype,
+  "basePrice",
+  positiveNumberPattern
+);
 applyField(
   RpcPricingPreviewInputSchema.prototype,
   "region",
@@ -147,7 +155,11 @@ applyField(
   "supplierId",
   String
 );
-applyField(LaneCatalogProjectionUpdatedPayloadSchema.prototype, "projectedAt", Date);
+applyField(
+  LaneCatalogProjectionUpdatedPayloadSchema.prototype,
+  "projectedAt",
+  Date
+);
 
 @schema()
 export class DurableOrderApprovalInputSchema {
@@ -156,7 +168,11 @@ export class DurableOrderApprovalInputSchema {
   region!: "US" | "EU" | "APAC";
 }
 applyField(DurableOrderApprovalInputSchema.prototype, "orderId", String);
-applyField(DurableOrderApprovalInputSchema.prototype, "amount", positiveNumberPattern);
+applyField(
+  DurableOrderApprovalInputSchema.prototype,
+  "amount",
+  positiveNumberPattern
+);
 applyField(
   DurableOrderApprovalInputSchema.prototype,
   "region",
@@ -188,7 +204,11 @@ applyField(
       value <= 100
   )
 );
-applyField(DurableOrderApprovalResultSchema.prototype, "approvalReference", String);
+applyField(
+  DurableOrderApprovalResultSchema.prototype,
+  "approvalReference",
+  String
+);
 applyField(
   DurableOrderApprovalResultSchema.prototype,
   "cooldownMs",
@@ -207,7 +227,11 @@ export class SupportProbeInputSchema {
   requestId?: string;
 }
 applyField(SupportProbeInputSchema.prototype, "fail", Match.Optional(Boolean));
-applyField(SupportProbeInputSchema.prototype, "requestId", Match.Optional(String));
+applyField(
+  SupportProbeInputSchema.prototype,
+  "requestId",
+  Match.Optional(String)
+);
 
 @schema()
 export class SupportProbeResultSchema {

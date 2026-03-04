@@ -36,7 +36,7 @@ export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
       requiresAuth: Boolean,
       roles: Match.Optional([String]),
     },
-    { exact: true },
+    { exact: true }
   ),
 });
 
@@ -60,11 +60,11 @@ export const apiTag = tag<{ method: string; path: string }>({
         "PATCH",
         "DELETE",
         "OPTIONS",
-        "HEAD",
+        "HEAD"
       ),
       path: String,
     },
-    { exact: true },
+    { exact: true }
   ),
 });
 
@@ -83,7 +83,7 @@ export const validationMiddleware = taskMiddleware<{
       enabled: Match.Optional(Boolean),
       mode: Match.Optional(Match.OneOf("loose", "strict")),
     },
-    { exact: true },
+    { exact: true }
   ),
   async run({ task, next }, _evt, _config) {
     // In a real app, you'd validate against task.inputSchema
@@ -101,11 +101,9 @@ export const loggingMiddleware = taskMiddleware<{
   },
   configSchema: createSchema(
     {
-      logLevel: Match.Optional(
-        Match.OneOf("debug", "info", "warn", "error"),
-      ),
+      logLevel: Match.Optional(Match.OneOf("debug", "info", "warn", "error")),
     },
-    { exact: true },
+    { exact: true }
   ),
   async run({ task, next }, _evt, _config) {
     const start = Date.now();
@@ -150,7 +148,7 @@ export const userRegisteredEvent = event<{
       email: Match.Email,
       registrationMethod: String,
     },
-    { exact: true },
+    { exact: true }
   ),
 });
 
@@ -166,7 +164,7 @@ export const userLoggedInEvent = event<{
       loginMethod: String,
       ipAddress: String,
     },
-    { exact: true },
+    { exact: true }
   ),
 });
 
@@ -182,7 +180,7 @@ export const passwordResetRequestedEvent = event<{
       email: Match.Email,
       resetToken: String,
     },
-    { exact: true },
+    { exact: true }
   ),
 });
 
@@ -255,7 +253,7 @@ export const registerUserTask = task({
       email: Match.Email,
       verificationToken: String,
     },
-    { exact: true },
+    { exact: true }
   ),
   async run(input: any, { emitUserRegistered }) {
     // Simulate user creation
@@ -313,7 +311,7 @@ export const authenticateUserTask = task({
       sessionToken: String,
       expiresAt: Date,
     },
-    { exact: true },
+    { exact: true }
   ),
   async run(input: any, { emitUserLoggedIn }) {
     // Simulate authentication
@@ -436,7 +434,7 @@ export const productCreatedEvent = event<{
       category: String,
       price: positiveNumber,
     },
-    { exact: true },
+    { exact: true }
   ),
 });
 
@@ -454,7 +452,7 @@ export const inventoryUpdatedEvent = event<{
       newStock: integerNumber,
       changeReason: String,
     },
-    { exact: true },
+    { exact: true }
   ),
 });
 
@@ -470,7 +468,7 @@ export const productOutOfStockEvent = event<{
       name: String,
       waitingListCount: integerNumber,
     },
-    { exact: true },
+    { exact: true }
   ),
 });
 
@@ -546,7 +544,7 @@ export const createProductTask = task({
       category: String,
       price: finiteNumber,
     },
-    { exact: true },
+    { exact: true }
   ),
   async run(input: any, { emitProductCreated }) {
     const productId = `product_${Date.now()}`;
@@ -603,7 +601,7 @@ export const updateInventoryTask = task({
       newStock: finiteNumber,
       isOutOfStock: Boolean,
     },
-    { exact: true },
+    { exact: true }
   ),
   async run(input: any, { emitInventoryUpdated, emitOutOfStock }) {
     const oldStock = Math.floor(Math.random() * 100); // Simulate DB lookup

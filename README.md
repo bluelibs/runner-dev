@@ -58,16 +58,16 @@ const app = resource({
 
 ## Runner 6.0 Migration Notes
 
-| Before | After (hard switch) |
-| --- | --- |
-| `Resource.exports` | `Resource.isolation { deny, only, exports, exportsMode }` |
-| `Middleware.global` | `Middleware.autoApply { enabled, scope, hasPredicate }` |
-| `Tag.middlewares` | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares` |
-| N/A | `Tag.errors`, `Tag.targets` |
-| `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ `disposeBudgetMs`, `disposeDrainBudgetMs`) |
-| N/A | `Resource.subtree`, `Resource.cooldown` |
-| N/A | `Event.transactional`, `Event.parallel`, `Event.eventLane`, `Event.rpcLane`, `Task.rpcLane` |
-| `Resource.tunnelInfo` | Removed (hard switch to lane surfaces) |
+| Before                | After (hard switch)                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| `Resource.exports`    | `Resource.isolation { deny, only, exports, exportsMode }`                                   |
+| `Middleware.global`   | `Middleware.autoApply { enabled, scope, hasPredicate }`                                     |
+| `Tag.middlewares`     | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares`                                           |
+| N/A                   | `Tag.errors`, `Tag.targets`                                                                 |
+| `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ `disposeBudgetMs`, `disposeDrainBudgetMs`)                    |
+| N/A                   | `Resource.subtree`, `Resource.cooldown`                                                     |
+| N/A                   | `Event.transactional`, `Event.parallel`, `Event.eventLane`, `Event.rpcLane`, `Task.rpcLane` |
+| `Resource.tunnelInfo` | Removed (hard switch to lane surfaces)                                                      |
 
 ## Table of Contents
 
@@ -75,7 +75,7 @@ const app = resource({
 - [Model Context Protocol (MCP) Server](#cli-usage-mcp-server)
 - [CLI Tooling & Scaffolding](#cli-usage-direct)
 - [Live Telemetry & Correlation](#live-telemetry)
-- [Hot-Swapping Debugging System](#-hot-swapping-debugging-system)
+- [Hot-Swapping Debugging System](#hot-swapping-debugging-system)
 - [GraphQL API Examples](#example-queries)
 - [API Reference](API_REFERENCE.md)
 - [Contributing & Local Dev](CONTRIBUTING.md)
@@ -105,7 +105,7 @@ export const app = resource({
 
 Once your application is running with the `dev` resource, you can access the visual DevTools UI:
 
-🚀 **Open [http://localhost:1337](http://localhost:1337) in your browser.**
+Open [http://localhost:1337](http://localhost:1337) in your browser.
 
 Inside the UI, you can:
 
@@ -706,7 +706,7 @@ export const logSomething = task({
 
 For full details on development, testing, and codegen, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 🔥 Hot-Swapping Debugging System
+## Hot-Swapping Debugging System
 
 **Revolutionary live debugging feature that allows AI assistants and developers to dynamically replace task run functions in live applications.**
 
@@ -828,7 +828,7 @@ mutation {
         await deps.emitLog({
           timestamp: new Date(),
           level: "info",
-          message: "🔍 DEBUG: Creating user started",
+          message: "DEBUG: Creating user started",
           data: { input }
         });
       }
@@ -853,7 +853,7 @@ mutation {
         await deps.emitLog({
           timestamp: new Date(),
           level: "info",
-          message: "🔍 DEBUG: User created successfully",
+          message: "DEBUG: User created successfully",
           data: { result }
         });
       }
@@ -934,7 +934,7 @@ Swapped functions can emit logs that are captured by the live telemetry system:
 # After swapping with debug logging, query the logs
 query RecentDebugLogs {
   live {
-    logs(last: 50, filter: { messageIncludes: "🔍 DEBUG" }) {
+    logs(last: 50, filter: { messageIncludes: "DEBUG" }) {
       timestampMs
       level
       message
@@ -1158,7 +1158,7 @@ The system automatically handles complex JavaScript types:
 
 For advanced debugging, the system provides an `eval` mutation to execute arbitrary JavaScript/TypeScript code on the server.
 
-**⚠️ Security Warning**: This feature is powerful and executes code with the same privileges as the application. It is intended for development environments only and is disabled by default in production. To enable it, set the environment variable `RUNNER_DEV_EVAL=1`.
+**Security Warning**: This feature is powerful and executes code with the same privileges as the application. It is intended for development environments only and is disabled by default in production. To enable it, set the environment variable `RUNNER_DEV_EVAL=1`.
 
 #### `eval` Mutation
 
@@ -1201,13 +1201,129 @@ mutation {
 
 ### Architecture
 
-The hot-swapping system consists of:
+The hot-swapping system is organized into five high-level capabilities:
 
-- **SwapManager Resource** (`src/resources/swap.resource.ts`): Core swapping logic
-- **GraphQL Types** (`src/schema/types/SwapType.ts`): Type definitions for GraphQL API
-- **GraphQL Mutations** (`src/schema/mutation.ts`): Remote swap operations
-- **TypeScript Compiler**: Automatic code compilation and validation
-- **State Management**: Tracking of swapped functions and original code
-- **Error Handling**: Comprehensive validation and recovery mechanisms
+- **Execution Control**: swaps task `run` implementations at runtime and supports rollback.
+- **Validation Pipeline**: parses and compiles submitted code before activation.
+- **API Surface**: exposes swap and restore operations through GraphQL mutations.
+- **Observability**: integrates with live telemetry so swapped behavior can be inspected immediately.
+- **Safety Controls**: isolates failures to the attempted swap and preserves previous task behavior when validation fails.
 
-The implementation maintains 100% type safety and provides extensive test coverage with both unit tests and GraphQL integration tests.
+The implementation remains fully type-safe and is covered by both unit and GraphQL integration tests.
+
+---
+
+## System Architecture
+
+### Overview
+
+Runner-Dev is built as a modular system of resources that integrate with the @bluelibs/runner framework to provide comprehensive development tools. The architecture follows a resource-based composition pattern where each component is a self-contained resource that can be registered and configured independently.
+
+### Core Components
+
+```mermaid
+graph TB
+    subgraph "Core Framework (@bluelibs/runner)"
+        App[Application Root]
+        Resource[Resources]
+        Task[Tasks]
+        Event[Events]
+        Middleware[Middleware]
+        Hook[Hooks]
+        Tag[Tags]
+    end
+
+    subgraph "DevTools Layer (@bluelibs/runner-dev)"
+        Dev[dev Resource]
+        Introspector[Introspector]
+        Live[Live Telemetry]
+        Swap[Swap Manager]
+        GraphQL[GraphQL Server]
+        MCP[MCP Server]
+    end
+
+    subgraph "Interfaces"
+        UI[React UI]
+        CLI[CLI Tools]
+        AI[AI Assistants]
+    end
+
+    App --> Dev
+    Dev --> Introspector
+    Dev --> Live
+    Dev --> Swap
+    Dev --> GraphQL
+    GraphQL --> MCP
+
+    Introspector --> Resource
+    Introspector --> Task
+    Introspector --> Event
+    Introspector --> Middleware
+    Introspector --> Hook
+    Introspector --> Tag
+
+    GraphQL --> UI
+    GraphQL --> CLI
+    MCP --> AI
+```
+
+### Component Responsibilities (High-Level)
+
+| Layer | Responsibility |
+| ----- | -------------- |
+| **Composition Layer** | Registers and wires DevTools capabilities into the Runner application lifecycle. |
+| **Introspection Layer** | Builds a runtime model of tasks, resources, events, middleware, hooks, and tags. |
+| **Observability Layer** | Captures logs, emissions, errors, runs, and health metrics for analysis. |
+| **Execution Control Layer** | Supports remote task invocation and controlled hot-swapping workflows. |
+| **Access Layer** | Exposes a GraphQL API and transports for UI, CLI, and MCP clients. |
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant App as Runner App
+    participant Dev as dev Resource
+    participant Intro as Introspector
+    participant GQL as GraphQL Server
+    participant UI as React UI
+
+    App->>Dev: register dev.with({port: 1337})
+    Dev->>Intro: walk application graph
+    Intro-->>Dev: serialized topology
+    Dev->>GQL: start server on port 1337
+
+    UI->>GQL: query { tasks { id dependsOn } }
+    GQL-->>UI: introspected data
+
+    UI->>GQL: mutation invokeTask(...)
+    GQL->>App: execute task
+    App-->>GQL: result
+    GQL-->>UI: response
+```
+
+### Key Architectural Patterns
+
+1. **Resource-Based Composition**: Everything in Runner is a resource that can be registered and composed. The dev tools themselves are resources.
+
+2. **Introspection System**: The Introspector walks the application graph at runtime, extracting metadata about:
+
+   - Tasks (dependencies, emissions, interceptors)
+   - Resources (isolation rules, subtree governance, cooldown hooks)
+   - Events (listeners, transactional/parallel modes, lanes)
+   - Middleware (auto-apply scopes, tags)
+   - Tags (cross-cutting concerns with handlers)
+
+3. **Live Telemetry**: In-memory store for recent activity with SSE streaming via `/live/stream`
+
+4. **Hot-Swapping**: Modify task implementations without restart via `swapTask` mutation
+
+5. **GraphQL API**: Full schema at `src/schema/` with queries for architecture and mutations for invocation/swapping
+
+6. **MCP Integration**: AI assistants can connect via Model Context Protocol to introspect and interact with running apps
+
+### Entry Points
+
+- **Main export**: `src/index.ts` - exports `dev` resource and types
+- **CLI entry**: `src/cli.ts` - command-line interface
+- **MCP entry**: `src/mcp.ts` - Model Context Protocol server
+- **UI entry**: `src/ui/index.html` - React documentation UI

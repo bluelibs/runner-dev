@@ -1269,13 +1269,13 @@ graph TB
 
 ### Component Responsibilities (High-Level)
 
-| Layer | Responsibility |
-| ----- | -------------- |
-| **Composition Layer** | Registers and wires DevTools capabilities into the Runner application lifecycle. |
-| **Introspection Layer** | Builds a runtime model of tasks, resources, events, middleware, hooks, and tags. |
-| **Observability Layer** | Captures logs, emissions, errors, runs, and health metrics for analysis. |
-| **Execution Control Layer** | Supports remote task invocation and controlled hot-swapping workflows. |
-| **Access Layer** | Exposes a GraphQL API and transports for UI, CLI, and MCP clients. |
+| Layer                       | Responsibility                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| **Composition Layer**       | Registers and wires DevTools capabilities into the Runner application lifecycle. |
+| **Introspection Layer**     | Builds a runtime model of tasks, resources, events, middleware, hooks, and tags. |
+| **Observability Layer**     | Captures logs, emissions, errors, runs, and health metrics for analysis.         |
+| **Execution Control Layer** | Supports remote task invocation and controlled hot-swapping workflows.           |
+| **Access Layer**            | Exposes a GraphQL API and transports for UI, CLI, and MCP clients.               |
 
 ### Data Flow
 

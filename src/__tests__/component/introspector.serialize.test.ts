@@ -1,13 +1,13 @@
-import { resource, run } from "@bluelibs/runner";
-import { createDummyApp } from "../dummy/dummyApp";
+import { defineResource, run } from "@bluelibs/runner";
+import { createDummyApp, dummyAppIds, helloTask } from "../dummy/dummyApp";
 import { introspector as introspectorResource } from "../../resources/introspector.resource";
 import { Introspector } from "../../resources/models/Introspector";
 
 describe("Introspector serialize/deserialize", () => {
   test("round-trip preserves core graph and works without store", async () => {
     let inst: any;
-    const probe = resource({
-      id: "probe.serialize",
+    const probe = defineResource({
+      id: "probe-serialize",
       dependencies: { introspector: introspectorResource },
       async init(_config, { introspector }) {
         inst = introspector;
@@ -48,8 +48,8 @@ describe("Introspector serialize/deserialize", () => {
     expect(root).toBeTruthy();
 
     // Lookups should work
-    const hello = clientInst.getTask("task.hello");
-    expect(hello?.id).toBe("task.hello");
+    const hello = clientInst.getTask(dummyAppIds.task(helloTask.id));
+    expect(hello?.id).toBe(dummyAppIds.task(helloTask.id));
 
     // Tag aggregations should work
     const tags = clientInst.getAllTags();

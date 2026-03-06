@@ -1,4 +1,4 @@
-import { run, resource } from "@bluelibs/runner";
+import { run, defineResource } from "@bluelibs/runner";
 import { resources } from "../../index";
 import { graphql as executeGraphql } from "graphql";
 import { createDummyApp } from "../dummy/dummyApp";
@@ -8,8 +8,8 @@ describe("GraphQL aggregator (registry)", () => {
   test("registry builds base schema (no extension hooks)", async () => {
     let schema: any;
 
-    const plugin = resource({
-      id: "probe.graphql-aggregator.plugin",
+    const plugin = defineResource({
+      id: "probe-graphql-aggregator-plugin",
       dependencies: { graphql: resources.graphql },
       async init(_config, { graphql }) {
         schema = graphql.getSchema();

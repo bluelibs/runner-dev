@@ -1,4 +1,4 @@
-import { resource } from "@bluelibs/runner";
+import { defineResource } from "@bluelibs/runner";
 import type { Introspector } from "./models/Introspector";
 import { introspector } from "./introspector.resource";
 import * as fs from "fs";
@@ -202,8 +202,8 @@ ${mdSchema("Config Schema", m.configSchema)}
   }
 }
 
-export const docsGenerator = resource({
-  id: "runner-dev.resources.docs-generator",
+export const docsGenerator = defineResource({
+  id: "runner-dev-resources-docs-generator",
   meta: {
     title: "Documentation Generator",
     description:

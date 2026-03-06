@@ -1,6 +1,6 @@
 export const EVENT_LANE_TAG_ID = "runner.tags.eventLane";
 export const RPC_LANE_TAG_ID = "runner.tags.rpcLane";
-export const EVENT_LANES_RESOURCE_ID = "globals.resources.node.eventLanes";
+export const EVENT_LANES_RESOURCE_ID = "runner.node.eventLanes";
 export const EVENT_LANES_RESOURCE_TAG_ID = "runner.tags.eventLanes";
 export const RPC_LANES_RESOURCE_ID = "platform.node.resources.rpcLanes";
 export const RPC_LANES_RESOURCE_TAG_ID = "runner.tags.rpcLanes";

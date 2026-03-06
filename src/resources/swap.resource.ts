@@ -1,4 +1,4 @@
-import { globals, resource } from "@bluelibs/runner";
+import { resources, defineResource } from "@bluelibs/runner";
 import { introspector } from "./introspector.resource";
 import {
   compileRunFunction,
@@ -66,18 +66,18 @@ export interface ISwapManager {
   runnerEval(code: string): Promise<EvalResult>;
 }
 
-export const swapManager = resource({
-  id: "runner-dev.resources.swap-manager",
+export const swapManager = defineResource({
+  id: "runner-dev-resources-swap-manager",
   meta: {
     title: "Task Swap Manager",
     description:
       "Enables runtime swapping of task implementations and provides task/event invocation capabilities for development",
   },
   dependencies: {
-    store: globals.resources.store,
-    taskRunner: globals.resources.taskRunner,
+    store: resources.store,
+    taskRunner: resources.taskRunner,
     introspector,
-    eventManager: globals.resources.eventManager,
+    eventManager: resources.eventManager,
   },
   async init(
     _,
@@ -422,7 +422,7 @@ export const swapManager = resource({
           const dependencies = {
             store,
             introspector,
-            globals,
+            globals: resources,
             taskRunner,
             eventManager,
           };

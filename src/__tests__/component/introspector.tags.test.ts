@@ -1,12 +1,17 @@
-import { createDummyApp, areaTag, helloTask } from "../dummy/dummyApp";
-import { resource, run } from "@bluelibs/runner";
+import {
+  createDummyApp,
+  areaTag,
+  dummyAppIds,
+  helloTask,
+} from "../dummy/dummyApp";
+import { defineResource, run } from "@bluelibs/runner";
 import { introspector } from "../../resources/introspector.resource";
 
 describe("Introspector Tags", () => {
   it("collects all tags and provides reverse lookups", async () => {
     let i: any;
-    const probe = resource({
-      id: "probe.introspector-tags",
+    const probe = defineResource({
+      id: "probe-introspector-tags",
       dependencies: { introspector },
       async init(_c, { introspector }) {
         i = introspector;
@@ -17,13 +22,17 @@ describe("Introspector Tags", () => {
 
     const allTags = i.getAllTags();
     expect(allTags.map((t: any) => t.id)).toEqual(
-      expect.arrayContaining([areaTag.id])
+      expect.arrayContaining([dummyAppIds.tag(areaTag.id)])
     );
 
-    const tTasks = i.getTasksWithTag(areaTag.id).map((t: any) => t.id);
-    expect(tTasks).toEqual(expect.arrayContaining([helloTask.id]));
+    const tTasks = i
+      .getTasksWithTag(dummyAppIds.tag(areaTag.id))
+      .map((t: any) => t.id);
+    expect(tTasks).toEqual(
+      expect.arrayContaining([dummyAppIds.task(helloTask.id)])
+    );
 
-    const tHooks = i.getHooksWithTag(areaTag.id);
+    const tHooks = i.getHooksWithTag(dummyAppIds.tag(areaTag.id));
     expect(tHooks.length).toBeGreaterThan(0);
   });
 });

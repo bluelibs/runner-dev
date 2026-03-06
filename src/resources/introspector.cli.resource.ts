@@ -1,10 +1,10 @@
-import { resource } from "@bluelibs/runner";
+import { defineResource } from "@bluelibs/runner";
 import { Introspector } from "./models/Introspector";
 import { initializeFromStore } from "./models/initializeFromStore";
 import { cliConfig } from "./cli.config.resource";
 
-export const introspectorCli = resource({
-  id: "runner-dev.resources.introspector-cli",
+export const introspectorCli = defineResource({
+  id: "runner-dev-resources-introspector-cli",
   meta: {
     title: "CLI Application Introspector",
     description:

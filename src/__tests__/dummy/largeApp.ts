@@ -1,11 +1,11 @@
 import {
   Match,
-  taskMiddleware,
-  resource,
-  task,
-  hook,
-  event,
-  tag,
+  defineTaskMiddleware,
+  defineResource,
+  defineTask,
+  defineHook,
+  defineEvent,
+  defineTag,
 } from "@bluelibs/runner";
 import { dev } from "../../resources/dev.resource";
 import {
@@ -20,16 +20,19 @@ import {
 // ====================
 
 // Tags for categorization
-export const performanceTag = tag<{ warnAboveMs: number }>({
-  id: "app.tags.performance",
+export const performanceTag = defineTag<{ warnAboveMs: number }>({
+  id: "app-tags-performance",
   meta: { title: "xxx yyy" },
   configSchema: defineSchema({
     warnAboveMs: Match.PositiveInteger,
   }),
 });
 
-export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
-  id: "app.tags.security",
+export const securityTag = defineTag<{
+  requiresAuth: boolean;
+  roles?: string[];
+}>({
+  id: "app-tags-security",
   configSchema: defineSchema(
     {
       requiresAuth: Boolean,
@@ -39,13 +42,13 @@ export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
   ),
 });
 
-export const domainTag = tag<{ domain: string }>({
-  id: "app.tags.domain",
+export const domainTag = defineTag<{ domain: string }>({
+  id: "app-tags-domain",
   configSchema: defineSchema({ domain: String }),
 });
 
-export const apiTag = tag<{ method: string; path: string }>({
-  id: "app.tags.api",
+export const apiTag = defineTag<{ method: string; path: string }>({
+  id: "app-tags-api",
   configSchema: defineSchema(
     {
       method: Match.OneOf(
@@ -64,11 +67,11 @@ export const apiTag = tag<{ method: string; path: string }>({
 });
 
 // Global middleware
-export const validationMiddleware = taskMiddleware<{
+export const validationMiddleware = defineTaskMiddleware<{
   enabled?: boolean;
   mode?: "loose" | "strict";
 }>({
-  id: "app.middleware.validation",
+  id: "app-middleware-validation",
   meta: {
     title: "Input Validation Middleware",
     description: "Validates task inputs and results using schemas",
@@ -86,10 +89,10 @@ export const validationMiddleware = taskMiddleware<{
   },
 });
 
-export const loggingMiddleware = taskMiddleware<{
+export const loggingMiddleware = defineTaskMiddleware<{
   logLevel?: "debug" | "info" | "warn" | "error";
 }>({
-  id: "app.middleware.logging",
+  id: "app-middleware-logging",
   meta: {
     title: "Activity Logging Middleware",
     description: "Logs all task executions with performance metrics",
@@ -110,8 +113,8 @@ export const loggingMiddleware = taskMiddleware<{
   },
 });
 
-export const authMiddleware = taskMiddleware<{ required: boolean }>({
-  id: "app.middleware.auth",
+export const authMiddleware = defineTaskMiddleware<{ required: boolean }>({
+  id: "app-middleware-auth",
   meta: {
     title: "Authentication Middleware",
     description: "Validates user authentication and permissions",
@@ -131,12 +134,12 @@ export const authMiddleware = taskMiddleware<{ required: boolean }>({
 // ====================
 
 // Events
-export const userRegisteredEvent = event<{
+export const userRegisteredEvent = defineEvent<{
   userId: string;
   email: string;
   registrationMethod: string;
 }>({
-  id: "app.users.events.registered",
+  id: "app-users-events-registered",
   payloadSchema: defineSchema(
     {
       userId: String,
@@ -147,12 +150,12 @@ export const userRegisteredEvent = event<{
   ),
 });
 
-export const userLoggedInEvent = event<{
+export const userLoggedInEvent = defineEvent<{
   userId: string;
   loginMethod: string;
   ipAddress: string;
 }>({
-  id: "app.users.events.loggedIn",
+  id: "app-users-events-loggedIn",
   payloadSchema: defineSchema(
     {
       userId: String,
@@ -163,12 +166,12 @@ export const userLoggedInEvent = event<{
   ),
 });
 
-export const passwordResetRequestedEvent = event<{
+export const passwordResetRequestedEvent = defineEvent<{
   userId: string;
   email: string;
   resetToken: string;
 }>({
-  id: "app.users.events.passwordResetRequested",
+  id: "app-users-events-passwordResetRequested",
   payloadSchema: defineSchema(
     {
       userId: String,
@@ -180,8 +183,8 @@ export const passwordResetRequestedEvent = event<{
 });
 
 // Resources
-export const userDatabaseResource = resource({
-  id: "app.users.resources.database",
+export const userDatabaseResource = defineResource({
+  id: "app-users-resources-database",
   meta: {
     title: "User Database",
     description: "PostgreSQL database for user data",
@@ -195,8 +198,8 @@ export const userDatabaseResource = resource({
   },
 });
 
-export const sessionStoreResource = resource({
-  id: "app.users.resources.sessionStore",
+export const sessionStoreResource = defineResource({
+  id: "app-users-resources-sessionStore",
   meta: {
     title: "Session Store",
     description: "Redis-based session storage",
@@ -216,8 +219,8 @@ export const sessionStoreResource = resource({
 });
 
 // Tasks
-export const registerUserTask = task({
-  id: "app.users.tasks.register",
+export const registerUserTask = defineTask({
+  id: "app-users-tasks-register",
   dependencies: () => ({
     db: userDatabaseResource,
     emitUserRegistered: userRegisteredEvent,
@@ -274,8 +277,8 @@ export const registerUserTask = task({
   },
 });
 
-export const authenticateUserTask = task({
-  id: "app.users.tasks.authenticate",
+export const authenticateUserTask = defineTask({
+  id: "app-users-tasks-authenticate",
   dependencies: () => ({
     db: userDatabaseResource,
     sessionStore: sessionStoreResource,
@@ -329,8 +332,8 @@ export const authenticateUserTask = task({
   },
 });
 
-export const requestPasswordResetTask = task({
-  id: "app.users.tasks.requestPasswordReset",
+export const requestPasswordResetTask = defineTask({
+  id: "app-users-tasks-requestPasswordReset",
   dependencies: () => ({
     db: userDatabaseResource,
     emitPasswordResetRequested: passwordResetRequestedEvent,
@@ -376,8 +379,8 @@ export const requestPasswordResetTask = task({
 });
 
 // Hooks
-export const userRegistrationLoggerHook = hook({
-  id: "app.users.hooks.registrationLogger",
+export const userRegistrationLoggerHook = defineHook({
+  id: "app-users-hooks-registrationLogger",
   on: userRegisteredEvent,
   dependencies: { db: userDatabaseResource },
   meta: {
@@ -393,8 +396,8 @@ export const userRegistrationLoggerHook = hook({
   },
 });
 
-export const userLoginLoggerHook = hook({
-  id: "app.users.hooks.loginLogger",
+export const userLoginLoggerHook = defineHook({
+  id: "app-users-hooks-loginLogger",
   on: userLoggedInEvent,
   dependencies: { db: userDatabaseResource },
   meta: {
@@ -415,13 +418,13 @@ export const userLoginLoggerHook = hook({
 // ====================
 
 // Events
-export const productCreatedEvent = event<{
+export const productCreatedEvent = defineEvent<{
   productId: string;
   name: string;
   category: string;
   price: number;
 }>({
-  id: "app.products.events.created",
+  id: "app-products-events-created",
   payloadSchema: defineSchema(
     {
       productId: String,
@@ -433,13 +436,13 @@ export const productCreatedEvent = event<{
   ),
 });
 
-export const inventoryUpdatedEvent = event<{
+export const inventoryUpdatedEvent = defineEvent<{
   productId: string;
   oldStock: number;
   newStock: number;
   changeReason: string;
 }>({
-  id: "app.products.events.inventoryUpdated",
+  id: "app-products-events-inventoryUpdated",
   payloadSchema: defineSchema(
     {
       productId: String,
@@ -451,12 +454,12 @@ export const inventoryUpdatedEvent = event<{
   ),
 });
 
-export const productOutOfStockEvent = event<{
+export const productOutOfStockEvent = defineEvent<{
   productId: string;
   name: string;
   waitingListCount: number;
 }>({
-  id: "app.products.events.outOfStock",
+  id: "app-products-events-outOfStock",
   payloadSchema: defineSchema(
     {
       productId: String,
@@ -468,8 +471,8 @@ export const productOutOfStockEvent = event<{
 });
 
 // Resources
-export const productDatabaseResource = resource({
-  id: "app.products.resources.database",
+export const productDatabaseResource = defineResource({
+  id: "app-products-resources-database",
   meta: {
     title: "Product Database",
     description: "Database for product catalog and inventory",
@@ -483,8 +486,8 @@ export const productDatabaseResource = resource({
   },
 });
 
-export const inventoryCacheResource = resource({
-  id: "app.products.resources.inventoryCache",
+export const inventoryCacheResource = defineResource({
+  id: "app-products-resources-inventoryCache",
   meta: {
     title: "Inventory Cache",
     description: "Redis cache for inventory levels",
@@ -504,8 +507,8 @@ export const inventoryCacheResource = resource({
 });
 
 // Tasks
-export const createProductTask = task({
-  id: "app.products.tasks.create",
+export const createProductTask = defineTask({
+  id: "app-products-tasks-create",
   dependencies: () => ({
     db: productDatabaseResource,
     emitProductCreated: productCreatedEvent,
@@ -562,8 +565,8 @@ export const createProductTask = task({
   },
 });
 
-export const updateInventoryTask = task({
-  id: "app.products.tasks.updateInventory",
+export const updateInventoryTask = defineTask({
+  id: "app-products-tasks-updateInventory",
   dependencies: () => ({
     db: productDatabaseResource,
     cache: inventoryCacheResource,
@@ -634,13 +637,13 @@ export const updateInventoryTask = task({
 // ====================
 
 // Events
-export const orderCreatedEvent = event<{
+export const orderCreatedEvent = defineEvent<{
   orderId: string;
   userId: string;
   totalAmount: number;
   items: Array<{ productId: string; quantity: number; price: number }>;
 }>({
-  id: "app.orders.events.created",
+  id: "app-orders-events-created",
   payloadSchema: defineSchema({
     orderId: String,
     userId: String,
@@ -655,13 +658,13 @@ export const orderCreatedEvent = event<{
   }),
 });
 
-export const orderPaidEvent = event<{
+export const orderPaidEvent = defineEvent<{
   orderId: string;
   paymentId: string;
   amount: number;
   paymentMethod: string;
 }>({
-  id: "app.orders.events.paid",
+  id: "app-orders-events-paid",
   payloadSchema: defineSchema({
     orderId: String,
     paymentId: String,
@@ -670,13 +673,13 @@ export const orderPaidEvent = event<{
   }),
 });
 
-export const orderShippedEvent = event<{
+export const orderShippedEvent = defineEvent<{
   orderId: string;
   trackingNumber: string;
   carrier: string;
   estimatedDelivery: Date;
 }>({
-  id: "app.orders.events.shipped",
+  id: "app-orders-events-shipped",
   payloadSchema: defineSchema({
     orderId: String,
     trackingNumber: String,
@@ -686,8 +689,8 @@ export const orderShippedEvent = event<{
 });
 
 // Resources
-export const orderDatabaseResource = resource({
-  id: "app.orders.resources.database",
+export const orderDatabaseResource = defineResource({
+  id: "app-orders-resources-database",
   meta: {
     title: "Order Database",
     description: "Database for orders and fulfillment",
@@ -702,8 +705,8 @@ export const orderDatabaseResource = resource({
 });
 
 // Tasks
-export const createOrderTask = task({
-  id: "app.orders.tasks.create",
+export const createOrderTask = defineTask({
+  id: "app-orders-tasks-create",
   dependencies: () => ({
     db: orderDatabaseResource,
     productDb: productDatabaseResource,
@@ -765,8 +768,8 @@ export const createOrderTask = task({
   },
 });
 
-export const processPaymentTask = task({
-  id: "app.orders.tasks.processPayment",
+export const processPaymentTask = defineTask({
+  id: "app-orders-tasks-processPayment",
   dependencies: () => ({
     db: orderDatabaseResource,
     emitOrderPaid: orderPaidEvent,
@@ -826,13 +829,13 @@ export const processPaymentTask = task({
 // ====================
 
 // Events
-export const emailSentEvent = event<{
+export const emailSentEvent = defineEvent<{
   emailId: string;
   to: string;
   template: string;
   metadata: Record<string, any>;
 }>({
-  id: "app.notifications.events.emailSent",
+  id: "app-notifications-events-emailSent",
   payloadSchema: defineSchema({
     emailId: String,
     to: Match.Email,
@@ -841,13 +844,13 @@ export const emailSentEvent = event<{
   }),
 });
 
-export const webhookDeliveredEvent = event<{
+export const webhookDeliveredEvent = defineEvent<{
   webhookId: string;
   url: string;
   payload: Record<string, any>;
   statusCode: number;
 }>({
-  id: "app.notifications.events.webhookDelivered",
+  id: "app-notifications-events-webhookDelivered",
   payloadSchema: defineSchema({
     webhookId: String,
     url: Match.URL,
@@ -857,8 +860,8 @@ export const webhookDeliveredEvent = event<{
 });
 
 // Resources
-export const emailServiceResource = resource({
-  id: "app.notifications.resources.emailService",
+export const emailServiceResource = defineResource({
+  id: "app-notifications-resources-emailService",
   meta: {
     title: "Email Service",
     description: "SendGrid email delivery service",
@@ -880,8 +883,8 @@ export const emailServiceResource = resource({
 });
 
 // Tasks
-export const sendWelcomeEmailTask = task({
-  id: "app.notifications.tasks.sendWelcomeEmail",
+export const sendWelcomeEmailTask = defineTask({
+  id: "app-notifications-tasks-sendWelcomeEmail",
   dependencies: () => ({
     emailService: emailServiceResource,
     emitEmailSent: emailSentEvent,
@@ -924,8 +927,8 @@ export const sendWelcomeEmailTask = task({
 });
 
 // Hooks - Cross-domain event handlers
-export const onProductOutOfStockEventHook = hook({
-  id: "app.notifications.hooks.onProductOutOfStockEvent",
+export const onProductOutOfStockEventHook = defineHook({
+  id: "app-notifications-hooks-onProductOutOfStockEvent",
   on: productOutOfStockEvent,
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
   async run(event, { sendWelcomeEmail: _sendWelcomeEmail }) {
@@ -933,8 +936,8 @@ export const onProductOutOfStockEventHook = hook({
   },
 });
 
-export const multiHookEvent = hook({
-  id: "app.notifications.hooks.multiHookEvent",
+export const multiHookEvent = defineHook({
+  id: "app-notifications-hooks-multiHookEvent",
   on: [userRegisteredEvent, productOutOfStockEvent],
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
   async run(event, { sendWelcomeEmail: _sendWelcomeEmail }) {
@@ -942,8 +945,8 @@ export const multiHookEvent = hook({
   },
 });
 
-export const welcomeEmailOnRegistrationHook = hook({
-  id: "app.notifications.hooks.welcomeOnRegistration",
+export const welcomeEmailOnRegistrationHook = defineHook({
+  id: "app-notifications-hooks-welcomeOnRegistration",
   on: userRegisteredEvent,
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
   meta: {
@@ -968,8 +971,8 @@ export const welcomeEmailOnRegistrationHook = hook({
 // ====================
 
 // Resources
-export const analyticsDatabaseResource = resource({
-  id: "app.analytics.resources.database",
+export const analyticsDatabaseResource = defineResource({
+  id: "app-analytics-resources-database",
   meta: {
     title: "Analytics Database",
     description: "ClickHouse analytics database",
@@ -984,8 +987,8 @@ export const analyticsDatabaseResource = resource({
 });
 
 // Global hooks for analytics
-export const analyticsGlobalHook = hook({
-  id: "app.analytics.hooks.globalTracker",
+export const analyticsGlobalHook = defineHook({
+  id: "app-analytics-hooks-globalTracker",
   on: "*", // Listen to all events
   dependencies: { analyticsDb: analyticsDatabaseResource },
   meta: {
@@ -1001,8 +1004,8 @@ export const analyticsGlobalHook = hook({
   },
 });
 
-export const orderAnalyticsHook = hook({
-  id: "app.analytics.hooks.orderTracker",
+export const orderAnalyticsHook = defineHook({
+  id: "app-analytics-hooks-orderTracker",
   on: orderCreatedEvent,
   dependencies: { analyticsDb: analyticsDatabaseResource },
   meta: {
@@ -1020,8 +1023,8 @@ export const orderAnalyticsHook = hook({
 // ====================
 
 export function createDummySuperApp(extra: any[] = []) {
-  return resource({
-    id: "dummy.superapp",
+  return defineResource({
+    id: "dummy-superapp",
     meta: {
       title: "E-Commerce Super App",
       description:
@@ -1179,8 +1182,8 @@ export function createRandomApp(config: RandomAppConfig = {}) {
 
   // --- Generate Tags ---
   const tagDefs = Array.from({ length: TAG_COUNT }, (_, i) =>
-    tag<{ note?: string }>({
-      id: `app.random.tags.${String(i + 1).padStart(3, "0")}`,
+    defineTag<{ note?: string }>({
+      id: `app-random-tags-${String(i + 1).padStart(3, "0")}`,
       meta: { title: `Random Tag ${i + 1}`, description: "Auto-generated" },
       configSchema: defineSchema(
         {
@@ -1195,8 +1198,8 @@ export function createRandomApp(config: RandomAppConfig = {}) {
   const middlewarePool = Array.from(
     { length: Math.max(1, maxMiddlewarePerTask) },
     (_, i) =>
-      taskMiddleware<{ level?: "debug" | "info" | "warn" | "error" }>({
-        id: `app.random.middleware.${String(i + 1).padStart(2, "0")}`,
+      defineTaskMiddleware<{ level?: "debug" | "info" | "warn" | "error" }>({
+        id: `app-random-middleware-${String(i + 1).padStart(2, "0")}`,
         meta: {
           title: `Random Middleware ${i + 1}`,
           description: "Auto-generated middleware",
@@ -1224,8 +1227,8 @@ export function createRandomApp(config: RandomAppConfig = {}) {
 
   // --- Generate Events ---
   const eventDefs = Array.from({ length: EVT_COUNT }, (_, i) =>
-    event<{ seq: number; payload: Record<string, any> }>({
-      id: `app.random.events.${String(i + 1).padStart(3, "0")}`,
+    defineEvent<{ seq: number; payload: Record<string, any> }>({
+      id: `app-random-events-${String(i + 1).padStart(3, "0")}`,
       payloadSchema: defineSchema(
         {
           seq: Match.Integer,
@@ -1239,8 +1242,8 @@ export function createRandomApp(config: RandomAppConfig = {}) {
 
   // --- Generate Resources ---
   const resourceDefs = Array.from({ length: RES_COUNT }, (_, i) =>
-    resource({
-      id: `app.random.resources.${String(i + 1).padStart(3, "0")}`,
+    defineResource({
+      id: `app-random-resources-${String(i + 1).padStart(3, "0")}`,
       meta: { title: `Resource #${i + 1}`, description: "Auto-generated" },
       tags: maybeTags(rng, tagDefs, 3),
       async init() {
@@ -1277,7 +1280,7 @@ export function createRandomApp(config: RandomAppConfig = {}) {
 
   // --- Generate Tasks ---
   const taskDefs = Array.from({ length: TASK_COUNT }, (_, i) => {
-    const id = `app.random.tasks.${String(i + 1).padStart(4, "0")}`;
+    const id = `app-random-tasks-${String(i + 1).padStart(4, "0")}`;
     const depsFactory = () =>
       makeTaskDeps(taskResourceDepsRange, taskEventDepsRange);
     const middlewares = (() => {
@@ -1290,7 +1293,7 @@ export function createRandomApp(config: RandomAppConfig = {}) {
       return pickManyUnique(rng, middlewarePool, count);
     })();
 
-    return task({
+    return defineTask({
       id,
       dependencies: depsFactory,
       middleware: middlewares,
@@ -1333,8 +1336,8 @@ export function createRandomApp(config: RandomAppConfig = {}) {
   });
 
   // Root resource registering everything
-  return resource({
-    id: "dummy.randomapp",
+  return defineResource({
+    id: "dummy-randomapp",
     meta: {
       title: "Randomly Generated App",
       description: "Programmatically generated app with configurable sizes",

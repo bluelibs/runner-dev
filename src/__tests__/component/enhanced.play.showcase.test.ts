@@ -1,4 +1,4 @@
-import { globals, resource, run, type Store } from "@bluelibs/runner";
+import { resources, defineResource, run, type Store } from "@bluelibs/runner";
 import { graphql } from "graphql";
 import { introspector } from "../../resources/introspector.resource";
 import type { Introspector } from "../../resources/models/Introspector";
@@ -7,6 +7,7 @@ import {
   catalogSearchTask,
   createEnhancedSuperApp,
   durableOrderApprovalTask,
+  enhancedSuperAppIds,
   featuredInspectorTask,
   featuredTag,
   interceptorBaseTask,
@@ -30,16 +31,29 @@ type TestContextValue = {
   logger: Console;
 };
 
+const isolationBoundaryIds = {
+  resource(localId: string) {
+    return `${enhancedSuperAppIds.resource(
+      isolationBoundaryResource.id
+    )}.${localId}`;
+  },
+  task(localId: string) {
+    return `${enhancedSuperAppIds.resource(
+      isolationBoundaryResource.id
+    )}.tasks.${localId}`;
+  },
+};
+
 describe("Enhanced play showcase app", () => {
   let contextValue: TestContextValue;
   let runtime: Awaited<ReturnType<typeof run>> | null = null;
 
   beforeAll(async () => {
-    const probe = resource({
-      id: "probe.enhanced.play.showcase",
+    const probe = defineResource({
+      id: "probe-enhanced-play-showcase",
       dependencies: {
         introspector,
-        store: globals.resources.store,
+        store: resources.store,
       },
       async init(_config, { introspector, store }) {
         contextValue = {
@@ -64,13 +78,19 @@ describe("Enhanced play showcase app", () => {
 
   test("boots and exposes expected showcase nodes", () => {
     expect(
-      contextValue.introspector.getTask(catalogSearchTask.id)
+      contextValue.introspector.getTask(
+        isolationBoundaryIds.task(catalogSearchTask.id)
+      )
     ).toBeTruthy();
     expect(
-      contextValue.introspector.getResource(isolationBoundaryResource.id)
+      contextValue.introspector.getResource(
+        enhancedSuperAppIds.resource(isolationBoundaryResource.id)
+      )
     ).toBeTruthy();
     expect(
-      contextValue.introspector.getTask(durableOrderApprovalTask.id)
+      contextValue.introspector.getTask(
+        enhancedSuperAppIds.task(durableOrderApprovalTask.id)
+      )
     ).toBeTruthy();
     expect(
       contextValue.introspector.getResource(rpcLanesShowcaseResource.id)
@@ -89,7 +109,7 @@ describe("Enhanced play showcase app", () => {
           }
         }
       `,
-      variableValues: { tagId: featuredTag.id },
+      variableValues: { tagId: enhancedSuperAppIds.tag(featuredTag.id) },
       contextValue,
     });
 
@@ -102,18 +122,24 @@ describe("Enhanced play showcase app", () => {
       };
     };
 
-    expect(data.tag.id).toBe(featuredTag.id);
+    expect(data.tag.id).toBe(enhancedSuperAppIds.tag(featuredTag.id));
     expect(data.tag.tasks.map((entry) => entry.id)).toEqual(
-      expect.arrayContaining([catalogSearchTask.id])
+      expect.arrayContaining([isolationBoundaryIds.task(catalogSearchTask.id)])
     );
     expect(data.tag.resources.map((entry) => entry.id)).toEqual(
-      expect.arrayContaining([publicCatalogResource.id])
+      expect.arrayContaining([
+        isolationBoundaryIds.resource(publicCatalogResource.id),
+      ])
     );
 
-    const handlers = contextValue.introspector.getTagHandlers(featuredTag.id);
+    const handlers = contextValue.introspector.getTagHandlers(
+      enhancedSuperAppIds.tag(featuredTag.id)
+    );
     expect(handlers).toBeTruthy();
     expect(handlers.tasks.map((task: { id: string }) => task.id)).toEqual(
-      expect.arrayContaining([featuredInspectorTask.id])
+      expect.arrayContaining([
+        enhancedSuperAppIds.task(featuredInspectorTask.id),
+      ])
     );
   });
 
@@ -122,7 +148,7 @@ describe("Enhanced play showcase app", () => {
       schema,
       source: `
         query IsolationVisibility {
-          resources(idIncludes: "app.examples.isolation.resources") {
+          resources(idIncludes: "app-examples-isolation-resources") {
             id
             isPrivate
             isolation {
@@ -146,13 +172,17 @@ describe("Enhanced play showcase app", () => {
     };
 
     const boundary = data.resources.find(
-      (resource) => resource.id === isolationBoundaryResource.id
+      (resource) =>
+        resource.id ===
+        enhancedSuperAppIds.resource(isolationBoundaryResource.id)
     );
     const publicResource = data.resources.find(
-      (resource) => resource.id === publicCatalogResource.id
+      (resource) =>
+        resource.id === isolationBoundaryIds.resource(publicCatalogResource.id)
     );
     const privateResource = data.resources.find(
-      (resource) => resource.id === privateCacheResource.id
+      (resource) =>
+        resource.id === isolationBoundaryIds.resource(privateCacheResource.id)
     );
 
     expect(boundary).toBeTruthy();
@@ -161,12 +191,14 @@ describe("Enhanced play showcase app", () => {
 
     expect(boundary?.isolation?.exports).toEqual(
       expect.arrayContaining([
-        "app.examples.isolation.resources.public.catalog",
-        "app.examples.tags.tasks.catalogSearch",
+        isolationBoundaryIds.resource(publicCatalogResource.id),
+        isolationBoundaryIds.task(catalogSearchTask.id),
       ])
     );
     expect(boundary?.isolation?.deny).toEqual(
-      expect.arrayContaining(["app.examples.isolation.resources.private.cache"])
+      expect.arrayContaining([
+        isolationBoundaryIds.resource(privateCacheResource.id),
+      ])
     );
     expect(publicResource?.isPrivate).toBe(false);
     expect(privateResource?.isPrivate).toBe(true);
@@ -177,7 +209,7 @@ describe("Enhanced play showcase app", () => {
       schema,
       source: `
         query Interceptors {
-          tasks(idIncludes: "app.examples.interceptors.tasks.") {
+          tasks(idIncludes: "app-examples-interceptors-tasks-") {
             id
             hasInterceptors
             interceptorCount
@@ -199,13 +231,15 @@ describe("Enhanced play showcase app", () => {
     };
 
     const baseTask = data.tasks.find(
-      (task) => task.id === interceptorBaseTask.id
+      (task) => task.id === enhancedSuperAppIds.task(interceptorBaseTask.id)
     );
     expect(baseTask).toBeTruthy();
     expect(baseTask?.hasInterceptors).toBe(true);
     expect(baseTask?.interceptorCount).toBeGreaterThanOrEqual(1);
     expect(baseTask?.interceptorOwnerIds).toEqual(
-      expect.arrayContaining([interceptorInstallerResource.id])
+      expect.arrayContaining([
+        enhancedSuperAppIds.resource(interceptorInstallerResource.id),
+      ])
     );
   });
 
@@ -218,25 +252,27 @@ describe("Enhanced play showcase app", () => {
     const taskLaneId = contextValue.introspector.getRpcLaneForTask(
       rpcLanePricingPreviewTask.id
     );
-    expect(taskLaneId).toBe("app.examples.lanes.rpc.pricing-preview");
+    expect(taskLaneId).toBe("app-examples-lanes-rpc-pricing-preview");
 
     const owner = contextValue.introspector.getRpcLaneResourceForTask(
       rpcLanePricingPreviewTask.id
     );
-    expect(owner?.id).toBe(rpcLanesShowcaseResource.id);
+    expect(owner?.id).toBe(
+      enhancedSuperAppIds.resource(rpcLanesShowcaseResource.id)
+    );
 
     const laneEvent = contextValue.introspector.getEvent(
       rpcLaneCatalogUpdatedEvent.id
     );
     expect(laneEvent?.rpcLane?.laneId).toBe(
-      "app.examples.lanes.rpc.catalog-updates"
+      "app-examples-lanes-rpc-catalog-updates"
     );
 
     const eventLaneEvent = contextValue.introspector.getEvent(
       eventLaneCatalogProjectionUpdatedEvent.id
     );
     expect(eventLaneEvent?.eventLane?.laneId).toBe(
-      "app.examples.lanes.event.catalog-updates"
+      "app-examples-lanes-event-catalog-updates"
     );
   });
 
@@ -254,7 +290,9 @@ describe("Enhanced play showcase app", () => {
           }
         }
       `,
-      variableValues: { taskId: durableOrderApprovalTask.id },
+      variableValues: {
+        taskId: enhancedSuperAppIds.task(durableOrderApprovalTask.id),
+      },
       contextValue,
     });
 
@@ -263,10 +301,12 @@ describe("Enhanced play showcase app", () => {
       task: { id: string; isDurable: boolean; durableResource: { id: string } };
     };
 
-    expect(durableData.task.id).toBe(durableOrderApprovalTask.id);
+    expect(durableData.task.id).toBe(
+      enhancedSuperAppIds.task(durableOrderApprovalTask.id)
+    );
     expect(durableData.task.isDurable).toBe(true);
     expect(durableData.task.durableResource.id).toBe(
-      showcaseDurableResource.id
+      enhancedSuperAppIds.resource(showcaseDurableResource.id)
     );
 
     const asyncContextIds = contextValue.introspector
@@ -277,8 +317,12 @@ describe("Enhanced play showcase app", () => {
       .map((entry: { id: string }) => entry.id);
 
     expect(asyncContextIds).toEqual(
-      expect.arrayContaining([supportRequestContext.id])
+      expect.arrayContaining([
+        enhancedSuperAppIds.asyncContext(supportRequestContext.id),
+      ])
     );
-    expect(errorIds).toEqual(expect.arrayContaining([invalidInputError.id]));
+    expect(errorIds).toEqual(
+      expect.arrayContaining([enhancedSuperAppIds.error(invalidInputError.id)])
+    );
   });
 });

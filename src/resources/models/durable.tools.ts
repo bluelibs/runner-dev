@@ -14,7 +14,10 @@ function readTagId(tagLike: unknown): string | null {
 export function isDurableWorkflowTagId(
   tagId: string | null | undefined
 ): boolean {
-  return tagId === DURABLE_WORKFLOW_TAG_ID;
+  return (
+    tagId === DURABLE_WORKFLOW_TAG_ID ||
+    tagId?.endsWith(`.${DURABLE_WORKFLOW_TAG_ID}`) === true
+  );
 }
 
 export function hasDurableWorkflowTag(
@@ -29,7 +32,11 @@ export function hasDurableWorkflowTag(
 }
 
 export function hasDurableIdPattern(depId: string): boolean {
-  return depId.includes(".durable") || depId.startsWith("base.durable.");
+  return (
+    depId.includes(".durable") ||
+    depId.startsWith("base.durable.") ||
+    /(^|[.-])durable([.-]|$)/.test(depId)
+  );
 }
 
 export function findDurableDependencyId(

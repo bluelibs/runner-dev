@@ -2,7 +2,7 @@ import { RegisterableItems, r } from "@bluelibs/runner";
 import { InterceptorInputSchema, InterceptorResultSchema } from "./schemas";
 
 export const interceptorBaseTask = r
-  .task("app.examples.interceptors.tasks.base")
+  .task("app-examples-interceptors-tasks-base")
   .meta({
     title: "Interceptor Base Task",
     description: "Task wrapped by a runtime interceptor during resource init.",
@@ -16,7 +16,7 @@ export const interceptorBaseTask = r
   .build();
 
 export const interceptorInstallerResource = r
-  .resource("app.examples.interceptors.resources.installer")
+  .resource("app-examples-interceptors-resources-installer")
   .meta({
     title: "Interceptor Installer Resource",
     description:
@@ -38,7 +38,7 @@ export const interceptorInstallerResource = r
   .build();
 
 export const interceptorConsumerTask = r
-  .task("app.examples.interceptors.tasks.consumer")
+  .task("app-examples-interceptors-tasks-consumer")
   .meta({
     title: "Interceptor Consumer Task",
     description:

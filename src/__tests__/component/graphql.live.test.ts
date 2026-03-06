@@ -1,6 +1,13 @@
-import { resource, run, task, hook, globals } from "@bluelibs/runner";
+import {
+  defineResource,
+  run,
+  defineTask,
+  defineHook,
+  resources,
+  events,
+} from "@bluelibs/runner";
 import { schema } from "../../schema";
-import { createDummyApp, evtHello } from "../dummy/dummyApp";
+import { createDummyApp, dummyAppIds, evtHello } from "../dummy/dummyApp";
 import { live } from "../../resources/live.resource";
 import { introspector } from "../../resources/introspector.resource";
 import { telemetry } from "../../resources/telemetry.resource";
@@ -11,11 +18,11 @@ describe("GraphQL Live (integration)", () => {
     let ctx: any;
     let _checkpoint = 0;
 
-    const trigger = hook({
-      id: "probe.graphql-live.trigger",
-      on: globals.events.ready,
+    const trigger = defineHook({
+      id: "probe-graphql-live-trigger",
+      on: events.ready,
       order: 1,
-      dependencies: { logger: globals.resources.logger, emitHello: evtHello },
+      dependencies: { logger: resources.logger, emitHello: evtHello },
       async run(_e, { logger, emitHello }) {
         await logger.debug("dbg1");
         await new Promise((r) => setTimeout(r, 10));
@@ -25,8 +32,8 @@ describe("GraphQL Live (integration)", () => {
       },
     });
 
-    const probe = resource({
-      id: "probe.graphql-live",
+    const probe = defineResource({
+      id: "probe-graphql-live",
       register: [trigger],
       dependencies: { live, introspector },
       async init(_config, { live, introspector }) {
@@ -84,16 +91,16 @@ describe("GraphQL Live (integration)", () => {
   test("query live errors after a failing task", async () => {
     let ctx: any;
 
-    const failing = task({
-      id: "probe.graphql-live.failing",
+    const failing = defineTask({
+      id: "probe-graphql-live-failing",
       async run() {
         throw new Error("boom");
       },
     });
 
-    const trigger = hook({
-      id: "probe.graphql-live.trigger-error",
-      on: globals.events.ready,
+    const trigger = defineHook({
+      id: "probe-graphql-live-trigger-error",
+      on: events.ready,
       order: 1,
       dependencies: { failing },
       async run(_e, { failing }) {
@@ -105,8 +112,8 @@ describe("GraphQL Live (integration)", () => {
       },
     });
 
-    const probe = resource({
-      id: "probe.graphql-live-errors",
+    const probe = defineResource({
+      id: "probe-graphql-live-errors",
       register: [failing, trigger],
       dependencies: { live, introspector },
       async init(_config, { live, introspector }) {
@@ -142,20 +149,22 @@ describe("GraphQL Live (integration)", () => {
 
   test("supports last and filter args for logs, emissions, errors, and runs", async () => {
     let ctx: any;
+    const probeResourceId = dummyAppIds.resource("probe-graphql-live-filters");
+    const triggerHookId = `${probeResourceId}.hooks.probe-graphql-live-filters`;
 
-    const failing = task({
-      id: "probe.graphql-live.filters.fail",
+    const failing = defineTask({
+      id: "probe-graphql-live-filters-fail",
       async run() {
         throw new Error("boom-xyz");
       },
     });
 
-    const trigger = hook({
-      id: "probe.graphql-live.filters",
-      on: globals.events.ready,
+    const trigger = defineHook({
+      id: "probe-graphql-live-filters",
+      on: events.ready,
       order: 1,
       dependencies: {
-        logger: globals.resources.logger,
+        logger: resources.logger,
         emitHello: evtHello,
         failing,
       },
@@ -172,8 +181,8 @@ describe("GraphQL Live (integration)", () => {
       },
     });
 
-    const probe = resource({
-      id: "probe.graphql-live-filters",
+    const probe = defineResource({
+      id: "probe-graphql-live-filters",
       register: [failing, trigger],
       dependencies: { live, introspector },
       async init(_config, { live, introspector }) {
@@ -190,7 +199,10 @@ describe("GraphQL Live (integration)", () => {
           logs(last: 2, filter: { levels: [debug], messageIncludes: "dbg" }) { message level }
           emissions(
             last: 1
-            filter: { eventIds: ["evt.hello"], emitterIds: ["probe.graphql-live.filters"] }
+            filter: {
+              eventIds: ["${dummyAppIds.event(evtHello.id)}"],
+              emitterIds: ["${triggerHookId}"]
+            }
           ) {
             eventId
             emitterId
@@ -224,9 +236,11 @@ describe("GraphQL Live (integration)", () => {
     // emissions: exactly one filtered by eventId & emitterId
     expect(Array.isArray(data.live.emissions)).toBe(true);
     expect(data.live.emissions.length).toBe(1);
-    expect(data.live.emissions[0].eventId).toBe("evt.hello");
-    expect(data.live.emissions[0].emitterId).toBe("probe.graphql-live.filters");
-    expect(data.live.emissions[0].eventResolved?.id).toBe("evt.hello");
+    expect(data.live.emissions[0].eventId).toBe(dummyAppIds.event(evtHello.id));
+    expect(data.live.emissions[0].emitterId).toBe(triggerHookId);
+    expect(data.live.emissions[0].eventResolved?.id).toBe(
+      dummyAppIds.event(evtHello.id)
+    );
     expect(typeof data.live.emissions[0].emitterResolved?.id).toBe("string");
 
     // errors: include the boom error coming from a task
@@ -254,8 +268,8 @@ describe("GraphQL Live (integration)", () => {
   test("system health metrics available and work with args", async () => {
     let ctx: any;
 
-    const probe = resource({
-      id: "probe.graphql-live-health",
+    const probe = defineResource({
+      id: "probe-graphql-live-health",
       dependencies: { live, introspector },
       async init(_config, { live, introspector }) {
         ctx = { store: undefined, logger: console, introspector, live };

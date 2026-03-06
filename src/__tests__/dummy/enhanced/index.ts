@@ -4,6 +4,32 @@ import {
   enhancedShowcaseOverrides,
 } from "./showcases";
 
+export const ENHANCED_SUPERAPP_ID = "enhanced-superapp";
+
+export const enhancedSuperAppIds = {
+  resource(localId: string) {
+    return `${ENHANCED_SUPERAPP_ID}.${localId}`;
+  },
+  task(localId: string) {
+    return `${ENHANCED_SUPERAPP_ID}.tasks.${localId}`;
+  },
+  hook(localId: string) {
+    return `${ENHANCED_SUPERAPP_ID}.hooks.${localId}`;
+  },
+  event(localId: string) {
+    return `${ENHANCED_SUPERAPP_ID}.events.${localId}`;
+  },
+  tag(localId: string) {
+    return `${ENHANCED_SUPERAPP_ID}.tags.${localId}`;
+  },
+  asyncContext(localId: string) {
+    return `${ENHANCED_SUPERAPP_ID}.ctx.${localId}`;
+  },
+  error(localId: string) {
+    return `${ENHANCED_SUPERAPP_ID}.errors.${localId}`;
+  },
+};
+
 export {
   featuredTag,
   publicCatalogResource,
@@ -39,7 +65,7 @@ export {
 
 export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
   return r
-    .resource("enhanced.superapp")
+    .resource("enhanced-superapp")
     .meta({
       title: "Enhanced Play Showcase App",
       description:

@@ -208,8 +208,17 @@ export function initializeFromStore(
   // Compute usedBy (dependencies) and requiredBy (.require() middleware)
   // by scanning all tasks, hooks, resources, and middlewares
   const asyncContextIds = new Set(asyncContextBasics.map((ac) => ac.id));
+  const asyncContextIdList = Array.from(asyncContextIds);
   const usedByMap = new Map<string, Set<string>>();
   const requiredByMap = new Map<string, Set<string>>();
+  const resolveAsyncContextId = (contextId: string): string => {
+    const exact = asyncContextIdList.find((id) => id === contextId);
+    if (exact) return exact;
+
+    return (
+      asyncContextIdList.find((id) => id.endsWith(`.${contextId}`)) ?? contextId
+    );
+  };
   for (const acId of asyncContextIds) {
     usedByMap.set(acId, new Set());
     requiredByMap.set(acId, new Set());
@@ -221,11 +230,11 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(task?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(task.id.toString());
+      usedByMap.get(resolveAsyncContextId(ctxId))?.add(task.id.toString());
     }
     const reqIds = extractRequiredContextIds(task.middleware);
     for (const ctxId of reqIds) {
-      requiredByMap.get(ctxId)?.add(task.id.toString());
+      requiredByMap.get(resolveAsyncContextId(ctxId))?.add(task.id.toString());
     }
   }
 
@@ -235,7 +244,7 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(hook?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(hook.id.toString());
+      usedByMap.get(resolveAsyncContextId(ctxId))?.add(hook.id.toString());
     }
   }
 
@@ -245,7 +254,7 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(resource?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(resource.id.toString());
+      usedByMap.get(resolveAsyncContextId(ctxId))?.add(resource.id.toString());
     }
   }
 
@@ -255,7 +264,9 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(middleware?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(middleware.id.toString());
+      usedByMap
+        .get(resolveAsyncContextId(ctxId))
+        ?.add(middleware.id.toString());
     }
   }
 
@@ -265,7 +276,9 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(middleware?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(middleware.id.toString());
+      usedByMap
+        .get(resolveAsyncContextId(ctxId))
+        ?.add(middleware.id.toString());
     }
   }
 
@@ -280,13 +293,11 @@ export function initializeFromStore(
   introspector.taskMiddlewares = buildTaskMiddlewares(
     Array.from(s.taskMiddlewares.values()).map((v: any) => v.middleware),
     introspector.tasks,
-    introspector.hooks,
     introspector.resources
   );
   introspector.resourceMiddlewares = buildResourceMiddlewares(
     Array.from(s.resourceMiddlewares.values()).map((v: any) => v.middleware),
     introspector.tasks,
-    introspector.hooks,
     introspector.resources
   );
   introspector.middlewares = [
@@ -398,6 +409,7 @@ export function initializeFromStore(
   for (const tag of introspector.tags) {
     introspector.tagMap.set(tag.id, tag);
   }
+  introspector.finalizeDerivedState();
   introspector.rootId =
     s?.root?.resource?.id != null
       ? String(s.root.resource.id)

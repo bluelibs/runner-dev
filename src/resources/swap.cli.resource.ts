@@ -1,12 +1,12 @@
-import { resource } from "@bluelibs/runner";
+import { defineResource } from "@bluelibs/runner";
 import type { ISwapManager } from "./swap.resource";
 import { cliConfig } from "./cli.config.resource";
 import { introspectorCli } from "./introspector.cli.resource";
 
 // Minimal CLI-specific swap manager that uses the CLI store.
 // Provides read-only visibility for GraphQL queries (empty by default).
-export const swapManagerCli = resource({
-  id: "runner-dev.resources.swap-manager-cli",
+export const swapManagerCli = defineResource({
+  id: "runner-dev-resources-swap-manager-cli",
   meta: {
     title: "CLI Swap Manager",
     description:

@@ -1,4 +1,4 @@
-import { globals, resource } from "@bluelibs/runner";
+import { resources, defineResource } from "@bluelibs/runner";
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginLandingPageDisabled } from "@apollo/server/plugin/disabled";
 import type { StartStandaloneServerOptions } from "@apollo/server/standalone";
@@ -34,8 +34,8 @@ export interface ServerInstance {
   app: express.Express;
 }
 
-export const serverResource = resource({
-  id: "runner-dev.resources.server",
+export const serverResource = defineResource({
+  id: "runner-dev-resources-server",
   meta: {
     title: "HTTP Server",
     description:
@@ -43,8 +43,8 @@ export const serverResource = resource({
   },
   register: [coverage],
   dependencies: {
-    store: globals.resources.store,
-    logger: globals.resources.logger,
+    store: resources.store,
+    logger: resources.logger,
     introspector,
     live,
     swapManager,

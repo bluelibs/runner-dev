@@ -1,4 +1,4 @@
-import { globals, resource, type Store } from "@bluelibs/runner";
+import { resources, tags, defineResource, type Store } from "@bluelibs/runner";
 import { type DurableFlowShape } from "@bluelibs/runner/node";
 import { getCorrelationId } from "./telemetry.chain";
 import { describeDurableTaskFromStore } from "./models/durable.runtime";
@@ -139,15 +139,15 @@ export interface Live {
   ): () => void;
 }
 
-const liveService = resource({
-  id: "runner-dev.resources.live-service",
+const liveService = defineResource({
+  id: "runner-dev-resources-live-service",
   meta: {
     title: "Live Telemetry Service",
     description:
       "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
   },
   dependencies: {
-    store: globals.resources.store,
+    store: resources.store,
   },
   async init(
     c: { maxEntries?: number },
@@ -176,6 +176,46 @@ const liveService = resource({
       const overflow = arr.length - maxEntries;
       if (overflow > 0) arr.splice(0, overflow);
     };
+    const eventIds = Array.from(store.events.values()).map((entry) =>
+      String(entry.event.id)
+    );
+    const nodeIds = [
+      ...Array.from(store.tasks.values()).map((entry) => String(entry.task.id)),
+      ...Array.from(store.hooks.values()).map((entry) => String(entry.hook.id)),
+      ...Array.from(store.resources.values()).map((entry: any) =>
+        String(entry.resource.id)
+      ),
+      ...Array.from(store.taskMiddlewares.values()).map((entry: any) =>
+        String(entry.middleware.id)
+      ),
+      ...Array.from(store.resourceMiddlewares.values()).map((entry: any) =>
+        String(entry.middleware.id)
+      ),
+      ...eventIds,
+    ];
+    const idsMatch = (candidateId: string, referenceId: string) =>
+      candidateId === referenceId || candidateId.endsWith(`.${referenceId}`);
+    const canonicalizeId = (
+      id: string | null | undefined,
+      candidateIds: string[]
+    ): string | null => {
+      if (!id) return null;
+
+      const exact = candidateIds.find((candidateId) => candidateId === id);
+      if (exact) return exact;
+
+      return (
+        candidateIds.find((candidateId) => idsMatch(candidateId, id)) ?? id
+      );
+    };
+    const matchesFilterId = (
+      recordId: string | null | undefined,
+      filterIds: string[]
+    ): boolean =>
+      recordId != null &&
+      filterIds.some((filterId) =>
+        idsMatch(String(recordId), String(filterId))
+      );
     const normalizeError = (
       error: unknown
     ): { message: string; stack: string | null } => {
@@ -249,8 +289,8 @@ const liveService = resource({
       recordEmission(eventId, payload, emitterId) {
         emissions.push({
           timestampMs: Date.now(),
-          eventId,
-          emitterId: emitterId ?? null,
+          eventId: canonicalizeId(eventId, eventIds) ?? eventId,
+          emitterId: canonicalizeId(emitterId, nodeIds),
           payload,
           correlationId: getCorrelationId(),
         });
@@ -273,13 +313,13 @@ const liveService = resource({
           );
         }
         if (options.eventIds && options.eventIds.length > 0) {
-          const allowed = new Set(options.eventIds);
-          result = result.filter((e) => allowed.has(e.eventId));
+          result = result.filter((e) =>
+            matchesFilterId(e.eventId, options.eventIds!)
+          );
         }
         if (options.emitterIds && options.emitterIds.length > 0) {
-          const allowed = new Set(options.emitterIds);
-          result = result.filter(
-            (e) => e.emitterId != null && allowed.has(String(e.emitterId))
+          result = result.filter((e) =>
+            matchesFilterId(e.emitterId, options.emitterIds!)
           );
         }
         if (options.correlationIds && options.correlationIds.length > 0) {
@@ -292,7 +332,7 @@ const liveService = resource({
         const { message, stack } = normalizeError(error);
         errors.push({
           timestampMs: Date.now(),
-          sourceId,
+          sourceId: canonicalizeId(sourceId, nodeIds) ?? sourceId,
           sourceKind,
           message,
           stack,
@@ -329,8 +369,9 @@ const liveService = resource({
           result = result.filter((e) => allowed.has(e.sourceKind));
         }
         if (options.sourceIds && options.sourceIds.length > 0) {
-          const allowed = new Set(options.sourceIds.map(String));
-          result = result.filter((e) => allowed.has(String(e.sourceId)));
+          result = result.filter((e) =>
+            matchesFilterId(e.sourceId, options.sourceIds!)
+          );
         }
         if (options.messageIncludes) {
           result = result.filter((e) =>
@@ -356,13 +397,13 @@ const liveService = resource({
         })();
         runs.push({
           timestampMs: Date.now(),
-          nodeId,
+          nodeId: canonicalizeId(nodeId, nodeIds) ?? nodeId,
           nodeKind,
           durationMs,
           ok,
           error: errStr,
-          parentId: parentId ?? null,
-          rootId: rootId ?? null,
+          parentId: canonicalizeId(parentId, nodeIds) ?? parentId ?? null,
+          rootId: canonicalizeId(rootId, nodeIds) ?? rootId ?? null,
           correlationId: getCorrelationId(),
         });
         trim(runs);
@@ -391,19 +432,22 @@ const liveService = resource({
           result = result.filter((r) => allowed.has(r.nodeKind));
         }
         if (options.nodeIds && options.nodeIds.length > 0) {
-          const allowed = new Set(options.nodeIds.map(String));
-          result = result.filter((r) => allowed.has(String(r.nodeId)));
+          result = result.filter((r) =>
+            matchesFilterId(r.nodeId, options.nodeIds!)
+          );
         }
         if (typeof options.ok === "boolean") {
           result = result.filter((r) => r.ok === options.ok);
         }
         if (options.parentIds && options.parentIds.length > 0) {
-          const allowed = new Set(options.parentIds.map(String));
-          result = result.filter((r) => allowed.has(String(r.parentId)));
+          result = result.filter((r) =>
+            matchesFilterId(r.parentId, options.parentIds!)
+          );
         }
         if (options.rootIds && options.rootIds.length > 0) {
-          const allowed = new Set(options.rootIds.map(String));
-          result = result.filter((r) => allowed.has(String(r.rootId)));
+          result = result.filter((r) =>
+            matchesFilterId(r.rootId, options.rootIds!)
+          );
         }
         if (options.correlationIds && options.correlationIds.length > 0) {
           const allowed = new Set(options.correlationIds.map(String));
@@ -422,7 +466,7 @@ const liveService = resource({
       },
     };
   },
-  tags: [globals.tags.excludeFromGlobalHooks],
+  tags: [tags.excludeFromGlobalHooks],
 });
 
 // const onGlobalEvent = hook({
@@ -443,8 +487,8 @@ const liveService = resource({
 //   },
 // });
 
-export const live = resource({
-  id: "runner-dev.resources.live",
+export const live = defineResource({
+  id: "runner-dev-resources-live",
   meta: {
     title: "Live Telemetry Manager",
     description:
@@ -452,7 +496,7 @@ export const live = resource({
   },
   dependencies: {
     liveService,
-    logger: globals.resources.logger,
+    logger: resources.logger,
   },
   register: (config: { maxEntries?: number }) => [
     liveService.with({ maxEntries: config?.maxEntries }),

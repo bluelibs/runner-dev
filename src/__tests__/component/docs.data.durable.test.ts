@@ -1,4 +1,4 @@
-import { globals, resource, run, task } from "@bluelibs/runner";
+import { resources, defineResource, run, defineTask } from "@bluelibs/runner";
 import {
   durableWorkflowTag,
   memoryDurableResource,
@@ -8,7 +8,10 @@ import { createDocsDataRouteHandler } from "../../resources/routeHandlers/getDoc
 import { Introspector } from "../../resources/models/Introspector";
 
 function createDurableDocsFixtureApp() {
-  const durable = memoryDurableResource.fork("tests.docs.durable.runtime");
+  const appId = "tests-docs-app";
+  const taskId = (localId: string) => `${appId}.tasks.${localId}`;
+
+  const durable = memoryDurableResource.fork("tests-docs-durable-runtime");
   if (!durable?.id) {
     throw new Error(
       "memoryDurableResource.fork() did not return a valid resource"
@@ -17,8 +20,8 @@ function createDurableDocsFixtureApp() {
 
   const durableRegistration = durable.with({});
 
-  const durableWorkflowTask = task({
-    id: "tests.docs.tasks.durableWorkflow",
+  const durableWorkflowTask = defineTask({
+    id: "tests-docs-tasks-durableWorkflow",
     dependencies: { durable },
     tags: [durableWorkflowTag],
     async run(_input, { durable }) {
@@ -29,17 +32,22 @@ function createDurableDocsFixtureApp() {
     },
   });
 
-  const runWorkflowTask = task({
-    id: "tests.docs.tasks.runDurableWorkflow",
+  const runWorkflowTask = defineTask({
+    id: "tests-docs-tasks-runDurableWorkflow",
     dependencies: { durable, durableWorkflowTask },
-    async run(input, { durable, durableWorkflowTask }) {
-      return durable.execute(durableWorkflowTask, input);
+    async run(input, { durable }) {
+      return durable.execute(taskId(durableWorkflowTask.id), input);
     },
   });
 
-  const app = resource({
-    id: "tests.docs.app",
-    register: [durableRegistration, durableWorkflowTask, runWorkflowTask],
+  const app = defineResource({
+    id: appId,
+    register: [
+      durableWorkflowTag,
+      durableRegistration,
+      durableWorkflowTask,
+      runWorkflowTask,
+    ],
   });
 
   return { app, durableWorkflowTask, runWorkflowTask };
@@ -66,7 +74,7 @@ describe("/docs/data durable enrichment", () => {
     const runtime = await run(app);
 
     try {
-      const store = await runtime.getResourceValue(globals.resources.store);
+      const store = await runtime.getResourceValue(resources.store);
       const introspector = new Introspector({ store });
       const handler = createDocsDataRouteHandler({
         uiDir: ".",
@@ -79,8 +87,12 @@ describe("/docs/data durable enrichment", () => {
       await handler(req, res);
 
       const tasks: any[] = payloadRef.value?.introspectorData?.tasks || [];
-      const workflow = tasks.find((item) => item.id === durableWorkflowTask.id);
-      const runner = tasks.find((item) => item.id === runWorkflowTask.id);
+      const workflow = tasks.find(
+        (item) => item.id === `tests-docs-app.tasks.${durableWorkflowTask.id}`
+      );
+      const runner = tasks.find(
+        (item) => item.id === `tests-docs-app.tasks.${runWorkflowTask.id}`
+      );
 
       expect(workflow?.isDurable).toBe(true);
       expect(workflow?.flowShape).toBeNull();

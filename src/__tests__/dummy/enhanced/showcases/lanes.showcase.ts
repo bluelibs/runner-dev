@@ -1,4 +1,4 @@
-import { globals, r } from "@bluelibs/runner/node";
+import { tags, r } from "@bluelibs/runner/node";
 import type { OverridableElements, RegisterableItems } from "@bluelibs/runner";
 import {
   eventLanesResource,
@@ -17,14 +17,14 @@ import {
 } from "./schemas";
 
 const rpcLaneTag = (laneId: string) =>
-  globals.tags.rpcLane.with({ lane: { id: laneId } });
+  tags.rpcLane.with({ lane: { id: laneId } });
 
 const eventLaneTag = (
   laneId: string,
   _orderingKey: string,
   _metadata: Record<string, unknown>
 ) =>
-  globals.tags.eventLane.with({
+  tags.eventLane.with({
     lane: { id: laneId },
   });
 
@@ -38,7 +38,7 @@ const createRpcCommunicatorResource = (id: string) =>
     .build();
 
 const catalogUpdatesQueueResource = r
-  .resource("app.examples.queues.catalog-updates")
+  .resource("app-examples-queues-catalog-updates")
   .init(
     async (): Promise<IEventLaneQueue> => ({
       enqueue: async () => "message-1",
@@ -50,35 +50,35 @@ const catalogUpdatesQueueResource = r
   .build();
 
 const pricingCommunicatorResource = createRpcCommunicatorResource(
-  "app.examples.communicators.pricing"
+  "app-examples-communicators-pricing"
 );
 
 const catalogSyncCommunicatorResource = createRpcCommunicatorResource(
-  "app.examples.communicators.catalog-sync"
+  "app-examples-communicators-catalog-sync"
 );
 
 const catalogEventsCommunicatorResource = createRpcCommunicatorResource(
-  "app.examples.communicators.catalog-events"
+  "app-examples-communicators-catalog-events"
 );
 
 export const rpcLaneCatalogUpdatedEvent = r
-  .event("app.examples.lanes.events.catalogUpdated")
+  .event("app-examples-lanes-events-catalogUpdated")
   .meta({
     title: "RPC Lane Catalog Updated",
     description: "RPC lane tagged showcase event.",
   })
-  .tags([rpcLaneTag("app.examples.lanes.rpc.catalog-updates")])
+  .tags([rpcLaneTag("app-examples-lanes-rpc-catalog-updates")])
   .payloadSchema(LaneCatalogUpdatedPayloadSchema)
   .build();
 
 export const eventLaneCatalogProjectionUpdatedEvent = r
-  .event("app.examples.lanes.events.catalogProjectionUpdated")
+  .event("app-examples-lanes-events-catalogProjectionUpdated")
   .meta({
     title: "Event Lane Catalog Projection Updated",
     description: "Event lane tagged showcase event.",
   })
   .tags([
-    eventLaneTag("app.examples.lanes.event.catalog-updates", "supplierId", {
+    eventLaneTag("app-examples-lanes-event-catalog-updates", "supplierId", {
       domain: "catalog",
     }),
   ])
@@ -86,12 +86,12 @@ export const eventLaneCatalogProjectionUpdatedEvent = r
   .build();
 
 export const rpcLanePricingPreviewTask = r
-  .task("app.examples.lanes.tasks.pricingPreview")
+  .task("app-examples-lanes-tasks-pricingPreview")
   .meta({
     title: "RPC Lane Pricing Preview",
-    description: "Task tagged with globals.tags.rpcLane.",
+    description: "Task tagged with tags.rpcLane.",
   })
-  .tags([rpcLaneTag("app.examples.lanes.rpc.pricing-preview")])
+  .tags([rpcLaneTag("app-examples-lanes-rpc-pricing-preview")])
   .inputSchema(RpcPricingPreviewInputSchema)
   .resultSchema(RpcPricingPreviewResultSchema)
   .run(async (input) => ({
@@ -102,13 +102,13 @@ export const rpcLanePricingPreviewTask = r
   .build();
 
 export const rpcLaneCatalogSyncTask = r
-  .task("app.examples.lanes.tasks.catalogSync")
+  .task("app-examples-lanes-tasks-catalogSync")
   .meta({
     title: "RPC Lane Catalog Sync",
     description:
       "Companion rpc-lane task that emits the lane-tagged catalog updated event.",
   })
-  .tags([rpcLaneTag("app.examples.lanes.rpc.catalog-sync")])
+  .tags([rpcLaneTag("app-examples-lanes-rpc-catalog-sync")])
   .dependencies({
     emitCatalogUpdated: rpcLaneCatalogUpdatedEvent,
   })
@@ -137,24 +137,24 @@ const rpcLanesShowcaseConfig: RpcLanesResourceConfig = {
   topology: {
     bindings: [
       {
-        lane: { id: "app.examples.lanes.rpc.pricing-preview" },
+        lane: { id: "app-examples-lanes-rpc-pricing-preview" },
         communicator: pricingCommunicatorResource,
       },
       {
-        lane: { id: "app.examples.lanes.rpc.catalog-sync" },
+        lane: { id: "app-examples-lanes-rpc-catalog-sync" },
         communicator: catalogSyncCommunicatorResource,
       },
       {
-        lane: { id: "app.examples.lanes.rpc.catalog-updates" },
+        lane: { id: "app-examples-lanes-rpc-catalog-updates" },
         communicator: catalogEventsCommunicatorResource,
       },
     ],
     profiles: {
       catalog: {
         serve: [
-          { id: "app.examples.lanes.rpc.pricing-preview" },
-          { id: "app.examples.lanes.rpc.catalog-sync" },
-          { id: "app.examples.lanes.rpc.catalog-updates" },
+          { id: "app-examples-lanes-rpc-pricing-preview" },
+          { id: "app-examples-lanes-rpc-catalog-sync" },
+          { id: "app-examples-lanes-rpc-catalog-updates" },
         ],
       },
     },
@@ -174,14 +174,14 @@ const eventLanesShowcaseConfig: EventLanesResourceConfig = {
     relaySourcePrefix: "runner.event-lanes.relay:",
     bindings: [
       {
-        lane: { id: "app.examples.lanes.event.catalog-updates" },
+        lane: { id: "app-examples-lanes-event-catalog-updates" },
         queue: catalogUpdatesQueueResource,
         prefetch: 8,
       },
     ],
     profiles: {
       "catalog-events": {
-        consume: [{ id: "app.examples.lanes.event.catalog-updates" }],
+        consume: [{ id: "app-examples-lanes-event-catalog-updates" }],
       },
     },
   },

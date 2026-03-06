@@ -7,7 +7,7 @@ import {
 } from "./schemas";
 
 export const supportRequestContext = r
-  .asyncContext<{ requestId: string }>("app.examples.contexts.request")
+  .asyncContext<{ requestId: string }>("app-examples-contexts-request")
   .meta({
     title: "Support Request Context",
     description:
@@ -31,7 +31,7 @@ function readRequestIdFromInput(input: unknown): string | null {
 }
 
 export const supportRequestContextMiddleware = r.middleware
-  .task("app.examples.middleware.requestContext")
+  .task("app-examples-middleware-requestContext")
   .dependencies({ supportRequestContext })
   .run(async ({ task, next }, { supportRequestContext }) => {
     const requestId =
@@ -43,7 +43,7 @@ export const supportRequestContextMiddleware = r.middleware
   .build();
 
 export const invalidInputError = r
-  .error<InvalidInputErrorData>("app.examples.errors.invalidInput")
+  .error<InvalidInputErrorData>("app-examples-errors-invalidInput")
   .dataSchema(InvalidInputErrorDataSchema)
   .httpCode(400)
   .meta({
@@ -53,7 +53,7 @@ export const invalidInputError = r
   .build();
 
 export const supportContextAndErrorProbeTask = r
-  .task("app.examples.support.tasks.contextAndErrorProbe")
+  .task("app-examples-support-tasks-contextAndErrorProbe")
   .meta({
     title: "Context and Error Probe Task",
     description:

@@ -1,13 +1,19 @@
-import { resource, run } from "@bluelibs/runner";
+import { defineResource, run } from "@bluelibs/runner";
 import { introspector } from "../../resources/introspector.resource";
-import { createDummyApp } from "../dummy/dummyApp";
+import {
+  createDummyApp,
+  dummyAppIds,
+  evtHello,
+  helloTask,
+  logMw,
+} from "../dummy/dummyApp";
 
 describe("introspector (integration)", () => {
   test("discovers tasks, hooks, resources, middlewares, events and relations", async () => {
     // Use dummy app fixtures
 
     let snapshot: any = {};
-    const probe = resource({
+    const probe = defineResource({
       id: "probe",
       dependencies: { introspector },
       async init(_, { introspector }) {
@@ -17,11 +23,21 @@ describe("introspector (integration)", () => {
         const events = introspector.getEvents();
         const middlewares = introspector.getMiddlewares();
         const deps = introspector.getDependencies(tasks[0]);
-        const usingRes = introspector.getTasksUsingResource("res.db");
-        const usingMw = introspector.getTasksUsingMiddleware("mw.log.task");
-        const emittersOfEvt = introspector.getEmittersOfEvent("evt.hello");
-        const hooksOfEvt = introspector.getHooksOfEvent("evt.hello");
-        const mwEmits = introspector.getMiddlewareEmittedEvents("mw.log.task");
+        const usingRes = introspector.getTasksUsingResource(
+          dummyAppIds.resource("res-db")
+        );
+        const usingMw = introspector.getTasksUsingMiddleware(
+          dummyAppIds.taskMiddleware("mw-log-task")
+        );
+        const emittersOfEvt = introspector.getEmittersOfEvent(
+          dummyAppIds.event(evtHello.id)
+        );
+        const hooksOfEvt = introspector.getHooksOfEvent(
+          dummyAppIds.event(evtHello.id)
+        );
+        const mwEmits = introspector.getMiddlewareEmittedEvents(
+          dummyAppIds.taskMiddleware("mw-log-task")
+        );
 
         snapshot = {
           tasks: tasks.map((t) => t.id),
@@ -50,10 +66,18 @@ describe("introspector (integration)", () => {
 
     await run(app);
 
-    expect(snapshot.tasks).toEqual(expect.arrayContaining(["task.hello"]));
+    expect(snapshot.tasks).toEqual(
+      expect.arrayContaining([dummyAppIds.task(helloTask.id)])
+    );
     expect(Array.isArray(snapshot.hooks)).toBe(true);
-    expect(snapshot.resources).toEqual(expect.arrayContaining(["res.db"]));
-    expect(snapshot.events).toEqual(expect.arrayContaining(["evt.hello"]));
-    expect(snapshot.middlewares).toEqual(expect.arrayContaining(["mw.log"]));
+    expect(snapshot.resources).toEqual(
+      expect.arrayContaining([dummyAppIds.resource("res-db")])
+    );
+    expect(snapshot.events).toEqual(
+      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
+    );
+    expect(snapshot.middlewares).toEqual(
+      expect.arrayContaining([dummyAppIds.resourceMiddleware(logMw.id)])
+    );
   });
 });

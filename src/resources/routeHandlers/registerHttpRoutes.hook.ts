@@ -1,23 +1,23 @@
 import express from "express";
-import { globals, hook } from "@bluelibs/runner";
+import { events, resources, defineHook } from "@bluelibs/runner";
 import { httpTag } from "../http.tag";
 import { serverResource } from "../server.resource";
 
-export const registerHttpRoutes = hook({
-  id: "runner-dev.hooks.registerHttpRoutes",
+export const registerHttpRoutes = defineHook({
+  id: "runner-dev-hooks-registerHttpRoutes",
   meta: {
     title: "HTTP Routes Registration",
     description:
       "Automatically registers Express HTTP routes for tasks tagged with httpTag when the application becomes ready",
   },
-  on: globals.events.ready,
+  on: events.ready,
   dependencies: {
-    store: globals.resources.store,
+    store: resources.store,
     server: serverResource,
-    taskRunner: globals.resources.taskRunner,
+    taskRunner: resources.taskRunner,
   },
   async run(_e, { store, server, taskRunner }) {
-    const tasks = store.getTasksWithTag(httpTag.id);
+    const tasks = store.getTasksWithTag(httpTag);
     if (!tasks || tasks.length === 0) return;
 
     // Access express app exposed by server resource

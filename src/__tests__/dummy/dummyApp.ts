@@ -1,20 +1,52 @@
 import {
   Match,
-  taskMiddleware,
-  resource,
-  task,
-  hook,
-  event,
-  tag,
-  resourceMiddleware,
+  defineTaskMiddleware,
+  defineResource,
+  defineTask,
+  defineHook,
+  defineEvent,
+  defineTag,
+  defineResourceMiddleware,
 } from "@bluelibs/runner";
 import { createDummySuperApp } from "./largeApp";
 import { dev } from "../../resources/dev.resource";
 import { defineSchema } from "./schemas";
 
+export const DUMMY_APP_ID = "dummy-app";
+
+export const dummyAppIds = {
+  resource(localId: string) {
+    return `${DUMMY_APP_ID}.${localId}`;
+  },
+  task(localId: string) {
+    return `${DUMMY_APP_ID}.tasks.${localId}`;
+  },
+  hook(localId: string) {
+    return `${DUMMY_APP_ID}.hooks.${localId}`;
+  },
+  event(localId: string) {
+    return `${DUMMY_APP_ID}.events.${localId}`;
+  },
+  tag(localId: string) {
+    return `${DUMMY_APP_ID}.tags.${localId}`;
+  },
+  taskMiddleware(localId: string) {
+    return `${DUMMY_APP_ID}.middleware.task.${localId}`;
+  },
+  resourceMiddleware(localId: string) {
+    return `${DUMMY_APP_ID}.middleware.resource.${localId}`;
+  },
+  asyncContext(localId: string) {
+    return `${DUMMY_APP_ID}.ctx.${localId}`;
+  },
+  error(localId: string) {
+    return `${DUMMY_APP_ID}.errors.${localId}`;
+  },
+};
+
 // Middleware
-export const logMw = resourceMiddleware({
-  id: "mw.log",
+export const logMw = defineResourceMiddleware({
+  id: "mw-log",
   meta: {
     title: "Logger middleware",
     description: "Pass-through logger middleware used in tests",
@@ -25,8 +57,8 @@ export const logMw = resourceMiddleware({
 });
 
 // Resource
-export const dbRes = resource({
-  id: "res.db",
+export const dbRes = defineResource({
+  id: "res-db",
   meta: {
     title: "Database resource",
     description: "In-memory database resource used for tests",
@@ -38,8 +70,8 @@ export const dbRes = resource({
 });
 
 // Resource with config
-export const cacheRes = resource({
-  id: "res.cache",
+export const cacheRes = defineResource({
+  id: "res-cache",
   meta: {
     title: "Cache resource",
     description: "Cache with TTL configuration used for tests",
@@ -51,29 +83,29 @@ export const cacheRes = resource({
 });
 
 // Event
-export const evtHello = event<{ name: string }>({
-  id: "evt.hello",
+export const evtHello = defineEvent<{ name: string }>({
+  id: "evt-hello",
   payloadSchema: defineSchema({ name: String }),
 });
 
-const logMwTask = taskMiddleware({
-  id: "mw.log.task",
+export const logMwTask = defineTaskMiddleware({
+  id: "mw-log-task",
   async run({ next }) {
     return next();
   },
 });
 
 // Tag
-export const areaTag = tag<{ scope?: string }>({ id: "tag.area" });
+export const areaTag = defineTag<{ scope?: string }>({ id: "tag-area" });
 
 // Task
-export const helloTask = task({
-  id: "task.hello",
+export const helloTask = defineTask({
+  id: "task-hello",
   dependencies: () => ({ db: dbRes, emitHello: evtHello }),
   middleware: [logMwTask],
   meta: {
     title: "Hello task",
-    description: "Emits 'evt.hello' and returns 'ok'",
+    description: "Emits 'evt-hello' and returns 'ok'",
   },
   tags: [areaTag.with({ scope: "greetings" })],
   async run(_input, { emitHello }) {
@@ -83,13 +115,13 @@ export const helloTask = task({
 });
 
 // Hook
-export const helloHook = hook({
-  id: "hook.hello",
+export const helloHook = defineHook({
+  id: "hook-hello",
   on: evtHello,
   dependencies: { db: dbRes },
   meta: {
     title: "Hello hook",
-    description: "Listens to 'evt.hello' and performs no operation",
+    description: "Listens to 'evt-hello' and performs no operation",
   },
   tags: [areaTag.with({ scope: "hooks" })],
   async run() {
@@ -98,8 +130,8 @@ export const helloHook = hook({
 });
 
 // Global hook
-export const allEventsHook = hook({
-  id: "hook.all",
+export const allEventsHook = defineHook({
+  id: "hook-all",
   on: "*",
   meta: {
     title: "Global hook",
@@ -111,8 +143,8 @@ export const allEventsHook = hook({
 });
 
 // Middleware with config
-export const tagMw = taskMiddleware<{ label: string }>({
-  id: "mw.tag",
+export const tagMw = defineTaskMiddleware<{ label: string }>({
+  id: "mw-tag",
   meta: {
     title: "Tagging middleware",
     description: "Configurable middleware used to tag tasks in tests",
@@ -124,8 +156,8 @@ export const tagMw = taskMiddleware<{ label: string }>({
 });
 
 // Task that depends on another task and a configured resource
-export const aggregateTask = task({
-  id: "task.aggregate",
+export const aggregateTask = defineTask({
+  id: "task-aggregate",
   dependencies: () => ({ db: dbRes, cache: cacheRes, hello: helloTask }),
   middleware: [tagMw.with({ label: "agg" })],
   meta: {
@@ -139,8 +171,8 @@ export const aggregateTask = task({
 });
 
 // Another task using the same configurable middleware with a different config
-export const taggedTask = task({
-  id: "task.tagged",
+export const taggedTask = defineTask({
+  id: "task-tagged",
   dependencies: () => ({ db: dbRes }),
   middleware: [tagMw.with({ label: "beta" })],
   meta: {
@@ -154,9 +186,12 @@ export const taggedTask = task({
 });
 
 // Helper to build a dummy app resource with optional extra registrations
-export function createDummyApp(extra: any[] = []) {
-  return resource({
-    id: "dummy.app",
+export function createDummyApp(
+  extra: any[] = [],
+  options?: { overrides?: any[] }
+) {
+  return defineResource({
+    id: "dummy-app",
     meta: {
       title: "Dummy app",
       description: "Test application composed of resources, tasks, and events",
@@ -176,6 +211,7 @@ export function createDummyApp(extra: any[] = []) {
       evtHello,
       areaTag,
     ],
+    overrides: options?.overrides ?? [],
     dependencies: {},
   });
 }

@@ -337,13 +337,18 @@ function buildMiddlewaresGeneric(
     | any
   >,
   tasks: Task[],
-  hooks: Hook[],
   resources: Resource[],
   kind: "task" | "resource"
 ): Middleware[] {
   return toArray(middlewaresCollection).map((entry: any) => {
     const mw = entry?.middleware ?? entry;
     const id = readId(mw);
+    const depsObj = normalizeDependencies(mw?.dependencies);
+    const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
+    const resourceIdsFromDeps = extractResourceIdsFromDependencies(depsObj);
+    const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
+    const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
+    const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
     const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
       (mw as any)?.tags
     );
@@ -372,6 +377,13 @@ function buildMiddlewaresGeneric(
           mw?.[definitions.symbolFilePath] ?? mw?.filePath ?? mw?.path ?? null
         ),
         autoApply,
+        emits: eventIdsFromDeps,
+        dependsOn: [
+          ...resourceIdsFromDeps,
+          ...taskIdsFromDeps,
+          ...errorIdsFromDeps,
+          ...tagIdsFromDeps,
+        ],
         usedByTasks,
         usedByResources,
         overriddenBy: mw?.overriddenBy ?? null,
@@ -389,13 +401,11 @@ function buildMiddlewaresGeneric(
 export function buildTaskMiddlewares(
   middlewaresCollection: definitions.ITaskMiddleware[],
   tasks: Task[],
-  hooks: Hook[],
   resources: Resource[]
 ): Middleware[] {
   return buildMiddlewaresGeneric(
     middlewaresCollection as any,
     tasks,
-    hooks,
     resources,
     "task"
   );
@@ -404,13 +414,11 @@ export function buildTaskMiddlewares(
 export function buildResourceMiddlewares(
   middlewaresCollection: definitions.IResourceMiddleware[],
   tasks: Task[],
-  hooks: Hook[],
   resources: Resource[]
 ): Middleware[] {
   return buildMiddlewaresGeneric(
     middlewaresCollection as any,
     tasks,
-    hooks,
     resources,
     "resource"
   );
@@ -475,10 +483,26 @@ export function attachOverrides(
   middlewares: Middleware[]
 ): void {
   const overriddenByMap = computeOverriddenByMap(overrideRequests);
-  for (const t of tasks) t.overriddenBy = overriddenByMap.get(t.id) ?? null;
-  for (const l of hooks) l.overriddenBy = overriddenByMap.get(l.id) ?? null;
-  for (const m of middlewares)
-    m.overriddenBy = overriddenByMap.get(m.id) ?? null;
+  const resolveOverrideOwner = (elementId: string): string | null => {
+    const exact = overriddenByMap.get(elementId);
+    if (exact) return exact;
+
+    for (const [targetId, ownerId] of overriddenByMap.entries()) {
+      if (
+        targetId === elementId ||
+        targetId.endsWith(`.${elementId}`) ||
+        elementId.endsWith(`.${targetId}`)
+      ) {
+        return ownerId;
+      }
+    }
+
+    return null;
+  };
+
+  for (const t of tasks) t.overriddenBy = resolveOverrideOwner(t.id);
+  for (const l of hooks) l.overriddenBy = resolveOverrideOwner(l.id);
+  for (const m of middlewares) m.overriddenBy = resolveOverrideOwner(m.id);
 }
 
 // Internal helpers

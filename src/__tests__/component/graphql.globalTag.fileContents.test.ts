@@ -1,23 +1,23 @@
-import { resource, run, globals, IResource } from "@bluelibs/runner";
+import { defineResource, run, tags } from "@bluelibs/runner";
 import { graphql } from "graphql";
 import { schema } from "../../schema";
 import { introspector } from "../../resources/introspector.resource";
 
 describe("GraphQL Tag fileContents for node_modules tag", () => {
-  test("fetches fileContents for globals.tags.excludeFromGlobalHooks", async () => {
+  test("fetches fileContents for tags.excludeFromGlobalHooks", async () => {
     let ctx: any;
 
-    const taggedRes = resource({
-      id: "probe.taggedWithGlobal",
+    const taggedRes = defineResource({
+      id: "probe-taggedWithGlobal",
       // Refer to the global tag so it is present in the store
-      tags: [globals.tags.excludeFromGlobalHooks],
+      tags: [tags.excludeFromGlobalHooks],
       async init() {
         return {};
       },
     });
 
-    const probe = resource({
-      id: "probe.globalTagFileContents",
+    const probe = defineResource({
+      id: "probe-globalTagFileContents",
       dependencies: { introspector },
       async init(_c, { introspector }) {
         ctx = {
@@ -29,13 +29,13 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
       },
     });
 
-    await run(
-      resource({
-        id: "root.app",
-        register: [introspector, taggedRes, probe],
-        dependencies: {},
-      }) as unknown as IResource<void, any>
-    );
+    const app = defineResource<void>({
+      id: "root-app",
+      register: [introspector, taggedRes, probe],
+      dependencies: {},
+    });
+
+    await run(app);
 
     const q = `
       query($id: ID!){
@@ -46,7 +46,7 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
         }
       }
     `;
-    const tagId = globals.tags.excludeFromGlobalHooks.id;
+    const tagId = tags.excludeFromGlobalHooks.id;
     const variables = { id: tagId };
     const result = await graphql({
       schema,

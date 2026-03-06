@@ -1,4 +1,4 @@
-import { run, resource } from "@bluelibs/runner";
+import { run, defineResource } from "@bluelibs/runner";
 import { resources } from "../../index";
 import type { ISwapManager } from "../../resources/swap.resource";
 import { createDummyApp } from "../dummy/dummyApp";
@@ -6,8 +6,8 @@ import { createDummyApp } from "../dummy/dummyApp";
 describe("SwapManager.eval", () => {
   let swapManager: ISwapManager;
 
-  const probe = resource({
-    id: "test.eval.probe",
+  const probe = defineResource({
+    id: "test-eval-probe",
     dependencies: { swapManager: resources.swapManager },
     async init(_c, { swapManager: sm }) {
       swapManager = sm;

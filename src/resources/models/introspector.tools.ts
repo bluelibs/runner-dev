@@ -61,9 +61,7 @@ export function computeUnemittedEvents(
   const events = introspector.getEvents();
   return events
     .filter((e) => introspector.getEmittersOfEvent(e.id).length === 0)
-    .filter(
-      (e) => e.id !== "system.events.ready" && e.id !== "globals.events.ready"
-    )
+    .filter((e) => e.id !== "system.events.ready")
     .filter((e) => e.id !== "*")
     .map((e) => ({ id: e.id }));
 }
@@ -263,25 +261,21 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
 // System events helpers
 export function isSystemEventId(eventId: string): boolean {
   const id = String(eventId).toLowerCase();
-  return (
-    id.startsWith("globals.") ||
-    id.startsWith("system.") ||
-    id.startsWith("runner.") ||
-    id === "*"
-  );
+  return id.startsWith("system.") || id.startsWith("runner.") || id === "*";
 }
 
 function isIgnoredEventDiagnosticId(eventId: string): boolean {
   if (isSystemEventId(eventId)) return true;
 
   const id = String(eventId).toLowerCase();
+  const normalizedId = id.replace(/-/g, ".");
   // Durable workflow runtime emits framework-owned internal events that are not
   // application-level extension points and should not be treated as diagnostics noise.
   return (
-    id.startsWith("durable.audit.") ||
-    id.startsWith("durable.emit.") ||
-    id.startsWith("durable.execution.") ||
-    id.startsWith("durable.note.")
+    /(^|\.)durable\.audit\./.test(normalizedId) ||
+    /(^|\.)durable\.emit\./.test(normalizedId) ||
+    /(^|\.)durable\.execution\./.test(normalizedId) ||
+    /(^|\.)durable\.note\./.test(normalizedId)
   );
 }
 

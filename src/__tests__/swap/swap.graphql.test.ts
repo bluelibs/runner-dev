@@ -1,10 +1,15 @@
-import { run, task, resource, globals } from "@bluelibs/runner";
+import {
+  run,
+  defineTask,
+  defineResource,
+  resources as runnerResources,
+} from "@bluelibs/runner";
 import { ApolloServer } from "@apollo/server";
 import { resources } from "../../index";
 import { telemetry } from "../../resources/telemetry.resource";
 import type { CustomGraphQLContext } from "../../schema/context";
 import type { SwapResult, SwappedTask } from "../../generated/resolvers-types";
-import { createDummyApp } from "../dummy/dummyApp";
+import { createDummyApp, dummyAppIds } from "../dummy/dummyApp";
 
 // Helper functions for type-safe test assertions
 function assertSwapResult(data: unknown): asserts data is SwapResult {
@@ -61,26 +66,31 @@ describe("Swap GraphQL Integration", () => {
   let _testApp: any;
   let apolloServer: ApolloServer;
   let context: CustomGraphQLContext;
+  const testTaskLocalId = "test-graphql-task";
+  const testTaskId = `${dummyAppIds.resource(
+    "test-graphql-resource"
+  )}.tasks.${testTaskLocalId}`;
+  const missingTaskId = "non-existent-task";
 
-  const testTask = task({
-    id: "test.graphql.task",
-    dependencies: { logger: globals.resources.logger },
+  const testTask = defineTask({
+    id: testTaskLocalId,
+    dependencies: { logger: runnerResources.logger },
     async run(_input, { logger: _logger }) {
       return "original graphql test";
     },
   });
 
-  const testResource = resource({
-    id: "test.graphql.resource",
+  const testResource = defineResource({
+    id: "test-graphql-resource",
     register: [testTask],
   });
 
   // Probe resource to capture dependencies after initialization
-  const probe = resource({
-    id: "test.graphql.probe",
+  const probe = defineResource({
+    id: "test-graphql-probe",
     dependencies: {
-      store: globals.resources.store,
-      logger: globals.resources.logger,
+      store: runnerResources.store,
+      logger: runnerResources.logger,
       introspector: resources.introspector,
       live: resources.live,
       swapManager: resources.swapManager,
@@ -149,7 +159,7 @@ describe("Swap GraphQL Integration", () => {
     test("should query swapped tasks after swapping", async () => {
       // Swap a task first
       await context.swapManager.swap(
-        "test.graphql.task",
+        testTaskId,
         "() => ({message: 'swapped'})"
       );
 
@@ -174,7 +184,7 @@ describe("Swap GraphQL Integration", () => {
         const swappedTasks = response.body.singleResult.data?.swappedTasks;
         assertSwappedTaskArray(swappedTasks);
         expect(swappedTasks).toHaveLength(1);
-        expect(swappedTasks[0].taskId).toBe("test.graphql.task");
+        expect(swappedTasks[0].taskId).toBe(testTaskId);
         expect(typeof swappedTasks[0].swappedAt).toBe("number");
       }
     });
@@ -193,7 +203,7 @@ describe("Swap GraphQL Integration", () => {
       `;
 
       const variables = {
-        taskId: "test.graphql.task",
+        taskId: testTaskId,
         runCode: `
           async function run() {
             return { message: "swapped via GraphQL", value: 123 };
@@ -212,12 +222,12 @@ describe("Swap GraphQL Integration", () => {
         const swapResult = response.body.singleResult.data
           ?.swapTask as SwapResult;
         expect(swapResult.success).toBe(true);
-        expect(swapResult.taskId).toBe("test.graphql.task");
+        expect(swapResult.taskId).toBe(testTaskId);
         expect(swapResult.error).toBeNull();
       }
 
       // Verify the task was actually swapped
-      expect(context.swapManager.isSwapped("test.graphql.task")).toBe(true);
+      expect(context.swapManager.isSwapped(testTaskId)).toBe(true);
     });
 
     test("should handle swap mutation errors", async () => {
@@ -232,7 +242,7 @@ describe("Swap GraphQL Integration", () => {
       `;
 
       const variables = {
-        taskId: "non.existent.task",
+        taskId: missingTaskId,
         runCode: "() => ({})",
       };
 
@@ -248,17 +258,17 @@ describe("Swap GraphQL Integration", () => {
         assertSwapResult(swapResult);
         expect(swapResult.success).toBe(false);
         expect(swapResult.error).toContain("not found");
-        expect(swapResult.taskId).toBe("non.existent.task");
+        expect(swapResult.taskId).toBe(missingTaskId);
       }
     });
 
     test("should unswap task via mutation", async () => {
       // First swap a task
       await context.swapManager.swap(
-        "test.graphql.task",
+        testTaskId,
         "() => ({message: 'swapped'})"
       );
-      expect(context.swapManager.isSwapped("test.graphql.task")).toBe(true);
+      expect(context.swapManager.isSwapped(testTaskId)).toBe(true);
 
       const mutation = `
         mutation UnswapTask($taskId: ID!) {
@@ -271,7 +281,7 @@ describe("Swap GraphQL Integration", () => {
       `;
 
       const variables = {
-        taskId: "test.graphql.task",
+        taskId: testTaskId,
       };
 
       const response = await apolloServer.executeOperation(
@@ -285,18 +295,18 @@ describe("Swap GraphQL Integration", () => {
         const unswapResult = response.body.singleResult.data?.unswapTask;
         assertSwapResult(unswapResult);
         expect(unswapResult.success).toBe(true);
-        expect(unswapResult.taskId).toBe("test.graphql.task");
+        expect(unswapResult.taskId).toBe(testTaskId);
         expect(unswapResult.error).toBeNull();
       }
 
       // Verify the task was actually unswapped
-      expect(context.swapManager.isSwapped("test.graphql.task")).toBe(false);
+      expect(context.swapManager.isSwapped(testTaskId)).toBe(false);
     });
 
     test("should unswap all tasks via mutation", async () => {
       // Just use one task for simpler test
       await context.swapManager.swap(
-        "test.graphql.task",
+        testTaskId,
         "() => ({message: 'swapped1'})"
       );
 
@@ -347,7 +357,7 @@ describe("Swap GraphQL Integration", () => {
       `;
 
       const response = await apolloServer.executeOperation(
-        { query: mutation, variables: { taskId: "test.graphql.task" } },
+        { query: mutation, variables: { taskId: testTaskId } },
         { contextValue: context }
       );
 
@@ -357,7 +367,7 @@ describe("Swap GraphQL Integration", () => {
         const responseData = response.body.singleResult.data;
         assertInvokeTaskData(responseData);
         expect(responseData.invokeTask.success).toBe(true);
-        expect(responseData.invokeTask.taskId).toBe("test.graphql.task");
+        expect(responseData.invokeTask.taskId).toBe(testTaskId);
         expect(responseData.invokeTask.result).toContain(
           "original graphql test"
         );
@@ -369,7 +379,7 @@ describe("Swap GraphQL Integration", () => {
     test("should invoke task with JSON input via GraphQL", async () => {
       // First swap the task to accept input
       await context.swapManager.swap(
-        "test.graphql.task",
+        testTaskId,
         `
         async function run(input, deps) {
           return { 
@@ -398,7 +408,7 @@ describe("Swap GraphQL Integration", () => {
       const response = await apolloServer.executeOperation(
         {
           query: mutation,
-          variables: { taskId: "test.graphql.task", inputJson },
+          variables: { taskId: testTaskId, inputJson },
         },
         { contextValue: context }
       );
@@ -428,7 +438,7 @@ describe("Swap GraphQL Integration", () => {
       `;
 
       const response = await apolloServer.executeOperation(
-        { query: mutation, variables: { taskId: "non.existent.task" } },
+        { query: mutation, variables: { taskId: missingTaskId } },
         { contextValue: context }
       );
 
@@ -439,7 +449,7 @@ describe("Swap GraphQL Integration", () => {
         assertInvokeTaskData(responseData);
         expect(responseData.invokeTask.success).toBe(false);
         expect(responseData.invokeTask.error).toContain("not found");
-        expect(responseData.invokeTask.taskId).toBe("non.existent.task");
+        expect(responseData.invokeTask.taskId).toBe(missingTaskId);
         expect(responseData.invokeTask.invocationId).toBeTruthy();
       }
     });
@@ -554,7 +564,7 @@ describe("Swap GraphQL Integration", () => {
       const swapResponse = await apolloServer.executeOperation(
         {
           query: swapMutation,
-          variables: { taskId: "test.graphql.task", runCode: debugCode },
+          variables: { taskId: testTaskId, runCode: debugCode },
         },
         { contextValue: context }
       );
@@ -568,7 +578,7 @@ describe("Swap GraphQL Integration", () => {
 
       // Execute through swap manager path to ensure swap interception works.
       await context.swapManager.invokeTask(
-        "test.graphql.task",
+        testTaskId,
         JSON.stringify({ testInput: "debug test" }),
         true
       );
@@ -624,7 +634,7 @@ describe("Swap GraphQL Integration", () => {
       `;
 
       const taskResponse = await apolloServer.executeOperation(
-        { query: taskQuery, variables: { taskId: "test.graphql.task" } },
+        { query: taskQuery, variables: { taskId: testTaskId } },
         { contextValue: context }
       );
 
@@ -632,7 +642,7 @@ describe("Swap GraphQL Integration", () => {
       if (taskResponse.body.kind === "single") {
         const responseData = taskResponse.body.singleResult.data;
         assertTaskData(responseData);
-        expect(responseData.task.id).toBe("test.graphql.task");
+        expect(responseData.task.id).toBe(testTaskId);
       }
 
       // Now swap the task
@@ -649,7 +659,7 @@ describe("Swap GraphQL Integration", () => {
         {
           query: swapMutation,
           variables: {
-            taskId: "test.graphql.task",
+            taskId: testTaskId,
             runCode: "() => ({ message: 'introspected and swapped' })",
           },
         },
@@ -665,7 +675,7 @@ describe("Swap GraphQL Integration", () => {
 
       // Verify task info is still accessible after swap
       const taskAfterSwapResponse = await apolloServer.executeOperation(
-        { query: taskQuery, variables: { taskId: "test.graphql.task" } },
+        { query: taskQuery, variables: { taskId: testTaskId } },
         { contextValue: context }
       );
 
@@ -673,7 +683,7 @@ describe("Swap GraphQL Integration", () => {
       if (taskAfterSwapResponse.body.kind === "single") {
         const responseData = taskAfterSwapResponse.body.singleResult.data;
         assertTaskData(responseData);
-        expect(responseData.task.id).toBe("test.graphql.task");
+        expect(responseData.task.id).toBe(testTaskId);
         // Metadata should remain unchanged
       }
     });

@@ -54,13 +54,13 @@ function normalizeDurableOrderApprovalInput(
 }
 
 export const showcaseDurableResource = memoryDurableResource.fork(
-  "app.examples.durable.runtime"
+  "app-examples-durable-runtime"
 );
 
 export const showcaseDurableRegistration = showcaseDurableResource.with({});
 
 export const durableOrderApprovalTask = r
-  .task("app.examples.durable.tasks.orderApprovalWorkflow")
+  .task("app-examples-durable-tasks-orderApprovalWorkflow")
   .meta({
     title: "Durable Order Approval Workflow",
     description:
@@ -100,7 +100,7 @@ export const durableOrderApprovalTask = r
   .build();
 
 export const runDurableOrderApprovalTask = r
-  .task("app.examples.durable.tasks.runOrderApprovalWorkflow")
+  .task("app-examples-durable-tasks-runOrderApprovalWorkflow")
   .meta({
     title: "Run Durable Order Approval Workflow",
     description:
@@ -118,7 +118,7 @@ export const runDurableOrderApprovalTask = r
   .build();
 
 export const startDurableOrderApprovalTask = r
-  .task("app.examples.durable.tasks.startOrderApprovalWorkflow")
+  .task("app-examples-durable-tasks-startOrderApprovalWorkflow")
   .meta({
     title: "Start Durable Order Approval Workflow",
     description:
@@ -140,6 +140,7 @@ export const startDurableOrderApprovalTask = r
   .build();
 
 export const durableShowcaseRegistrations: RegisterableItems[] = [
+  durableWorkflowTag,
   showcaseDurableRegistration,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,

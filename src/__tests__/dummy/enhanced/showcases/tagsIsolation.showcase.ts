@@ -7,7 +7,7 @@ import {
 } from "./schemas";
 
 export const featuredTag = r
-  .tag("app.examples.tags.featured")
+  .tag("app-examples-tags-featured")
   .for(["tasks", "resources"])
   .configSchema(FeaturedTagConfigSchema)
   .meta({
@@ -18,7 +18,7 @@ export const featuredTag = r
   .build();
 
 export const publicCatalogResource = r
-  .resource("app.examples.isolation.resources.public.catalog")
+  .resource("app-examples-isolation-resources-public-catalog")
   .meta({
     title: "Public Catalog Resource",
     description:
@@ -31,7 +31,7 @@ export const publicCatalogResource = r
   .build();
 
 export const privateCacheResource = r
-  .resource("app.examples.isolation.resources.private.cache")
+  .resource("app-examples-isolation-resources-private-cache")
   .meta({
     title: "Private Cache Resource",
     description:
@@ -43,7 +43,7 @@ export const privateCacheResource = r
   .build();
 
 export const catalogSearchTask = r
-  .task("app.examples.tags.tasks.catalogSearch")
+  .task("app-examples-tags-tasks-catalogSearch")
   .meta({
     title: "Catalog Search Task",
     description: "Tagged task exposed through the isolation boundary exports.",
@@ -61,7 +61,7 @@ export const catalogSearchTask = r
   .build();
 
 export const featuredInspectorTask = r
-  .task("app.examples.tags.tasks.featuredInspector")
+  .task("app-examples-tags-tasks-featuredInspector")
   .meta({
     title: "Featured Tag Inspector",
     description:
@@ -78,7 +78,7 @@ export const featuredInspectorTask = r
   .build();
 
 export const isolationBoundaryResource = r
-  .resource("app.examples.isolation.resources.boundary")
+  .resource("app-examples-isolation-resources-boundary")
   .meta({
     title: "Isolation Boundary Resource",
     description:
@@ -86,11 +86,8 @@ export const isolationBoundaryResource = r
   })
   .register([publicCatalogResource, privateCacheResource, catalogSearchTask])
   .isolate({
-    exports: [
-      "app.examples.isolation.resources.public.*",
-      "app.examples.tags.tasks.catalogSearch",
-    ],
-    deny: ["app.examples.isolation.resources.private.*"],
+    exports: [publicCatalogResource, catalogSearchTask],
+    deny: [privateCacheResource],
   })
   .build();
 

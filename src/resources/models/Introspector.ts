@@ -124,6 +124,223 @@ export class Introspector {
     }
   }
 
+  private idsMatch(candidateId: string, referenceId: string): boolean {
+    return (
+      candidateId === referenceId || candidateId.endsWith(`.${referenceId}`)
+    );
+  }
+
+  private resolveCanonicalId(
+    referenceId: string,
+    candidateIds: string[]
+  ): string {
+    const direct = candidateIds.find(
+      (candidateId) => candidateId === referenceId
+    );
+    if (direct) return direct;
+
+    const suffixMatch = candidateIds.find((candidateId) =>
+      this.idsMatch(candidateId, referenceId)
+    );
+
+    return suffixMatch ?? referenceId;
+  }
+
+  private canonicalizeReferenceArray(
+    ids: string[] | null | undefined,
+    candidateIds: string[]
+  ): string[] {
+    return ensureStringArray(ids).map((referenceId) =>
+      this.resolveCanonicalId(referenceId, candidateIds)
+    );
+  }
+
+  private findByIdLike<T extends { id: string }>(
+    collection: T[],
+    id: string
+  ): T | null {
+    return collection.find((entry) => this.idsMatch(entry.id, id)) ?? null;
+  }
+
+  private idsContainLike(
+    ids: string[] | null | undefined,
+    candidateId: string
+  ): boolean {
+    return ensureStringArray(ids).some((id) => this.idsMatch(candidateId, id));
+  }
+
+  private normalizeMetaTags(node: { meta?: unknown }, tagIds: string[]): void {
+    const meta = node.meta as
+      | {
+          tags?: string[] | null;
+          tagsDetailed?: Array<{ id: string; config?: string | null }> | null;
+        }
+      | null
+      | undefined;
+
+    if (!meta) return;
+
+    const normalizedDetailed = Array.isArray(meta.tagsDetailed)
+      ? meta.tagsDetailed.map((entry) => ({
+          ...entry,
+          id: this.resolveCanonicalId(entry.id, tagIds),
+        }))
+      : meta.tagsDetailed;
+
+    (node as { meta?: unknown }).meta = {
+      ...meta,
+      tags: this.canonicalizeReferenceArray(meta.tags, tagIds),
+      tagsDetailed: normalizedDetailed,
+    };
+  }
+
+  private normalizeRelationIds(): void {
+    const taskIds = this.tasks.map((entry) => entry.id);
+    const hookIds = this.hooks.map((entry) => entry.id);
+    const resourceIds = this.resources.map((entry) => entry.id);
+    const eventIds = this.events.map((entry) => entry.id);
+    const middlewareIds = this.middlewares.map((entry) => entry.id);
+    const tagIds = this.tags.map((entry) => entry.id);
+    const errorIds = this.errors.map((entry) => entry.id);
+    const asyncContextIds = this.asyncContexts.map((entry) => entry.id);
+    const allDependencyIds = [
+      ...taskIds,
+      ...hookIds,
+      ...resourceIds,
+      ...eventIds,
+      ...middlewareIds,
+      ...tagIds,
+      ...errorIds,
+      ...asyncContextIds,
+    ];
+    const taskLikeIds = [...taskIds, ...hookIds];
+    const taskHookResourceMiddlewareIds = [
+      ...taskIds,
+      ...hookIds,
+      ...resourceIds,
+      ...middlewareIds,
+    ];
+
+    for (const task of this.tasks) {
+      task.dependsOn = this.canonicalizeReferenceArray(
+        task.dependsOn,
+        allDependencyIds
+      );
+      task.tags = this.canonicalizeReferenceArray(task.tags, tagIds);
+      task.emits = this.canonicalizeReferenceArray(task.emits, eventIds);
+      task.middleware = this.canonicalizeReferenceArray(
+        task.middleware,
+        middlewareIds
+      );
+      this.normalizeMetaTags(task, tagIds);
+    }
+
+    for (const hook of this.hooks) {
+      hook.dependsOn = this.canonicalizeReferenceArray(
+        hook.dependsOn,
+        allDependencyIds
+      );
+      hook.tags = this.canonicalizeReferenceArray(hook.tags, tagIds);
+      hook.emits = this.canonicalizeReferenceArray(hook.emits, eventIds);
+      hook.events = this.canonicalizeReferenceArray(hook.events, eventIds);
+      const hookWithMiddleware = hook as Hook & {
+        middleware?: string[] | null;
+      };
+      hookWithMiddleware.middleware = this.canonicalizeReferenceArray(
+        hookWithMiddleware.middleware,
+        middlewareIds
+      );
+      this.normalizeMetaTags(hook, tagIds);
+    }
+
+    for (const resource of this.resources) {
+      resource.dependsOn = this.canonicalizeReferenceArray(
+        resource.dependsOn,
+        allDependencyIds
+      );
+      resource.tags = this.canonicalizeReferenceArray(resource.tags, tagIds);
+      resource.emits = this.canonicalizeReferenceArray(
+        resource.emits,
+        eventIds
+      );
+      resource.middleware = this.canonicalizeReferenceArray(
+        resource.middleware,
+        middlewareIds
+      );
+      resource.overrides = this.canonicalizeReferenceArray(
+        resource.overrides,
+        taskHookResourceMiddlewareIds
+      );
+      resource.registers = this.canonicalizeReferenceArray(
+        resource.registers,
+        taskHookResourceMiddlewareIds
+      );
+      this.normalizeMetaTags(resource, tagIds);
+    }
+
+    for (const middleware of this.middlewares) {
+      middleware.tags = this.canonicalizeReferenceArray(
+        middleware.tags,
+        tagIds
+      );
+      const middlewareWithEmits = middleware as Middleware & {
+        emits?: string[] | null;
+      };
+      middlewareWithEmits.emits = this.canonicalizeReferenceArray(
+        middlewareWithEmits.emits,
+        eventIds
+      );
+      middleware.usedByTasks = this.canonicalizeReferenceArray(
+        middleware.usedByTasks,
+        taskLikeIds
+      );
+      middleware.usedByResources = this.canonicalizeReferenceArray(
+        middleware.usedByResources,
+        resourceIds
+      );
+      this.normalizeMetaTags(middleware, tagIds);
+    }
+
+    for (const event of this.events) {
+      event.tags = this.canonicalizeReferenceArray(event.tags, tagIds);
+      event.listenedToBy = this.canonicalizeReferenceArray(
+        event.listenedToBy,
+        hookIds
+      );
+      this.normalizeMetaTags(event, tagIds);
+    }
+
+    for (const error of this.errors) {
+      error.tags = this.canonicalizeReferenceArray(error.tags, tagIds);
+      error.thrownBy = this.canonicalizeReferenceArray(
+        error.thrownBy,
+        taskHookResourceMiddlewareIds
+      );
+      this.normalizeMetaTags(error, tagIds);
+    }
+
+    for (const asyncContext of this.asyncContexts) {
+      asyncContext.usedBy = this.canonicalizeReferenceArray(
+        asyncContext.usedBy,
+        taskHookResourceMiddlewareIds
+      );
+      asyncContext.requiredBy = this.canonicalizeReferenceArray(
+        asyncContext.requiredBy,
+        taskIds
+      );
+      asyncContext.providedBy = this.canonicalizeReferenceArray(
+        asyncContext.providedBy,
+        resourceIds
+      );
+      this.normalizeMetaTags(asyncContext, tagIds);
+    }
+  }
+
+  public finalizeDerivedState(): void {
+    this.normalizeRelationIds();
+    this.populateErrorThrownBy();
+  }
+
   private initializeFromData(data: SerializedIntrospector): void {
     this.tasks = Array.isArray(data.tasks) ? data.tasks : [];
     this.hooks = Array.isArray(data.hooks) ? data.hooks : [];
@@ -137,6 +354,7 @@ export class Introspector {
     this.asyncContexts = Array.isArray(data.asyncContexts)
       ? data.asyncContexts
       : [];
+    this.tags = Array.isArray(data.tags) ? data.tags : [];
     this.rootId = data.rootId ?? null;
     this.runOptions = data.runOptions
       ? this.normalizeRunOptions(data.runOptions)
@@ -152,10 +370,8 @@ export class Introspector {
     this.errorMap = buildIdMap(this.errors);
     this.asyncContextMap = buildIdMap(this.asyncContexts);
 
-    // Populate thrownBy for errors based on dependencies (after maps are built)
-    this.populateErrorThrownBy();
+    this.finalizeDerivedState();
 
-    this.tags = data.tags;
     this.tagMap = new Map<string, Tag>();
     for (const tag of this.tags) {
       this.tagMap.set(tag.id, tag);
@@ -474,23 +690,25 @@ export class Introspector {
   }
 
   getEvent(id: string): Event | null {
-    return this.eventMap.get(id) ?? null;
+    return this.eventMap.get(id) ?? this.findByIdLike(this.events, id);
   }
 
   getTask(id: string): Task | null {
-    return this.taskMap.get(id) ?? null;
+    return this.taskMap.get(id) ?? this.findByIdLike(this.tasks, id);
   }
 
   getHook(id: string): Hook | null {
-    return this.hookMap.get(id) ?? null;
+    return this.hookMap.get(id) ?? this.findByIdLike(this.hooks, id);
   }
 
   getMiddleware(id: string): Middleware | null {
-    return this.middlewareMap.get(id) ?? null;
+    return (
+      this.middlewareMap.get(id) ?? this.findByIdLike(this.middlewares, id)
+    );
   }
 
   getResource(id: string): Resource | null {
-    return this.resourceMap.get(id) ?? null;
+    return this.resourceMap.get(id) ?? this.findByIdLike(this.resources, id);
   }
 
   getDependencies(node: Task | Hook | Resource): {
@@ -501,14 +719,24 @@ export class Introspector {
     errors: ErrorModel[];
   } {
     const depends = ensureStringArray(node.dependsOn);
-    const tasksDeps = this.tasks.filter((t) => depends.includes(t.id));
-    const hooksDeps = this.hooks.filter((l) => depends.includes(l.id));
-    const resourcesDeps = this.resources.filter((r) => depends.includes(r.id));
-    const errorDeps = this.errors.filter((e) => depends.includes(e.id));
+    const tasksDeps = this.tasks.filter((t) =>
+      this.idsContainLike(depends, t.id)
+    );
+    const hooksDeps = this.hooks.filter((l) =>
+      this.idsContainLike(depends, l.id)
+    );
+    const resourcesDeps = this.resources.filter((r) =>
+      this.idsContainLike(depends, r.id)
+    );
+    const errorDeps = this.errors.filter((e) =>
+      this.idsContainLike(depends, e.id)
+    );
 
     // Only Task and Hook have emits, Resource doesn't
     const emitIds = ensureStringArray((node as any).emits);
-    const emitEvents = this.events.filter((e) => emitIds.includes(e.id));
+    const emitEvents = this.events.filter((e) =>
+      this.idsContainLike(emitIds, e.id)
+    );
 
     return {
       tasks: tasksDeps,
@@ -521,43 +749,38 @@ export class Introspector {
 
   getEmittedEvents(node: Task | Hook): Event[] {
     const emits = ensureStringArray((node as any).emits);
-    return this.events.filter((e) => emits.includes(e.id));
+    return this.events.filter((e) => this.idsContainLike(emits, e.id));
   }
 
   getMiddlewaresByIds(ids: string[]): Middleware[] {
-    const set = new Set(ensureStringArray(ids));
-    return this.middlewares.filter((m) => set.has(m.id));
+    return this.middlewares.filter((m) => this.idsContainLike(ids, m.id));
   }
 
   getResourcesByIds(ids: string[]): Resource[] {
-    const set = new Set(ensureStringArray(ids));
-    return this.resources.filter((r) => set.has(r.id));
+    return this.resources.filter((r) => this.idsContainLike(ids, r.id));
   }
 
   getTasksByIds(ids: string[]): Task[] {
-    const set = new Set(ensureStringArray(ids));
-    return this.tasks.filter((t) => set.has(t.id));
+    return this.tasks.filter((t) => this.idsContainLike(ids, t.id));
   }
 
   getHooksByIds(ids: string[]): Hook[] {
-    const set = new Set(ensureStringArray(ids));
-    return this.hooks.filter((l) => set.has(l.id));
+    return this.hooks.filter((l) => this.idsContainLike(ids, l.id));
   }
 
   getEventsByIds(ids: string[]): Event[] {
-    const set = new Set(ensureStringArray(ids));
-    return this.events.filter((e) => set.has(e.id));
+    return this.events.filter((e) => this.idsContainLike(ids, e.id));
   }
 
   getTasksUsingResource(resourceId: string): (Task | Hook)[] {
     return [...this.tasks, ...this.hooks].filter((t) =>
-      ensureStringArray(t.dependsOn).includes(resourceId)
+      this.idsContainLike(t.dependsOn, resourceId)
     );
   }
 
   getTasksUsingMiddleware(middlewareId: string): (Task | Hook)[] {
     return this.tasks.filter((t) =>
-      ensureStringArray(t.middleware).includes(middlewareId)
+      this.idsContainLike(t.middleware, middlewareId)
     );
   }
 
@@ -569,12 +792,12 @@ export class Introspector {
 
   getEmittersOfEvent(eventId: string): (Task | Hook | Resource)[] {
     return [...this.tasks, ...this.hooks, ...this.resources].filter((t) =>
-      ensureStringArray((t as any).emits).includes(eventId)
+      this.idsContainLike((t as any).emits, eventId)
     );
   }
 
   getHooksOfEvent(eventId: string): Hook[] {
-    return this.hooks.filter((l) => l.events.includes(eventId));
+    return this.hooks.filter((l) => this.idsContainLike(l.events, eventId));
   }
 
   getMiddlewareEmittedEvents(middlewareId: string): Event[] {
@@ -592,7 +815,11 @@ export class Introspector {
     taskId: string
   ): Array<{ id: string; config: string | null; node: Middleware }> {
     const task = this.taskMap.get(taskId);
-    if (!task) return [];
+    if (!task) {
+      const resolvedTask = this.getTask(taskId);
+      if (!resolvedTask) return [];
+      return this.getMiddlewareUsagesForTask(resolvedTask.id);
+    }
     const detailed = task.middlewareDetailed ?? [];
     return detailed
       .map((d) => ({
@@ -610,7 +837,11 @@ export class Introspector {
     resourceId: string
   ): Array<{ id: string; config: string | null; node: Middleware }> {
     const res = this.resourceMap.get(resourceId);
-    if (!res) return [];
+    if (!res) {
+      const resolvedResource = this.getResource(resourceId);
+      if (!resolvedResource) return [];
+      return this.getMiddlewareUsagesForResource(resolvedResource.id);
+    }
     const detailed = res.middlewareDetailed ?? [];
     return detailed
       .map((d) => ({
@@ -634,10 +865,17 @@ export class Introspector {
     }> = [];
     const addFrom = (arr: Array<Task>) => {
       for (const tl of arr) {
-        if ((tl.middleware || []).includes(middlewareId)) {
+        if (this.idsContainLike(tl.middleware, middlewareId)) {
           const conf =
-            (tl.middlewareDetailed || []).find((m) => m.id === middlewareId)
-              ?.config ?? null;
+            (tl.middlewareDetailed || []).find((m) =>
+              this.idsMatch(
+                this.resolveCanonicalId(
+                  m.id,
+                  this.middlewares.map((entry) => entry.id)
+                ),
+                middlewareId
+              )
+            )?.config ?? null;
           result.push({ id: tl.id, config: conf ?? null, node: tl });
         }
       }
@@ -655,10 +893,17 @@ export class Introspector {
       node: Resource;
     }> = [];
     for (const r of this.resources) {
-      if ((r.middleware || []).includes(middlewareId)) {
+      if (this.idsContainLike(r.middleware, middlewareId)) {
         const conf =
-          (r.middlewareDetailed || []).find((m) => m.id === middlewareId)
-            ?.config ?? null;
+          (r.middlewareDetailed || []).find((m) =>
+            this.idsMatch(
+              this.resolveCanonicalId(
+                m.id,
+                this.middlewares.map((entry) => entry.id)
+              ),
+              middlewareId
+            )
+          )?.config ?? null;
         result.push({ id: r.id, config: conf ?? null, node: r });
       }
     }
@@ -676,44 +921,40 @@ export class Introspector {
 
   // Tags API
   getTasksWithTag(tagId: string): Task[] {
-    return this.tasks.filter((t) => ensureStringArray(t.tags).includes(tagId));
+    return this.tasks.filter((t) => this.idsContainLike(t.tags, tagId));
   }
 
   getHooksWithTag(tagId: string): Hook[] {
-    return this.hooks.filter((h) => ensureStringArray(h.tags).includes(tagId));
+    return this.hooks.filter((h) => this.idsContainLike(h.tags, tagId));
   }
 
   getResourcesWithTag(tagId: string): Resource[] {
-    return this.resources.filter((r) =>
-      ensureStringArray(r.tags).includes(tagId)
-    );
+    return this.resources.filter((r) => this.idsContainLike(r.tags, tagId));
   }
 
   getMiddlewaresWithTag(tagId: string): Middleware[] {
-    return this.middlewares.filter((m) =>
-      ensureStringArray(m.tags).includes(tagId)
-    );
+    return this.middlewares.filter((m) => this.idsContainLike(m.tags, tagId));
   }
 
   getTaskMiddlewaresWithTag(tagId: string): Middleware[] {
     return this.taskMiddlewares.filter((m) =>
-      ensureStringArray(m.tags).includes(tagId)
+      this.idsContainLike(m.tags, tagId)
     );
   }
 
   getResourceMiddlewaresWithTag(tagId: string): Middleware[] {
     return this.resourceMiddlewares.filter((m) =>
-      ensureStringArray(m.tags).includes(tagId)
+      this.idsContainLike(m.tags, tagId)
     );
   }
 
   getEventsWithTag(tagId: string): Event[] {
-    return this.events.filter((e) => ensureStringArray(e.tags).includes(tagId));
+    return this.events.filter((e) => this.idsContainLike(e.tags, tagId));
   }
 
   getErrorsWithTag(tagId: string): ErrorModel[] {
     return this.errors
-      .filter((e) => ensureStringArray(e.tags).includes(tagId))
+      .filter((e) => this.idsContainLike(e.tags, tagId))
       .map((error) => stampElementKind(error, "ERROR"));
   }
 
@@ -724,7 +965,7 @@ export class Introspector {
   } {
     const dependsOnTag = <T extends { dependsOn?: string[] | null }>(
       item: T
-    ): boolean => ensureStringArray(item.dependsOn).includes(tagId);
+    ): boolean => this.idsContainLike(item.dependsOn, tagId);
 
     return {
       tasks: this.tasks.filter(dependsOnTag),
@@ -738,7 +979,7 @@ export class Introspector {
   }
 
   getTag(id: string): Tag | null {
-    return this.tagMap.get(id) ?? null;
+    return this.tagMap.get(id) ?? this.findByIdLike(this.tags, id);
   }
 
   getTagsByIds(ids: string[]): Tag[] {
@@ -844,39 +1085,43 @@ export class Introspector {
   }
 
   getError(id: string): ErrorModel | null {
-    const error = this.errorMap.get(id);
+    const error = this.errorMap.get(id) ?? this.findByIdLike(this.errors, id);
     return error ? stampElementKind(error, "ERROR") : null;
   }
 
   getTasksUsingError(errorId: string): Task[] {
-    const error = this.errorMap.get(errorId);
+    const error = this.getError(errorId);
     if (!error?.thrownBy) return [];
 
-    return this.tasks.filter((task) => error.thrownBy.includes(task.id));
+    return this.tasks.filter((task) =>
+      this.idsContainLike(error.thrownBy, task.id)
+    );
   }
 
   getResourcesUsingError(errorId: string): Resource[] {
-    const error = this.errorMap.get(errorId);
+    const error = this.getError(errorId);
     if (!error?.thrownBy) return [];
 
     return this.resources.filter((resource) =>
-      error.thrownBy.includes(resource.id)
+      this.idsContainLike(error.thrownBy, resource.id)
     );
   }
 
   getHooksUsingError(errorId: string): Hook[] {
-    const error = this.errorMap.get(errorId);
+    const error = this.getError(errorId);
     if (!error?.thrownBy) return [];
 
-    return this.hooks.filter((hook) => error.thrownBy.includes(hook.id));
+    return this.hooks.filter((hook) =>
+      this.idsContainLike(error.thrownBy, hook.id)
+    );
   }
 
   getMiddlewaresUsingError(errorId: string): Middleware[] {
-    const error = this.errorMap.get(errorId);
+    const error = this.getError(errorId);
     if (!error?.thrownBy) return [];
 
     return this.middlewares.filter((middleware) =>
-      error.thrownBy.includes(middleware.id)
+      this.idsContainLike(error.thrownBy, middleware.id)
     );
   }
 
@@ -895,47 +1140,53 @@ export class Introspector {
   }
 
   getAsyncContext(id: string): AsyncContextModel | null {
-    return this.asyncContextMap.get(id) ?? null;
+    return (
+      this.asyncContextMap.get(id) ?? this.findByIdLike(this.asyncContexts, id)
+    );
   }
 
   getTasksUsingContext(contextId: string): Task[] {
-    const context = this.asyncContextMap.get(contextId);
+    const context = this.getAsyncContext(contextId);
     if (!context?.usedBy) return [];
 
-    return this.tasks.filter((task) => context.usedBy.includes(task.id));
+    return this.tasks.filter((task) =>
+      this.idsContainLike(context.usedBy, task.id)
+    );
   }
 
   getResourcesUsingContext(contextId: string): Resource[] {
-    const context = this.asyncContextMap.get(contextId);
+    const context = this.getAsyncContext(contextId);
     if (!context?.usedBy) return [];
 
     return this.resources.filter((resource) =>
-      context.usedBy.includes(resource.id)
+      this.idsContainLike(context.usedBy, resource.id)
     );
   }
 
   getResourcesProvidingContext(contextId: string): Resource[] {
-    const context = this.asyncContextMap.get(contextId);
+    const context = this.getAsyncContext(contextId);
     if (!context?.providedBy) return [];
 
     return this.resources.filter((resource) =>
-      context.providedBy.includes(resource.id)
+      this.idsContainLike(context.providedBy, resource.id)
     );
   }
 
   getHooksUsingContext(contextId: string): Hook[] {
-    const context = this.asyncContextMap.get(contextId);
+    const context = this.getAsyncContext(contextId);
     if (!context?.usedBy) return [];
 
-    return this.hooks.filter((hook) => context.usedBy.includes(hook.id));
+    return this.hooks.filter((hook) =>
+      this.idsContainLike(context.usedBy, hook.id)
+    );
   }
 
   getMiddlewaresUsingContext(contextId: string): Middleware[] {
-    const context = this.asyncContextMap.get(contextId);
+    const context = this.getAsyncContext(contextId);
     if (!context?.usedBy) return [];
 
     return this.middlewares.filter((middleware) =>
-      context.usedBy.includes(middleware.id)
+      this.idsContainLike(context.usedBy, middleware.id)
     );
   }
 
@@ -954,18 +1205,20 @@ export class Introspector {
    * Returns tasks that use `.require()` for a given async context.
    */
   getTasksRequiringContext(contextId: string): Task[] {
-    const context = this.asyncContextMap.get(contextId);
+    const context = this.getAsyncContext(contextId);
     if (!context?.requiredBy) return [];
 
-    return this.tasks.filter((task) => context.requiredBy.includes(task.id));
+    return this.tasks.filter((task) =>
+      this.idsContainLike(context.requiredBy, task.id)
+    );
   }
 
   /**
    * Checks whether a given element uses `.require()` for a specific async context.
    */
   isContextRequiredBy(contextId: string, elementId: string): boolean {
-    const context = this.asyncContextMap.get(contextId);
-    return context?.requiredBy?.includes(elementId) ?? false;
+    const context = this.getAsyncContext(contextId);
+    return this.idsContainLike(context?.requiredBy, elementId);
   }
 
   // RPC lane-related methods
@@ -1020,7 +1273,7 @@ export class Introspector {
    * A task is durable if it has the durable workflow tag (current: `globals.tags.durableWorkflow`, legacy: `durable.workflow`).
    */
   isDurableTask(taskId: string): boolean {
-    const task = this.taskMap.get(taskId);
+    const task = this.getTask(taskId);
     if (!task) return false;
     return hasDurableWorkflowTag(task.tags);
   }
@@ -1036,7 +1289,7 @@ export class Introspector {
    * Returns the durable resource a task depends on, if any.
    */
   getDurableResourceForTask(taskId: string): Resource | null {
-    const task = this.taskMap.get(taskId);
+    const task = this.getTask(taskId);
     if (!task) return null;
     if (!this.isDurableTask(taskId)) return null;
 

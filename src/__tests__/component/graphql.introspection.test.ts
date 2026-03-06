@@ -1,8 +1,31 @@
-import { resource, run, globals, event, task } from "@bluelibs/runner";
+import {
+  defineResource,
+  run,
+  resources,
+  defineEvent,
+  defineTask,
+} from "@bluelibs/runner";
 import { schema } from "../../schema";
-import { createDummyApp } from "../dummy/dummyApp";
+import {
+  createDummyApp,
+  dummyAppIds,
+  evtHello,
+  helloTask,
+  logMw,
+  logMwTask,
+  tagMw,
+} from "../dummy/dummyApp";
 import { introspector } from "../../resources/introspector.resource";
 import { graphql } from "graphql";
+
+const visibilityAppIds = {
+  resource(localId: string) {
+    return `app-graphql-visibility.${localId}`;
+  },
+  task(localId: string) {
+    return `app-graphql-visibility.res-visibility-module.tasks.${localId}`;
+  },
+};
 
 /**
  * This test executes a deep GraphQL query against the built schema
@@ -12,9 +35,9 @@ describe("GraphQL schema (integration)", () => {
   test("deep query returns rich graph", async () => {
     let ctx: any;
 
-    const probe = resource({
-      id: "probe.graphql-1",
-      dependencies: { introspector, store: globals.resources.store },
+    const probe = defineResource({
+      id: "probe-graphql-1",
+      dependencies: { introspector, store: resources.store },
       async init(_config, { introspector, store }) {
         ctx = {
           // Minimal GraphQLContext required by resolvers
@@ -27,7 +50,7 @@ describe("GraphQL schema (integration)", () => {
     });
 
     // Add an explicit orphan event for filter testing
-    const orphanEvt = event({ id: "evt.readme.orphan" });
+    const orphanEvt = defineEvent({ id: "evt-readme-orphan" });
     const app = createDummyApp([introspector, orphanEvt, probe]);
     await run(app);
 
@@ -188,18 +211,24 @@ describe("GraphQL schema (integration)", () => {
     expect(Array.isArray(data.middlewares)).toBe(true);
 
     // Spot checks
-    const helloTask = data.tasks.find((t: any) => t.id === "task.hello");
-    expect(typeof helloTask.isPrivate).toBe("boolean");
-    expect(typeof helloTask.interceptorCount).toBe("number");
-    expect(typeof helloTask.hasInterceptors).toBe("boolean");
-    expect(Array.isArray(helloTask.interceptorOwnerIds)).toBe(true);
-    expect(helloTask.emits).toEqual(expect.arrayContaining(["evt.hello"]));
-    expect("rpcLane" in helloTask).toBe(true);
-    expect(helloTask.emitsResolved.map((e: any) => e.id)).toEqual(
-      expect.arrayContaining(["evt.hello"])
+    const helloTaskNode = data.tasks.find(
+      (t: any) => t.id === dummyAppIds.task(helloTask.id)
+    );
+    expect(typeof helloTaskNode.isPrivate).toBe("boolean");
+    expect(typeof helloTaskNode.interceptorCount).toBe("number");
+    expect(typeof helloTaskNode.hasInterceptors).toBe("boolean");
+    expect(Array.isArray(helloTaskNode.interceptorOwnerIds)).toBe(true);
+    expect(helloTaskNode.emits).toEqual(
+      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
+    );
+    expect("rpcLane" in helloTaskNode).toBe(true);
+    expect(helloTaskNode.emitsResolved.map((e: any) => e.id)).toEqual(
+      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
     );
 
-    const evt = data.events.find((e: any) => e.id === "evt.hello");
+    const evt = data.events.find(
+      (e: any) => e.id === dummyAppIds.event(evtHello.id)
+    );
     expect(Array.isArray(evt.listenedToBy)).toBe(true);
     expect("rpcLane" in evt).toBe(true);
 
@@ -211,10 +240,16 @@ describe("GraphQL schema (integration)", () => {
     // Schemas present and look like JSON
     expect(typeof evt.payloadSchema === "string").toBe(true);
 
-    const mwLog = data.middlewares.find((m: any) => m.id === "mw.log");
-    expect(mwLog.usedByResources).toEqual(expect.arrayContaining(["res.db"]));
+    const mwLogNode = data.middlewares.find(
+      (m: any) => m.id === dummyAppIds.resourceMiddleware(logMw.id)
+    );
+    expect(mwLogNode.usedByResources).toEqual(
+      expect.arrayContaining([dummyAppIds.resource("res-db")])
+    );
     // Resource config markdown exists for cacheRes
-    const cache = data.resources.find((r: any) => r.id === "res.cache");
+    const cache = data.resources.find(
+      (r: any) => r.id === dummyAppIds.resource("res-cache")
+    );
     expect(typeof cache.isPrivate).toBe("boolean");
     expect(
       cache.isolation === null || typeof cache.isolation === "object"
@@ -232,15 +267,19 @@ describe("GraphQL schema (integration)", () => {
     const withoutHooks: string[] = data.eventsWithoutHooks.map(
       (e: any) => e.id
     );
-    expect(withHooks).toEqual(expect.arrayContaining(["evt.hello"]));
-    expect(withoutHooks).toEqual(expect.arrayContaining(["evt.readme.orphan"]));
+    expect(withHooks).toEqual(
+      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
+    );
+    expect(withoutHooks).toEqual(
+      expect.arrayContaining([dummyAppIds.event("evt-readme-orphan")])
+    );
 
     // Explicitly-declared event should have a filePath (comes from store symbol)
     expect(typeof evt.filePath === "string").toBe(true);
     expect(typeof evt.isPrivate).toBe("boolean");
     expect(evt.filePath).toBeTruthy();
 
-    expect(typeof mwLog.isPrivate).toBe("boolean");
+    expect(typeof mwLogNode.isPrivate).toBe("boolean");
 
     // runOptions
     expect(data.runOptions).toBeDefined();
@@ -295,9 +334,9 @@ describe("GraphQL schema (integration)", () => {
   test("removes Resource.tunnelInfo and exposes rpcLane on Task/Event", async () => {
     let ctx: any;
 
-    const probe = resource({
-      id: "probe.graphql-lanes-schema",
-      dependencies: { introspector, store: globals.resources.store },
+    const probe = defineResource({
+      id: "probe-graphql-lanes-schema",
+      dependencies: { introspector, store: resources.store },
       async init(_config, { introspector, store }) {
         ctx = {
           store,
@@ -357,8 +396,8 @@ describe("GraphQL schema (integration)", () => {
   test("deep traversal from task -> middlewareResolved -> dependents", async () => {
     let ctx: any;
 
-    const probe = resource({
-      id: "probe.graphql-2",
+    const probe = defineResource({
+      id: "probe-graphql-2",
       dependencies: { introspector },
       async init(_config, { introspector }) {
         ctx = {
@@ -390,42 +429,44 @@ describe("GraphQL schema (integration)", () => {
     expect(result.errors).toBeUndefined();
 
     const data: any = result.data;
-    const helloTask = data.tasks.find((t: any) => t.id === "task.hello");
-    expect(helloTask).toBeTruthy();
-    const mwLog = helloTask.middlewareResolved.find(
-      (m: any) => m.id === "mw.log.task"
+    const helloTaskNode = data.tasks.find(
+      (t: any) => t.id === dummyAppIds.task(helloTask.id)
     );
-    expect(mwLog).toBeTruthy();
+    expect(helloTaskNode).toBeTruthy();
+    const mwLogNode = helloTaskNode.middlewareResolved.find(
+      (m: any) => m.id === dummyAppIds.taskMiddleware(logMwTask.id)
+    );
+    expect(mwLogNode).toBeTruthy();
     // mw.log is used by task.hello and resource res.db
-    expect(mwLog.usedBy.map((t: any) => t.id)).toEqual(
-      expect.arrayContaining(["task.hello"])
+    expect(mwLogNode.usedBy.map((t: any) => t.id)).toEqual(
+      expect.arrayContaining([dummyAppIds.task(helloTask.id)])
     );
-    expect(mwLog.emits.map((e: any) => e.id)).toEqual(
-      expect.arrayContaining(["evt.hello"])
+    expect(mwLogNode.emits.map((e: any) => e.id)).toEqual(
+      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
     );
   });
 
   test("surfaces isolate()-based privacy and task interceptors", async () => {
     let ctx: any;
 
-    const visibilityPublicTask = task({
-      id: "task.visibility.public",
+    const visibilityPublicTask = defineTask({
+      id: "task-visibility-public",
       run: async (input: { value: number }) => ({ value: input.value }),
     });
 
-    const visibilityPrivateTask = task({
-      id: "task.visibility.private",
+    const visibilityPrivateTask = defineTask({
+      id: "task-visibility-private",
       run: async (input: { value: number }) => ({ value: input.value }),
     });
 
-    const visibilityModule = resource({
-      id: "res.visibility.module",
+    const visibilityModule = defineResource({
+      id: "res-visibility-module",
       register: [visibilityPublicTask, visibilityPrivateTask],
       isolate: { exports: [visibilityPublicTask] },
     });
 
-    const interceptorInstaller = resource({
-      id: "res.visibility.interceptor",
+    const interceptorInstaller = defineResource({
+      id: "res-visibility-interceptor",
       dependencies: { visibilityPublicTask },
       async init(_config, deps) {
         deps.visibilityPublicTask.intercept(async (next, input) =>
@@ -434,9 +475,9 @@ describe("GraphQL schema (integration)", () => {
       },
     });
 
-    const probe = resource({
-      id: "probe.graphql.visibility",
-      dependencies: { introspector, store: globals.resources.store },
+    const probe = defineResource({
+      id: "probe-graphql-visibility",
+      dependencies: { introspector, store: resources.store },
       async init(_config, { introspector, store }) {
         ctx = {
           store,
@@ -447,8 +488,8 @@ describe("GraphQL schema (integration)", () => {
       },
     });
 
-    const app = resource({
-      id: "app.graphql.visibility",
+    const app = defineResource({
+      id: "app-graphql-visibility",
       register: [introspector, visibilityModule, interceptorInstaller, probe],
     });
 
@@ -456,14 +497,14 @@ describe("GraphQL schema (integration)", () => {
 
     const query = `
       query VisibilityAndInterceptors {
-        tasks(idIncludes: "task.visibility.") {
+        tasks(idIncludes: "task-visibility-") {
           id
           isPrivate
           interceptorCount
           hasInterceptors
           interceptorOwnerIds
         }
-        resources(idIncludes: "res.visibility.module") {
+        resources(idIncludes: "res-visibility-module") {
           id
           isolation {
             deny
@@ -487,13 +528,15 @@ describe("GraphQL schema (integration)", () => {
 
     const data: any = result.data;
     const publicTask = data.tasks.find(
-      (node: any) => node.id === "task.visibility.public"
+      (node: any) => node.id === visibilityAppIds.task("task-visibility-public")
     );
     const privateTask = data.tasks.find(
-      (node: any) => node.id === "task.visibility.private"
+      (node: any) =>
+        node.id === visibilityAppIds.task("task-visibility-private")
     );
     const moduleResource = data.resources.find(
-      (node: any) => node.id === "res.visibility.module"
+      (node: any) =>
+        node.id === visibilityAppIds.resource("res-visibility-module")
     );
 
     expect(publicTask).toBeTruthy();
@@ -501,7 +544,7 @@ describe("GraphQL schema (integration)", () => {
     expect(publicTask.hasInterceptors).toBe(true);
     expect(publicTask.interceptorCount).toBe(1);
     expect(publicTask.interceptorOwnerIds).toEqual([
-      "res.visibility.interceptor",
+      visibilityAppIds.resource("res-visibility-interceptor"),
     ]);
 
     expect(privateTask).toBeTruthy();
@@ -513,23 +556,24 @@ describe("GraphQL schema (integration)", () => {
     expect(moduleResource).toBeTruthy();
     expect(moduleResource.isPrivate).toBe(false);
     expect(moduleResource.isolation.exports).toEqual([
-      "task.visibility.public",
+      visibilityAppIds.task("task-visibility-public"),
     ]);
 
     const ownersEntry = data.interceptorOwners.tasksById.find(
-      (entry: any) => entry.taskId === "task.visibility.public"
+      (entry: any) =>
+        entry.taskId === visibilityAppIds.task("task-visibility-public")
     );
     expect(ownersEntry).toBeTruthy();
     expect(ownersEntry.ownerResourceIds).toEqual([
-      "res.visibility.interceptor",
+      visibilityAppIds.resource("res-visibility-interceptor"),
     ]);
   });
 
   test("deep traversal from middleware root -> usedByTasksResolved -> nested middlewareResolved", async () => {
     let ctx: any;
 
-    const probe = resource({
-      id: "probe.graphql-3",
+    const probe = defineResource({
+      id: "probe-graphql-3",
       dependencies: { introspector },
       async init(_config, { introspector }) {
         ctx = {
@@ -560,25 +604,29 @@ describe("GraphQL schema (integration)", () => {
     expect(result.errors).toBeUndefined();
 
     const data: any = result.data;
-    const mwLog = data.middlewares.find((m: any) => m.id === "mw.log.task");
-    expect(mwLog).toBeTruthy();
-    const usedByTaskIds = mwLog.usedByTasksResolved.map((t: any) => t.id);
-    expect(usedByTaskIds).toEqual(expect.arrayContaining(["task.hello"]));
+    const mwLogNode = data.middlewares.find(
+      (m: any) => m.id === dummyAppIds.taskMiddleware(logMwTask.id)
+    );
+    expect(mwLogNode).toBeTruthy();
+    const usedByTaskIds = mwLogNode.usedByTasksResolved.map((t: any) => t.id);
+    expect(usedByTaskIds).toEqual(
+      expect.arrayContaining([dummyAppIds.task(helloTask.id)])
+    );
     // Nested middlewareResolved should include mw.log again
-    const nested = mwLog.usedByTasksResolved.find(
-      (t: any) => t.id === "task.hello"
+    const nested = mwLogNode.usedByTasksResolved.find(
+      (t: any) => t.id === dummyAppIds.task(helloTask.id)
     );
     expect(nested.middlewareResolved.map((m: any) => m.id)).toEqual(
-      expect.arrayContaining(["mw.log.task"])
+      expect.arrayContaining([dummyAppIds.taskMiddleware(logMwTask.id)])
     );
   });
 
   test("TaskInterface and HookType resolveType and isTypeOf coverage", async () => {
     let ctx: any;
 
-    const probe = resource({
-      id: "probe.graphql-4",
-      dependencies: { introspector, store: globals.resources.store },
+    const probe = defineResource({
+      id: "probe-graphql-4",
+      dependencies: { introspector, store: resources.store },
       async init(_config, { introspector, store }) {
         ctx = {
           store,
@@ -646,9 +694,9 @@ describe("GraphQL schema (integration)", () => {
   test("TaskInterface field resolvers coverage", async () => {
     let ctx: any;
 
-    const probe = resource({
-      id: "probe.graphql-5",
-      dependencies: { introspector, store: globals.resources.store },
+    const probe = defineResource({
+      id: "probe-graphql-5",
+      dependencies: { introspector, store: resources.store },
       async init(_config, { introspector, store }) {
         ctx = {
           store,
@@ -695,9 +743,9 @@ describe("GraphQL schema (integration)", () => {
   test("idIncludes filtering works across queries", async () => {
     let ctx: any;
 
-    const probe = resource({
-      id: "probe.graphql-6",
-      dependencies: { introspector, store: globals.resources.store },
+    const probe = defineResource({
+      id: "probe-graphql-6",
+      dependencies: { introspector, store: resources.store },
       async init(_config, { introspector, store }) {
         ctx = {
           store,
@@ -709,7 +757,7 @@ describe("GraphQL schema (integration)", () => {
     });
 
     // Add an explicit orphan event to check event idIncludes filter
-    const orphanEvt = event({ id: "evt.readme.orphan" });
+    const orphanEvt = defineEvent({ id: "evt-readme-orphan" });
     const app = createDummyApp([introspector, orphanEvt, probe]);
     await run(app);
 
@@ -718,9 +766,9 @@ describe("GraphQL schema (integration)", () => {
         all(idIncludes: "hello") { id __typename }
         tasksHello: tasks(idIncludes: "hello") { id }
         hooksHello: hooks(idIncludes: "hello") { id }
-        resourcesRes: resources(idIncludes: "res.") { id }
-        middlewaresMw: middlewares(idIncludes: "mw.") { id }
-        eventsReadme: events(filter: { idIncludes: "readme." }) { id }
+        resourcesRes: resources(idIncludes: "res-") { id }
+        middlewaresMw: middlewares(idIncludes: "mw-") { id }
+        eventsReadme: events(filter: { idIncludes: "readme-" }) { id }
         eventsHello: events(filter: { idIncludes: "hello" }) { id }
       }
     `;
@@ -731,26 +779,37 @@ describe("GraphQL schema (integration)", () => {
     const data: any = result.data;
     const allIds = data.all.map((n: any) => n.id);
     expect(allIds).toEqual(
-      expect.arrayContaining(["task.hello", "hook.hello", "evt.hello"])
+      expect.arrayContaining([
+        dummyAppIds.task(helloTask.id),
+        dummyAppIds.hook("hook-hello"),
+        dummyAppIds.event(evtHello.id),
+      ])
     );
 
     expect(data.tasksHello.map((t: any) => t.id)).toEqual(
-      expect.arrayContaining(["task.hello"])
+      expect.arrayContaining([dummyAppIds.task(helloTask.id)])
     );
     expect(data.hooksHello.map((l: any) => l.id)).toEqual(
-      expect.arrayContaining(["hook.hello"])
+      expect.arrayContaining([dummyAppIds.hook("hook-hello")])
     );
     expect(data.resourcesRes.map((r: any) => r.id)).toEqual(
-      expect.arrayContaining(["res.db", "res.cache"])
+      expect.arrayContaining([
+        dummyAppIds.resource("res-db"),
+        dummyAppIds.resource("res-cache"),
+      ])
     );
     expect(data.middlewaresMw.map((m: any) => m.id)).toEqual(
-      expect.arrayContaining(["mw.log", "mw.log.task", "mw.tag"])
+      expect.arrayContaining([
+        dummyAppIds.resourceMiddleware(logMw.id),
+        dummyAppIds.taskMiddleware(logMwTask.id),
+        dummyAppIds.taskMiddleware(tagMw.id),
+      ])
     );
     expect(data.eventsReadme.map((e: any) => e.id)).toEqual(
-      expect.arrayContaining(["evt.readme.orphan"])
+      expect.arrayContaining([dummyAppIds.event("evt-readme-orphan")])
     );
     expect(data.eventsHello.map((e: any) => e.id)).toEqual(
-      expect.arrayContaining(["evt.hello"])
+      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
     );
   });
 });

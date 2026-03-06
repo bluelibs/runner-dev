@@ -1,7 +1,7 @@
-import { run, task, resource } from "@bluelibs/runner";
+import { run, defineTask, defineResource } from "@bluelibs/runner";
 import { resources } from "../../index";
 import type { ISwapManager } from "../../resources/swap.resource";
-import { createDummyApp } from "../dummy/dummyApp";
+import { createDummyApp, dummyAppIds } from "../dummy/dummyApp";
 import {
   supportRequestContext,
   supportRequestContextMiddleware,
@@ -10,29 +10,38 @@ import {
 describe("SwapManager", () => {
   let swapManager: ISwapManager;
   let taskContainer: any;
+  const originalTaskLocalId = "test-swap-task";
+  const originalTaskId = `${dummyAppIds.resource(
+    "test-resource"
+  )}.tasks.${originalTaskLocalId}`;
+  const middlewareReturnTaskLocalId = "app-test-middleware-return";
+  const middlewareReturnTaskId = `${dummyAppIds.resource(
+    "test-middleware-resource"
+  )}.tasks.${middlewareReturnTaskLocalId}`;
+  const missingTaskId = "non-existent-task";
 
   // Test task for swapping
-  const originalTask = task({
-    id: "test.swap.task",
+  const originalTask = defineTask({
+    id: originalTaskLocalId,
     async run() {
       return { message: "original", timestamp: Date.now() };
     },
   });
 
-  const testResource = resource({
-    id: "test.resource",
+  const testResource = defineResource({
+    id: "test-resource",
     register: [originalTask],
   });
 
-  const middlewareReturnTask = task({
-    id: "app.test.middleware-return",
+  const middlewareReturnTask = defineTask({
+    id: middlewareReturnTaskLocalId,
     async run() {
       return { message: "middleware preserved result" };
     },
   });
 
-  const middlewareResource = resource({
-    id: "test.middleware.resource",
+  const middlewareResource = defineResource({
+    id: "test-middleware-resource",
     register: [
       supportRequestContext,
       supportRequestContextMiddleware,
@@ -41,8 +50,8 @@ describe("SwapManager", () => {
   });
 
   // Probe resource to capture dependencies after initialization
-  const probe = resource({
-    id: "test.probe",
+  const probe = defineResource({
+    id: "test-probe",
     dependencies: {
       swapManager: resources.swapManager,
       testTask: originalTask,
@@ -77,18 +86,18 @@ describe("SwapManager", () => {
         }
       `;
 
-      const result = await swapManager.swap("test.swap.task", newCode);
+      const result = await swapManager.swap(originalTaskId, newCode);
 
       expect(result.success).toBe(true);
-      expect(result.taskId).toBe("test.swap.task");
+      expect(result.taskId).toBe(originalTaskId);
       expect(result.error).toBeUndefined();
 
       // Verify task is tracked as swapped
-      expect(swapManager.isSwapped("test.swap.task")).toBe(true);
+      expect(swapManager.isSwapped(originalTaskId)).toBe(true);
 
       const swappedTasks = swapManager.getSwappedTasks();
       expect(swappedTasks).toHaveLength(1);
-      expect(swappedTasks[0].taskId).toBe("test.swap.task");
+      expect(swappedTasks[0].taskId).toBe(originalTaskId);
     });
 
     test("should execute swapped task with new logic", async () => {
@@ -98,7 +107,7 @@ describe("SwapManager", () => {
         }
       `;
 
-      await swapManager.swap("test.swap.task", newCode);
+      await swapManager.swap(originalTaskId, newCode);
 
       // Execute the swapped task via task runner
       const result = await taskContainer();
@@ -115,15 +124,15 @@ describe("SwapManager", () => {
       `;
 
       // First swap
-      await swapManager.swap("test.swap.task", newCode);
-      expect(swapManager.isSwapped("test.swap.task")).toBe(true);
+      await swapManager.swap(originalTaskId, newCode);
+      expect(swapManager.isSwapped(originalTaskId)).toBe(true);
 
       // Then unswap
-      const result = await swapManager.unswap("test.swap.task");
+      const result = await swapManager.unswap(originalTaskId);
 
       expect(result.success).toBe(true);
-      expect(result.taskId).toBe("test.swap.task");
-      expect(swapManager.isSwapped("test.swap.task")).toBe(false);
+      expect(result.taskId).toBe(originalTaskId);
+      expect(swapManager.isSwapped(originalTaskId)).toBe(false);
 
       // Verify original function is restored
       const taskResult = await taskContainer();
@@ -133,7 +142,7 @@ describe("SwapManager", () => {
     test("should unswap all tasks", async () => {
       // Swap our test task
       await swapManager.swap(
-        "test.swap.task",
+        originalTaskId,
         "async function run() { return {message: 'swapped'}; }"
       );
 
@@ -161,7 +170,7 @@ describe("SwapManager", () => {
         }
       `;
 
-      const result = await swapManager.swap("test.swap.task", tsCode);
+      const result = await swapManager.swap(originalTaskId, tsCode);
 
       expect(result.success).toBe(true);
 
@@ -173,7 +182,7 @@ describe("SwapManager", () => {
     test("should handle arrow function syntax", async () => {
       const arrowCode = "() => ({ message: 'arrow function' })";
 
-      const result = await swapManager.swap("test.swap.task", arrowCode);
+      const result = await swapManager.swap(originalTaskId, arrowCode);
 
       expect(result.success).toBe(true);
 
@@ -187,7 +196,7 @@ describe("SwapManager", () => {
         return { message };
       `;
 
-      const result = await swapManager.swap("test.swap.task", bodyCode);
+      const result = await swapManager.swap(originalTaskId, bodyCode);
 
       expect(result.success).toBe(true);
 
@@ -198,31 +207,31 @@ describe("SwapManager", () => {
 
   describe("Error Handling", () => {
     test("should fail when task does not exist", async () => {
-      const result = await swapManager.swap("non.existent.task", "() => {}");
+      const result = await swapManager.swap(missingTaskId, "() => {}");
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("not found");
-      expect(result.taskId).toBe("non.existent.task");
+      expect(result.taskId).toBe(missingTaskId);
     });
 
     test("should fail with invalid code", async () => {
       const invalidCode = "this is not valid javascript {{{";
 
-      const result = await swapManager.swap("test.swap.task", invalidCode);
+      const result = await swapManager.swap(originalTaskId, invalidCode);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Compilation failed");
     });
 
     test("should fail to unswap task that is not swapped", async () => {
-      const result = await swapManager.unswap("test.swap.task");
+      const result = await swapManager.unswap(originalTaskId);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("is not swapped");
     });
 
     test("should fail to unswap non-existent task", async () => {
-      const result = await swapManager.unswap("non.existent.task");
+      const result = await swapManager.unswap(missingTaskId);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("not found");
@@ -235,7 +244,7 @@ describe("SwapManager", () => {
         }
       `;
 
-      const result = await swapManager.swap("test.swap.task", badTsCode);
+      const result = await swapManager.swap(originalTaskId, badTsCode);
 
       // Should succeed with TypeScript transpilation (it's lenient)
       // The main goal is no crashes
@@ -248,24 +257,21 @@ describe("SwapManager", () => {
       const swappedTasks = swapManager.getSwappedTasks();
       expect(swappedTasks).toHaveLength(0);
 
-      await swapManager.swap("test.swap.task", "() => ({message: 'first'})");
+      await swapManager.swap(originalTaskId, "() => ({message: 'first'})");
 
       const tasks = swapManager.getSwappedTasks();
       expect(tasks).toHaveLength(1);
-      expect(tasks[0].taskId).toBe("test.swap.task");
+      expect(tasks[0].taskId).toBe(originalTaskId);
       expect(typeof tasks[0].swappedAt).toBe("number");
     });
 
     test("should handle re-swapping the same task", async () => {
       // First swap
-      await swapManager.swap(
-        "test.swap.task",
-        "() => ({message: 'first swap'})"
-      );
+      await swapManager.swap(originalTaskId, "() => ({message: 'first swap'})");
 
       // Second swap of same task
       await swapManager.swap(
-        "test.swap.task",
+        originalTaskId,
         "() => ({message: 'second swap'})"
       );
 
@@ -277,7 +283,7 @@ describe("SwapManager", () => {
       expect(result.message).toBe("second swap");
 
       // Should still be able to unswap back to original
-      await swapManager.unswap("test.swap.task");
+      await swapManager.unswap(originalTaskId);
       const originalResult = await taskContainer();
       expect(originalResult.message).toBe("original");
     });
@@ -285,17 +291,17 @@ describe("SwapManager", () => {
 
   describe("Task Invocation", () => {
     test("should invoke task with no input", async () => {
-      const result = await swapManager.invokeTask("test.swap.task");
+      const result = await swapManager.invokeTask(originalTaskId);
 
       expect(result.success).toBe(true);
-      expect(result.taskId).toBe("test.swap.task");
+      expect(result.taskId).toBe(originalTaskId);
       expect(result.invocationId).toBeTruthy();
       expect(typeof result.executionTimeMs).toBe("number");
       expect(result.result).toContain("original");
     });
 
     test("should preserve task output when app-wide request-context middleware wraps execution", async () => {
-      const result = await swapManager.invokeTask("app.test.middleware-return");
+      const result = await swapManager.invokeTask(middlewareReturnTaskId);
 
       expect(result.success).toBe(true);
       expect(result.result).toBeTruthy();
@@ -309,7 +315,7 @@ describe("SwapManager", () => {
 
       // First swap to a task that uses input
       await swapManager.swap(
-        "test.swap.task",
+        originalTaskId,
         `
         async function run(input, deps) {
           return { 
@@ -321,7 +327,7 @@ describe("SwapManager", () => {
       `
       );
 
-      const result = await swapManager.invokeTask("test.swap.task", inputJson);
+      const result = await swapManager.invokeTask(originalTaskId, inputJson);
 
       expect(result.success).toBe(true);
       expect(result.result).toContain("Hello Test User");
@@ -329,29 +335,29 @@ describe("SwapManager", () => {
     });
 
     test("should handle task invocation errors", async () => {
-      const result = await swapManager.invokeTask("non.existent.task");
+      const result = await swapManager.invokeTask(missingTaskId);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("not found");
-      expect(result.taskId).toBe("non.existent.task");
+      expect(result.taskId).toBe(missingTaskId);
       expect(result.invocationId).toBeTruthy();
     });
 
     test("should handle invalid JSON input", async () => {
       const result = await swapManager.invokeTask(
-        "test.swap.task",
+        originalTaskId,
         "invalid json {"
       );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("JSON deserialization failed");
-      expect(result.taskId).toBe("test.swap.task");
+      expect(result.taskId).toBe(originalTaskId);
     });
 
     test("should handle task execution errors", async () => {
       // Swap to a task that throws an error
       await swapManager.swap(
-        "test.swap.task",
+        originalTaskId,
         `
         async function run(input, deps) {
           throw new Error("Intentional test error");
@@ -359,7 +365,7 @@ describe("SwapManager", () => {
       `
       );
 
-      const result = await swapManager.invokeTask("test.swap.task");
+      const result = await swapManager.invokeTask(originalTaskId);
 
       expect(result.success).toBe(false);
       // Accept either legacy or current error prefix
@@ -374,7 +380,7 @@ describe("SwapManager", () => {
 
     test("should serialize complex results properly", async () => {
       await swapManager.swap(
-        "test.swap.task",
+        originalTaskId,
         `
         async function run(input, deps) {
           return {
@@ -391,7 +397,7 @@ describe("SwapManager", () => {
       `
       );
 
-      const result = await swapManager.invokeTask("test.swap.task");
+      const result = await swapManager.invokeTask(originalTaskId);
 
       expect(result.success).toBe(true);
       const parsed = JSON.parse(result.result!);
@@ -407,7 +413,7 @@ describe("SwapManager", () => {
     test("should invoke task in pure mode (bypass middleware)", async () => {
       // First swap the task to use dependencies
       await swapManager.swap(
-        "test.swap.task",
+        originalTaskId,
         `
         async function run(input, deps) {
           return { 
@@ -423,7 +429,7 @@ describe("SwapManager", () => {
 
       // Test without pure mode (minimal/empty dependencies)
       const standardResult = await swapManager.invokeTask(
-        "test.swap.task",
+        originalTaskId,
         '{"test": "data"}',
         false
       );
@@ -432,7 +438,7 @@ describe("SwapManager", () => {
 
       // Test with pure mode (computed dependencies from store)
       const pureResult = await swapManager.invokeTask(
-        "test.swap.task",
+        originalTaskId,
         '{"test": "data"}',
         true
       );
@@ -450,7 +456,7 @@ describe("SwapManager", () => {
     test("should evaluate JavaScript input expressions when evalInput=true", async () => {
       // Swap task to show input details
       await swapManager.swap(
-        "test.swap.task",
+        originalTaskId,
         `
         async function run(input, deps) {
           return { 
@@ -467,7 +473,7 @@ describe("SwapManager", () => {
 
       // Test with JSON parsing (default)
       const jsonResult = await swapManager.invokeTask(
-        "test.swap.task",
+        originalTaskId,
         '{"name": "test", "value": 42}',
         false,
         false
@@ -486,7 +492,7 @@ describe("SwapManager", () => {
       }`;
 
       const evalResult = await swapManager.invokeTask(
-        "test.swap.task",
+        originalTaskId,
         jsInput,
         false,
         true
@@ -505,7 +511,7 @@ describe("SwapManager", () => {
 
     test("should handle JavaScript evaluation errors gracefully", async () => {
       const result = await swapManager.invokeTask(
-        "test.swap.task",
+        originalTaskId,
         "invalid.syntax.here",
         false,
         true
@@ -513,14 +519,14 @@ describe("SwapManager", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("JavaScript evaluation failed");
-      expect(result.taskId).toBe("test.swap.task");
+      expect(result.taskId).toBe(originalTaskId);
       expect(result.invocationId).toBeTruthy();
     });
   });
 
   describe("Edge Cases", () => {
     test("should handle empty code", async () => {
-      const result = await swapManager.swap("test.swap.task", "");
+      const result = await swapManager.swap(originalTaskId, "");
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Compilation failed");
@@ -536,7 +542,7 @@ describe("SwapManager", () => {
         }
       `;
 
-      const result = await swapManager.swap("test.swap.task", codeWithFunction);
+      const result = await swapManager.swap(originalTaskId, codeWithFunction);
 
       expect(result.success).toBe(true);
 

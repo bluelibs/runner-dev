@@ -1,15 +1,15 @@
-import { globals, resource } from "@bluelibs/runner";
+import { resources, defineResource } from "@bluelibs/runner";
 import { live } from "./live.resource";
 import { deriveParentAndRoot, withTaskRunContext } from "./telemetry.chain";
 
-const overrideEventManagerEmittor = resource({
-  id: "runner-dev.telemetry.resources.overrideEventManagerEmittor",
+const overrideEventManagerEmittor = defineResource({
+  id: "runner-dev-telemetry-resources-overrideEventManagerEmittor",
   meta: {
     title: "Override event manager emittor",
     description:
       "Overrides the event manager emittor to record telemetry, no other changes are made to the input.",
   },
-  dependencies: { eventManager: globals.resources.eventManager, live },
+  dependencies: { eventManager: resources.eventManager, live },
   async init(_, { eventManager, live }) {
     eventManager.intercept((next, emission) => {
       return withTaskRunContext(emission.id, async () => {
@@ -24,14 +24,14 @@ const overrideEventManagerEmittor = resource({
   },
 });
 
-const hookInterceptors = resource({
-  id: "runner-dev.telemetry.resources.hookInterceptors",
+const hookInterceptors = defineResource({
+  id: "runner-dev-telemetry-resources-hookInterceptors",
   meta: {
     title: "Hook Interceptors",
     description:
       "Intercepts hook execution to record telemetry data including execution time, success/failure status, and correlation",
   },
-  dependencies: { live, eventManager: globals.resources.eventManager },
+  dependencies: { live, eventManager: resources.eventManager },
   async init(_, { live, eventManager }) {
     eventManager.interceptHook(async (next, hook, emission) => {
       const startedAt = Date.now();
@@ -60,8 +60,8 @@ const hookInterceptors = resource({
   },
 });
 
-const taskInterceptors = resource({
-  id: "runner-dev.telemetry.resources.taskInterceptors",
+const taskInterceptors = defineResource({
+  id: "runner-dev-telemetry-resources-taskInterceptors",
   meta: {
     title: "Telemetry Task Interceptors",
     description:
@@ -69,7 +69,7 @@ const taskInterceptors = resource({
   },
   dependencies: {
     live,
-    taskRunner: globals.resources.taskRunner,
+    taskRunner: resources.taskRunner,
   },
   async init(_, { live, taskRunner }) {
     taskRunner.intercept(async (next, input) => {
@@ -122,8 +122,8 @@ const taskInterceptors = resource({
   },
 });
 
-export const telemetry = resource({
-  id: "runner-dev.telemetry.resources.telemetry",
+export const telemetry = defineResource({
+  id: "runner-dev-telemetry-resources-telemetry",
   meta: {
     title: "Telemetry System",
     description:

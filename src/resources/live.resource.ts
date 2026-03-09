@@ -1,4 +1,4 @@
-import { resources, tags, defineResource, type Store } from "@bluelibs/runner";
+import { resources, defineResource, type Store } from "@bluelibs/runner";
 import { type DurableFlowShape } from "@bluelibs/runner/node";
 import { getCorrelationId } from "./telemetry.chain";
 import { describeDurableTaskFromStore } from "./models/durable.runtime";
@@ -466,7 +466,6 @@ const liveService = defineResource({
       },
     };
   },
-  tags: [tags.excludeFromGlobalHooks],
 });
 
 // const onGlobalEvent = hook({

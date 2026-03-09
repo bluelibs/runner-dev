@@ -229,8 +229,14 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             {resource.isolation?.exportsMode ?? "unset"}
           </InfoBlock>
 
-          <InfoBlock prefix="resource-card" label="Cooldown Hook:">
-            {resource.cooldown ? "Yes" : "No"}
+          <InfoBlock prefix="resource-card" label="Lifecycle Hooks:">
+            {[
+              resource.hasReady && "ready",
+              resource.hasCooldown && "cooldown",
+              resource.hasHealthCheck && "health",
+            ]
+              .filter(Boolean)
+              .join(", ") || "None"}
           </InfoBlock>
 
           {resource.isolation && (

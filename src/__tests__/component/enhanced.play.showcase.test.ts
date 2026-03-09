@@ -148,7 +148,7 @@ describe("Enhanced play showcase app", () => {
       schema,
       source: `
         query IsolationVisibility {
-          resources(idIncludes: "app-examples-isolation-resources") {
+          resources(idIncludes: "isolation-boundary") {
             id
             isPrivate
             isolation {
@@ -209,7 +209,7 @@ describe("Enhanced play showcase app", () => {
       schema,
       source: `
         query Interceptors {
-          tasks(idIncludes: "app-examples-interceptors-tasks-") {
+          tasks(idIncludes: "interceptor-") {
             id
             hasInterceptors
             interceptorCount
@@ -252,7 +252,7 @@ describe("Enhanced play showcase app", () => {
     const taskLaneId = contextValue.introspector.getRpcLaneForTask(
       rpcLanePricingPreviewTask.id
     );
-    expect(taskLaneId).toBe("app-examples-lanes-rpc-pricing-preview");
+    expect(taskLaneId).toBe("rpc-pricing-preview");
 
     const owner = contextValue.introspector.getRpcLaneResourceForTask(
       rpcLanePricingPreviewTask.id
@@ -264,16 +264,12 @@ describe("Enhanced play showcase app", () => {
     const laneEvent = contextValue.introspector.getEvent(
       rpcLaneCatalogUpdatedEvent.id
     );
-    expect(laneEvent?.rpcLane?.laneId).toBe(
-      "app-examples-lanes-rpc-catalog-updates"
-    );
+    expect(laneEvent?.rpcLane?.laneId).toBe("rpc-catalog-updates");
 
     const eventLaneEvent = contextValue.introspector.getEvent(
       eventLaneCatalogProjectionUpdatedEvent.id
     );
-    expect(eventLaneEvent?.eventLane?.laneId).toBe(
-      "app-examples-lanes-event-catalog-updates"
-    );
+    expect(eventLaneEvent?.eventLane?.laneId).toBe("event-catalog-updates");
   });
 
   test("keeps durable metadata and support sections visible", async () => {

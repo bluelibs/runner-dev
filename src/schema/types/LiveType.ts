@@ -36,6 +36,70 @@ import {
   getGcWindow,
 } from "../../utils/healthCollectors";
 
+const ResourceHealthStatusEnum = new GraphQLEnumType({
+  name: "ResourceHealthStatus",
+  values: {
+    healthy: { value: "healthy" },
+    degraded: { value: "degraded" },
+    unhealthy: { value: "unhealthy" },
+  },
+});
+
+const ResourceHealthEntryType = new GraphQLObjectType({
+  name: "ResourceHealthEntry",
+  fields: {
+    id: {
+      description: "Resource identifier",
+      type: new GraphQLNonNull(GraphQLString),
+    },
+    status: {
+      description: "Health status: healthy, degraded, or unhealthy",
+      type: new GraphQLNonNull(ResourceHealthStatusEnum),
+    },
+    message: {
+      description: "Optional status message from the health probe",
+      type: GraphQLString,
+    },
+    details: {
+      description: "Serialized details from the health probe",
+      type: GraphQLString,
+      resolve: (entry: { details?: unknown }) =>
+        entry.details != null ? safeStringify(entry.details) : null,
+    },
+    initialized: {
+      description: "Whether the resource has been initialized",
+      type: new GraphQLNonNull(GraphQLBoolean),
+    },
+  },
+});
+
+const ResourceHealthTotalsType = new GraphQLObjectType({
+  name: "ResourceHealthTotals",
+  fields: {
+    resources: {
+      description: "Total number of health-enabled resources",
+      type: new GraphQLNonNull(GraphQLInt),
+    },
+    healthy: { type: new GraphQLNonNull(GraphQLInt) },
+    degraded: { type: new GraphQLNonNull(GraphQLInt) },
+    unhealthy: { type: new GraphQLNonNull(GraphQLInt) },
+  },
+});
+
+const ResourceHealthReportType = new GraphQLObjectType({
+  name: "ResourceHealthReport",
+  fields: {
+    totals: {
+      type: new GraphQLNonNull(ResourceHealthTotalsType),
+    },
+    report: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(ResourceHealthEntryType))
+      ),
+    },
+  },
+});
+
 export const LogEntryType = new GraphQLObjectType<
   LiveLogEntry,
   CustomGraphQLContext
@@ -477,6 +541,16 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
           rootIds: args.filter?.rootIds ?? undefined,
           correlationIds: args.filter?.correlationIds ?? undefined,
         });
+      },
+    },
+    healthReport: {
+      description:
+        "Per-resource health report. Only includes resources with a health() probe defined.",
+      type: ResourceHealthReportType,
+      resolve: async (_root, _args, ctx: CustomGraphQLContext) => {
+        const runtime = ctx.introspector.runtime;
+        if (!runtime) return null;
+        return runtime.getHealth();
       },
     },
   }),

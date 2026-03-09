@@ -489,10 +489,25 @@ export type InterceptorOwnersSnapshot = {
   tasksById: Array<TaskInterceptorOwnersEntry>;
 };
 
+export type IsolationChannels = {
+  __typename?: 'IsolationChannels';
+  dependencies: Maybe<Scalars['Boolean']['output']>;
+  listening: Maybe<Scalars['Boolean']['output']>;
+  middleware: Maybe<Scalars['Boolean']['output']>;
+  tagging: Maybe<Scalars['Boolean']['output']>;
+};
+
 export type IsolationExportsMode =
   | 'list'
   | 'none'
   | 'unset';
+
+export type IsolationWhitelistEntry = {
+  __typename?: 'IsolationWhitelistEntry';
+  channels: Maybe<IsolationChannels>;
+  for: Array<Scalars['String']['output']>;
+  targets: Array<Scalars['String']['output']>;
+};
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type Live = {
@@ -507,6 +522,8 @@ export type Live = {
   eventLoop: EventLoopStats;
   /** Garbage collector statistics. By default totals since process start; when windowMs provided, returns stats within that window. */
   gc: GcStats;
+  /** Per-resource health report. Only includes resources with a health() probe defined. */
+  healthReport: Maybe<ResourceHealthReport>;
   /** Live logs with optional timestamp cursor, filters and last N */
   logs: Array<LogEntry>;
   /** Process memory usage */
@@ -899,8 +916,6 @@ export type Resource = BaseElement & {
   configSchemaReadable: Maybe<Scalars['String']['output']>;
   /** Serialized context (if any) */
   context: Maybe<Scalars['String']['output']>;
-  /** True when this resource defines a cooldown() lifecycle hook. */
-  cooldown: Scalars['Boolean']['output'];
   /** Coverage summary for this element's file (percentage is always resolvable if coverage report is present). */
   coverage: Maybe<CoverageInfo>;
   /** Raw coverage report contents from the project (entire file), or null if not available. */
@@ -915,6 +930,12 @@ export type Resource = BaseElement & {
   fileContents: Maybe<Scalars['String']['output']>;
   /** Path to task file */
   filePath: Maybe<Scalars['String']['output']>;
+  /** True when this resource defines a cooldown() lifecycle hook. */
+  hasCooldown: Scalars['Boolean']['output'];
+  /** True when this resource defines a health() probe for runtime health reports. */
+  hasHealthCheck: Scalars['Boolean']['output'];
+  /** True when this resource defines a ready() lifecycle hook. */
+  hasReady: Scalars['Boolean']['output'];
   /** Unique identifier for the element */
   id: Scalars['ID']['output'];
   /** True when this element is private to a resource boundary defined by isolate(). */
@@ -961,12 +982,47 @@ export type ResourceFileContentsArgs = {
   startLine: InputMaybe<Scalars['Int']['input']>;
 };
 
+export type ResourceHealthEntry = {
+  __typename?: 'ResourceHealthEntry';
+  /** Serialized details from the health probe */
+  details: Maybe<Scalars['String']['output']>;
+  /** Resource identifier */
+  id: Scalars['String']['output'];
+  /** Whether the resource has been initialized */
+  initialized: Scalars['Boolean']['output'];
+  /** Optional status message from the health probe */
+  message: Maybe<Scalars['String']['output']>;
+  /** Health status: healthy, degraded, or unhealthy */
+  status: ResourceHealthStatus;
+};
+
+export type ResourceHealthReport = {
+  __typename?: 'ResourceHealthReport';
+  report: Array<ResourceHealthEntry>;
+  totals: ResourceHealthTotals;
+};
+
+export type ResourceHealthStatus =
+  | 'degraded'
+  | 'healthy'
+  | 'unhealthy';
+
+export type ResourceHealthTotals = {
+  __typename?: 'ResourceHealthTotals';
+  degraded: Scalars['Int']['output'];
+  healthy: Scalars['Int']['output'];
+  /** Total number of health-enabled resources */
+  resources: Scalars['Int']['output'];
+  unhealthy: Scalars['Int']['output'];
+};
+
 export type ResourceIsolation = {
   __typename?: 'ResourceIsolation';
   deny: Array<Scalars['String']['output']>;
   exports: Array<Scalars['String']['output']>;
   exportsMode: IsolationExportsMode;
   only: Array<Scalars['String']['output']>;
+  whitelist: Array<IsolationWhitelistEntry>;
 };
 
 export type ResourceMiddleware = BaseElement & {
@@ -1472,7 +1528,9 @@ export type ResolversTypes = ResolversObject<{
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   InterceptorOwnersSnapshot: ResolverTypeWrapper<InterceptorOwnersSnapshot>;
+  IsolationChannels: ResolverTypeWrapper<IsolationChannels>;
   IsolationExportsMode: null;
+  IsolationWhitelistEntry: ResolverTypeWrapper<IsolationWhitelistEntry>;
   Live: ResolverTypeWrapper<Omit<Live, 'emissions' | 'errors' | 'runs'> & { emissions: Array<ResolversTypes['EmissionEntry']>, errors: Array<ResolversTypes['ErrorEntry']>, runs: Array<ResolversTypes['RunRecord']> }>;
   LogEntry: ResolverTypeWrapper<LogEntry>;
   LogFilterInput: LogFilterInput;
@@ -1490,6 +1548,10 @@ export type ResolversTypes = ResolversObject<{
   NodeKindEnum: NodeKindEnum;
   Query: ResolverTypeWrapper<{}>;
   Resource: ResolverTypeWrapper<Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<ResolversTypes['Resource']>, emits: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversTypes['BaseElement']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, registersResolved: Array<ResolversTypes['BaseElement']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Task']> }>;
+  ResourceHealthEntry: ResolverTypeWrapper<ResourceHealthEntry>;
+  ResourceHealthReport: ResolverTypeWrapper<ResourceHealthReport>;
+  ResourceHealthStatus: ResourceHealthStatus;
+  ResourceHealthTotals: ResolverTypeWrapper<ResourceHealthTotals>;
   ResourceIsolation: ResolverTypeWrapper<ResourceIsolation>;
   ResourceMiddleware: ResolverTypeWrapper<Omit<ResourceMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: ResolversTypes['MiddlewareAutoApply'], emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Resource']>, usedByDetailed: Array<ResolversTypes['MiddlewareResourceUsage']> }>;
   ResourceSubtreeBranch: ResolverTypeWrapper<ResourceSubtreeBranch>;
@@ -1545,6 +1607,8 @@ export type ResolversParentTypes = ResolversObject<{
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   InterceptorOwnersSnapshot: InterceptorOwnersSnapshot;
+  IsolationChannels: IsolationChannels;
+  IsolationWhitelistEntry: IsolationWhitelistEntry;
   Live: Omit<Live, 'emissions' | 'errors' | 'runs'> & { emissions: Array<ResolversParentTypes['EmissionEntry']>, errors: Array<ResolversParentTypes['ErrorEntry']>, runs: Array<ResolversParentTypes['RunRecord']> };
   LogEntry: LogEntry;
   LogFilterInput: LogFilterInput;
@@ -1559,6 +1623,9 @@ export type ResolversParentTypes = ResolversObject<{
   MiddlewareTaskUsage: Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversParentTypes['Task'] };
   Query: {};
   Resource: Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<ResolversParentTypes['Resource']>, emits: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, overridesResolved: Array<ResolversParentTypes['BaseElement']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, registersResolved: Array<ResolversParentTypes['BaseElement']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Task']> };
+  ResourceHealthEntry: ResourceHealthEntry;
+  ResourceHealthReport: ResourceHealthReport;
+  ResourceHealthTotals: ResourceHealthTotals;
   ResourceIsolation: ResourceIsolation;
   ResourceMiddleware: Omit<ResourceMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: ResolversParentTypes['MiddlewareAutoApply'], emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Resource']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareResourceUsage']> };
   ResourceSubtreeBranch: ResourceSubtreeBranch;
@@ -1825,7 +1892,22 @@ export type InterceptorOwnersSnapshotResolvers<ContextType = CustomGraphQLContex
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type IsolationChannelsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['IsolationChannels'] = ResolversParentTypes['IsolationChannels']> = ResolversObject<{
+  dependencies: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  listening: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  middleware: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  tagging: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type IsolationExportsModeResolvers = { LIST: 'list', NONE: 'none', UNSET: 'unset' };
+
+export type IsolationWhitelistEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['IsolationWhitelistEntry'] = ResolversParentTypes['IsolationWhitelistEntry']> = ResolversObject<{
+  channels: Resolver<Maybe<ResolversTypes['IsolationChannels']>, ParentType, ContextType>;
+  for: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  targets: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export type LiveResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Live'] = ResolversParentTypes['Live']> = ResolversObject<{
   cpu: Resolver<ResolversTypes['CpuStats'], ParentType, ContextType>;
@@ -1833,6 +1915,7 @@ export type LiveResolvers<ContextType = CustomGraphQLContext, ParentType extends
   errors: Resolver<Array<ResolversTypes['ErrorEntry']>, ParentType, ContextType, LiveErrorsArgs>;
   eventLoop: Resolver<ResolversTypes['EventLoopStats'], ParentType, ContextType, LiveEventLoopArgs>;
   gc: Resolver<ResolversTypes['GcStats'], ParentType, ContextType, LiveGcArgs>;
+  healthReport: Resolver<Maybe<ResolversTypes['ResourceHealthReport']>, ParentType, ContextType>;
   logs: Resolver<Array<ResolversTypes['LogEntry']>, ParentType, ContextType, LiveLogsArgs>;
   memory: Resolver<ResolversTypes['MemoryStats'], ParentType, ContextType>;
   runs: Resolver<Array<ResolversTypes['RunRecord']>, ParentType, ContextType, LiveRunsArgs>;
@@ -1967,7 +2050,6 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   configSchemaReadable: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   context: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  cooldown: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   coverage: Resolver<Maybe<ResolversTypes['CoverageInfo']>, ParentType, ContextType>;
   coverageContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   dependsOn: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1975,6 +2057,9 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   emits: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, ResourceFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  hasCooldown: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  hasHealthCheck: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  hasReady: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isolation: Resolver<Maybe<ResolversTypes['ResourceIsolation']>, ParentType, ContextType>;
@@ -1997,11 +2082,35 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ResourceHealthEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceHealthEntry'] = ResolversParentTypes['ResourceHealthEntry']> = ResolversObject<{
+  details: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  initialized: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  message: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  status: Resolver<ResolversTypes['ResourceHealthStatus'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ResourceHealthReportResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceHealthReport'] = ResolversParentTypes['ResourceHealthReport']> = ResolversObject<{
+  report: Resolver<Array<ResolversTypes['ResourceHealthEntry']>, ParentType, ContextType>;
+  totals: Resolver<ResolversTypes['ResourceHealthTotals'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ResourceHealthTotalsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceHealthTotals'] = ResolversParentTypes['ResourceHealthTotals']> = ResolversObject<{
+  degraded: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  healthy: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  resources: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  unhealthy: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type ResourceIsolationResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceIsolation'] = ResolversParentTypes['ResourceIsolation']> = ResolversObject<{
   deny: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   exports: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   exportsMode: Resolver<ResolversTypes['IsolationExportsMode'], ParentType, ContextType>;
   only: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  whitelist: Resolver<Array<ResolversTypes['IsolationWhitelistEntry']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2245,7 +2354,9 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   GcStats: GcStatsResolvers<ContextType>;
   Hook: HookResolvers<ContextType>;
   InterceptorOwnersSnapshot: InterceptorOwnersSnapshotResolvers<ContextType>;
+  IsolationChannels: IsolationChannelsResolvers<ContextType>;
   IsolationExportsMode: IsolationExportsModeResolvers;
+  IsolationWhitelistEntry: IsolationWhitelistEntryResolvers<ContextType>;
   Live: LiveResolvers<ContextType>;
   LogEntry: LogEntryResolvers<ContextType>;
   MemoryStats: MemoryStatsResolvers<ContextType>;
@@ -2260,6 +2371,9 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   MiddlewareTaskUsage: MiddlewareTaskUsageResolvers<ContextType>;
   Query: QueryResolvers<ContextType>;
   Resource: ResourceResolvers<ContextType>;
+  ResourceHealthEntry: ResourceHealthEntryResolvers<ContextType>;
+  ResourceHealthReport: ResourceHealthReportResolvers<ContextType>;
+  ResourceHealthTotals: ResourceHealthTotalsResolvers<ContextType>;
   ResourceIsolation: ResourceIsolationResolvers<ContextType>;
   ResourceMiddleware: ResourceMiddlewareResolvers<ContextType>;
   ResourceSubtreeBranch: ResourceSubtreeBranchResolvers<ContextType>;

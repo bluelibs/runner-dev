@@ -1,4 +1,4 @@
-import { defineResource, run, tags } from "@bluelibs/runner";
+import { defineEvent, defineResource, run, tags } from "@bluelibs/runner";
 import { graphql } from "graphql";
 import { schema } from "../../schema";
 import { introspector } from "../../resources/introspector.resource";
@@ -7,13 +7,9 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
   test("fetches fileContents for tags.excludeFromGlobalHooks", async () => {
     let ctx: any;
 
-    const taggedRes = defineResource({
+    const taggedEvt = defineEvent({
       id: "probe-taggedWithGlobal",
-      // Refer to the global tag so it is present in the store
       tags: [tags.excludeFromGlobalHooks],
-      async init() {
-        return {};
-      },
     });
 
     const probe = defineResource({
@@ -31,7 +27,7 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
 
     const app = defineResource<void>({
       id: "root-app",
-      register: [introspector, taggedRes, probe],
+      register: [introspector, taggedEvt, probe],
       dependencies: {},
     });
 

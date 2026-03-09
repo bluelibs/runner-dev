@@ -17,14 +17,14 @@ export const registerHttpRoutes = defineHook({
     taskRunner: resources.taskRunner,
   },
   async run(_e, { store, server, taskRunner }) {
-    const tasks = store.getTasksWithTag(httpTag);
-    if (!tasks || tasks.length === 0) return;
+    const taggedTasks = store.getTagAccessor(httpTag).tasks;
+    if (taggedTasks.length === 0) return;
 
     // Access express app exposed by server resource
     const app: express.Express = server.app;
 
-    for (const task of tasks) {
-      const cfg = httpTag.extract(task.meta?.tags || [])!;
+    for (const { definition: task, config: cfg } of taggedTasks) {
+      if (!cfg) continue;
       const method = cfg.method;
       const path = cfg.path;
       if (!method || !path) continue;

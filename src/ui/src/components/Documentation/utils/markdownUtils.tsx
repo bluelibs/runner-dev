@@ -1,6 +1,7 @@
 import React from "react";
-import { marked } from "marked";
+import * as marked from "marked";
 import Prism from "prismjs";
+import { MermaidDiagram } from "../components/common/MermaidDiagram";
 
 // Import PrismJS languages
 import "prismjs/components/prism-typescript";
@@ -19,11 +20,38 @@ import "prismjs/themes/prism-okaidia.css";
 // Import custom PrismJS enhancements
 import "./markdownUtils.scss";
 
+const LANGUAGE_ALIASES: Record<string, string> = {
+  ts: "typescript",
+  js: "javascript",
+  sh: "bash",
+  shell: "bash",
+  zsh: "bash",
+  yml: "yaml",
+};
+
+function normalizeLanguage(language?: string): string | undefined {
+  const value = language?.trim().toLowerCase();
+  if (!value) return undefined;
+
+  return LANGUAGE_ALIASES[value] || value;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Configure custom renderer for code blocks
 const renderer = new marked.Renderer();
 
-renderer.code = (code: string, language?: string) => {
-  let highlighted = code;
+renderer.code = (token) => {
+  const code = token.text;
+  const language = normalizeLanguage(token.lang);
+  let highlighted = escapeHtml(code);
 
   if (language && Prism.languages[language]) {
     try {
@@ -51,26 +79,91 @@ marked.setOptions({
 export interface MarkdownRendererProps {
   content: string;
   className?: string;
+  enableMermaid?: boolean;
+}
+
+type MarkdownToken = ReturnType<typeof marked.lexer>[number];
+
+type MarkdownSegment =
+  | { type: "html"; html: string }
+  | { type: "mermaid"; chart: string };
+
+function isMermaidCodeToken(
+  token: MarkdownToken
+): token is MarkdownToken & { type: "code"; text: string; lang?: string } {
+  return token.type === "code" && normalizeLanguage(token.lang) === "mermaid";
+}
+
+function buildMarkdownSegments(
+  content: string,
+  enableMermaid: boolean
+): MarkdownSegment[] {
+  if (!enableMermaid) {
+    return [{ type: "html", html: marked.parse(content) as string }];
+  }
+
+  const tokens = marked.lexer(content);
+  const segments: MarkdownSegment[] = [];
+  let htmlBuffer = "";
+
+  const flushHtmlBuffer = () => {
+    if (!htmlBuffer) return;
+    segments.push({
+      type: "html",
+      html: marked.parse(htmlBuffer) as string,
+    });
+    htmlBuffer = "";
+  };
+
+  for (const token of tokens) {
+    if (isMermaidCodeToken(token)) {
+      flushHtmlBuffer();
+      segments.push({
+        type: "mermaid",
+        chart: token.text,
+      });
+      continue;
+    }
+
+    htmlBuffer += token.raw;
+  }
+
+  flushHtmlBuffer();
+
+  return segments;
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
   className = "",
+  enableMermaid = false,
 }) => {
-  const htmlContent = React.useMemo(() => {
+  const segments = React.useMemo(() => {
     try {
-      return marked(content);
+      return buildMarkdownSegments(content, enableMermaid);
     } catch (error) {
       console.error("Error rendering markdown:", error);
-      return content; // Fallback to plain text
+      return [{ type: "html", html: content } satisfies MarkdownSegment];
     }
-  }, [content]);
+  }, [content, enableMermaid]);
 
   return (
-    <div
-      className={`markdown-content ${className}`}
-      dangerouslySetInnerHTML={{ __html: htmlContent }}
-    />
+    <div className={`markdown-content ${className}`}>
+      {segments.map((segment, index) =>
+        segment.type === "mermaid" ? (
+          <MermaidDiagram
+            key={`mermaid-${index}`}
+            chart={segment.chart}
+            className="markdown-content__mermaid"
+          />
+        ) : (
+          <div
+            key={`html-${index}`}
+            dangerouslySetInnerHTML={{ __html: segment.html }}
+          />
+        )
+      )}
+    </div>
   );
 };
 
@@ -78,7 +171,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 export const useMarkdown = (content: string): string | Promise<string> => {
   return React.useMemo(() => {
     try {
-      return marked(content);
+      return marked.parse(content);
     } catch (error) {
       console.error("Error processing markdown:", error);
       return content;

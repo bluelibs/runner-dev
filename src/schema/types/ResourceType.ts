@@ -32,6 +32,33 @@ const IsolationExportsModeType = new GraphQLEnumType({
   },
 });
 
+const IsolationChannelsType = new GraphQLObjectType({
+  name: "IsolationChannels",
+  fields: {
+    dependencies: { type: GraphQLBoolean },
+    listening: { type: GraphQLBoolean },
+    tagging: { type: GraphQLBoolean },
+    middleware: { type: GraphQLBoolean },
+  },
+});
+
+const IsolationWhitelistEntryType = new GraphQLObjectType({
+  name: "IsolationWhitelistEntry",
+  fields: {
+    for: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    targets: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    channels: { type: IsolationChannelsType },
+  },
+});
+
 const ResourceIsolationType = new GraphQLObjectType({
   name: "ResourceIsolation",
   fields: {
@@ -43,6 +70,11 @@ const ResourceIsolationType = new GraphQLObjectType({
     only: {
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    whitelist: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(IsolationWhitelistEntryType))
       ),
     },
     exports: {
@@ -195,11 +227,22 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       type: ResourceSubtreePolicyType,
       resolve: (node: Resource) => node.subtree ?? null,
     },
-    cooldown: {
+    hasCooldown: {
       description:
         "True when this resource defines a cooldown() lifecycle hook.",
       type: new GraphQLNonNull(GraphQLBoolean),
-      resolve: (node: Resource) => Boolean(node.cooldown),
+      resolve: (node: Resource) => Boolean(node.hasCooldown),
+    },
+    hasReady: {
+      description: "True when this resource defines a ready() lifecycle hook.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Resource) => Boolean(node.hasReady),
+    },
+    hasHealthCheck: {
+      description:
+        "True when this resource defines a health() probe for runtime health reports.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Resource) => Boolean(node.hasHealthCheck),
     },
     registersResolved: {
       description: "The items registered by this resource (resolved)",

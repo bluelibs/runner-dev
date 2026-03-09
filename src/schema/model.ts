@@ -185,6 +185,16 @@ export interface Resource extends BaseElement {
   isolation?: {
     deny: string[];
     only: string[];
+    whitelist: Array<{
+      for: string[];
+      targets: string[];
+      channels?: {
+        dependencies?: boolean;
+        listening?: boolean;
+        tagging?: boolean;
+        middleware?: boolean;
+      } | null;
+    }>;
     exports: string[];
     exportsMode: IsolationExportsMode;
   } | null;
@@ -213,7 +223,9 @@ export interface Resource extends BaseElement {
       validatorCount: number;
     } | null;
   } | null;
-  cooldown?: boolean;
+  hasCooldown?: boolean;
+  hasReady?: boolean;
+  hasHealthCheck?: boolean;
   context?: string | null;
 }
 

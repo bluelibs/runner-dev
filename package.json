@@ -13,7 +13,7 @@
     "clean": "rm -rf dist",
     "cli": "ts-node --project config/ts/tsconfig.json src/cli.ts",
     "start": "node dist/main.js",
-    "dev": "npm run build && npm run start",
+    "dev": "ts-node-dev --project config/ts/tsconfig.json --respawn --transpile-only --watch src --watch scripts src/main.ts",
     "build:ui": "cd src/ui && vite build",
     "dev:ui": "cd src/ui && vite",
     "preview:ui": "cd src/ui && vite preview --port 5173",

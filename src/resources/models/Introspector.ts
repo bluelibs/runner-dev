@@ -9,7 +9,7 @@ import type {
   AsyncContext as AsyncContextModel,
   RunOptions,
 } from "../../schema";
-import type { Store } from "@bluelibs/runner";
+import type { Store, IRuntime } from "@bluelibs/runner";
 import type { DiagnosticItem } from "../../schema";
 import {
   computeOrphanEvents,
@@ -86,7 +86,7 @@ export class Introspector {
   public errors: ErrorModel[] = [];
   public asyncContexts: AsyncContextModel[] = [];
   public store: Store | null = null;
-  public runtime: any | null = null;
+  public runtime: IRuntime | null = null;
   public rootId: string | null = null;
   public runOptions: RunOptions | null = null;
   public interceptorOwners: InterceptorOwnersSnapshot = {
@@ -110,7 +110,7 @@ export class Introspector {
 
   constructor(
     input:
-      | { store: Store; runtime?: any; runOptions?: RunOptions | null }
+      | { store: Store; runtime?: IRuntime; runOptions?: RunOptions | null }
       | { data: SerializedIntrospector }
   ) {
     if ("store" in input) {
@@ -428,26 +428,24 @@ export class Introspector {
       } | null;
     }
   ) {
-    const opts: any = {} as any;
+    const opts: Record<string, unknown> = {};
     if (typeof args?.afterTimestamp === "number")
-      (opts as any).afterTimestamp = args.afterTimestamp;
-    if (typeof args?.last === "number") (opts as any).last = args.last;
-    const f = (args as any)?.filter ?? {};
-    (opts as any).nodeIds = [String(nodeId)];
-    if (Array.isArray(f.nodeKinds)) (opts as any).nodeKinds = f.nodeKinds;
-    if (typeof f.ok === "boolean") (opts as any).ok = f.ok;
-    if (Array.isArray(f.parentIds)) (opts as any).parentIds = f.parentIds;
-    if (Array.isArray(f.rootIds)) (opts as any).rootIds = f.rootIds;
-    if (Array.isArray(f.correlationIds))
-      (opts as any).correlationIds = f.correlationIds;
-    return opts as any;
+      opts.afterTimestamp = args.afterTimestamp;
+    if (typeof args?.last === "number") opts.last = args.last;
+    const f = args?.filter ?? {};
+    opts.nodeIds = [String(nodeId)];
+    if (Array.isArray(f.nodeKinds)) opts.nodeKinds = f.nodeKinds;
+    if (typeof f.ok === "boolean") opts.ok = f.ok;
+    if (Array.isArray(f.parentIds)) opts.parentIds = f.parentIds;
+    if (Array.isArray(f.rootIds)) opts.rootIds = f.rootIds;
+    if (Array.isArray(f.correlationIds)) opts.correlationIds = f.correlationIds;
+    return opts;
   }
 
   // API Methods
   getRoot(): Resource {
-    const s: any = this.store as any;
-    const idFromStore = s?.root?.resource?.id
-      ? String(s.root.resource.id)
+    const idFromStore = this.store?.root?.resource?.id
+      ? String(this.store.root.resource.id)
       : null;
     const id = idFromStore ?? this.rootId ?? this.resources[0]?.id;
     return stampElementKind(this.resourceMap.get(String(id))!, "RESOURCE");
@@ -512,13 +510,12 @@ export class Introspector {
 
   getRunOptions(): RunOptions {
     if (this.store) {
-      const sAny = this.store as any;
       const rootId =
-        sAny.root?.resource?.id != null
-          ? String(sAny.root.resource.id)
+        this.store.root?.resource?.id != null
+          ? String(this.store.root.resource.id)
           : this.rootId ?? "";
-      const hasDebug = !!sAny.resources?.has?.("runner.debug");
-      const debugResource = sAny.resources?.get?.("runner.debug");
+      const hasDebug = this.store.resources.has("runner.debug");
+      const debugResource = this.store.resources.get("runner.debug");
       const debugConfig = debugResource?.config;
       const debugMode = !hasDebug
         ? "disabled"
@@ -530,8 +527,8 @@ export class Introspector {
         ? "custom"
         : "normal";
 
-      const loggerResource = sAny.resources?.get?.("runner.logger");
-      const logger = loggerResource?.value as any;
+      const loggerResource = this.store.resources.get("runner.logger");
+      const logger = loggerResource?.value;
       const logsPrintThresholdRaw = logger?.printThreshold;
       const logsPrintStrategyRaw = logger?.printStrategy;
       const logsBufferRaw = logger?.bufferLogs;
@@ -542,32 +539,45 @@ export class Introspector {
         logsPrintStrategyRaw == null ? null : String(logsPrintStrategyRaw);
       const logsBuffer = Boolean(logsBufferRaw);
 
-      const lifecycleMode = sAny.preferInitOrderDisposal
-        ? "sequential"
-        : "parallel";
+      const runtimeRunOptions = this.runtime?.runOptions;
+
+      const lifecycleMode =
+        runtimeRunOptions?.lifecycleMode === "parallel"
+          ? "parallel"
+          : "sequential";
       const disposeBudgetMs =
-        typeof sAny.disposeBudgetMs === "number" ? sAny.disposeBudgetMs : null;
+        typeof runtimeRunOptions?.disposeBudgetMs === "number"
+          ? runtimeRunOptions.disposeBudgetMs
+          : null;
       const disposeDrainBudgetMs =
-        typeof sAny.disposeDrainBudgetMs === "number"
-          ? sAny.disposeDrainBudgetMs
+        typeof runtimeRunOptions?.disposeDrainBudgetMs === "number"
+          ? runtimeRunOptions.disposeDrainBudgetMs
+          : null;
+      const lazy = Boolean(runtimeRunOptions?.lazy);
+      const dryRun = Boolean(runtimeRunOptions?.dryRun);
+      const errorBoundary =
+        typeof runtimeRunOptions?.errorBoundary === "boolean"
+          ? runtimeRunOptions.errorBoundary
+          : null;
+      const shutdownHooks =
+        typeof runtimeRunOptions?.shutdownHooks === "boolean"
+          ? runtimeRunOptions.shutdownHooks
           : null;
 
-      const runtimeAny = this.runtime as any;
-      const lazy = Boolean(runtimeAny?.lazyOptions?.lazyMode);
-      const runtimeEventCycleDetection =
-        runtimeAny?.eventManager?.runtimeEventCycleDetection;
+      // runtimeEventCycleDetection was removed in runner 6.0
+      const runtimeEventCycleDetection = null;
 
       return {
-        mode: sAny.mode ?? "dev",
+        mode: this.store.mode ?? "dev",
         debug: hasDebug,
         debugMode,
         logsEnabled: logsPrintThreshold !== null,
         logsPrintThreshold,
         logsPrintStrategy,
         logsBuffer,
-        errorBoundary: null,
-        shutdownHooks: null,
-        dryRun: Boolean(this.runOptions?.dryRun),
+        errorBoundary,
+        shutdownHooks,
+        dryRun,
         lazy,
         lifecycleMode,
         disposeBudgetMs,
@@ -576,7 +586,7 @@ export class Introspector {
           typeof runtimeEventCycleDetection === "boolean"
             ? runtimeEventCycleDetection
             : null,
-        hasOnUnhandledError: typeof sAny.onUnhandledError === "function",
+        hasOnUnhandledError: typeof this.store.onUnhandledError === "function",
         rootId,
       };
     }
@@ -732,8 +742,7 @@ export class Introspector {
       this.idsContainLike(depends, e.id)
     );
 
-    // Only Task and Hook have emits, Resource doesn't
-    const emitIds = ensureStringArray((node as any).emits);
+    const emitIds = ensureStringArray(node.emits);
     const emitEvents = this.events.filter((e) =>
       this.idsContainLike(emitIds, e.id)
     );
@@ -748,7 +757,7 @@ export class Introspector {
   }
 
   getEmittedEvents(node: Task | Hook): Event[] {
-    const emits = ensureStringArray((node as any).emits);
+    const emits = ensureStringArray(node.emits);
     return this.events.filter((e) => this.idsContainLike(emits, e.id));
   }
 
@@ -792,7 +801,7 @@ export class Introspector {
 
   getEmittersOfEvent(eventId: string): (Task | Hook | Resource)[] {
     return [...this.tasks, ...this.hooks, ...this.resources].filter((t) =>
-      this.idsContainLike((t as any).emits, eventId)
+      this.idsContainLike(t.emits, eventId)
     );
   }
 
@@ -804,7 +813,7 @@ export class Introspector {
     const taskLikes = this.getTasksUsingMiddleware(middlewareId);
     const emittedIds = new Set<string>();
     for (const t of taskLikes) {
-      for (const e of ensureStringArray((t as any).emits)) {
+      for (const e of ensureStringArray(t.emits)) {
         emittedIds.add(e);
       }
     }
@@ -914,7 +923,7 @@ export class Introspector {
     const taskLikes = this.getTasksUsingResource(resourceId);
     const emitted = new Set<string>();
     for (const t of taskLikes) {
-      for (const e of ensureStringArray((t as any).emits)) emitted.add(e);
+      for (const e of ensureStringArray(t.emits)) emitted.add(e);
     }
     return this.getEventsByIds(Array.from(emitted));
   }
@@ -1379,8 +1388,8 @@ export class Introspector {
       unusedErrors: this.getUnusedErrors(),
       overrideConflicts: this.getOverrideConflicts(),
       rootId:
-        (this.store as any)?.root?.resource?.id != null
-          ? String((this.store as any).root.resource.id)
+        this.store?.root?.resource?.id != null
+          ? String(this.store.root.resource.id)
           : this.rootId,
       runOptions: this.getRunOptions(),
       interceptorOwners: this.getInterceptorOwnersSnapshot(),

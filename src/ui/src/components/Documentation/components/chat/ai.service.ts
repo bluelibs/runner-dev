@@ -7,6 +7,8 @@ import type {
 } from "openai/resources/chat/completions";
 import type { FunctionParameters } from "openai/resources/shared";
 
+export const MAX_OUTPUT_TOKENS = 20_000;
+
 export interface AiMessage {
   role: "user" | "assistant" | "system" | "tool";
   content?: string;
@@ -134,6 +136,7 @@ export async function streamChatCompletion(
     model: settings.model,
     messages: mappedMessages,
     stream: settings.stream,
+    max_completion_tokens: MAX_OUTPUT_TOKENS,
     ...(response_format ? { response_format } : {}),
     ...(mappedTools && mappedTools.length ? { tools: mappedTools } : {}),
     ...(mappedToolChoice ? { tool_choice: mappedToolChoice } : {}),

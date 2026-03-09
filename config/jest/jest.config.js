@@ -54,6 +54,9 @@ module.exports = {
           },
         ],
       },
+      moduleNameMapper: {
+        "\\.(css|scss)$": "<rootDir>/config/jest/styleMock.js",
+      },
       setupFilesAfterEnv: [path.join(rootDir, "config/jest/jest.setup.js")],
     },
   ],

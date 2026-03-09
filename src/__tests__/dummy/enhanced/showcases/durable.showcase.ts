@@ -1,8 +1,10 @@
+import type { IResource, IResourceWithConfig } from "@bluelibs/runner";
 import { RegisterableItems, r } from "@bluelibs/runner";
 import {
   durableWorkflowTag,
   memoryDurableResource,
 } from "@bluelibs/runner/node";
+import type { DurableResource } from "@bluelibs/runner/node";
 import {
   DurableExecutionIdResultSchema,
   DurableOrderApprovalInputSchema,
@@ -53,14 +55,18 @@ function normalizeDurableOrderApprovalInput(
   return { orderId, amount, region };
 }
 
-export const showcaseDurableResource = memoryDurableResource.fork(
-  "app-examples-durable-runtime"
-);
+export const showcaseDurableResource: IResource<
+  any,
+  Promise<DurableResource>
+> = memoryDurableResource.fork("durable-runtime");
 
-export const showcaseDurableRegistration = showcaseDurableResource.with({});
+export const showcaseDurableRegistration: IResourceWithConfig<
+  any,
+  Promise<DurableResource>
+> = showcaseDurableResource.with({});
 
 export const durableOrderApprovalTask = r
-  .task("app-examples-durable-tasks-orderApprovalWorkflow")
+  .task("order-approval")
   .meta({
     title: "Durable Order Approval Workflow",
     description:
@@ -100,7 +106,7 @@ export const durableOrderApprovalTask = r
   .build();
 
 export const runDurableOrderApprovalTask = r
-  .task("app-examples-durable-tasks-runOrderApprovalWorkflow")
+  .task("run-order-approval")
   .meta({
     title: "Run Durable Order Approval Workflow",
     description:
@@ -118,7 +124,7 @@ export const runDurableOrderApprovalTask = r
   .build();
 
 export const startDurableOrderApprovalTask = r
-  .task("app-examples-durable-tasks-startOrderApprovalWorkflow")
+  .task("start-order-approval")
   .meta({
     title: "Start Durable Order Approval Workflow",
     description:

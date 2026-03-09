@@ -225,7 +225,9 @@ export function mapStoreResourceToResourceModel(
   );
   const isolation = normalizeIsolation(resource);
   const subtree = normalizeSubtreePolicy(resource);
-  const cooldown = typeof (resource as any)?.cooldown === "function";
+  const hasCooldown = typeof (resource as any)?.cooldown === "function";
+  const hasReady = typeof (resource as any)?.ready === "function";
+  const hasHealthCheck = typeof (resource as any)?.health === "function";
   const config = normalizeResourceConfig(resourceConfig);
 
   return stampElementKind(
@@ -256,7 +258,9 @@ export function mapStoreResourceToResourceModel(
       registers: register.map((r) => r.id.toString()) as string[],
       isolation,
       subtree,
-      cooldown,
+      hasCooldown,
+      hasReady,
+      hasHealthCheck,
       context: stringifyIfObject(resource.context),
       registeredBy: null,
       configSchema: formatSchemaIfZod(resource.configSchema),
@@ -462,7 +466,7 @@ function isResourceWithConfig(
 }
 
 export function computeOverriddenByMap(
-  overrideRequests: ReadonlySet<OverrideRequest>
+  overrideRequests: ReadonlyArray<OverrideRequest>
 ): Map<string, string> {
   const map = new Map<string, string>();
   for (const req of overrideRequests) {
@@ -477,7 +481,7 @@ export function computeOverriddenByMap(
 }
 
 export function attachOverrides(
-  overrideRequests: ReadonlySet<OverrideRequest>,
+  overrideRequests: ReadonlyArray<OverrideRequest>,
   tasks: Task[],
   hooks: Hook[],
   middlewares: Middleware[]
@@ -671,6 +675,8 @@ function normalizeIsolation(resource: any): Resource["isolation"] {
   const deny = toIsolationIds(isolate?.deny);
   const only = toIsolationIds(isolate?.only);
 
+  const whitelist = normalizeWhitelist(isolate?.whitelist);
+
   const hasIsolateExports = Boolean(isolate && "exports" in isolate);
   const rawExports = hasIsolateExports
     ? isolate.exports
@@ -688,7 +694,35 @@ function normalizeIsolation(resource: any): Resource["isolation"] {
     exportsMode = exports.length > 0 ? "list" : "none";
   }
 
-  return { deny, only, exports, exportsMode };
+  return { deny, only, whitelist, exports, exportsMode };
+}
+
+function normalizeWhitelist(
+  whitelist: unknown
+): NonNullable<Resource["isolation"]>["whitelist"] {
+  if (!Array.isArray(whitelist)) return [];
+  return whitelist.map((entry: any) => ({
+    for: toIsolationIds(entry?.for),
+    targets: toIsolationIds(entry?.targets),
+    channels: normalizeWhitelistChannels(entry?.channels),
+  }));
+}
+
+function normalizeWhitelistChannels(channels: unknown): {
+  dependencies?: boolean;
+  listening?: boolean;
+  tagging?: boolean;
+  middleware?: boolean;
+} | null {
+  if (!channels || typeof channels !== "object") return null;
+  const c = channels as Record<string, unknown>;
+  return {
+    dependencies:
+      typeof c.dependencies === "boolean" ? c.dependencies : undefined,
+    listening: typeof c.listening === "boolean" ? c.listening : undefined,
+    tagging: typeof c.tagging === "boolean" ? c.tagging : undefined,
+    middleware: typeof c.middleware === "boolean" ? c.middleware : undefined,
+  };
 }
 
 function normalizeMiddlewareAutoApply(mw: any): Middleware["autoApply"] {

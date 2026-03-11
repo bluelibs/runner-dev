@@ -1,98 +1,113 @@
 import {
-  taskMiddleware,
-  resource,
-  task,
-  hook,
-  event,
-  tag,
+  Match,
+  defineTaskMiddleware,
+  defineResource,
+  defineTask,
+  defineHook,
+  defineEvent,
+  defineTag,
 } from "@bluelibs/runner";
-import { z } from "zod";
+import {
+  defineSchema as createSchema,
+  finiteNumberPattern as finiteNumber,
+  integerNumberPattern as integerNumber,
+  minimumLengthPattern as minimumLength,
+  nonNegativeIntegerPattern as nonNegativeInteger,
+  positiveNumberPattern as positiveNumber,
+} from "./schemas";
 
 // ====================
 // CROSS-CUTTING CONCERNS
 // ====================
 
 // Tags for categorization
-export const performanceTag = tag<{ warnAboveMs: number }>({
-  id: "app.tags.performance",
+export const performanceTag = defineTag<{ warnAboveMs: number }>({
+  id: "app-tags-performance",
   meta: { title: "xxx yyy" },
-  configSchema: z.object({
-    warnAboveMs: z.number().int().positive(),
+  configSchema: createSchema({
+    warnAboveMs: Match.PositiveInteger,
   }),
 });
 
-export const securityTag = tag<{ requiresAuth: boolean; roles?: string[] }>({
-  id: "app.tags.security",
-  configSchema: z
-    .object({
-      requiresAuth: z.boolean(),
-      roles: z.array(z.string()).optional(),
-    })
-    .strict(),
+export const securityTag = defineTag<{
+  requiresAuth: boolean;
+  roles?: string[];
+}>({
+  id: "app-tags-security",
+  configSchema: createSchema(
+    {
+      requiresAuth: Boolean,
+      roles: Match.Optional([String]),
+    },
+    { exact: true }
+  ),
 });
 
-export const domainTag = tag<{ domain: string }>({
-  id: "app.tags.domain",
+export const domainTag = defineTag<{ domain: string }>({
+  id: "app-tags-domain",
   meta: {
     title: "Domain",
     description: "Tags related to the domain layer",
   },
-  configSchema: z.object({ domain: z.string() }),
+  configSchema: createSchema({ domain: String }),
 });
 
-export const apiTag = tag<{ method: string; path: string }>({
-  id: "app.tags.api",
-  configSchema: z
-    .object({
-      method: z.enum([
+export const apiTag = defineTag<{ method: string; path: string }>({
+  id: "app-tags-api",
+  configSchema: createSchema(
+    {
+      method: Match.OneOf(
         "GET",
         "POST",
         "PUT",
         "PATCH",
         "DELETE",
         "OPTIONS",
-        "HEAD",
-      ]),
-      path: z.string(),
-    })
-    .strict(),
+        "HEAD"
+      ),
+      path: String,
+    },
+    { exact: true }
+  ),
 });
 
 // Global middleware
-export const validationMiddleware = taskMiddleware<{
+export const validationMiddleware = defineTaskMiddleware<{
   enabled?: boolean;
   mode?: "loose" | "strict";
 }>({
-  id: "app.middleware.validation",
+  id: "app-middleware-validation",
   meta: {
     title: "Input Validation Middleware",
     description: "Validates task inputs and results using schemas",
   },
-  configSchema: z
-    .object({
-      enabled: z.boolean().optional(),
-      mode: z.enum(["loose", "strict"]).optional(),
-    })
-    .strict(),
+  configSchema: createSchema(
+    {
+      enabled: Match.Optional(Boolean),
+      mode: Match.Optional(Match.OneOf("loose", "strict")),
+    },
+    { exact: true }
+  ),
   async run({ task, next }, _evt, _config) {
     // In a real app, you'd validate against task.inputSchema
     return next(task.input);
   },
 });
 
-export const loggingMiddleware = taskMiddleware<{
+export const loggingMiddleware = defineTaskMiddleware<{
   logLevel?: "debug" | "info" | "warn" | "error";
 }>({
-  id: "app.middleware.logging",
+  id: "app-middleware-logging",
   meta: {
     title: "Activity Logging Middleware",
     description: "Logs all task executions with performance metrics",
   },
-  configSchema: z
-    .object({
-      logLevel: z.enum(["debug", "info", "warn", "error"]).optional(),
-    })
-    .strict(),
+  configSchema: createSchema(
+    {
+      logLevel: Match.Optional(Match.OneOf("debug", "info", "warn", "error")),
+    },
+    { exact: true }
+  ),
   async run({ task, next }, _evt, _config) {
     const start = Date.now();
     const result = await next(task.input);
@@ -103,13 +118,13 @@ export const loggingMiddleware = taskMiddleware<{
   },
 });
 
-export const authMiddleware = taskMiddleware<{ required: boolean }>({
-  id: "app.middleware.auth",
+export const authMiddleware = defineTaskMiddleware<{ required: boolean }>({
+  id: "app-middleware-auth",
   meta: {
     title: "Authentication Middleware",
     description: "Validates user authentication and permissions",
   },
-  configSchema: z.object({ required: z.boolean() }).strict(),
+  configSchema: createSchema({ required: Boolean }, { exact: true }),
   async run({ task, next }, _, config) {
     if (config.required) {
       // In a real app, check for valid session/token
@@ -124,54 +139,57 @@ export const authMiddleware = taskMiddleware<{ required: boolean }>({
 // ====================
 
 // Events
-export const userRegisteredEvent = event<{
+export const userRegisteredEvent = defineEvent<{
   userId: string;
   email: string;
   registrationMethod: string;
 }>({
-  id: "app.users.events.registered",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      registrationMethod: z.string(),
-    })
-    .strict(),
+  id: "app-users-events-registered",
+  payloadSchema: createSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      registrationMethod: String,
+    },
+    { exact: true }
+  ),
 });
 
-export const userLoggedInEvent = event<{
+export const userLoggedInEvent = defineEvent<{
   userId: string;
   loginMethod: string;
   ipAddress: string;
 }>({
-  id: "app.users.events.loggedIn",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      loginMethod: z.string(),
-      ipAddress: z.string(),
-    })
-    .strict(),
+  id: "app-users-events-loggedIn",
+  payloadSchema: createSchema(
+    {
+      userId: String,
+      loginMethod: String,
+      ipAddress: String,
+    },
+    { exact: true }
+  ),
 });
 
-export const passwordResetRequestedEvent = event<{
+export const passwordResetRequestedEvent = defineEvent<{
   userId: string;
   email: string;
   resetToken: string;
 }>({
-  id: "app.users.events.passwordResetRequested",
-  payloadSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      resetToken: z.string(),
-    })
-    .strict(),
+  id: "app-users-events-passwordResetRequested",
+  payloadSchema: createSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      resetToken: String,
+    },
+    { exact: true }
+  ),
 });
 
 // Resources
-export const userDatabaseResource = resource({
-  id: "app.users.resources.database",
+export const userDatabaseResource = defineResource({
+  id: "app-users-resources-database",
   meta: {
     title: "User Database",
     description: "PostgreSQL database for user data",
@@ -185,15 +203,15 @@ export const userDatabaseResource = resource({
   },
 });
 
-export const sessionStoreResource = resource({
-  id: "app.users.resources.sessionStore",
+export const sessionStoreResource = defineResource({
+  id: "app-users-resources-sessionStore",
   meta: {
     title: "Session Store",
     description: "Redis-based session storage",
   },
-  configSchema: z.object({
-    ttlSeconds: z.number().int().positive(),
-    redisUrl: z.string().url(),
+  configSchema: createSchema({
+    ttlSeconds: Match.PositiveInteger,
+    redisUrl: Match.URL,
   }),
   tags: [domainTag.with({ domain: "users" })],
   async init(config: { ttlSeconds: number; redisUrl: string }) {
@@ -206,8 +224,8 @@ export const sessionStoreResource = resource({
 });
 
 // Tasks
-export const registerUserTask = task({
-  id: "app.users.tasks.register",
+export const registerUserTask = defineTask({
+  id: "app-users-tasks-register",
   dependencies: () => ({
     db: userDatabaseResource,
     emitUserRegistered: userRegisteredEvent,
@@ -226,20 +244,21 @@ export const registerUserTask = task({
     apiTag.with({ method: "POST", path: "/api/users/register" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
-    password: z.string().min(8),
-    firstName: z.string(),
-    lastName: z.string(),
+  inputSchema: createSchema({
+    email: Match.Email,
+    password: minimumLength(8),
+    firstName: String,
+    lastName: String,
   }),
-  resultSchema: z
-    .object({
-      userId: z.string(),
-      email: z.string().email(),
-      verificationToken: z.string(),
-    })
-    .strict(),
-  async run(input, { emitUserRegistered }) {
+  resultSchema: createSchema(
+    {
+      userId: String,
+      email: Match.Email,
+      verificationToken: String,
+    },
+    { exact: true }
+  ),
+  async run(input: any, { emitUserRegistered }) {
     // Simulate user creation
     const userId = `user_${Date.now()}`;
     const verificationToken = `verify_${Math.random()
@@ -263,8 +282,8 @@ export const registerUserTask = task({
   },
 });
 
-export const authenticateUserTask = task({
-  id: "app.users.tasks.authenticate",
+export const authenticateUserTask = defineTask({
+  id: "app-users-tasks-authenticate",
   dependencies: () => ({
     db: userDatabaseResource,
     sessionStore: sessionStoreResource,
@@ -284,19 +303,20 @@ export const authenticateUserTask = task({
     apiTag.with({ method: "POST", path: "/api/users/login" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
-    password: z.string(),
-    ipAddress: z.string(),
+  inputSchema: createSchema({
+    email: Match.Email,
+    password: String,
+    ipAddress: String,
   }),
-  resultSchema: z
-    .object({
-      userId: z.string(),
-      sessionToken: z.string(),
-      expiresAt: z.date(),
-    })
-    .strict(),
-  async run(input, { emitUserLoggedIn }) {
+  resultSchema: createSchema(
+    {
+      userId: String,
+      sessionToken: String,
+      expiresAt: Date,
+    },
+    { exact: true }
+  ),
+  async run(input: any, { emitUserLoggedIn }) {
     // Simulate authentication
     const userId = `user_${Date.now()}`;
     const sessionToken = `session_${Math.random().toString(36).substr(2, 9)}`;
@@ -317,8 +337,8 @@ export const authenticateUserTask = task({
   },
 });
 
-export const requestPasswordResetTask = task({
-  id: "app.users.tasks.requestPasswordReset",
+export const requestPasswordResetTask = defineTask({
+  id: "app-users-tasks-requestPasswordReset",
   dependencies: () => ({
     db: userDatabaseResource,
     emitPasswordResetRequested: passwordResetRequestedEvent,
@@ -337,14 +357,14 @@ export const requestPasswordResetTask = task({
     apiTag.with({ method: "POST", path: "/api/users/forgot-password" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: z.object({
-    email: z.string().email(),
+  inputSchema: createSchema({
+    email: Match.Email,
   }),
-  resultSchema: z.object({
-    success: z.boolean(),
-    resetToken: z.string(),
+  resultSchema: createSchema({
+    success: Boolean,
+    resetToken: String,
   }),
-  async run(input, { emitPasswordResetRequested }) {
+  async run(input: any, { emitPasswordResetRequested }) {
     const resetToken = `reset_${Math.random().toString(36).substr(2, 9)}`;
     const userId = `user_lookup_${input.email}`;
 
@@ -364,8 +384,8 @@ export const requestPasswordResetTask = task({
 });
 
 // Hooks
-export const userRegistrationLoggerHook = hook({
-  id: "app.users.hooks.registrationLogger",
+export const userRegistrationLoggerHook = defineHook({
+  id: "app-users-hooks-registrationLogger",
   on: userRegisteredEvent,
   dependencies: { db: userDatabaseResource },
   meta: {
@@ -381,8 +401,8 @@ export const userRegistrationLoggerHook = hook({
   },
 });
 
-export const userLoginLoggerHook = hook({
-  id: "app.users.hooks.loginLogger",
+export const userLoginLoggerHook = defineHook({
+  id: "app-users-hooks-loginLogger",
   on: userLoggedInEvent,
   dependencies: { db: userDatabaseResource },
   meta: {
@@ -403,58 +423,61 @@ export const userLoginLoggerHook = hook({
 // ====================
 
 // Events
-export const productCreatedEvent = event<{
+export const productCreatedEvent = defineEvent<{
   productId: string;
   name: string;
   category: string;
   price: number;
 }>({
-  id: "app.products.events.created",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      category: z.string(),
-      price: z.number().positive(),
-    })
-    .strict(),
+  id: "app-products-events-created",
+  payloadSchema: createSchema(
+    {
+      productId: String,
+      name: String,
+      category: String,
+      price: positiveNumber,
+    },
+    { exact: true }
+  ),
 });
 
-export const inventoryUpdatedEvent = event<{
+export const inventoryUpdatedEvent = defineEvent<{
   productId: string;
   oldStock: number;
   newStock: number;
   changeReason: string;
 }>({
-  id: "app.products.events.inventoryUpdated",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      oldStock: z.number().int(),
-      newStock: z.number().int(),
-      changeReason: z.string(),
-    })
-    .strict(),
+  id: "app-products-events-inventoryUpdated",
+  payloadSchema: createSchema(
+    {
+      productId: String,
+      oldStock: integerNumber,
+      newStock: integerNumber,
+      changeReason: String,
+    },
+    { exact: true }
+  ),
 });
 
-export const productOutOfStockEvent = event<{
+export const productOutOfStockEvent = defineEvent<{
   productId: string;
   name: string;
   waitingListCount: number;
 }>({
-  id: "app.products.events.outOfStock",
-  payloadSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      waitingListCount: z.number().int(),
-    })
-    .strict(),
+  id: "app-products-events-outOfStock",
+  payloadSchema: createSchema(
+    {
+      productId: String,
+      name: String,
+      waitingListCount: integerNumber,
+    },
+    { exact: true }
+  ),
 });
 
 // Resources
-export const productDatabaseResource = resource({
-  id: "app.products.resources.database",
+export const productDatabaseResource = defineResource({
+  id: "app-products-resources-database",
   meta: {
     title: "Product Database",
     description: "Database for product catalog and inventory",
@@ -468,15 +491,15 @@ export const productDatabaseResource = resource({
   },
 });
 
-export const inventoryCacheResource = resource({
-  id: "app.products.resources.inventoryCache",
+export const inventoryCacheResource = defineResource({
+  id: "app-products-resources-inventoryCache",
   meta: {
     title: "Inventory Cache",
     description: "Redis cache for inventory levels",
   },
-  configSchema: z.object({
-    ttlSeconds: z.number().int().positive(),
-    redisUrl: z.string().url(),
+  configSchema: createSchema({
+    ttlSeconds: Match.PositiveInteger,
+    redisUrl: Match.URL,
   }),
   tags: [domainTag.with({ domain: "products" })],
   async init(config: { ttlSeconds: number; redisUrl: string }) {
@@ -489,8 +512,8 @@ export const inventoryCacheResource = resource({
 });
 
 // Tasks
-export const createProductTask = task({
-  id: "app.products.tasks.create",
+export const createProductTask = defineTask({
+  id: "app-products-tasks-create",
   dependencies: () => ({
     db: productDatabaseResource,
     emitProductCreated: productCreatedEvent,
@@ -509,23 +532,24 @@ export const createProductTask = task({
     apiTag.with({ method: "POST", path: "/api/products" }),
     securityTag.with({ requiresAuth: true, roles: ["admin", "merchant"] }),
   ],
-  inputSchema: z.object({
-    name: z.string().min(1),
-    description: z.string(),
-    category: z.string(),
-    price: z.number().positive(),
-    initialStock: z.number().int().min(0),
-    sku: z.string(),
+  inputSchema: createSchema({
+    name: Match.NonEmptyString,
+    description: String,
+    category: String,
+    price: positiveNumber,
+    initialStock: nonNegativeInteger,
+    sku: String,
   }),
-  resultSchema: z
-    .object({
-      productId: z.string(),
-      name: z.string(),
-      category: z.string(),
-      price: z.number(),
-    })
-    .strict(),
-  async run(input, { emitProductCreated }) {
+  resultSchema: createSchema(
+    {
+      productId: String,
+      name: String,
+      category: String,
+      price: finiteNumber,
+    },
+    { exact: true }
+  ),
+  async run(input: any, { emitProductCreated }) {
     const productId = `product_${Date.now()}`;
 
     console.log(`Creating product: ${input.name}`);
@@ -546,8 +570,8 @@ export const createProductTask = task({
   },
 });
 
-export const updateInventoryTask = task({
-  id: "app.products.tasks.updateInventory",
+export const updateInventoryTask = defineTask({
+  id: "app-products-tasks-updateInventory",
   dependencies: () => ({
     db: productDatabaseResource,
     cache: inventoryCacheResource,
@@ -568,20 +592,21 @@ export const updateInventoryTask = task({
     apiTag.with({ method: "PATCH", path: "/api/products/{id}/inventory" }),
     securityTag.with({ requiresAuth: true, roles: ["admin", "merchant"] }),
   ],
-  inputSchema: z.object({
-    productId: z.string(),
-    newStock: z.number().int().min(0),
-    changeReason: z.string(),
+  inputSchema: createSchema({
+    productId: String,
+    newStock: nonNegativeInteger,
+    changeReason: String,
   }),
-  resultSchema: z
-    .object({
-      productId: z.string(),
-      oldStock: z.number(),
-      newStock: z.number(),
-      isOutOfStock: z.boolean(),
-    })
-    .strict(),
-  async run(input, { emitInventoryUpdated, emitOutOfStock }) {
+  resultSchema: createSchema(
+    {
+      productId: String,
+      oldStock: finiteNumber,
+      newStock: finiteNumber,
+      isOutOfStock: Boolean,
+    },
+    { exact: true }
+  ),
+  async run(input: any, { emitInventoryUpdated, emitOutOfStock }) {
     const oldStock = Math.floor(Math.random() * 100); // Simulate DB lookup
 
     console.log(
@@ -617,60 +642,60 @@ export const updateInventoryTask = task({
 // ====================
 
 // Events
-export const orderCreatedEvent = event<{
+export const orderCreatedEvent = defineEvent<{
   orderId: string;
   userId: string;
   totalAmount: number;
   items: Array<{ productId: string; quantity: number; price: number }>;
 }>({
-  id: "app.orders.events.created",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    userId: z.string(),
-    totalAmount: z.number().positive(),
-    items: z.array(
-      z.object({
-        productId: z.string(),
-        quantity: z.number().int().positive(),
-        price: z.number().positive(),
-      })
-    ),
+  id: "app-orders-events-created",
+  payloadSchema: createSchema({
+    orderId: String,
+    userId: String,
+    totalAmount: positiveNumber,
+    items: [
+      createSchema({
+        productId: String,
+        quantity: Match.PositiveInteger,
+        price: positiveNumber,
+      }),
+    ],
   }),
 });
 
-export const orderPaidEvent = event<{
+export const orderPaidEvent = defineEvent<{
   orderId: string;
   paymentId: string;
   amount: number;
   paymentMethod: string;
 }>({
-  id: "app.orders.events.paid",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    paymentId: z.string(),
-    amount: z.number().positive(),
-    paymentMethod: z.string(),
+  id: "app-orders-events-paid",
+  payloadSchema: createSchema({
+    orderId: String,
+    paymentId: String,
+    amount: positiveNumber,
+    paymentMethod: String,
   }),
 });
 
-export const orderShippedEvent = event<{
+export const orderShippedEvent = defineEvent<{
   orderId: string;
   trackingNumber: string;
   carrier: string;
   estimatedDelivery: Date;
 }>({
-  id: "app.orders.events.shipped",
-  payloadSchema: z.object({
-    orderId: z.string(),
-    trackingNumber: z.string(),
-    carrier: z.string(),
-    estimatedDelivery: z.date(),
+  id: "app-orders-events-shipped",
+  payloadSchema: createSchema({
+    orderId: String,
+    trackingNumber: String,
+    carrier: String,
+    estimatedDelivery: Date,
   }),
 });
 
 // Resources
-export const orderDatabaseResource = resource({
-  id: "app.orders.resources.database",
+export const orderDatabaseResource = defineResource({
+  id: "app-orders-resources-database",
   meta: {
     title: "Order Database",
     description: "Database for orders and fulfillment",
@@ -685,8 +710,8 @@ export const orderDatabaseResource = resource({
 });
 
 // Tasks
-export const createOrderTask = task({
-  id: "app.orders.tasks.create",
+export const createOrderTask = defineTask({
+  id: "app-orders-tasks-create",
   dependencies: () => ({
     db: orderDatabaseResource,
     productDb: productDatabaseResource,
@@ -706,24 +731,24 @@ export const createOrderTask = task({
     apiTag.with({ method: "POST", path: "/api/orders" }),
     securityTag.with({ requiresAuth: true }),
   ],
-  inputSchema: z.object({
-    userId: z.string(),
-    items: z.array(
-      z.object({
-        productId: z.string(),
-        quantity: z.number().int().positive(),
-      })
-    ),
+  inputSchema: createSchema({
+    userId: String,
+    items: [
+      createSchema({
+        productId: String,
+        quantity: Match.PositiveInteger,
+      }),
+    ],
   }),
-  resultSchema: z.object({
-    orderId: z.string(),
-    totalAmount: z.number(),
-    status: z.string(),
+  resultSchema: createSchema({
+    orderId: String,
+    totalAmount: finiteNumber,
+    status: String,
   }),
-  async run(input, { emitOrderCreated }) {
+  async run(input: any, { emitOrderCreated }) {
     const orderId = `order_${Date.now()}`;
     const totalAmount = input.items.reduce(
-      (sum, item) => sum + item.quantity * 29.99,
+      (sum: number, item: any) => sum + item.quantity * 29.99,
       0
     ); // Mock pricing
 
@@ -733,7 +758,7 @@ export const createOrderTask = task({
       orderId,
       userId: input.userId,
       totalAmount,
-      items: input.items.map((item) => ({
+      items: input.items.map((item: any) => ({
         productId: item.productId,
         quantity: item.quantity,
         price: 29.99, // Mock price
@@ -748,8 +773,8 @@ export const createOrderTask = task({
   },
 });
 
-export const processPaymentTask = task({
-  id: "app.orders.tasks.processPayment",
+export const processPaymentTask = defineTask({
+  id: "app-orders-tasks-processPayment",
   dependencies: () => ({
     db: orderDatabaseResource,
     emitOrderPaid: orderPaidEvent,
@@ -768,20 +793,20 @@ export const processPaymentTask = task({
     apiTag.with({ method: "POST", path: "/api/orders/{id}/payment" }),
     securityTag.with({ requiresAuth: true }),
   ],
-  inputSchema: z.object({
-    orderId: z.string(),
-    paymentMethod: z.string(),
-    paymentDetails: z.object({
-      cardToken: z.string(),
-      amount: z.number().positive(),
+  inputSchema: createSchema({
+    orderId: String,
+    paymentMethod: String,
+    paymentDetails: createSchema({
+      cardToken: String,
+      amount: positiveNumber,
     }),
   }),
-  resultSchema: z.object({
-    paymentId: z.string(),
-    status: z.string(),
-    orderId: z.string(),
+  resultSchema: createSchema({
+    paymentId: String,
+    status: String,
+    orderId: String,
   }),
-  async run(input, { emitOrderPaid }) {
+  async run(input: any, { emitOrderPaid }) {
     const paymentId = `payment_${Date.now()}`;
 
     console.log(`Processing payment for order ${input.orderId}`);
@@ -809,47 +834,47 @@ export const processPaymentTask = task({
 // ====================
 
 // Events
-export const emailSentEvent = event<{
+export const emailSentEvent = defineEvent<{
   emailId: string;
   to: string;
   template: string;
   metadata: Record<string, any>;
 }>({
-  id: "app.notifications.events.emailSent",
-  payloadSchema: z.object({
-    emailId: z.string(),
-    to: z.string().email(),
-    template: z.string(),
-    metadata: z.record(z.any()),
+  id: "app-notifications-events-emailSent",
+  payloadSchema: createSchema({
+    emailId: String,
+    to: Match.Email,
+    template: String,
+    metadata: Match.MapOf(Match.Any),
   }),
 });
 
-export const webhookDeliveredEvent = event<{
+export const webhookDeliveredEvent = defineEvent<{
   webhookId: string;
   url: string;
   payload: Record<string, any>;
   statusCode: number;
 }>({
-  id: "app.notifications.events.webhookDelivered",
-  payloadSchema: z.object({
-    webhookId: z.string(),
-    url: z.string().url(),
-    payload: z.record(z.any()),
-    statusCode: z.number().int(),
+  id: "app-notifications-events-webhookDelivered",
+  payloadSchema: createSchema({
+    webhookId: String,
+    url: Match.URL,
+    payload: Match.MapOf(Match.Any),
+    statusCode: integerNumber,
   }),
 });
 
 // Resources
-export const emailServiceResource = resource({
-  id: "app.notifications.resources.emailService",
+export const emailServiceResource = defineResource({
+  id: "app-notifications-resources-emailService",
   meta: {
     title: "Email Service",
     description: "SendGrid email delivery service",
   },
-  configSchema: z.object({
-    apiKey: z.string(),
-    fromEmail: z.string().email(),
-    fromName: z.string(),
+  configSchema: createSchema({
+    apiKey: String,
+    fromEmail: Match.Email,
+    fromName: String,
   }),
   tags: [domainTag.with({ domain: "notifications" })],
   async init(config: { apiKey: string; fromEmail: string; fromName: string }) {
@@ -863,8 +888,8 @@ export const emailServiceResource = resource({
 });
 
 // Tasks
-export const sendWelcomeEmailTask = task({
-  id: "app.notifications.tasks.sendWelcomeEmail",
+export const sendWelcomeEmailTask = defineTask({
+  id: "app-notifications-tasks-sendWelcomeEmail",
   dependencies: () => ({
     emailService: emailServiceResource,
     emitEmailSent: emailSentEvent,
@@ -878,16 +903,16 @@ export const sendWelcomeEmailTask = task({
     domainTag.with({ domain: "notifications" }),
     apiTag.with({ method: "POST", path: "/api/notifications/welcome-email" }),
   ],
-  inputSchema: z.object({
-    userId: z.string(),
-    email: z.string().email(),
-    firstName: z.string(),
+  inputSchema: createSchema({
+    userId: String,
+    email: Match.Email,
+    firstName: String,
   }),
-  resultSchema: z.object({
-    emailId: z.string(),
-    sent: z.boolean(),
+  resultSchema: createSchema({
+    emailId: String,
+    sent: Boolean,
   }),
-  async run(input, { emitEmailSent }) {
+  async run(input: any, { emitEmailSent }) {
     const emailId = `email_${Date.now()}`;
 
     console.log(`Sending welcome email to ${input.email}`);
@@ -907,8 +932,8 @@ export const sendWelcomeEmailTask = task({
 });
 
 // Hooks - Cross-domain event handlers
-export const onProductOutOfStockEventHook = hook({
-  id: "app.notifications.hooks.onProductOutOfStockEvent",
+export const onProductOutOfStockEventHook = defineHook({
+  id: "app-notifications-hooks-onProductOutOfStockEvent",
   on: productOutOfStockEvent,
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
   async run(event, { sendWelcomeEmail: _sendWelcomeEmail }) {
@@ -916,8 +941,8 @@ export const onProductOutOfStockEventHook = hook({
   },
 });
 
-export const multiHookEvent = hook({
-  id: "app.notifications.hooks.multiHookEvent",
+export const multiHookEvent = defineHook({
+  id: "app-notifications-hooks-multiHookEvent",
   on: [userRegisteredEvent, productOutOfStockEvent],
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
   async run(event, { sendWelcomeEmail: _sendWelcomeEmail }) {
@@ -925,8 +950,8 @@ export const multiHookEvent = hook({
   },
 });
 
-export const welcomeEmailOnRegistrationHook = hook({
-  id: "app.notifications.hooks.welcomeOnRegistration",
+export const welcomeEmailOnRegistrationHook = defineHook({
+  id: "app-notifications-hooks-welcomeOnRegistration",
   on: userRegisteredEvent,
   dependencies: { sendWelcomeEmail: sendWelcomeEmailTask },
   meta: {
@@ -938,7 +963,7 @@ export const welcomeEmailOnRegistrationHook = hook({
     console.log(`Triggering welcome email for new user: ${event.data.email}`);
 
     // In a real app, you'd get user details from DB
-    await sendWelcomeEmail({
+    await (sendWelcomeEmail as any)({
       userId: event.data.userId,
       email: event.data.email,
       firstName: "New User", // Would look up from DB
@@ -951,8 +976,8 @@ export const welcomeEmailOnRegistrationHook = hook({
 // ====================
 
 // Resources
-export const analyticsDatabaseResource = resource({
-  id: "app.analytics.resources.database",
+export const analyticsDatabaseResource = defineResource({
+  id: "app-analytics-resources-database",
   meta: {
     title: "Analytics Database",
     description: "ClickHouse analytics database",
@@ -967,8 +992,8 @@ export const analyticsDatabaseResource = resource({
 });
 
 // Global hooks for analytics
-export const analyticsGlobalHook = hook({
-  id: "app.analytics.hooks.globalTracker",
+export const analyticsGlobalHook = defineHook({
+  id: "app-analytics-hooks-globalTracker",
   on: "*", // Listen to all events
   dependencies: { analyticsDb: analyticsDatabaseResource },
   meta: {
@@ -984,8 +1009,8 @@ export const analyticsGlobalHook = hook({
   },
 });
 
-export const orderAnalyticsHook = hook({
-  id: "app.analytics.hooks.orderTracker",
+export const orderAnalyticsHook = defineHook({
+  id: "app-analytics-hooks-orderTracker",
   on: orderCreatedEvent,
   dependencies: { analyticsDb: analyticsDatabaseResource },
   meta: {
@@ -1003,8 +1028,8 @@ export const orderAnalyticsHook = hook({
 // ====================
 
 export function createDummySuperApp(extra: any[] = []) {
-  return resource({
-    id: "dummy.superapp",
+  return defineResource({
+    id: "dummy-superapp",
     meta: {
       title: "E-Commerce Super App",
       description:

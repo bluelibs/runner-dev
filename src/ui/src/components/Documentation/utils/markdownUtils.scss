@@ -44,6 +44,33 @@
     }
   }
 
+  .markdown-content__mermaid {
+    background: var(--docs-bg-primary, #ffffff);
+    border: 1px solid var(--docs-border-primary, rgba(255, 255, 255, 0.15));
+    border-radius: 8px;
+    margin: 1rem 0;
+    padding: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    svg {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    svg text,
+    svg tspan,
+    svg .nodeLabel,
+    svg .label {
+      font-family: var(--docs-font-family, "Segoe UI", sans-serif) !important;
+      font-size: 14px !important;
+      line-height: 1.35 !important;
+    }
+  }
+
   // Inline code styling
   p code,
   li code,

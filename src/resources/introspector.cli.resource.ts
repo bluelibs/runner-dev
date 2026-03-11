@@ -1,10 +1,10 @@
-import { resource } from "@bluelibs/runner";
+import { defineResource } from "@bluelibs/runner";
 import { Introspector } from "./models/Introspector";
 import { initializeFromStore } from "./models/initializeFromStore";
 import { cliConfig } from "./cli.config.resource";
 
-export const introspectorCli = resource({
-  id: "runner-dev.resources.introspector-cli",
+export const introspectorCli = defineResource({
+  id: "runner-dev-resources-introspector-cli",
   meta: {
     title: "CLI Application Introspector",
     description:
@@ -19,8 +19,8 @@ export const introspectorCli = resource({
         process.env.RUNNER_DEV_DRY_RUN === "1"
           ? {
               mode: cli.store.mode ?? "dev",
-              debug: !!cli.store.resources?.has?.("globals.resources.debug"),
-              debugMode: cli.store.resources?.has?.("globals.resources.debug")
+              debug: !!cli.store.resources?.has?.("runner.debug"),
+              debugMode: cli.store.resources?.has?.("runner.debug")
                 ? "normal"
                 : "disabled",
               logsEnabled: true,
@@ -31,8 +31,16 @@ export const introspectorCli = resource({
               shutdownHooks: null,
               dryRun: true,
               lazy: false,
-              initMode: "sequential",
-              runtimeEventCycleDetection: null,
+              lifecycleMode: "sequential",
+              dispose: {
+                totalBudgetMs: null,
+                drainingBudgetMs: null,
+                cooldownWindowMs: null,
+              },
+              executionContext: {
+                enabled: false,
+                cycleDetection: null,
+              },
               hasOnUnhandledError: true,
               rootId:
                 cli.store.root?.resource?.id != null

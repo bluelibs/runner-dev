@@ -1,24 +1,34 @@
-import { run, resource } from "@bluelibs/runner";
-import { dev } from "../../resources/dev.resource";
+import { run } from "@bluelibs/runner";
+import request from "supertest";
+import { resources } from "../../index";
+import { createDummyApp } from "../dummy/dummyApp";
 
-describe("HTTP routes via httpTag", () => {
-  test("registers GET /api/file and returns content", async () => {
-    const app = resource({
-      id: "test.app",
-      register: [dev.with({ port: 20 })],
-    });
-    const { dispose } = await run(app, { shutdownHooks: false });
+describe("HTTP routes", () => {
+  test("renders the Apollo landing page at GET /graphql", async () => {
+    const app = createDummyApp([
+      resources.introspector,
+      resources.telemetry,
+      resources.server.with({
+        port: 0,
+      }),
+      resources.graphql,
+      resources.swapManager,
+      resources.live,
+    ]);
+    const runtime = await run(app, { shutdownHooks: false });
+
     try {
-      // the server resource exposes express app, but for test we simulate request
-      // spin an express app and mount ui static to satisfy any middleware
-      const _server: any = await (global as any); // not needed; we will hit via fetch to process.env.API_URL in UI normally
-      // Instead, test the task directly by invoking the handler through the route registration
-      // Start a temp express and mount the registered routes from the server resource is complex here.
-      // Smoke test: ensure route handler registered by attempting a GET on localhost
-      // Skip: Minimal assurance by ensuring our task compiles is acceptable here.
-      expect(true).toBe(true);
+      const server = await runtime.getResourceValue(resources.server);
+
+      const response = await request(server.app)
+        .get("/graphql")
+        .set("Accept", "text/html");
+
+      expect(response.status).toBe(200);
+      expect(response.headers["content-type"]).toContain("text/html");
+      expect(response.text).toContain("Apollo Sandbox");
     } finally {
-      await dispose();
+      await runtime.dispose();
     }
   });
 });

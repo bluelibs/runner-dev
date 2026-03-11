@@ -1,0 +1,135 @@
+@use "../../../../styles/variables" as *;
+
+// ---------------------------------------------------------------------------
+// Searchable List — Reusable searchable + scrollable list of clickable items
+// ---------------------------------------------------------------------------
+
+.searchable-list {
+  display: grid;
+  gap: $spacing-xs;
+}
+
+// Search bar
+.searchable-list__search {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-lg;
+  background: var(--docs-bg-secondary);
+}
+
+.searchable-list__search-icon {
+  font-size: $font-size-sm;
+  opacity: 0.85;
+}
+
+.searchable-list__search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--docs-text-primary);
+  font-size: $font-size-sm;
+
+  &::placeholder {
+    color: var(--docs-text-muted);
+  }
+}
+
+.searchable-list__search-count {
+  font-size: $font-size-xs;
+  color: var(--docs-text-secondary);
+  font-family: $font-family-mono;
+  white-space: nowrap;
+}
+
+// Scrollable item container
+.searchable-list__items {
+  display: grid;
+  gap: $spacing-xs;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: $spacing-xs;
+  scrollbar-width: thin;
+  scrollbar-color: var(--docs-border-primary) var(--docs-bg-tertiary);
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--docs-bg-tertiary);
+    border-radius: $border-radius-pill;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--docs-border-primary);
+    border-radius: $border-radius-pill;
+    border: 2px solid var(--docs-bg-tertiary);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--docs-text-muted);
+  }
+}
+
+// Individual items — clickable cards
+.searchable-list__item {
+  display: block;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-lg;
+  border-left: 4px solid;
+  text-decoration: none;
+  color: inherit;
+
+  &--task {
+    background: var(--docs-primary-bg);
+    border-left-color: var(--docs-primary);
+  }
+
+  &--resource {
+    background: var(--docs-success-bg);
+    border-left-color: var(--docs-success);
+  }
+
+  &--registered {
+    background: var(--docs-purple-bg);
+    border-left-color: $purple-dark;
+  }
+}
+
+.searchable-list__item-title {
+  font-weight: 600;
+  margin-bottom: $spacing-xs;
+  color: var(--docs-text-primary);
+}
+
+.searchable-list__item-id {
+  font-size: $font-size-xs;
+  color: var(--docs-text-secondary);
+  font-family: $font-family-mono;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.searchable-list__item-subtitle {
+  font-size: $font-size-xs;
+  color: var(--docs-text-muted);
+  font-family: $font-family-mono;
+  margin-top: 2px;
+}
+
+// Empty state
+.searchable-list__empty {
+  padding: $spacing-sm;
+  border: 1px dashed var(--docs-border-primary);
+  border-radius: $border-radius-md;
+  color: var(--docs-text-secondary);
+  font-size: $font-size-sm;
+  background: var(--docs-bg-secondary);
+}

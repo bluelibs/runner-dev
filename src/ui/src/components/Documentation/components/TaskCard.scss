@@ -515,18 +515,20 @@
 }
 
 // -----------------------------------------------------------------------------
-// Task Card Tunnel Badge
+// Task Card RPC Lane Badge
 // -----------------------------------------------------------------------------
-.task-card__tunnel-badge {
+.task-card__rpc-lane-badge {
   margin-left: $spacing-sm;
-  font-size: $font-size-lg;
-  opacity: 0.8;
+  font-size: $font-size-xs;
+  opacity: 0.9;
+  letter-spacing: 0.04em;
+  font-weight: 700;
 }
 
 // -----------------------------------------------------------------------------
-// Task Card Tunnel Information
+// Task Card RPC Lane Information
 // -----------------------------------------------------------------------------
-.task-card__tunnel-info {
+.task-card__rpc-lane-info {
   grid-column: 1 / -1;
   margin-top: $spacing-lg;
   padding: $spacing-lg;
@@ -541,14 +543,14 @@
     color: var(--docs-text-primary);
   }
 
-  .task-card__tunnel-info__content {
+  .task-card__rpc-lane-info__content {
     display: flex;
     flex-direction: column;
     gap: $spacing-sm;
   }
 }
 
-.task-card__tunnel-link {
+.task-card__rpc-lane-link {
   color: var(--docs-text-primary);
   text-decoration: none;
   font-weight: 600;

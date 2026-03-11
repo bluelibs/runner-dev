@@ -34,7 +34,7 @@ export const BaseElementInterface: GraphQLInterfaceType =
       },
       isPrivate: {
         description:
-          "True when this element is private to a resource boundary defined by exports().",
+          "True when this element is private to a resource boundary defined by isolate().",
         type: new GraphQLNonNull(GraphQLBoolean),
       },
       visibilityReason: {
@@ -77,7 +77,8 @@ export const BaseElementInterface: GraphQLInterfaceType =
         | "HOOK"
         | "RESOURCE"
         | "MIDDLEWARE"
-        | "EVENT";
+        | "EVENT"
+        | "ERROR";
       switch (kind) {
         case "TASK":
           return "Task";
@@ -100,6 +101,8 @@ export const BaseElementInterface: GraphQLInterfaceType =
         }
         case "EVENT":
           return "Event";
+        case "ERROR":
+          return "Error";
         default:
           break;
       }
@@ -152,7 +155,8 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       kind === "HOOK" ||
       kind === "RESOURCE" ||
       kind === "MIDDLEWARE" ||
-      kind === "EVENT"
+      kind === "EVENT" ||
+      kind === "ERROR"
     ) {
       return false;
     }
@@ -162,7 +166,7 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       return false; // Resource
     }
     if (
-      Array.isArray(value?.usedByTasks) &&
+      Array.isArray(value?.usedByTasks) ||
       Array.isArray(value?.usedByResources)
     ) {
       return false; // Middleware

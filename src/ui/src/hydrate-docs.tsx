@@ -7,6 +7,7 @@ import {
   SerializedIntrospector,
 } from "../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "./components/Documentation/config/documentationConstants";
+import { DocsContentPayload } from "../../resources/routeHandlers/getDocsData";
 
 // Expect SSR to inject window.__DOCS_PROPS__ with pre-fetched data
 declare global {
@@ -16,6 +17,7 @@ declare global {
       introspectorData: any;
       runnerFrameworkMd?: string;
       runnerDevMd?: string;
+      docsContent?: DocsContentPayload;
       projectOverviewMd?: string;
       graphqlSdl?: string;
     };
@@ -197,6 +199,7 @@ async function bootstrap() {
         namespacePrefix: props.namespacePrefix,
         runnerFrameworkMd: props.runnerFrameworkMd,
         runnerDevMd: props.runnerDevMd,
+        docsContent: props.docsContent,
         projectOverviewMd: props.projectOverviewMd,
         graphqlSdl: props.graphqlSdl,
       })
@@ -241,6 +244,7 @@ async function bootstrap() {
         namespacePrefix: json.namespacePrefix,
         runnerFrameworkMd: json.runnerFrameworkMd,
         runnerDevMd: json.runnerDevMd,
+        docsContent: json.docsContent,
         projectOverviewMd: json.projectOverviewMd,
         graphqlSdl: json.graphqlSdl,
       })

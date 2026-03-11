@@ -106,14 +106,48 @@ function createIntrospector() {
           tags: [],
         },
       ],
+      errors: [
+        {
+          id: "app.errors.public",
+          thrownBy: [],
+          isPrivate: false,
+          tags: [],
+        },
+        {
+          id: "app.errors.private",
+          thrownBy: [],
+          isPrivate: true,
+          tags: [],
+        },
+      ],
+      asyncContexts: [
+        {
+          id: "app.asyncContexts.public",
+          usedBy: [],
+          requiredBy: [],
+          providedBy: [],
+          isPrivate: false,
+          tags: [],
+        },
+        {
+          id: "app.asyncContexts.private",
+          usedBy: [],
+          requiredBy: [],
+          providedBy: [],
+          isPrivate: true,
+          tags: [],
+        },
+      ],
       tags: [
         {
           id: "tag.public",
           tasks: [],
           hooks: [],
           resources: [],
-          middlewares: [],
+          taskMiddlewares: [],
+          resourceMiddlewares: [],
           events: [],
+          errors: [],
           isPrivate: false,
           tags: [],
         },
@@ -122,8 +156,10 @@ function createIntrospector() {
           tasks: [],
           hooks: [],
           resources: [],
-          middlewares: [],
+          taskMiddlewares: [],
+          resourceMiddlewares: [],
           events: [],
+          errors: [],
           isPrivate: true,
           tags: [],
         },
@@ -171,7 +207,35 @@ describe("useDocumentationFilters", () => {
     expect(result.current.middlewares.map((item) => item.id)).toEqual([
       "middleware.public",
     ]);
+    expect(result.current.errors.map((item) => item.id)).toEqual([
+      "app.errors.public",
+    ]);
+    expect(result.current.asyncContexts.map((item) => item.id)).toEqual([
+      "app.asyncContexts.public",
+    ]);
     expect(result.current.tags.map((item) => item.id)).toEqual(["tag.public"]);
+  });
+
+  it("matches errors and async contexts by suffix when searching with a global id fragment", () => {
+    const introspector = createIntrospector();
+    const { result } = renderHook(() => useDocumentationFilters(introspector));
+
+    act(() => {
+      result.current.setLocalNamespaceSearch("public");
+    });
+
+    expect(result.current.errors.map((item) => item.id)).toEqual([
+      "app.errors.public",
+    ]);
+    expect(result.current.asyncContexts.map((item) => item.id)).toEqual([
+      "app.asyncContexts.public",
+    ]);
+    expect(result.current.allElements.map((item) => item.id)).toContain(
+      "app.errors.public"
+    );
+    expect(result.current.allElements.map((item) => item.id)).toContain(
+      "app.asyncContexts.public"
+    );
   });
 
   it("respects persisted PRIVATE preference from localStorage", () => {

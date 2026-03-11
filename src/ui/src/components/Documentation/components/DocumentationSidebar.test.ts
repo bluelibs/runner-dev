@@ -29,7 +29,6 @@ describe("DocumentationSidebar visibility toggles", () => {
         showPrivate: true,
         treeNodes: [],
         sections: [],
-        totalComponents: 0,
         onViewModeChange: () => {},
         onTreeTypeChange: () => {},
         onNamespaceSearchChange: () => {},
@@ -61,7 +60,6 @@ describe("DocumentationSidebar visibility toggles", () => {
         showPrivate: false,
         treeNodes: [],
         sections: [],
-        totalComponents: 0,
         onViewModeChange: () => {},
         onTreeTypeChange: () => {},
         onNamespaceSearchChange: () => {},
@@ -81,5 +79,32 @@ describe("DocumentationSidebar visibility toggles", () => {
 
     expect(onShowSystemChange).toHaveBeenCalledWith(true);
     expect(onShowPrivateChange).toHaveBeenCalledWith(true);
+  });
+
+  it("renders docs and support actions", () => {
+    render(
+      React.createElement(DocumentationSidebar, {
+        sidebarWidth: 280,
+        sidebarRef: React.createRef<HTMLElement>(),
+        viewMode: "list",
+        treeType: "namespace",
+        localNamespaceSearch: "",
+        showSystem: true,
+        showPrivate: true,
+        treeNodes: [],
+        sections: [],
+        onViewModeChange: () => {},
+        onTreeTypeChange: () => {},
+        onNamespaceSearchChange: () => {},
+        onShowSystemChange: () => {},
+        onShowPrivateChange: () => {},
+        onTreeNodeClick: () => {},
+        onToggleExpansion: () => {},
+        onSectionClick: () => {},
+      })
+    );
+
+    expect(screen.getByText("Docs & Support")).toBeTruthy();
+    expect(screen.getByText("Docs")).toBeTruthy();
   });
 });

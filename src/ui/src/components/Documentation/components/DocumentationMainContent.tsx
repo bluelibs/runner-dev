@@ -11,6 +11,8 @@ import { AsyncContextCard } from "./AsyncContextCard";
 import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { LivePanel } from "./LivePanel";
 import { ElementTable } from "./ElementTable";
+import { DocsSection } from "./DocsSection";
+import { DocsContentPayload } from "../../../../../resources/routeHandlers/getDocsData";
 
 export interface DocumentationMainContentProps {
   introspector: Introspector;
@@ -31,6 +33,7 @@ export interface DocumentationMainContentProps {
   errors: any[];
   asyncContexts: any[];
   tags: any[];
+  docsContent?: DocsContentPayload;
   sections: Array<{
     id: string;
     label: string;
@@ -60,10 +63,13 @@ export const DocumentationMainContent: React.FC<
   errors,
   asyncContexts,
   tags,
+  docsContent,
   sections,
 }) => {
   const rootResource = introspector.getRoot();
   const runOptions = introspector.getRunOptions();
+  const disposeOptions = runOptions.dispose;
+  const executionContext = runOptions.executionContext;
   const formatBooleanOption = (value: boolean | null | undefined) => {
     if (typeof value === "boolean") return value ? "enabled" : "disabled";
     return "unknown";
@@ -339,11 +345,41 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">🚀 Init</span>
+                  <span className="overview-run-info__label">🚀 Lifecycle</span>
                   <span
-                    className={`overview-run-info__badge overview-run-info__badge--${runOptions.initMode}`}
+                    className={`overview-run-info__badge overview-run-info__badge--${runOptions.lifecycleMode}`}
                   >
-                    {runOptions.initMode}
+                    {runOptions.lifecycleMode}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    ⏱️ Dispose Total
+                  </span>
+                  <span className="overview-run-info__value">
+                    {typeof disposeOptions.totalBudgetMs === "number"
+                      ? `${disposeOptions.totalBudgetMs}ms`
+                      : "unknown"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    ⌛ Dispose Drain
+                  </span>
+                  <span className="overview-run-info__value">
+                    {typeof disposeOptions.drainingBudgetMs === "number"
+                      ? `${disposeOptions.drainingBudgetMs}ms`
+                      : "unknown"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    🪟 Cooldown Window
+                  </span>
+                  <span className="overview-run-info__value">
+                    {typeof disposeOptions.cooldownWindowMs === "number"
+                      ? `${disposeOptions.cooldownWindowMs}ms`
+                      : "unknown"}
                   </span>
                 </div>
                 <div className="overview-run-info__item">
@@ -392,14 +428,26 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
+                    🧭 Execution Context
+                  </span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      executionContext.enabled ? "enabled" : "disabled"
+                    }`}
+                  >
+                    {executionContext.enabled ? "enabled" : "disabled"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
                     🔄 Cycle Detection
                   </span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${formatBooleanOption(
-                      runOptions.runtimeEventCycleDetection
+                      executionContext.cycleDetection
                     )}`}
                   >
-                    {formatBooleanOption(runOptions.runtimeEventCycleDetection)}
+                    {formatBooleanOption(executionContext.cycleDetection)}
                   </span>
                 </div>
                 <div className="overview-run-info__item">
@@ -440,6 +488,35 @@ export const DocumentationMainContent: React.FC<
                 </div>
               </div>
             </div>
+
+            {docsContent && (
+              <div className="overview-support-block">
+                <DocsSection
+                  id="docs-support"
+                  title="📚 Docs & Support"
+                  description="Reference guides for Runner, plus quick ways to report issues or reach the creator."
+                  docsContent={docsContent}
+                  actions={
+                    <>
+                      <a
+                        href="https://github.com/bluelibs/runner/issues/new"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="overview-support-block__action overview-support-block__action--issue"
+                      >
+                        Submit an Issue
+                      </a>
+                      <a
+                        href="mailto:theodor@bluelibs.com"
+                        className="overview-support-block__action overview-support-block__action--contact"
+                      >
+                        Contact Creator
+                      </a>
+                    </>
+                  }
+                />
+              </div>
+            )}
           </section>
         )}
 

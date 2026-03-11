@@ -15,6 +15,7 @@ import { createSections } from "./config/documentationSections";
 import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
 import { ModalStackProvider } from "./components/modals";
 import { useRef } from "react";
+import { DocsContentPayload } from "../../../../resources/routeHandlers/getDocsData";
 
 export type Section =
   | "overview"
@@ -34,6 +35,7 @@ export interface DocumentationProps {
   namespacePrefix?: string;
   runnerFrameworkMd?: string;
   runnerDevMd?: string;
+  docsContent?: DocsContentPayload;
   projectOverviewMd?: string;
   graphqlSdl?: string;
 }
@@ -44,6 +46,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
   // [AI-CHAT-DISABLED] These props were used by ChatSidebar
   runnerFrameworkMd: _runnerFrameworkMd,
   runnerDevMd: _runnerDevMd,
+  docsContent,
   projectOverviewMd: _projectOverviewMd,
   graphqlSdl: _graphqlSdl,
 }) => {
@@ -181,17 +184,10 @@ export const Documentation: React.FC<DocumentationProps> = ({
     events: filterHook.events.length,
     hooks: filterHook.hooks.length,
     middlewares: filterHook.middlewares.length,
-    errors: introspector.getErrors().length,
-    asyncContexts: introspector.getAsyncContexts().length,
+    errors: filterHook.errors.length,
+    asyncContexts: filterHook.asyncContexts.length,
     tags: filterHook.tags.length,
   });
-
-  const totalComponents =
-    filterHook.tasks.length +
-    filterHook.resources.length +
-    filterHook.events.length +
-    filterHook.hooks.length +
-    filterHook.middlewares.length;
 
   const resolveSectionFromElementId = React.useCallback(
     (elementId: string): string | null => {
@@ -316,7 +312,6 @@ export const Documentation: React.FC<DocumentationProps> = ({
           showPrivate={filterHook.showPrivate}
           treeNodes={treeHook.treeNodes}
           sections={sections}
-          totalComponents={totalComponents}
           onViewModeChange={viewModeHook.handleViewModeChange}
           onTreeTypeChange={viewModeHook.handleTreeTypeChange}
           onNamespaceSearchChange={filterHook.setLocalNamespaceSearch}
@@ -356,9 +351,10 @@ export const Documentation: React.FC<DocumentationProps> = ({
           events={filterHook.events}
           hooks={filterHook.hooks}
           middlewares={filterHook.middlewares}
-          errors={introspector.getErrors()}
-          asyncContexts={introspector.getAsyncContexts()}
+          errors={filterHook.errors}
+          asyncContexts={filterHook.asyncContexts}
           tags={filterHook.tags}
+          docsContent={docsContent}
           sections={sections}
         />
 

@@ -4,6 +4,17 @@ export interface TagUsage {
   configSchema?: string | null;
 }
 
+export type MiddlewareApplyScope = "where-visible" | "subtree";
+export type IsolationExportsMode = "unset" | "none" | "list";
+export type TagTarget =
+  | "tasks"
+  | "resources"
+  | "events"
+  | "hooks"
+  | "taskMiddlewares"
+  | "resourceMiddlewares"
+  | "errors";
+
 export interface Meta {
   title?: string | null;
   description?: string | null;
@@ -13,7 +24,7 @@ export interface BaseElement {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
-  // True when this element is internal to a resource exports() boundary.
+  // True when this element is internal to a resource isolate() boundary.
   isPrivate?: boolean;
   // Optional debugging detail for why this element is private/public.
   visibilityReason?: string | null;
@@ -35,29 +46,26 @@ export interface All extends BaseElement {
   filePath?: string | null;
 }
 
-// Events can't be overriden
+export interface RpcLaneSummary {
+  laneId: string;
+}
+
+// Events can't be overridden.
 export interface Event extends Omit<BaseElement, "overriddenBy"> {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
   listenedToBy: string[];
+  transactional: boolean;
+  parallel: boolean;
+  eventLane?: {
+    laneId: string;
+    orderingKey?: string | null;
+    metadata?: string | null;
+  } | null;
+  rpcLane?: RpcLaneSummary | null;
   // Prettified Zod schema for the event payload if provided
   payloadSchema?: string | null;
-}
-
-export interface TagUsage {
-  id: string;
-  configSchema?: string | null;
-}
-
-export interface TunnelInfo {
-  mode: "client" | "server" | "both";
-  transport: "http" | "other";
-  tasks?: string[]; // tunneled task IDs
-  events?: string[]; // tunneled event IDs
-  endpoint?: string; // for client tunnels
-  auth?: string; // auth method
-  eventDeliveryMode?: string; // e.g., "mirror", "remote-only", "local-only", "remote-first"
 }
 
 export interface DurableFlowNode {
@@ -77,11 +85,14 @@ export interface DurableFlowShape {
 export interface Tag extends BaseElement {
   id: string;
   configSchema?: string | null;
+  targets?: TagTarget[] | null;
   tasks: Task[];
   hooks: Hook[];
   resources: Resource[];
-  middlewares: Middleware[];
+  taskMiddlewares: Middleware[];
+  resourceMiddlewares: Middleware[];
   events: Event[];
+  errors: Error[];
 }
 
 // Internal discriminator for GraphQL type resolution (non-enumerable)
@@ -91,7 +102,8 @@ export type ElementKind =
   | "HOOK"
   | "RESOURCE"
   | "MIDDLEWARE"
-  | "EVENT";
+  | "EVENT"
+  | "ERROR";
 
 export const elementKindSymbol: unique symbol = Symbol(
   "runner-dev.elementKind"
@@ -100,10 +112,10 @@ export const elementKindSymbol: unique symbol = Symbol(
 // Optional typing marker for objects stamped at runtime
 export type WithElementKind<T> = T & { [elementKindSymbol]?: ElementKind };
 
-export interface MiddlewareGlobal {
+export interface MiddlewareAutoApply {
   enabled: boolean;
-  tasks: boolean;
-  resources: boolean;
+  scope: MiddlewareApplyScope | null;
+  hasPredicate: boolean;
 }
 
 export interface MiddlewareUsage {
@@ -115,7 +127,7 @@ export interface Middleware extends BaseElement {
   id: string;
   meta?: Meta | null;
   filePath?: string | null;
-  global?: MiddlewareGlobal | null;
+  autoApply: MiddlewareAutoApply;
   type: "task" | "resource";
   usedByTasks: string[];
   usedByResources: string[];
@@ -143,6 +155,7 @@ export interface Task extends BaseElement {
   hasInterceptors?: boolean;
   // Resource ids that registered local task interceptors.
   interceptorOwnerIds?: string[];
+  rpcLane?: RpcLaneSummary | null;
 }
 
 export interface Hook extends BaseElement {
@@ -151,7 +164,6 @@ export interface Hook extends BaseElement {
   dependsOn: string[];
   emits: string[];
 }
-
 export interface Resource extends BaseElement {
   id: string;
   meta?: Meta | null;
@@ -168,11 +180,52 @@ export interface Resource extends BaseElement {
   middlewareDetailed?: MiddlewareUsage[];
   overrides: string[];
   registers: string[];
-  // Exposed ids from resource.exports([...]) when configured.
-  exports?: string[] | null;
+  // Hard-switch note: `exports` was removed in favor of `isolation`.
+  isolation?: {
+    deny: string[];
+    only: string[];
+    whitelist: Array<{
+      for: string[];
+      targets: string[];
+      channels?: {
+        dependencies?: boolean;
+        listening?: boolean;
+        tagging?: boolean;
+        middleware?: boolean;
+      } | null;
+    }>;
+    exports: string[];
+    exportsMode: IsolationExportsMode;
+  } | null;
+  subtree?: {
+    tasks?: {
+      middleware: string[];
+      validatorCount: number;
+    } | null;
+    resources?: {
+      middleware: string[];
+      validatorCount: number;
+    } | null;
+    hooks?: {
+      validatorCount: number;
+    } | null;
+    taskMiddleware?: {
+      validatorCount: number;
+    } | null;
+    resourceMiddleware?: {
+      validatorCount: number;
+    } | null;
+    events?: {
+      validatorCount: number;
+    } | null;
+    tags?: {
+      validatorCount: number;
+    } | null;
+  } | null;
+  hasCooldown?: boolean;
+  hasReady?: boolean;
+  hasHealthCheck?: boolean;
   context?: string | null;
-  // Tunnel information (populated when resource has globals.tags.tunnel)
-  tunnelInfo?: TunnelInfo | null;
 }
 
 export interface Error extends BaseElement {
@@ -201,6 +254,22 @@ export interface AsyncContext extends BaseElement {
   providedBy: string[];
 }
 
+export interface RunDisposeOptions {
+  // Total shutdown disposal budget in milliseconds.
+  totalBudgetMs?: number | null;
+  // Drain wait budget in milliseconds during shutdown.
+  drainingBudgetMs?: number | null;
+  // Post-cooldown admission window in milliseconds during shutdown.
+  cooldownWindowMs?: number | null;
+}
+
+export interface RunExecutionContextOptions {
+  // Whether execution context capture is enabled.
+  enabled: boolean;
+  // Whether cycle detection is enabled when execution context is active.
+  cycleDetection?: boolean | null;
+}
+
 // Run options (effective at startup)
 export interface RunOptions {
   mode: string;
@@ -225,9 +294,11 @@ export interface RunOptions {
   // Whether lazy resource mode is enabled when known.
   lazy: boolean;
   // Startup scheduler mode summary.
-  initMode: "sequential" | "parallel";
-  // Runtime event cycle detection toggle when known.
-  runtimeEventCycleDetection?: boolean | null;
+  lifecycleMode: "sequential" | "parallel";
+  // Effective shutdown disposal configuration.
+  dispose: RunDisposeOptions;
+  // Effective execution context configuration.
+  executionContext: RunExecutionContextOptions;
   // Presence flag for onUnhandledError callback.
   hasOnUnhandledError: boolean;
   rootId: string;

@@ -40,13 +40,13 @@ export function baseElementCommonFields(): GraphQLFieldConfigMap<
     },
     isPrivate: {
       description:
-        "True when this element is private to a resource boundary defined by exports().",
+        "True when this element is private to a resource boundary defined by isolate().",
       type: new GraphQLNonNull(GraphQLBoolean),
       resolve: (node: BaseElement) => node.isPrivate === true,
     },
     visibilityReason: {
       description:
-        "Optional visibility explanation (useful for debugging exports() boundaries).",
+        "Optional visibility explanation (useful for debugging isolate() boundaries).",
       type: GraphQLString,
       resolve: (node: BaseElement) => node.visibilityReason ?? null,
     },

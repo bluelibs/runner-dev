@@ -1,4 +1,4 @@
-import { task, globals } from "@bluelibs/runner";
+import { defineTask, resources } from "@bluelibs/runner";
 import { z } from "zod";
 import { introspectorCli } from "./introspector.cli.resource";
 import { cliConfig } from "./cli.config.resource";
@@ -9,8 +9,8 @@ import { graphql as executeGraphQL } from "graphql";
 
 type Variables = Record<string, unknown> | undefined;
 
-export const graphqlQueryCliTask = task({
-  id: "runner-dev.tasks.graphqlQueryCli",
+export const graphqlQueryCliTask = defineTask({
+  id: "runner-dev-tasks-graphqlQueryCli",
   meta: {
     title: "Execute GraphQL Query (CLI)",
     description:
@@ -18,7 +18,7 @@ export const graphqlQueryCliTask = task({
   },
   dependencies: {
     cli: cliConfig,
-    logger: globals.resources.logger,
+    logger: resources.logger,
     introspector: introspectorCli,
     live,
     swapManager: swapManagerCli,

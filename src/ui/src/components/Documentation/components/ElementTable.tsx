@@ -23,7 +23,10 @@ export interface BaseElement {
   hooks?: unknown[];
   resources?: unknown[];
   middlewares?: unknown[];
+  taskMiddlewares?: unknown[];
+  resourceMiddlewares?: unknown[];
   events?: unknown[];
+  errors?: unknown[];
 }
 
 export interface ElementTableProps {
@@ -96,14 +99,20 @@ export const ElementTable: React.FC<ElementTableProps> = ({
       Array.isArray(element.hooks) ||
       Array.isArray(element.resources) ||
       Array.isArray(element.middlewares) ||
-      Array.isArray(element.events)
+      Array.isArray(element.taskMiddlewares) ||
+      Array.isArray(element.resourceMiddlewares) ||
+      Array.isArray(element.events) ||
+      Array.isArray(element.errors)
     ) {
       return (
         (element.tasks?.length ?? 0) +
         (element.hooks?.length ?? 0) +
         (element.resources?.length ?? 0) +
         (element.middlewares?.length ?? 0) +
-        (element.events?.length ?? 0)
+        (element.taskMiddlewares?.length ?? 0) +
+        (element.resourceMiddlewares?.length ?? 0) +
+        (element.events?.length ?? 0) +
+        (element.errors?.length ?? 0)
       );
     }
 

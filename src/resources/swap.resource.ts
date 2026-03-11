@@ -1,8 +1,8 @@
-import { globals, resource } from "@bluelibs/runner";
+import { resources, defineResource } from "@bluelibs/runner";
 import { introspector } from "./introspector.resource";
 import {
   compileRunFunction,
-  getTaskFromStore,
+  getTaskStoreElement,
   getTaskDependencies,
   serializeResult,
   deserializeInput,
@@ -65,32 +65,194 @@ export interface ISwapManager {
   runnerEval(code: string): Promise<EvalResult>;
 }
 
-export const swapManager = resource({
-  id: "runner-dev.resources.swap-manager",
+export const swapManager = defineResource({
+  id: "runner-dev-resources-swap-manager",
   meta: {
     title: "Task Swap Manager",
     description:
       "Enables runtime swapping of task implementations and provides task/event invocation capabilities for development",
   },
   dependencies: {
-    store: globals.resources.store,
-    taskRunner: globals.resources.taskRunner,
+    store: resources.store,
+    taskRunner: resources.taskRunner,
     introspector,
-    eventManager: globals.resources.eventManager,
+    eventManager: resources.eventManager,
   },
   async init(
     _,
     { store, introspector, taskRunner, eventManager }
   ): Promise<ISwapManager> {
-    // Track original run functions and swap metadata
-    const originalRunFunctions = new Map<string, (...args: any[]) => any>();
+    // Track swap metadata and swap interceptor wiring (deep-freeze safe).
+    const originalRunCodeByTaskId = new Map<string, string | undefined>();
     const swappedTasks = new Map<string, SwappedTask>();
+    const swappedRunFunctions = new Map<string, (...args: any[]) => any>();
+    const installedInterceptors = new Map<
+      string,
+      (
+        next: (input: unknown) => Promise<unknown>,
+        input: unknown
+      ) => Promise<unknown>
+    >();
+
+    const ensureSwapInterceptor = (taskId: string): string | null => {
+      if (installedInterceptors.has(taskId)) {
+        return null;
+      }
+
+      const storeTaskElement = getTaskStoreElement(store, taskId) as {
+        interceptors?: Array<{ interceptor: any; ownerResourceId?: string }>;
+      } | null;
+      if (!storeTaskElement) {
+        return `Task '${taskId}' not found`;
+      }
+
+      const interceptor = async (
+        next: (input: unknown) => Promise<unknown>,
+        input: unknown
+      ): Promise<unknown> => {
+        const swappedRun = swappedRunFunctions.get(taskId);
+        if (!swappedRun) {
+          return next(input);
+        }
+
+        const dependencies = getTaskDependencies(store, taskId);
+        return swappedRun(input, dependencies);
+      };
+
+      if (!Array.isArray(storeTaskElement.interceptors)) {
+        storeTaskElement.interceptors = [];
+      }
+      storeTaskElement.interceptors.push({
+        interceptor,
+        ownerResourceId: swapManager.id,
+      });
+      installedInterceptors.set(taskId, interceptor);
+
+      return null;
+    };
+
+    const removeSwapInterceptor = (taskId: string): void => {
+      const interceptor = installedInterceptors.get(taskId);
+      if (!interceptor) return;
+
+      const storeTaskElement = getTaskStoreElement(store, taskId) as {
+        interceptors?: Array<{ interceptor: any; ownerResourceId?: string }>;
+      } | null;
+      if (storeTaskElement && Array.isArray(storeTaskElement.interceptors)) {
+        storeTaskElement.interceptors = storeTaskElement.interceptors.filter(
+          (record) => record.interceptor !== interceptor
+        );
+      }
+
+      installedInterceptors.delete(taskId);
+    };
+
+    const invalidateTaskRunnerCache = (taskId: string): void => {
+      const runnerStore = (taskRunner as any)?.runnerStore;
+      if (runnerStore && typeof runnerStore.delete === "function") {
+        runnerStore.delete(taskId);
+      }
+    };
+
+    const idsMatch = (candidateId: string, referenceId: string): boolean => {
+      return (
+        candidateId === referenceId || candidateId.endsWith(`.${referenceId}`)
+      );
+    };
+
+    const resolveReference = <T>(
+      inputId: string,
+      elements: Iterable<T>,
+      getId: (element: T) => string | null | undefined
+    ) => {
+      let exactMatch: { element: T; id: string } | null = null;
+      const suffixMatches: Array<{ element: T; id: string }> = [];
+
+      for (const element of elements) {
+        const candidateId = getId(element);
+        if (!candidateId) continue;
+
+        if (candidateId === inputId) {
+          exactMatch = { element, id: candidateId };
+          break;
+        }
+
+        if (idsMatch(candidateId, inputId)) {
+          suffixMatches.push({ element, id: candidateId });
+        }
+      }
+
+      if (exactMatch) {
+        return {
+          element: exactMatch.element,
+          resolvedId: exactMatch.id,
+          ambiguousIds: [] as string[],
+        };
+      }
+
+      if (suffixMatches.length === 1) {
+        return {
+          element: suffixMatches[0].element,
+          resolvedId: suffixMatches[0].id,
+          ambiguousIds: [] as string[],
+        };
+      }
+
+      return {
+        element: null,
+        resolvedId: inputId,
+        ambiguousIds: suffixMatches.map((match) => match.id),
+      };
+    };
+
+    const resolveTaskReference = (inputTaskId: string) => {
+      const match = resolveReference(
+        inputTaskId,
+        store.tasks.values(),
+        (entry: any) => (entry?.task ? String(entry.task.id) : null)
+      );
+
+      return {
+        task: match.element?.task ?? null,
+        taskId: match.resolvedId,
+        ambiguousTaskIds: match.ambiguousIds,
+      };
+    };
+
+    const resolveEventReference = (inputEventId: string) => {
+      const match = resolveReference(
+        inputEventId,
+        store.events.values(),
+        (entry: any) => (entry?.event ? String(entry.event.id) : null)
+      );
+
+      return {
+        event: match.element?.event ?? null,
+        eventId: match.resolvedId,
+        ambiguousEventIds: match.ambiguousIds,
+      };
+    };
 
     const api: ISwapManager = {
       async swap(taskId: string, runCode: string): Promise<SwapResult> {
         try {
+          const {
+            task,
+            taskId: resolvedTaskId,
+            ambiguousTaskIds,
+          } = resolveTaskReference(taskId);
+
+          if (ambiguousTaskIds.length > 1) {
+            return {
+              success: false,
+              error: `Task '${taskId}' is ambiguous. Use one of: ${ambiguousTaskIds.join(
+                ", "
+              )}`,
+              taskId,
+            };
+          }
+
           // Validate task exists
-          const task = getTaskFromStore(store, taskId);
           if (!task) {
             return {
               success: false,
@@ -105,22 +267,35 @@ export const swapManager = resource({
             return { success: false, error: compileResult.error, taskId };
           }
 
-          // Store original run function if not already stored
-          if (!originalRunFunctions.has(taskId)) {
-            originalRunFunctions.set(taskId, task.run);
+          // Capture original code for diagnostics/history.
+          if (!originalRunCodeByTaskId.has(resolvedTaskId)) {
+            originalRunCodeByTaskId.set(
+              resolvedTaskId,
+              typeof task.run === "function" ? task.run.toString() : undefined
+            );
           }
 
-          // Swap the run function
-          task.run = compileResult.func as any;
+          const installError = ensureSwapInterceptor(resolvedTaskId);
+          if (installError) {
+            return {
+              success: false,
+              error: installError,
+              taskId: resolvedTaskId,
+            };
+          }
+
+          // Register swapped function; interceptor dispatches to this map.
+          swappedRunFunctions.set(resolvedTaskId, compileResult.func as any);
+          invalidateTaskRunnerCache(resolvedTaskId);
 
           // Track the swap
-          swappedTasks.set(taskId, {
-            taskId,
+          swappedTasks.set(resolvedTaskId, {
+            taskId: resolvedTaskId,
             swappedAt: Date.now(),
-            originalCode: originalRunFunctions.get(taskId)?.toString(),
+            originalCode: originalRunCodeByTaskId.get(resolvedTaskId),
           });
 
-          return { success: true, taskId };
+          return { success: true, taskId: resolvedTaskId };
         } catch (error) {
           return {
             success: false,
@@ -134,8 +309,23 @@ export const swapManager = resource({
 
       async unswap(taskId: string): Promise<SwapResult> {
         try {
+          const {
+            task,
+            taskId: resolvedTaskId,
+            ambiguousTaskIds,
+          } = resolveTaskReference(taskId);
+
+          if (ambiguousTaskIds.length > 1) {
+            return {
+              success: false,
+              error: `Task '${taskId}' is ambiguous. Use one of: ${ambiguousTaskIds.join(
+                ", "
+              )}`,
+              taskId,
+            };
+          }
+
           // Validate task exists and is swapped
-          const task = getTaskFromStore(store, taskId);
           if (!task) {
             return {
               success: false,
@@ -144,23 +334,24 @@ export const swapManager = resource({
             };
           }
 
-          const originalRun = originalRunFunctions.get(taskId);
-          if (!originalRun) {
+          if (!swappedTasks.has(resolvedTaskId)) {
             return {
               success: false,
-              error: `Task '${taskId}' is not swapped`,
-              taskId,
+              error: `Task '${resolvedTaskId}' is not swapped`,
+              taskId: resolvedTaskId,
             };
           }
 
-          // Restore original run function
-          (task as any).run = originalRun;
+          // Remove swapped run and interceptor wiring for this task.
+          swappedRunFunctions.delete(resolvedTaskId);
+          removeSwapInterceptor(resolvedTaskId);
+          invalidateTaskRunnerCache(resolvedTaskId);
 
           // Clean up tracking
-          originalRunFunctions.delete(taskId);
-          swappedTasks.delete(taskId);
+          originalRunCodeByTaskId.delete(resolvedTaskId);
+          swappedTasks.delete(resolvedTaskId);
 
-          return { success: true, taskId };
+          return { success: true, taskId: resolvedTaskId };
         } catch (error) {
           return {
             success: false,
@@ -189,7 +380,14 @@ export const swapManager = resource({
       },
 
       isSwapped(taskId: string): boolean {
-        return swappedTasks.has(taskId);
+        const { taskId: resolvedTaskId, ambiguousTaskIds } =
+          resolveTaskReference(taskId);
+
+        if (ambiguousTaskIds.length > 1) {
+          return false;
+        }
+
+        return swappedRunFunctions.has(resolvedTaskId);
       },
 
       async invokeTask(
@@ -202,8 +400,24 @@ export const swapManager = resource({
         const startTime = Date.now();
 
         try {
+          const {
+            task,
+            taskId: resolvedTaskId,
+            ambiguousTaskIds,
+          } = resolveTaskReference(taskId);
+
+          if (ambiguousTaskIds.length > 1) {
+            return {
+              success: false,
+              error: `Task '${taskId}' is ambiguous. Use one of: ${ambiguousTaskIds.join(
+                ", "
+              )}`,
+              taskId,
+              invocationId,
+            };
+          }
+
           // Validate task exists
-          const task = getTaskFromStore(store, taskId);
           if (!task) {
             return {
               success: false,
@@ -233,7 +447,7 @@ export const swapManager = resource({
                 error: `Input ${method} failed: ${
                   error instanceof Error ? error.message : String(error)
                 }`,
-                taskId,
+                taskId: resolvedTaskId,
                 invocationId,
               };
             }
@@ -244,8 +458,13 @@ export const swapManager = resource({
           try {
             if (pure) {
               // Pure mode: Get computed dependencies from store (no middleware pipeline)
-              const dependencies = getTaskDependencies(store, taskId);
-              result = await task.run(input, dependencies);
+              const dependencies = getTaskDependencies(store, resolvedTaskId);
+              const swappedRun = swappedRunFunctions.get(resolvedTaskId);
+              if (swappedRun) {
+                result = await swappedRun(input, dependencies);
+              } else {
+                result = await task.run(input, dependencies);
+              }
             } else {
               // Standard mode: use taskRunner to execute through the pipeline
               result = await taskRunner.run(task, input);
@@ -259,7 +478,7 @@ export const swapManager = resource({
                   ? taskError.message
                   : String(taskError)
               }`,
-              taskId,
+              taskId: resolvedTaskId,
               executionTimeMs,
               invocationId,
             };
@@ -271,7 +490,7 @@ export const swapManager = resource({
 
           return {
             success: true,
-            taskId,
+            taskId: resolvedTaskId,
             result: serializedResult,
             executionTimeMs,
             invocationId,
@@ -296,8 +515,19 @@ export const swapManager = resource({
         evalInput?: boolean
       ): Promise<InvokeEventResult> {
         const invocationId = randomUUID();
-        const eventDefinition = store.events.get(eventId);
-        if (!eventDefinition) {
+        const { event, ambiguousEventIds } = resolveEventReference(eventId);
+
+        if (ambiguousEventIds.length > 1) {
+          return {
+            success: false,
+            error: `Event '${eventId}' is ambiguous. Use one of: ${ambiguousEventIds.join(
+              ", "
+            )}`,
+            invocationId,
+          };
+        }
+
+        if (!event) {
           return {
             success: false,
             error: `Event '${eventId}' not found`,
@@ -315,7 +545,10 @@ export const swapManager = resource({
         }
 
         const startTime = Date.now();
-        await eventManager.emit(eventDefinition.event, input, swapManager.id);
+        await eventManager.emit(event, input, {
+          kind: "runtime",
+          id: swapManager.id,
+        });
         const executionTimeMs = Date.now() - startTime;
 
         return { success: true, executionTimeMs, invocationId };
@@ -335,7 +568,7 @@ export const swapManager = resource({
           const dependencies = {
             store,
             introspector,
-            globals,
+            globals: resources,
             taskRunner,
             eventManager,
           };

@@ -1,4 +1,4 @@
-import { task, globals } from "@bluelibs/runner";
+import { defineTask, resources } from "@bluelibs/runner";
 import { z } from "zod";
 import { graphql as executeGraphQL } from "graphql";
 import { graphql as graphqlResource } from "./graphql-accumulator.resource";
@@ -8,16 +8,16 @@ import { swapManager } from "./swap.resource";
 
 type Variables = Record<string, unknown> | undefined;
 
-export const graphqlQueryTask = task({
-  id: "runner-dev.tasks.graphqlQuery",
+export const graphqlQueryTask = defineTask({
+  id: "runner-dev-tasks-graphqlQuery",
   meta: {
     title: "Execute GraphQL Query",
     description:
       "Runs a GraphQL query against the in-memory schema with proper Runner context.",
   },
   dependencies: {
-    store: globals.resources.store,
-    logger: globals.resources.logger,
+    store: resources.store,
+    logger: resources.logger,
     introspector,
     live,
     swapManager,

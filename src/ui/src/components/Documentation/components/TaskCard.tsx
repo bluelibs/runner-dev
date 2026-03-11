@@ -158,9 +158,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
   const middlewareUsages = introspector.getMiddlewareUsagesForTask(task.id);
   const emittedEvents = introspector.getEmittedEvents(task);
 
-  // Check if this task is tunneled
-  const tunnelResource = introspector.getTunnelForTask(task.id);
-  const isTunneled = Boolean(tunnelResource);
+  const rpcLaneId = task.rpcLane?.laneId ?? null;
+  const rpcLaneResource = rpcLaneId
+    ? introspector.getRpcLaneResourceForTask(task.id)
+    : null;
+  const hasRpcLane = Boolean(rpcLaneId);
   const isDurable = task.isDurable === true;
   const initialDurableFlowNodes = React.useMemo(
     () => normalizeDurableFlowNodes(task.flowShape?.nodes as any[]),
@@ -325,12 +327,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       title={
         <>
           {task.meta?.title || formatId(task.id)}
-          {isTunneled && (
+          {hasRpcLane && (
             <span
-              className="task-card__tunnel-badge"
-              title={`Tunneled by ${tunnelResource?.id}`}
+              className="task-card__rpc-lane-badge"
+              title={`RPC lane: ${rpcLaneId}`}
             >
-              🚇
+              RPC
             </span>
           )}
         </>
@@ -413,6 +415,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
               ? `${task.interceptorCount ?? 0} runtime interceptor(s)`
               : "None"}
           </InfoBlock>
+
+          {rpcLaneId && (
+            <InfoBlock prefix="task-card" label="RPC Lane:">
+              {rpcLaneId}
+            </InfoBlock>
+          )}
 
           {Array.isArray(task.interceptorOwnerIds) &&
             task.interceptorOwnerIds.length > 0 && (
@@ -501,36 +509,25 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           <SchemaRenderer schemaString={task.resultSchema} />
         </CardSection>
 
-        {isTunneled && (
+        {hasRpcLane && (
           <CardSection
             prefix="task-card"
-            title="Tunnel Information"
-            className="task-card__tunnel-info"
-            contentClassName="task-card__tunnel-info__content"
+            title="RPC Lane"
+            className="task-card__rpc-lane-info"
+            contentClassName="task-card__rpc-lane-info__content"
           >
-            <InfoBlock prefix="task-card" label="Tunneled By:">
-              <a
-                href={`#element-${tunnelResource?.id}`}
-                className="task-card__tunnel-link"
-              >
-                {tunnelResource?.meta?.title ||
-                  formatId(tunnelResource?.id || "Unknown")}
-              </a>
+            <InfoBlock prefix="task-card" label="Lane ID:">
+              {rpcLaneId || "Unknown"}
             </InfoBlock>
-            {tunnelResource?.tunnelInfo && (
-              <>
-                <InfoBlock prefix="task-card" label="Tunnel Mode:">
-                  {tunnelResource.tunnelInfo.mode}
-                </InfoBlock>
-                <InfoBlock prefix="task-card" label="Transport:">
-                  {tunnelResource.tunnelInfo.transport}
-                </InfoBlock>
-                {tunnelResource.tunnelInfo.endpoint && (
-                  <InfoBlock prefix="task-card" label="Remote Endpoint:">
-                    {tunnelResource.tunnelInfo.endpoint}
-                  </InfoBlock>
-                )}
-              </>
+            {rpcLaneResource && (
+              <InfoBlock prefix="task-card" label="Lane Resource:">
+                <a
+                  href={`#element-${rpcLaneResource.id}`}
+                  className="task-card__rpc-lane-link"
+                >
+                  {rpcLaneResource.meta?.title || formatId(rpcLaneResource.id)}
+                </a>
+              </InfoBlock>
             )}
           </CardSection>
         )}
@@ -765,7 +762,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       />
 
       <CodeModal
-        title={`${task.meta?.title || formatId(task.id)} — Coverage Details`}
+        title={`${task.meta?.title || formatId(task.id)} - Coverage Details`}
         subtitle={task.filePath || undefined}
         isOpen={coverageDetailsOpen}
         onClose={() => setCoverageDetailsOpen(false)}

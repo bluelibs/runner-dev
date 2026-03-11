@@ -6,7 +6,10 @@ export {
   TaskMiddlewareType,
   ResourceMiddlewareType,
 } from "./MiddlewareType";
-export { MiddlewareGlobalType } from "./middleware/common";
+export {
+  MiddlewareAutoApplyType,
+  MiddlewareApplyScopeType,
+} from "./middleware/common";
 export { ResourceType } from "./ResourceType";
 export { TaskType } from "./TaskType";
 export { HookType } from "./HookType";
@@ -33,12 +36,7 @@ export { CoverageInfoType } from "./CoverageType";
 export { ErrorType } from "./ErrorType";
 export { AsyncContextType } from "./AsyncContextType";
 export { RunOptionsType } from "./RunOptionsType";
-export {
-  TunnelInfoType,
-  TunnelModeEnum,
-  TunnelTransportEnum,
-  TunnelEventDeliveryModeEnum,
-} from "./TunnelInfoType";
+export { EventLaneSummaryType, RpcLaneSummaryType } from "./LaneSummaryTypes";
 export {
   DurableFlowShapeType,
   FlowNodeType,

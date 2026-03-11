@@ -3,6 +3,7 @@ import type {
   Store,
   TaskStoreElementType,
 } from "@bluelibs/runner";
+import * as runnerCore from "@bluelibs/runner";
 import type { DurableFlowShape, DurableResource } from "@bluelibs/runner/node";
 import { hasDurableWorkflowTag } from "./durable.tools";
 
@@ -15,33 +16,35 @@ interface DescribeDurableTaskOptions {
 
 let durableResourceConstructor: DurableResourceConstructor | null | undefined;
 
-function resolveDurableResourceConstructor():
-  | DurableResourceConstructor
-  | null {
+function resolveDurableResourceConstructor(): DurableResourceConstructor | null {
   if (durableResourceConstructor !== undefined) {
     return durableResourceConstructor;
   }
 
   try {
+    // Keep the node bundle optional at runtime so browser-oriented builds can fall back.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const nodeModule = require("@bluelibs/runner/node") as {
       DurableResource?: DurableResourceConstructor;
     };
-    durableResourceConstructor = nodeModule.DurableResource ?? null;
-    return durableResourceConstructor;
+    if (nodeModule.DurableResource) {
+      durableResourceConstructor = nodeModule.DurableResource;
+      return durableResourceConstructor;
+    }
   } catch {
-    // Fall through to root import for older package layouts.
+    // Fall back to the core bundle below.
   }
 
-  try {
-    const rootModule = require("@bluelibs/runner") as {
-      DurableResource?: DurableResourceConstructor;
-    };
-    durableResourceConstructor = rootModule.DurableResource ?? null;
+  const rootModule = runnerCore as {
+    DurableResource?: DurableResourceConstructor;
+  };
+  if (rootModule.DurableResource) {
+    durableResourceConstructor = rootModule.DurableResource;
     return durableResourceConstructor;
-  } catch {
-    durableResourceConstructor = null;
-    return null;
   }
+
+  durableResourceConstructor = null;
+  return null;
 }
 
 function getStoreTask(

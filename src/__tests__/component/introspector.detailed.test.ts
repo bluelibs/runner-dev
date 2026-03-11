@@ -1,29 +1,44 @@
-import { resource, run } from "@bluelibs/runner";
+import { defineResource, run } from "@bluelibs/runner";
 import { introspector } from "../../resources/introspector.resource";
-import { createDummyApp } from "../dummy/dummyApp";
+import {
+  createDummyApp,
+  dummyAppIds,
+  evtHello,
+  logMw,
+  logMwTask,
+  tagMw,
+} from "../dummy/dummyApp";
 
 describe("introspector (detailed helpers)", () => {
   test("middleware usages and detailed lookups are correct", async () => {
     let snapshot: any = {};
 
-    const probe = resource({
-      id: "probe.introspector-detailed",
+    const probe = defineResource({
+      id: "probe-introspector-detailed",
       dependencies: { introspector },
       async init(_, { introspector }) {
-        const taskLikeUsages =
-          introspector.getMiddlewareUsagesForTask("task.hello");
-        const hookUsages =
-          introspector.getMiddlewareUsagesForTask("hook.hello");
-        const resourceUsages =
-          introspector.getMiddlewareUsagesForResource("res.db");
+        const taskLikeUsages = introspector.getMiddlewareUsagesForTask(
+          dummyAppIds.task("task-hello")
+        );
+        const hookUsages = introspector.getMiddlewareUsagesForTask(
+          dummyAppIds.hook("hook-hello")
+        );
+        const resourceUsages = introspector.getMiddlewareUsagesForResource(
+          dummyAppIds.resource("res-db")
+        );
 
         const usedByTasksDetailed =
-          introspector.getTasksUsingMiddlewareDetailed("mw.log.task");
+          introspector.getTasksUsingMiddlewareDetailed(
+            dummyAppIds.taskMiddleware(logMwTask.id)
+          );
         const usedByResourcesDetailed =
-          introspector.getResourcesUsingMiddlewareDetailed("mw.log");
+          introspector.getResourcesUsingMiddlewareDetailed(
+            dummyAppIds.resourceMiddleware(logMw.id)
+          );
 
-        const resourceEmits =
-          introspector.getEmittedEventsForResource("res.db");
+        const resourceEmits = introspector.getEmittedEventsForResource(
+          dummyAppIds.resource("res-db")
+        );
 
         snapshot = {
           taskLikeUsages: taskLikeUsages.map((u) => ({
@@ -62,7 +77,11 @@ describe("introspector (detailed helpers)", () => {
     // task.hello uses mw.log.task
     expect(snapshot.taskLikeUsages).toEqual(
       expect.arrayContaining([
-        { id: "mw.log.task", nodeId: "mw.log.task", config: "{}" },
+        {
+          id: dummyAppIds.taskMiddleware(logMwTask.id),
+          nodeId: dummyAppIds.taskMiddleware(logMwTask.id),
+          config: "{}",
+        },
       ])
     );
 
@@ -71,34 +90,52 @@ describe("introspector (detailed helpers)", () => {
 
     // res.db uses mw.log
     expect(snapshot.resourceUsages).toEqual(
-      expect.arrayContaining([{ id: "mw.log", nodeId: "mw.log", config: "{}" }])
+      expect.arrayContaining([
+        {
+          id: dummyAppIds.resourceMiddleware(logMw.id),
+          nodeId: dummyAppIds.resourceMiddleware(logMw.id),
+          config: "{}",
+        },
+      ])
     );
 
     // usedByTasksDetailed/usedByResourcesDetailed for mw.log(.task)
     expect(snapshot.usedByTasksDetailed).toEqual(
       expect.arrayContaining([
-        { id: "task.hello", nodeId: "task.hello", config: "{}" },
+        {
+          id: dummyAppIds.task("task-hello"),
+          nodeId: dummyAppIds.task("task-hello"),
+          config: "{}",
+        },
       ])
     );
     expect(snapshot.usedByResourcesDetailed).toEqual(
-      expect.arrayContaining([{ id: "res.db", nodeId: "res.db", config: "{}" }])
+      expect.arrayContaining([
+        {
+          id: dummyAppIds.resource("res-db"),
+          nodeId: dummyAppIds.resource("res-db"),
+          config: "{}",
+        },
+      ])
     );
 
     // resource emits
     expect(snapshot.resourceEmits).toEqual(
-      expect.arrayContaining(["evt.hello"])
+      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
     );
   });
 
   test("two tasks using the same middleware with different configs are reported distinctly", async () => {
     let snapshot: any = {};
 
-    const probe = resource({
-      id: "probe.introspector-detailed-2",
+    const probe = defineResource({
+      id: "probe-introspector-detailed-2",
       dependencies: { introspector },
       async init(_, { introspector }) {
         const usedByTasksDetailed =
-          introspector.getTasksUsingMiddlewareDetailed("mw.tag");
+          introspector.getTasksUsingMiddlewareDetailed(
+            dummyAppIds.taskMiddleware(tagMw.id)
+          );
         const all = introspector.getRoot();
         snapshot = {
           usedByTasksDetailed: usedByTasksDetailed.map((x) => ({
@@ -117,8 +154,14 @@ describe("introspector (detailed helpers)", () => {
     // mw.tag is used by task.aggregate with label "agg" and task.tagged with label "beta"
     expect(snapshot.usedByTasksDetailed).toEqual(
       expect.arrayContaining([
-        { id: "task.aggregate", config: expect.stringMatching(/"agg"/) },
-        { id: "task.tagged", config: expect.stringMatching(/"beta"/) },
+        {
+          id: dummyAppIds.task("task-aggregate"),
+          config: expect.stringMatching(/"agg"/),
+        },
+        {
+          id: dummyAppIds.task("task-tagged"),
+          config: expect.stringMatching(/"beta"/),
+        },
       ])
     );
 

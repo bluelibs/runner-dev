@@ -1,5 +1,11 @@
-import { resource, run, hook, globals } from "@bluelibs/runner";
-import { createDummyApp, evtHello } from "../dummy/dummyApp";
+import {
+  defineResource,
+  run,
+  defineHook,
+  resources,
+  events,
+} from "@bluelibs/runner";
+import { createDummyApp, dummyAppIds, evtHello } from "../dummy/dummyApp";
 import { live } from "../../resources/live.resource";
 import { telemetry } from "../../resources/telemetry.resource";
 
@@ -7,11 +13,11 @@ describe("live resource (integration)", () => {
   test("records logs and emissions via tasks", async () => {
     let checkpoint = 0;
 
-    const trigger = hook({
-      id: "probe.live.trigger",
-      on: globals.events.ready,
+    const trigger = defineHook({
+      id: "probe-live-trigger",
+      on: events.ready,
       order: 1,
-      dependencies: { emitHello: evtHello, logger: globals.resources.logger },
+      dependencies: { emitHello: evtHello, logger: resources.logger },
       async run(_e, { emitHello, logger }) {
         await logger.info("hello-1");
         await emitHello({ name: "world" });
@@ -23,8 +29,8 @@ describe("live resource (integration)", () => {
       },
     });
 
-    const reader = hook({
-      id: "probe.live.reader",
+    const reader = defineHook({
+      id: "probe-live-reader",
       on: evtHello,
       order: 999,
       dependencies: { live },
@@ -38,8 +44,8 @@ describe("live resource (integration)", () => {
       },
     });
 
-    const probe = resource({
-      id: "probe.live",
+    const probe = defineResource({
+      id: "probe-live",
       register: [trigger, reader],
     });
 
@@ -61,7 +67,9 @@ describe("live resource (integration)", () => {
 
     // After timestamp filters
     expect(
-      snapshot.emissionsAfter.every((l: any) => l.eventId === "evt.hello")
+      snapshot.emissionsAfter.some(
+        (l: any) => l.eventId === dummyAppIds.event(evtHello.id)
+      )
     ).toBe(true);
     expect(snapshot.emissionsAfter.length).toBeGreaterThan(0);
   });
@@ -69,13 +77,13 @@ describe("live resource (integration)", () => {
   test("onRecord fires for each record kind and unsubscribes cleanly", async () => {
     const notifications: string[] = [];
 
-    const trigger = hook({
-      id: "probe.live.onRecord.trigger",
-      on: globals.events.ready,
+    const trigger = defineHook({
+      id: "probe-live-onRecord-trigger",
+      on: events.ready,
       order: 1,
       dependencies: {
         emitHello: evtHello,
-        logger: globals.resources.logger,
+        logger: resources.logger,
         live,
       },
       async run(_e, { emitHello, logger, live }) {
@@ -100,8 +108,8 @@ describe("live resource (integration)", () => {
       },
     });
 
-    const probe = resource({
-      id: "probe.live.onRecord",
+    const probe = defineResource({
+      id: "probe-live-onRecord",
       register: [trigger],
     });
 

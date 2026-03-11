@@ -1,4 +1,4 @@
-import { resource } from "@bluelibs/runner";
+import { defineResource } from "@bluelibs/runner";
 import { telemetry } from "./telemetry.resource";
 import { serverResource } from "./server.resource";
 import { graphql } from "./graphql-accumulator.resource";
@@ -15,8 +15,8 @@ export type DevConfig = {
   maxEntries?: number;
 };
 
-export const dev = resource({
-  id: "runner-dev.resources.dev",
+export const dev = defineResource({
+  id: "runner-dev-resources-dev",
   meta: {
     title: "Development Environment",
     description:

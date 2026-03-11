@@ -19,7 +19,22 @@ import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
 
 const EXTERNAL_VISIBILITY_CONSUMER_ID = "runner-dev.visibility.external";
-const MIDDLEWARE_MANAGER_RESOURCE_ID = "globals.resources.middlewareManager";
+const MIDDLEWARE_MANAGER_RESOURCE_ID = "system.middlewareManager";
+const TAG_TARGETS = new Set([
+  "tasks",
+  "resources",
+  "events",
+  "hooks",
+  "taskMiddlewares",
+  "resourceMiddlewares",
+  "errors",
+]);
+
+function isTagTarget(
+  value: string
+): value is NonNullable<Tag["targets"]>[number] {
+  return TAG_TARGETS.has(value);
+}
 
 type TaskInterceptorRecord = {
   ownerResourceId?: string;
@@ -118,8 +133,8 @@ function applyVisibilityMetadata(
     );
     element.isPrivate = !isVisible;
     element.visibilityReason = isVisible
-      ? "Visible outside owning resource boundary."
-      : "Hidden by resource exports() boundary.";
+      ? "Visible outside owning resource isolation boundary."
+      : "Hidden by resource isolate() boundary.";
   }
 }
 
@@ -127,7 +142,7 @@ export function initializeFromStore(
   introspector: Introspector,
   store: Store
 ): void {
-  // Set store reference for methods that need it (e.g., populateTunnelInfo)
+  // Set store reference for methods that need access to live runtime state.
   introspector.store = store;
 
   // Build tasks
@@ -150,23 +165,18 @@ export function initializeFromStore(
 
   // Build resources
   introspector.resources = Array.from(s.resources.values()).map((r: any) =>
-    mapStoreResourceToResourceModel(r.resource)
+    mapStoreResourceToResourceModel(r.resource, r.config)
   );
 
   // Build events
   introspector.events = buildEvents(store);
-
-  // Best effort: when resource values are available, this populates tunnel metadata.
-  // In early init phases values may not exist yet; callers can invoke populateTunnelInfo()
-  // again later (for example on demand in resolvers or docs routes).
-  introspector.populateTunnelInfo();
 
   // Build errors
   introspector.errors = Array.from(store.errors.values()).map((e: any) => ({
     id: e.id,
     meta: e.meta,
     filePath: sanitizePath(e[definitions.symbolFilePath]),
-    dataSchema: e.dataSchema,
+    dataSchema: formatSchemaIfZod(e.dataSchema),
     thrownBy: e.thrownBy || [],
     registeredBy: e.registeredBy,
     overriddenBy: e.overriddenBy,
@@ -198,8 +208,17 @@ export function initializeFromStore(
   // Compute usedBy (dependencies) and requiredBy (.require() middleware)
   // by scanning all tasks, hooks, resources, and middlewares
   const asyncContextIds = new Set(asyncContextBasics.map((ac) => ac.id));
+  const asyncContextIdList = Array.from(asyncContextIds);
   const usedByMap = new Map<string, Set<string>>();
   const requiredByMap = new Map<string, Set<string>>();
+  const resolveAsyncContextId = (contextId: string): string => {
+    const exact = asyncContextIdList.find((id) => id === contextId);
+    if (exact) return exact;
+
+    return (
+      asyncContextIdList.find((id) => id.endsWith(`.${contextId}`)) ?? contextId
+    );
+  };
   for (const acId of asyncContextIds) {
     usedByMap.set(acId, new Set());
     requiredByMap.set(acId, new Set());
@@ -211,11 +230,11 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(task?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(task.id.toString());
+      usedByMap.get(resolveAsyncContextId(ctxId))?.add(task.id.toString());
     }
     const reqIds = extractRequiredContextIds(task.middleware);
     for (const ctxId of reqIds) {
-      requiredByMap.get(ctxId)?.add(task.id.toString());
+      requiredByMap.get(resolveAsyncContextId(ctxId))?.add(task.id.toString());
     }
   }
 
@@ -225,7 +244,7 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(hook?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(hook.id.toString());
+      usedByMap.get(resolveAsyncContextId(ctxId))?.add(hook.id.toString());
     }
   }
 
@@ -235,7 +254,7 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(resource?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(resource.id.toString());
+      usedByMap.get(resolveAsyncContextId(ctxId))?.add(resource.id.toString());
     }
   }
 
@@ -245,7 +264,9 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(middleware?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(middleware.id.toString());
+      usedByMap
+        .get(resolveAsyncContextId(ctxId))
+        ?.add(middleware.id.toString());
     }
   }
 
@@ -255,7 +276,9 @@ export function initializeFromStore(
     const depsObj = normalizeDependencies(middleware?.dependencies);
     const contextIds = extractAsyncContextIdsFromDependencies(depsObj);
     for (const ctxId of contextIds) {
-      usedByMap.get(ctxId)?.add(middleware.id.toString());
+      usedByMap
+        .get(resolveAsyncContextId(ctxId))
+        ?.add(middleware.id.toString());
     }
   }
 
@@ -270,13 +293,11 @@ export function initializeFromStore(
   introspector.taskMiddlewares = buildTaskMiddlewares(
     Array.from(s.taskMiddlewares.values()).map((v: any) => v.middleware),
     introspector.tasks,
-    introspector.hooks,
     introspector.resources
   );
   introspector.resourceMiddlewares = buildResourceMiddlewares(
     Array.from(s.resourceMiddlewares.values()).map((v: any) => v.middleware),
     introspector.tasks,
-    introspector.hooks,
     introspector.resources
   );
   introspector.middlewares = [
@@ -331,12 +352,20 @@ export function initializeFromStore(
     introspector.resources.filter((r) =>
       ensureStringArray(r.tags).includes(tagId)
     );
-  const getMiddlewaresWithTag = (tagId: string) =>
-    introspector.middlewares.filter((m) =>
+  const getTaskMiddlewaresWithTag = (tagId: string) =>
+    introspector.taskMiddlewares.filter((m) =>
+      ensureStringArray(m.tags).includes(tagId)
+    );
+  const getResourceMiddlewaresWithTag = (tagId: string) =>
+    introspector.resourceMiddlewares.filter((m) =>
       ensureStringArray(m.tags).includes(tagId)
     );
   const getEventsWithTag = (tagId: string) =>
     introspector.events.filter((e) =>
+      ensureStringArray(e.tags).includes(tagId)
+    );
+  const getErrorsWithTag = (tagId: string) =>
+    introspector.errors.filter((e) =>
       ensureStringArray(e.tags).includes(tagId)
     );
 
@@ -346,6 +375,11 @@ export function initializeFromStore(
       meta: tag.meta,
       filePath: sanitizePath(tag[definitions.symbolFilePath]),
       configSchema: formatSchemaIfZod(tag.configSchema),
+      targets: Array.isArray((tag as any).targets)
+        ? ((tag as any).targets as unknown[])
+            .map((target) => String(target))
+            .filter(isTagTarget)
+        : null,
       isPrivate: false,
       visibilityReason: "Tags are globally discoverable metadata.",
       get tasks() {
@@ -357,11 +391,17 @@ export function initializeFromStore(
       get resources() {
         return getResourcesWithTag(tag.id);
       },
-      get middlewares() {
-        return getMiddlewaresWithTag(tag.id);
+      get taskMiddlewares() {
+        return getTaskMiddlewaresWithTag(tag.id);
+      },
+      get resourceMiddlewares() {
+        return getResourceMiddlewaresWithTag(tag.id);
       },
       get events() {
         return getEventsWithTag(tag.id);
+      },
+      get errors() {
+        return getErrorsWithTag(tag.id);
       },
     };
   });
@@ -369,6 +409,7 @@ export function initializeFromStore(
   for (const tag of introspector.tags) {
     introspector.tagMap.set(tag.id, tag);
   }
+  introspector.finalizeDerivedState();
   introspector.rootId =
     s?.root?.resource?.id != null
       ? String(s.root.resource.id)

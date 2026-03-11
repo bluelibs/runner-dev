@@ -1,4 +1,4 @@
-import { globals, resource } from "@bluelibs/runner";
+import { resources, defineResource } from "@bluelibs/runner";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
@@ -240,8 +240,8 @@ async function tryLoadCoverage(): Promise<LoadedCoverage | null> {
   return null;
 }
 
-export const coverage = resource({
-  id: "runner-dev.resources.coverage",
+export const coverage = defineResource({
+  id: "runner-dev-resources-coverage",
   meta: {
     title: "Code Coverage Service",
     description:
@@ -249,7 +249,7 @@ export const coverage = resource({
   },
   dependencies: {
     // Keep ability to access store if needed later
-    store: globals.resources.store,
+    store: resources.store,
   },
   async init(_config, _deps): Promise<CoverageService> {
     let cached: LoadedCoverage | null = null;

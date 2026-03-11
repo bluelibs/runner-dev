@@ -1,4 +1,7 @@
 import {
+  GraphQLBoolean,
+  GraphQLEnumType,
+  GraphQLInt,
   GraphQLID,
   GraphQLList,
   GraphQLNonNull,
@@ -19,7 +22,103 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/zod";
 import { CoverageInfoType } from "./CoverageType";
-import { hasTunnelTag } from "../../resources/models/tunnel.tools";
+
+const IsolationExportsModeType = new GraphQLEnumType({
+  name: "IsolationExportsMode",
+  values: {
+    UNSET: { value: "unset" },
+    NONE: { value: "none" },
+    LIST: { value: "list" },
+  },
+});
+
+const IsolationChannelsType = new GraphQLObjectType({
+  name: "IsolationChannels",
+  fields: {
+    dependencies: { type: GraphQLBoolean },
+    listening: { type: GraphQLBoolean },
+    tagging: { type: GraphQLBoolean },
+    middleware: { type: GraphQLBoolean },
+  },
+});
+
+const IsolationWhitelistEntryType = new GraphQLObjectType({
+  name: "IsolationWhitelistEntry",
+  fields: {
+    for: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    targets: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    channels: { type: IsolationChannelsType },
+  },
+});
+
+const ResourceIsolationType = new GraphQLObjectType({
+  name: "ResourceIsolation",
+  fields: {
+    deny: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    only: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    whitelist: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(IsolationWhitelistEntryType))
+      ),
+    },
+    exports: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    exportsMode: {
+      type: new GraphQLNonNull(IsolationExportsModeType),
+    },
+  },
+});
+
+const ResourceSubtreeBranchType = new GraphQLObjectType({
+  name: "ResourceSubtreeBranch",
+  fields: {
+    middleware: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+    validatorCount: { type: new GraphQLNonNull(GraphQLInt) },
+  },
+});
+
+const ResourceSubtreeValidationBranchType = new GraphQLObjectType({
+  name: "ResourceSubtreeValidationBranch",
+  fields: {
+    validatorCount: { type: new GraphQLNonNull(GraphQLInt) },
+  },
+});
+
+const ResourceSubtreePolicyType = new GraphQLObjectType({
+  name: "ResourceSubtreePolicy",
+  fields: {
+    tasks: { type: ResourceSubtreeBranchType },
+    resources: { type: ResourceSubtreeBranchType },
+    hooks: { type: ResourceSubtreeValidationBranchType },
+    taskMiddleware: { type: ResourceSubtreeValidationBranchType },
+    resourceMiddleware: { type: ResourceSubtreeValidationBranchType },
+    events: { type: ResourceSubtreeValidationBranchType },
+    tags: { type: ResourceSubtreeValidationBranchType },
+  },
+});
 
 export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
   name: "Resource",
@@ -116,11 +215,34 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
     },
-    exports: {
+    isolation: {
       description:
-        "Ids explicitly exported by this resource via exports([...]). Null means exports() is not configured.",
-      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
-      resolve: (node: Resource) => node.exports ?? null,
+        "Resource isolation policy generated from .isolate({ deny/only/exports }).",
+      type: ResourceIsolationType,
+      resolve: (node: Resource) => node.isolation ?? null,
+    },
+    subtree: {
+      description:
+        "Resource subtree governance policy summary from resource.subtree(...).",
+      type: ResourceSubtreePolicyType,
+      resolve: (node: Resource) => node.subtree ?? null,
+    },
+    hasCooldown: {
+      description:
+        "True when this resource defines a cooldown() lifecycle hook.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Resource) => Boolean(node.hasCooldown),
+    },
+    hasReady: {
+      description: "True when this resource defines a ready() lifecycle hook.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Resource) => Boolean(node.hasReady),
+    },
+    hasHealthCheck: {
+      description:
+        "True when this resource defines a health() probe for runtime health reports.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Resource) => Boolean(node.hasHealthCheck),
     },
     registersResolved: {
       description: "The items registered by this resource (resolved)",
@@ -155,23 +277,6 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     context: {
       description: "Serialized context (if any)",
       type: GraphQLString,
-    },
-    tunnelInfo: {
-      description:
-        "Tunnel configuration (present when resource has tunnel tag)",
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      type: require("./TunnelInfoType").TunnelInfoType,
-      resolve: (resource, _args, ctx: CustomGraphQLContext) => {
-        if (!hasTunnelTag(resource.tags || null)) return null;
-
-        // Refresh from live store-backed values when available.
-        ctx.introspector.populateTunnelInfo();
-        return (
-          ctx.introspector.getResource(resource.id)?.tunnelInfo ||
-          resource.tunnelInfo ||
-          null
-        );
-      },
     },
     coverage: {
       description:

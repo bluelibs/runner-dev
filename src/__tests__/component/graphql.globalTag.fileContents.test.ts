@@ -1,23 +1,27 @@
-import { resource, run, globals, IResource } from "@bluelibs/runner";
+import { defineEvent, defineResource, run, tags } from "@bluelibs/runner";
 import { graphql } from "graphql";
 import { schema } from "../../schema";
 import { introspector } from "../../resources/introspector.resource";
+import type { Introspector } from "../../resources/models/Introspector";
+
+type MinimalTestContext = {
+  introspector: Introspector;
+  store: undefined;
+  live: { logs: never[] };
+  logger: Console;
+};
 
 describe("GraphQL Tag fileContents for node_modules tag", () => {
-  test("fetches fileContents for globals.tags.excludeFromGlobalHooks", async () => {
-    let ctx: any;
+  test("fetches fileContents for tags.excludeFromGlobalHooks", async () => {
+    let ctx: MinimalTestContext;
 
-    const taggedRes = resource({
-      id: "probe.taggedWithGlobal",
-      // Refer to the global tag so it is present in the store
-      tags: [globals.tags.excludeFromGlobalHooks],
-      async init() {
-        return {};
-      },
+    const taggedEvt = defineEvent({
+      id: "probe-taggedWithGlobal",
+      tags: [tags.excludeFromGlobalHooks],
     });
 
-    const probe = resource({
-      id: "probe.globalTagFileContents",
+    const probe = defineResource({
+      id: "probe-globalTagFileContents",
       dependencies: { introspector },
       async init(_c, { introspector }) {
         ctx = {
@@ -29,13 +33,13 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
       },
     });
 
-    await run(
-      resource({
-        id: "root.app",
-        register: [introspector, taggedRes, probe],
-        dependencies: {},
-      }) as unknown as IResource<void, any>
-    );
+    const app = defineResource<void>({
+      id: "root-app",
+      register: [introspector, taggedEvt, probe],
+      dependencies: {},
+    });
+
+    await run(app);
 
     const q = `
       query($id: ID!){
@@ -46,7 +50,8 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
         }
       }
     `;
-    const variables = { id: "globals.tags.excludeFromGlobalHooks" };
+    const tagId = tags.excludeFromGlobalHooks.id;
+    const variables = { id: tagId };
     const result = await graphql({
       schema,
       source: q,
@@ -55,8 +60,9 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
     });
     expect(result.errors).toBeUndefined();
 
-    const tag: any = (result.data as any)?.tag;
-    expect(tag?.id).toBe("globals.tags.excludeFromGlobalHooks");
+    const tag = (result.data as { tag?: Record<string, unknown> } | undefined)
+      ?.tag;
+    expect(tag?.id).toBe(tagId);
     expect(typeof tag?.filePath).toBe("string");
     const isNodeModules = tag?.filePath.includes("node_modules:");
     const isLocalLink = tag?.filePath.includes("runner");

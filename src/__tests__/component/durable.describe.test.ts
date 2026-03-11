@@ -1,23 +1,35 @@
-import { globals, resource, run, task } from "@bluelibs/runner";
+import { resources, defineResource, run, defineTask } from "@bluelibs/runner";
 import {
   durableWorkflowTag,
   memoryDurableResource,
 } from "@bluelibs/runner/node";
 import { graphql } from "graphql";
-import { resources } from "../../index";
+import { resources as devResources } from "../../index";
 import { schema } from "../../schema";
 import { describeDurableTaskFromStore } from "../../resources/models/durable.runtime";
 import {
   createEnhancedSuperApp,
   durableOrderApprovalTask,
+  enhancedSuperAppIds,
 } from "../dummy/enhanced";
 
+const DURABLE_FIXTURE_APP_ID = "tests-durable-app";
+
+const durableFixtureIds = {
+  resource(localId: string) {
+    return `${DURABLE_FIXTURE_APP_ID}.${localId}`;
+  },
+  task(localId: string) {
+    return `${DURABLE_FIXTURE_APP_ID}.tasks.${localId}`;
+  },
+};
+
 function createDurableFixtureApp() {
-  const durable = memoryDurableResource.fork("tests.durable.runtime");
+  const durable = memoryDurableResource.fork("tests-durable-runtime");
   const durableRegistration = durable.with({});
 
-  const durableTask = task({
-    id: "tests.tasks.durable",
+  const durableTask = defineTask({
+    id: "tests-tasks-durable",
     dependencies: { durable },
     tags: [durableWorkflowTag],
     async run(_input, { durable }) {
@@ -29,8 +41,8 @@ function createDurableFixtureApp() {
     },
   });
 
-  const untaggedDurableTask = task({
-    id: "tests.tasks.durable.untagged",
+  const untaggedDurableTask = defineTask({
+    id: "tests-tasks-durable-untagged",
     dependencies: { durable },
     async run(_input, { durable }) {
       const ctx = durable.use();
@@ -39,23 +51,24 @@ function createDurableFixtureApp() {
     },
   });
 
-  const normalTask = task({
-    id: "tests.tasks.normal",
+  const normalTask = defineTask({
+    id: "tests-tasks-normal",
     async run() {
       return "ok";
     },
   });
 
-  const app = resource({
-    id: "tests.durable.app",
+  const app = defineResource({
+    id: DURABLE_FIXTURE_APP_ID,
     register: [
+      durableWorkflowTag,
       durableRegistration,
       durableTask,
       untaggedDurableTask,
       normalTask,
-      resources.introspector,
-      resources.live,
-      resources.swapManager,
+      devResources.introspector,
+      devResources.live,
+      devResources.swapManager,
     ],
   });
 
@@ -69,11 +82,11 @@ describe("durable.describe integration", () => {
     const runtime = await run(app);
 
     const contextValue = {
-      store: await runtime.getResourceValue(globals.resources.store),
+      store: await runtime.getResourceValue(resources.store),
       logger: console,
-      introspector: await runtime.getResourceValue(resources.introspector),
-      live: await runtime.getResourceValue(resources.live),
-      swapManager: await runtime.getResourceValue(resources.swapManager),
+      introspector: await runtime.getResourceValue(devResources.introspector),
+      live: await runtime.getResourceValue(devResources.live),
+      swapManager: await runtime.getResourceValue(devResources.swapManager),
     };
 
     const result = await graphql({
@@ -108,9 +121,9 @@ describe("durable.describe integration", () => {
         }
       `,
       variableValues: {
-        durableId: durableTask.id,
-        untaggedId: untaggedDurableTask.id,
-        normalId: normalTask.id,
+        durableId: durableFixtureIds.task(durableTask.id),
+        untaggedId: durableFixtureIds.task(untaggedDurableTask.id),
+        normalId: durableFixtureIds.task(normalTask.id),
       },
       contextValue,
     });
@@ -119,7 +132,9 @@ describe("durable.describe integration", () => {
     const data = result.data as any;
 
     expect(data.durableTask.isDurable).toBe(true);
-    expect(data.durableTask.durableResource.id).toBe("tests.durable.runtime");
+    expect(data.durableTask.durableResource.id).toBe(
+      durableFixtureIds.resource("tests-durable-runtime")
+    );
     expect(data.durableTask.flowShape.nodes).toEqual(
       expect.arrayContaining([
         {
@@ -157,10 +172,14 @@ describe("durable.describe integration", () => {
     const { app, durableTask, normalTask } = createDurableFixtureApp();
     const runtime = await run(app);
 
-    const live = await runtime.getResourceValue(resources.live);
+    const live = await runtime.getResourceValue(devResources.live);
 
-    const durableShape = await live.describeFlow(durableTask.id);
-    const normalShape = await live.describeFlow(normalTask.id);
+    const durableShape = await live.describeFlow(
+      durableFixtureIds.task(durableTask.id)
+    );
+    const normalShape = await live.describeFlow(
+      durableFixtureIds.task(normalTask.id)
+    );
 
     expect(durableShape?.nodes).toEqual(
       expect.arrayContaining([
@@ -182,10 +201,10 @@ describe("durable.describe integration", () => {
     const runtime = await run(app);
 
     try {
-      const store = await runtime.getResourceValue(globals.resources.store);
+      const store = await runtime.getResourceValue(resources.store);
       const shape = await describeDurableTaskFromStore(
         store,
-        durableOrderApprovalTask.id,
+        enhancedSuperAppIds.task(durableOrderApprovalTask.id),
         { timeoutMs: 2000 }
       );
 

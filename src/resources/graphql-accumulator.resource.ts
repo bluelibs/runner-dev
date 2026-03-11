@@ -1,4 +1,4 @@
-import { resource } from "@bluelibs/runner";
+import { defineResource } from "@bluelibs/runner";
 import { GraphQLObjectType, GraphQLSchema } from "graphql";
 import { QueryType } from "../schema/query";
 import { MutationType } from "../schema/mutation";
@@ -10,8 +10,11 @@ import {
   HookType,
   LiveType,
   MetaType,
-  MiddlewareGlobalType,
+  MiddlewareAutoApplyType,
+  MiddlewareApplyScopeType,
   MiddlewareType,
+  TaskMiddlewareType,
+  ResourceMiddlewareType,
   ResourceType,
   SwappedTaskType,
   SwapResultType,
@@ -19,8 +22,8 @@ import {
   InterceptorOwnersSnapshotType,
 } from "../schema/types";
 
-export const graphqlAccumulator = resource({
-  id: "runner-dev.resources.graphql",
+export const graphqlAccumulator = defineResource({
+  id: "runner-dev-resources-graphql",
   meta: {
     title: "GraphQL Schema Builder",
     description:
@@ -36,8 +39,11 @@ export const graphqlAccumulator = resource({
         BaseElementInterface,
         EventType,
         HookType,
-        MiddlewareGlobalType,
+        MiddlewareAutoApplyType,
+        MiddlewareApplyScopeType,
         MiddlewareType,
+        TaskMiddlewareType,
+        ResourceMiddlewareType,
         MetaType,
         ResourceType,
         TaskType,

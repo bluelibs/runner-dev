@@ -1,15 +1,15 @@
-import { run, resource } from "@bluelibs/runner";
+import { run, defineResource } from "@bluelibs/runner";
 import { resources } from "../../index";
-import { graphql as executeGraphql } from "graphql";
+import { GraphQLSchema, graphql as executeGraphql } from "graphql";
 import { createDummyApp } from "../dummy/dummyApp";
 // extensibility via extraQueryFields was removed; this test now asserts base schema exists
 
 describe("GraphQL aggregator (registry)", () => {
   test("registry builds base schema (no extension hooks)", async () => {
-    let schema: any;
+    let schema: GraphQLSchema;
 
-    const plugin = resource({
-      id: "probe.graphql-aggregator.plugin",
+    const plugin = defineResource({
+      id: "probe-graphql-aggregator-plugin",
       dependencies: { graphql: resources.graphql },
       async init(_config, { graphql }) {
         schema = graphql.getSchema();

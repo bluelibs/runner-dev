@@ -56,7 +56,10 @@ export const MessageItem: React.FC<Props> = React.memo(
           {message.type === "text" && (
             <div className="message-text">
               {message.author === "bot" ? (
-                <MarkdownRenderer content={(message as TextMessage).text} />
+                <MarkdownRenderer
+                  content={(message as TextMessage).text}
+                  enableMermaid
+                />
               ) : (
                 parseMessageForFiles((message as TextMessage).text).map(
                   (part, idx) => (

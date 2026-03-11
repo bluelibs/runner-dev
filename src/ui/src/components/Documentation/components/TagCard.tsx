@@ -27,10 +27,20 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
   const allTaggedElements = [
     ...tag.tasks,
     ...tag.resources,
-    ...tag.middlewares,
+    ...tag.taskMiddlewares,
+    ...tag.resourceMiddlewares,
     ...tag.events,
     ...tag.hooks,
+    ...tag.errors,
   ];
+  const tagHandlers = React.useMemo(
+    () => introspector.getTagHandlers(tag.id),
+    [introspector, tag.id]
+  );
+  const totalTagHandlers =
+    tagHandlers.tasks.length +
+    tagHandlers.hooks.length +
+    tagHandlers.resources.length;
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [modalTitle, setModalTitle] = React.useState<string>("");
@@ -144,13 +154,21 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
             </div>
             <div className="tag-card__stat tag-card__stat--middlewares">
               <div className="tag-card__stat__value">
-                {tag.middlewares.length}
+                {tag.taskMiddlewares.length + tag.resourceMiddlewares.length}
               </div>
               <div className="tag-card__stat__label">Middlewares</div>
             </div>
             <div className="tag-card__stat tag-card__stat--hooks">
               <div className="tag-card__stat__value">{tag.hooks.length}</div>
               <div className="tag-card__stat__label">Hooks</div>
+            </div>
+            <div className="tag-card__stat tag-card__stat--errors">
+              <div className="tag-card__stat__value">{tag.errors.length}</div>
+              <div className="tag-card__stat__label">Errors</div>
+            </div>
+            <div className="tag-card__stat tag-card__stat--handlers">
+              <div className="tag-card__stat__value">{totalTagHandlers}</div>
+              <div className="tag-card__stat__label">Handlers</div>
             </div>
           </div>
 
@@ -166,6 +184,12 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
             ) : (
               formatFilePath(tag.filePath)
             )}
+          </InfoBlock>
+
+          <InfoBlock prefix="tag-card" label="Targets:">
+            {tag.targets && tag.targets.length > 0
+              ? tag.targets.join(", ")
+              : "Any"}
           </InfoBlock>
         </CardSection>
 

@@ -65,7 +65,7 @@
     }
   }
 
-  // Help & Support Section
+  // Docs & Support Section
   .docs-support-section {
     border-top: 1px solid var(--docs-border-secondary);
     margin-top: $spacing-lg;
@@ -148,17 +148,10 @@
           transform: translateX(0);
         }
 
-        &.docs-support-link--issue {
-          border-color: #ff6b6b;
+        &.docs-support-link--docs {
+          border-color: #6c8cff;
           .docs-support-icon {
-            filter: hue-rotate(10deg);
-          }
-        }
-
-        &.docs-support-link--contact {
-          border-color: #4ecdc4;
-          .docs-support-icon {
-            filter: hue-rotate(180deg);
+            filter: hue-rotate(330deg);
           }
         }
       }
@@ -168,27 +161,16 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
-      // Specific styles for issue link
-      &.docs-support-link--issue {
+      &.docs-support-link--docs {
         &:hover {
           background: linear-gradient(
             135deg,
             var(--docs-hover-bg),
-            rgba(255, 107, 107, 0.05)
+            rgba(108, 140, 255, 0.08)
           );
         }
       }
 
-      // Specific styles for contact link
-      &.docs-support-link--contact {
-        &:hover {
-          background: linear-gradient(
-            135deg,
-            var(--docs-hover-bg),
-            rgba(78, 205, 196, 0.05)
-          );
-        }
-      }
     }
   }
 

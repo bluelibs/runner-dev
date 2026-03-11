@@ -1,7 +1,13 @@
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
-import { ArtifactKind, toCamelCase, toKebabCase, toPascalCase } from "./common";
+import {
+  ArtifactKind,
+  toCamelCase,
+  toKebabCase,
+  toPascalCase,
+  validateLocalId,
+} from "./common";
 import {
   eventTemplate,
   hookTemplate,
@@ -44,23 +50,8 @@ export async function scaffoldArtifact({
   const camel = toCamelCase(name);
   const pascal = toPascalCase(name);
 
-  const id =
-    explicitId ||
-    `${namespace}.${
-      kind === "resource"
-        ? "resources"
-        : kind === "task"
-        ? "tasks"
-        : kind === "event"
-        ? "events"
-        : kind === "hook"
-        ? "hooks"
-        : kind === "tag"
-        ? "tags"
-        : kind === "task-middleware" || kind === "resource-middleware"
-        ? "middleware"
-        : kind
-    }.${kebab}`;
+  const id = explicitId || kebab;
+  validateLocalId(id);
 
   // Build directory as: <baseDir>/<namespace segments>/<type-collection>
   const nsSegments = namespace

@@ -1,19 +1,17 @@
 export function mainTs(projectName: string) {
-  return `import { run, resource } from '@bluelibs/runner';
+  return `import { r, run } from '@bluelibs/runner';
 import { dev } from '@bluelibs/runner-dev';
 
 // Minimal Runner app using runner-dev's dev resource
-const app = resource({
-  id: 'app.${projectName}',
-  register: [
+const app = r.resource('${projectName}')
+  .register([
     dev.with({ port: 1337 }),
-  ],
-});
+  ])
+  .build();
 
 run(app)
-  .then(() => {
-    // eslint-disable-next-line no-console
-    console.log('Runner app started on http://localhost:1337');
+  .then(({ logger }) => {
+    logger.info('Runner app started on http://localhost:1337');
   })
   .catch((err) => {
     // eslint-disable-next-line no-console

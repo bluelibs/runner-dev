@@ -165,6 +165,9 @@ describe("CLI init", () => {
       "utf-8"
     );
     expect(mainTs).toContain("@bluelibs/runner-dev");
+    expect(mainTs).toContain("import { r, run } from '@bluelibs/runner';");
+    expect(mainTs).toContain("const app = r.resource(");
+    expect(mainTs).toContain(".build();");
     expect(mainTs).toContain("run(app)");
 
     // No manual install/test here; flags trigger those actions within the CLI

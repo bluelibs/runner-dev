@@ -22,18 +22,20 @@ npx @bluelibs/runner-dev
 ```
 
 ```ts
+import { r } from "@bluelibs/runner";
 import { dev } from "@bluelibs/runner-dev";
 
-const app = resource({
-  register: [
+const app = r
+  .resource("app")
+  .register([
     // your resources,
     dev, // if you are fine with defaults or
     dev.with({
       port: 1337, // default,
       maxEntries: 10000, // how many logs to keep in the store.
     }),
-  ],
-});
+  ])
+  .build();
 ```
 
 ## What you get
@@ -85,20 +87,20 @@ const app = resource({
 Register the Dev resources in your Runner root:
 
 ```ts
-import { resource } from "@bluelibs/runner";
+import { r } from "@bluelibs/runner";
 import { dev } from "@bluelibs/runner-dev";
 
-export const app = resource({
-  id: "app",
-  register: [
+export const app = r
+  .resource("app")
+  .register([
     // You can omit .with() if you are fine with defaults.
     dev.with({
       port: 1337, // default
       maxEntries: 1000, // default
     }),
     // rest of your app.
-  ],
-});
+  ])
+  .build();
 ```
 
 ### Accessing the UI
@@ -224,15 +226,15 @@ runner-dev new resource-middleware soft-delete --ns app --dir src --export
 
 Flags for artifact scaffolding:
 
-- `--ns` / `--namespace`: namespace used when generating the id (default: `app`)
-- `--id <id>`: explicit id override (for example: `app.tasks.save`)
+- `--ns` / `--namespace`: namespace used for folders only, mapped to `<dir>/<ns>/<type>` (default: `app`)
+- `--id <id>`: explicit local id override (for example: `save-user`)
 - `--dir <dir>`: base directory under which files are created (default: `src`)
 - `--export`: append a re-export to an `index.ts` in the target folder for better auto-import UX
 - `--dry` / `--dry-run`: print the generated file without writing it
 
 Conventions:
 
-- Generated ids follow: `<namespace>.(resources|tasks|events|tags|task-middleware|resource-middleware).<kebab-name>`
+- Generated ids are local ids only and default to the kebab-cased artifact name
 - Folders:
   - resources: `src/resources`
   - tasks: `src/tasks`
@@ -654,42 +656,40 @@ All Dev UI modals (code viewer, execute, trace view, log details, stats overlay)
 - Define an event:
 
 ```ts
-import { event } from "@bluelibs/runner";
+import { r } from "@bluelibs/runner";
 
-export const userCreated = event<{ id: string; name: string }>({
-  id: "evt.user.created",
-});
+export const userCreated = r.event<{ id: string; name: string }>("userCreated").build();
 ```
 
 - Use it in a task:
 
 ```ts
-import { task } from "@bluelibs/runner";
+import { r } from "@bluelibs/runner";
 import { userCreated } from "./events";
 
-export const createUser = task({
-  id: "task.user.create",
-  dependencies: { userCreated },
-  async run(input: { name: string }, { userCreated }) {
+export const createUser = r
+  .task<{ name: string }>("createUser")
+  .dependencies({ userCreated })
+  .run(async (input, { userCreated }) => {
     const id = crypto.randomUUID();
     await userCreated({ id, name: input.name });
     return { id };
-  },
-});
+  })
+  .build();
 ```
 
 - Emit logs:
 
 ```ts
-import { globals, task } from "@bluelibs/runner";
+import { globals, r } from "@bluelibs/runner";
 
-export const logSomething = task({
-  id: "task.log",
-  dependencies: { logger: globals.resources.logger },
-  async run(_i, { logger }) {
+export const logSomething = r
+  .task("logSomething")
+  .dependencies({ logger: globals.resources.logger })
+  .run(async (_i, { logger }) => {
     logger.info("Hello world!");
-  },
-});
+  })
+  .build();
 ```
 
 ## Notes on Overrides
@@ -726,12 +726,12 @@ The hot-swapping system enables:
 Add the swap manager to your app:
 
 ```ts
-import { resource } from "@bluelibs/runner";
+import { r } from "@bluelibs/runner";
 import { resources as dev } from "@bluelibs/runner-dev";
 
-export const app = resource({
-  id: "app",
-  register: [
+export const app = r
+  .resource("app")
+  .register([
     // Core dev resources
     dev.live,
     dev.introspector,
@@ -741,8 +741,8 @@ export const app = resource({
 
     // GraphQL server with swap mutations
     dev.server.with({ port: 1337 }),
-  ],
-});
+  ])
+  .build();
 ```
 
 ### GraphQL API

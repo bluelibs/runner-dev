@@ -8,6 +8,16 @@ export type ArtifactKind =
   | "task-middleware"
   | "resource-middleware";
 
+const RESERVED_LOCAL_IDS = new Set([
+  "tasks",
+  "resources",
+  "events",
+  "hooks",
+  "tags",
+  "errors",
+  "asyncContexts",
+]);
+
 export function toKebabCase(input: string): string {
   return input
     .replace(/([a-z])([A-Z])/g, "$1-$2")
@@ -27,4 +37,24 @@ export function toCamelCase(input: string): string {
 export function toPascalCase(input: string): string {
   const s = toCamelCase(input);
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function validateLocalId(id: string): void {
+  const trimmedId = id.trim();
+
+  if (!trimmedId) {
+    throw new Error("Definition id cannot be empty.");
+  }
+
+  if (trimmedId.includes(".")) {
+    throw new Error(
+      `Definition id "${trimmedId}" is invalid. Use a local id without dots, for example "create-user".`
+    );
+  }
+
+  if (RESERVED_LOCAL_IDS.has(trimmedId)) {
+    throw new Error(
+      `Definition id "${trimmedId}" is reserved. Choose a different local id.`
+    );
+  }
 }

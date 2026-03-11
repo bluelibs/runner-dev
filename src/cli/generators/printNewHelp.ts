@@ -40,9 +40,9 @@ export function printNewHelp(): void {
           [c.yellow("--run-tests"), "Run 'npm test' after project scaffold"],
           [
             c.yellow("--ns=<namespace>"),
-            "Namespace for id (default: app). Also maps to path as <dir>/<ns>/<type>.",
+            "Namespace for folders (default: app). Maps to <dir>/<ns>/<type>.",
           ],
-          [c.yellow("--id=<id>"), "Explicit id override (ex: app.tasks.save)"],
+          [c.yellow("--id=<id>"), "Explicit local id override (ex: save-user)"],
           [c.yellow("--dir=<dir>"), "Base directory (default: src)"],
           [c.yellow("--export"), "Append export to <dir>/.../index.ts"],
           [c.yellow("--dry"), "Print file to stdout, do not write"],

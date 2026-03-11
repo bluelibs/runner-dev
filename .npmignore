@@ -1,6 +1,7 @@
 *
 # !src/**/*
 !dist/**/*
+!readmes/**/*
 dist/**/__tests__/**/*
 !package.json
 !README.md

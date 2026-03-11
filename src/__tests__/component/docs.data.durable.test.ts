@@ -4,6 +4,7 @@ import {
   memoryDurableResource,
 } from "@bluelibs/runner/node";
 import type { Request, Response } from "express";
+import fs from "node:fs/promises";
 import { createDocsDataRouteHandler } from "../../resources/routeHandlers/getDocsData";
 import { Introspector } from "../../resources/models/Introspector";
 
@@ -98,6 +99,47 @@ describe("/docs/data durable enrichment", () => {
       expect(workflow?.flowShape).toBeNull();
       expect(runner?.isDurable).toBe(false);
       expect(runner?.flowShape).toBeNull();
+    } finally {
+      await runtime.dispose();
+    }
+  });
+
+  test("returns docsContent from local readmes and degrades when a doc is missing", async () => {
+    const { app } = createDurableDocsFixtureApp();
+    const runtime = await run(app);
+
+    try {
+      const store = await runtime.getResourceValue(resources.store);
+      const introspector = new Introspector({ store });
+      const handler = createDocsDataRouteHandler({
+        uiDir: ".",
+        store,
+        introspector,
+        logger: { info: () => undefined },
+      });
+
+      const originalReadFile = fs.readFile.bind(fs);
+      const readFileSpy = jest
+        .spyOn(fs, "readFile")
+        .mockImplementation(async (filePath, options) => {
+          const normalizedPath = String(filePath);
+
+          if (normalizedPath.includes("runner-full-guide.md")) {
+            throw new Error("missing full guide");
+          }
+
+          return originalReadFile(filePath as any, options as any);
+        });
+
+      const { req, res, payloadRef } = createMockReqRes();
+      await handler(req, res);
+
+      expect(payloadRef.value?.docsContent?.minimalMd).toContain(
+        "BlueLibs Runner: AI Field Guide"
+      );
+      expect(payloadRef.value?.docsContent?.completeMd).toBe("");
+
+      readFileSpy.mockRestore();
     } finally {
       await runtime.dispose();
     }

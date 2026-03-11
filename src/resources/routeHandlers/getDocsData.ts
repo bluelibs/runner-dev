@@ -7,6 +7,11 @@ import path from "node:path";
 import { readPackageDoc } from "../../mcp/help";
 import { findDurableResourceIdFromStore } from "../models/durable.runtime";
 
+export interface DocsContentPayload {
+  minimalMd: string;
+  completeMd: string;
+}
+
 export interface DocsRouteConfig {
   uiDir: string;
   store: Store;
@@ -22,6 +27,46 @@ export interface DocsRouteConfig {
     getSummaryForPath: (
       p: string | null | undefined
     ) => Promise<{ percentage?: number | null } | null>;
+  };
+}
+
+async function readDocsAsset(
+  localPath: string,
+  packageDocPath: string
+): Promise<string> {
+  const packageDoc = await readPackageDoc(
+    "@bluelibs/runner-dev",
+    packageDocPath
+  ).catch(() => ({ content: "" } as const));
+  const packageContent = packageDoc.content || "";
+
+  if (packageContent) {
+    return packageContent;
+  }
+
+  try {
+    return await fs.readFile(path.resolve(__dirname, localPath), "utf8");
+  } catch {
+    return "";
+  }
+}
+
+async function readDocsContent(): Promise<DocsContentPayload | undefined> {
+  const [minimalMd, completeMd] = await Promise.all([
+    readDocsAsset("../../../readmes/runner-AI.md", "readmes/runner-AI.md"),
+    readDocsAsset(
+      "../../../readmes/runner-full-guide.md",
+      "readmes/runner-full-guide.md"
+    ),
+  ]);
+
+  if (!minimalMd && !completeMd) {
+    return undefined;
+  }
+
+  return {
+    minimalMd,
+    completeMd,
   };
 }
 
@@ -124,6 +169,7 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
     // Expose framework and dev docs separately
     const runnerFrameworkMd = runnerFrameworkAiMd || "";
     const runnerDevMd = runnerDevAiMd || "";
+    const docsContent = await readDocsContent();
 
     // Obtain GraphQL SDL if available
     let graphqlSdl: string | undefined;
@@ -204,6 +250,7 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
       introspectorData: data,
       runnerFrameworkMd,
       runnerDevMd,
+      docsContent,
       projectOverviewMd,
       graphqlSdl,
     });

@@ -26,7 +26,6 @@ export interface DocumentationSidebarProps {
     count: number | null;
     hasContent: boolean;
   }>;
-  totalComponents: number;
   onViewModeChange: (mode: ViewMode) => void;
   onTreeTypeChange: (type: TreeType) => void;
   onNamespaceSearchChange: (value: string) => void;
@@ -53,7 +52,6 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   showPrivate,
   treeNodes,
   sections,
-  totalComponents,
   onViewModeChange,
   onTreeTypeChange,
   onNamespaceSearchChange,
@@ -256,33 +254,16 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
         />
       </div>
 
-      <div className="docs-nav-stats">
-        <div className="label">Quick Stats</div>
-        <div className="value">{totalComponents}</div>
-        <div className="description">Total Components</div>
-      </div>
-
-      {/* Help & Support Section */}
+      {/* Docs & Support Section */}
       <div className="docs-support-section">
-        <div className="docs-support-title">Help & Support</div>
+        <div className="docs-support-title">Docs & Support</div>
 
         <a
-          href="https://github.com/bluelibs/runner/issues/new"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="docs-support-link docs-support-link--issue"
+          href="#docs-support"
+          className="docs-support-link docs-support-link--docs"
         >
-          <span className="docs-support-icon">🐛</span>
-          <span className="docs-support-text">Submit an Issue</span>
-          <span className="docs-support-arrow">→</span>
-        </a>
-
-        <a
-          href="mailto:theodor@bluelibs.com"
-          className="docs-support-link docs-support-link--contact"
-        >
-          <span className="docs-support-icon">💬</span>
-          <span className="docs-support-text">Contact Creator</span>
+          <span className="docs-support-icon">📚</span>
+          <span className="docs-support-text">Docs</span>
           <span className="docs-support-arrow">→</span>
         </a>
       </div>

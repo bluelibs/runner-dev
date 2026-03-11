@@ -11,6 +11,8 @@ import { AsyncContextCard } from "./AsyncContextCard";
 import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { LivePanel } from "./LivePanel";
 import { ElementTable } from "./ElementTable";
+import { DocsSection } from "./DocsSection";
+import { DocsContentPayload } from "../../../../../resources/routeHandlers/getDocsData";
 
 export interface DocumentationMainContentProps {
   introspector: Introspector;
@@ -31,6 +33,7 @@ export interface DocumentationMainContentProps {
   errors: any[];
   asyncContexts: any[];
   tags: any[];
+  docsContent?: DocsContentPayload;
   sections: Array<{
     id: string;
     label: string;
@@ -60,6 +63,7 @@ export const DocumentationMainContent: React.FC<
   errors,
   asyncContexts,
   tags,
+  docsContent,
   sections,
 }) => {
   const rootResource = introspector.getRoot();
@@ -484,6 +488,35 @@ export const DocumentationMainContent: React.FC<
                 </div>
               </div>
             </div>
+
+            {docsContent && (
+              <div className="overview-support-block">
+                <DocsSection
+                  id="docs-support"
+                  title="📚 Docs & Support"
+                  description="Reference guides for Runner, plus quick ways to report issues or reach the creator."
+                  docsContent={docsContent}
+                  actions={
+                    <>
+                      <a
+                        href="https://github.com/bluelibs/runner/issues/new"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="overview-support-block__action overview-support-block__action--issue"
+                      >
+                        Submit an Issue
+                      </a>
+                      <a
+                        href="mailto:theodor@bluelibs.com"
+                        className="overview-support-block__action overview-support-block__action--contact"
+                      >
+                        Contact Creator
+                      </a>
+                    </>
+                  }
+                />
+              </div>
+            )}
           </section>
         )}
 

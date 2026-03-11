@@ -74,6 +74,8 @@ export const useDocumentationFilters = (
     const events = applyFilters(introspector.getEvents());
     const hooks = applyFilters(introspector.getHooks());
     const middlewares = applyFilters(introspector.getMiddlewares());
+    const errors = applyFilters(introspector.getErrors());
+    const asyncContexts = applyFilters(introspector.getAsyncContexts());
 
     // Tags list: keep consistent behavior — always filter by id text
     let tags = introspector.getAllTags();
@@ -106,8 +108,12 @@ export const useDocumentationFilters = (
         ...events,
         ...hooks,
         ...middlewares,
+        ...errors,
+        ...asyncContexts,
         ...tags,
       ],
+      errors,
+      asyncContexts,
     };
   }, [
     introspector,

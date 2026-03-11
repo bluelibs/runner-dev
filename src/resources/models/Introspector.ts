@@ -599,6 +599,9 @@ export class Introspector {
           cycleDetection:
             runtimeRunOptions?.executionContext == null
               ? null
+              : typeof runtimeRunOptions.executionContext.cycleDetection ===
+                "boolean"
+              ? runtimeRunOptions.executionContext.cycleDetection
               : runtimeRunOptions.executionContext.cycleDetection != null,
         },
         hasOnUnhandledError: typeof this.store.onUnhandledError === "function",
@@ -639,9 +642,9 @@ export class Introspector {
     // Create error ID map for quick lookup
     const errorIds = new Set(this.errors.map((e) => e.id));
 
-    // Clear existing thrownBy arrays
+    // Preserve preloaded producer data and only append derived dependencies.
     this.errors.forEach((error) => {
-      error.thrownBy = [];
+      error.thrownBy = ensureStringArray(error.thrownBy);
     });
 
     // Check tasks

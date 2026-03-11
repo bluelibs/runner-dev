@@ -1,4 +1,4 @@
-import { RegisterableItems } from "@bluelibs/runner";
+import type { RegisterableItems } from "@bluelibs/runner";
 import { durableShowcaseRegistrations } from "./durable.showcase";
 import { interceptorShowcaseRegistrations } from "./interceptors.showcase";
 import { supportShowcaseRegistrations } from "./support.showcase";
@@ -58,6 +58,7 @@ export {
 export type EnhancedShowcaseModule = {
   id: string;
   registrations: RegisterableItems[];
+  overrides?: RegisterableItems[];
 };
 
 export const enhancedShowcaseModules: EnhancedShowcaseModule[] = [
@@ -72,6 +73,7 @@ export const enhancedShowcaseModules: EnhancedShowcaseModule[] = [
   {
     id: "lanes",
     registrations: lanesShowcaseRegistrations,
+    overrides: lanesShowcaseOverrides,
   },
   {
     id: "durable",
@@ -86,4 +88,6 @@ export const enhancedShowcaseModules: EnhancedShowcaseModule[] = [
 export const enhancedShowcaseRegistrations: RegisterableItems[] =
   enhancedShowcaseModules.flatMap((module) => module.registrations);
 
-export const enhancedShowcaseOverrides = lanesShowcaseOverrides;
+export const enhancedShowcaseOverrides = enhancedShowcaseModules.flatMap(
+  (module) => module.overrides ?? []
+);

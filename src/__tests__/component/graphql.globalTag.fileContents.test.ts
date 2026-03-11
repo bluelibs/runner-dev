@@ -2,10 +2,18 @@ import { defineEvent, defineResource, run, tags } from "@bluelibs/runner";
 import { graphql } from "graphql";
 import { schema } from "../../schema";
 import { introspector } from "../../resources/introspector.resource";
+import type { Introspector } from "../../resources/models/Introspector";
+
+type MinimalTestContext = {
+  introspector: Introspector;
+  store: undefined;
+  live: { logs: never[] };
+  logger: Console;
+};
 
 describe("GraphQL Tag fileContents for node_modules tag", () => {
   test("fetches fileContents for tags.excludeFromGlobalHooks", async () => {
-    let ctx: any;
+    let ctx: MinimalTestContext;
 
     const taggedEvt = defineEvent({
       id: "probe-taggedWithGlobal",
@@ -52,7 +60,8 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
     });
     expect(result.errors).toBeUndefined();
 
-    const tag: any = (result.data as any)?.tag;
+    const tag = (result.data as { tag?: Record<string, unknown> } | undefined)
+      ?.tag;
     expect(tag?.id).toBe(tagId);
     expect(typeof tag?.filePath).toBe("string");
     const isNodeModules = tag?.filePath.includes("node_modules:");

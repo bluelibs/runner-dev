@@ -90,11 +90,15 @@ export function createSpinner(
         return;
       }
 
+      if (interval) return;
       render();
       interval = setInterval(render, intervalMs);
     },
     stop(message: string) {
-      if (interval) clearInterval(interval);
+      if (interval) {
+        clearInterval(interval);
+        interval = undefined;
+      }
       if (isInteractiveTerminal) clearActiveLine();
       console.log(message);
     },

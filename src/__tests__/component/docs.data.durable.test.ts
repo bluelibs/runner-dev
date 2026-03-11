@@ -107,6 +107,7 @@ describe("/docs/data durable enrichment", () => {
   test("returns docsContent from local readmes and degrades when a doc is missing", async () => {
     const { app } = createDurableDocsFixtureApp();
     const runtime = await run(app);
+    let readFileSpy: jest.SpyInstance | null = null;
 
     try {
       const store = await runtime.getResourceValue(resources.store);
@@ -119,7 +120,7 @@ describe("/docs/data durable enrichment", () => {
       });
 
       const originalReadFile = fs.readFile.bind(fs);
-      const readFileSpy = jest
+      readFileSpy = jest
         .spyOn(fs, "readFile")
         .mockImplementation(async (filePath, options) => {
           const normalizedPath = String(filePath);
@@ -138,9 +139,8 @@ describe("/docs/data durable enrichment", () => {
         "BlueLibs Runner: AI Field Guide"
       );
       expect(payloadRef.value?.docsContent?.completeMd).toBe("");
-
-      readFileSpy.mockRestore();
     } finally {
+      readFileSpy?.mockRestore();
       await runtime.dispose();
     }
   });

@@ -94,93 +94,85 @@ describe("introspector (extended)", () => {
     });
 
     const app = createDummyApp([introspector, probe]);
+    const runtime = await run(app);
 
-    await run(app);
+    try {
+      expect(snapshot.tasks).toEqual(
+        expect.arrayContaining([
+          dummyAppIds.task("task-hello"),
+          dummyAppIds.task("task-aggregate"),
+        ])
+      );
+      expect(snapshot.hooks).toEqual(
+        expect.arrayContaining([
+          dummyAppIds.hook("hook-hello"),
+          dummyAppIds.hook("hook-all"),
+        ])
+      );
+      expect(snapshot.resources).toEqual(
+        expect.arrayContaining([dummyAppIds.resource("res-db")])
+      );
+      expect(snapshot.events).toEqual(
+        expect.arrayContaining([dummyAppIds.event(evtHello.id)])
+      );
+      expect(snapshot.middlewares).toEqual(
+        expect.arrayContaining([
+          dummyAppIds.resourceMiddleware(logMw.id),
+          dummyAppIds.taskMiddleware(logMwTask.id),
+          dummyAppIds.taskMiddleware(tagMw.id),
+        ])
+      );
 
-    expect(snapshot.tasks).toEqual(
-      expect.arrayContaining([
-        dummyAppIds.task("task-hello"),
-        dummyAppIds.task("task-aggregate"),
-      ])
-    );
-    expect(snapshot.hooks).toEqual(
-      expect.arrayContaining([
-        dummyAppIds.hook("hook-hello"),
-        dummyAppIds.hook("hook-all"),
-      ])
-    );
-    expect(snapshot.resources).toEqual(
-      expect.arrayContaining([dummyAppIds.resource("res-db")])
-    );
-    expect(snapshot.events).toEqual(
-      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
-    );
-    expect(snapshot.middlewares).toEqual(
-      expect.arrayContaining([
-        dummyAppIds.resourceMiddleware(logMw.id),
-        dummyAppIds.taskMiddleware(logMwTask.id),
-        dummyAppIds.taskMiddleware(tagMw.id),
-      ])
-    );
-
-    // Dependencies of task-hello
-    expect(snapshot.depsHello.resources).toEqual(
-      expect.arrayContaining([dummyAppIds.resource("res-db")])
-    );
-    expect(snapshot.depsHello.emitters).toEqual(
-      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
-    );
-
-    // Emits inference
-    expect(snapshot.taskHelloEmits).toEqual(
-      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
-    );
-
-    // Graph helpers
-    expect(snapshot.usingRes).toEqual(
-      expect.arrayContaining([
-        dummyAppIds.task("task-hello"),
-        dummyAppIds.hook("hook-hello"),
-        dummyAppIds.task("task-aggregate"),
-      ])
-    );
-    expect(snapshot.usingMw).toEqual(
-      expect.arrayContaining([dummyAppIds.task("task-hello")])
-    );
-    expect(snapshot.emittersOfEvt).toEqual(
-      expect.arrayContaining([dummyAppIds.task("task-hello")])
-    );
-    expect(snapshot.hooksOfEvt).toEqual(
-      expect.arrayContaining([dummyAppIds.hook("hook-hello")])
-    );
-    expect(snapshot.mwEmits).toEqual(
-      expect.arrayContaining([dummyAppIds.event(evtHello.id)])
-    );
-
-    // listenedToBy may include wildcard hooks, so assert specific via getHooksOfEvent
-    expect(snapshot.evtHello_specificHooks).toEqual(
-      expect.arrayContaining([dummyAppIds.hook("hook-hello")])
-    );
-    expect(snapshot.evtHello_specificHooks).not.toEqual(
-      expect.arrayContaining([dummyAppIds.hook("hook-all")])
-    );
-
-    // Middleware usage mapping
-    expect(snapshot.mwLog.usedByResources).toEqual(
-      expect.arrayContaining([dummyAppIds.resource("res-db")])
-    );
-    expect(snapshot.mwTag.usedByTasks).toEqual(
-      expect.arrayContaining([dummyAppIds.task("task-aggregate")])
-    );
-    expect(snapshot.mwTag.usedByResources).toEqual([]);
-
-    // Non-null arrays for a hook with no deps/mw/emits
-    expect(Array.isArray(snapshot.hookAll.dependsOn)).toBe(true);
-    expect(snapshot.hookAll.dependsOn.length).toBe(0);
-    expect(Array.isArray(snapshot.hookAll.middleware)).toBe(true);
-    expect(snapshot.hookAll.middleware.length).toBe(0);
-    expect(Array.isArray(snapshot.hookAll.emits)).toBe(true);
-    expect(snapshot.hookAll.emits.length).toBe(0);
+      expect(snapshot.depsHello.resources).toEqual(
+        expect.arrayContaining([dummyAppIds.resource("res-db")])
+      );
+      expect(snapshot.depsHello.emitters).toEqual(
+        expect.arrayContaining([dummyAppIds.event(evtHello.id)])
+      );
+      expect(snapshot.taskHelloEmits).toEqual(
+        expect.arrayContaining([dummyAppIds.event(evtHello.id)])
+      );
+      expect(snapshot.usingRes).toEqual(
+        expect.arrayContaining([
+          dummyAppIds.task("task-hello"),
+          dummyAppIds.hook("hook-hello"),
+          dummyAppIds.task("task-aggregate"),
+        ])
+      );
+      expect(snapshot.usingMw).toEqual(
+        expect.arrayContaining([dummyAppIds.task("task-hello")])
+      );
+      expect(snapshot.emittersOfEvt).toEqual(
+        expect.arrayContaining([dummyAppIds.task("task-hello")])
+      );
+      expect(snapshot.hooksOfEvt).toEqual(
+        expect.arrayContaining([dummyAppIds.hook("hook-hello")])
+      );
+      expect(snapshot.mwEmits).toEqual(
+        expect.arrayContaining([dummyAppIds.event(evtHello.id)])
+      );
+      expect(snapshot.evtHello_specificHooks).toEqual(
+        expect.arrayContaining([dummyAppIds.hook("hook-hello")])
+      );
+      expect(snapshot.evtHello_specificHooks).not.toEqual(
+        expect.arrayContaining([dummyAppIds.hook("hook-all")])
+      );
+      expect(snapshot.mwLog.usedByResources).toEqual(
+        expect.arrayContaining([dummyAppIds.resource("res-db")])
+      );
+      expect(snapshot.mwTag.usedByTasks).toEqual(
+        expect.arrayContaining([dummyAppIds.task("task-aggregate")])
+      );
+      expect(snapshot.mwTag.usedByResources).toEqual([]);
+      expect(Array.isArray(snapshot.hookAll.dependsOn)).toBe(true);
+      expect(snapshot.hookAll.dependsOn.length).toBe(0);
+      expect(Array.isArray(snapshot.hookAll.middleware)).toBe(true);
+      expect(snapshot.hookAll.middleware.length).toBe(0);
+      expect(Array.isArray(snapshot.hookAll.emits)).toBe(true);
+      expect(snapshot.hookAll.emits.length).toBe(0);
+    } finally {
+      await runtime.dispose();
+    }
   });
 
   test("overrides mapping sets overriddenBy for middleware", async () => {
@@ -202,9 +194,11 @@ describe("introspector (extended)", () => {
     const app = createDummyApp([introspector, probe], {
       overrides: [logMwOverride],
     });
-
-    await run(app);
-
-    expect(snapshot.overriddenBy).toBe("dummy-app");
+    const runtime = await run(app);
+    try {
+      expect(snapshot.overriddenBy).toBe("dummy-app");
+    } finally {
+      await runtime.dispose();
+    }
   });
 });

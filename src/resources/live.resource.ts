@@ -1,4 +1,11 @@
-import { resources, defineResource, type Store } from "@bluelibs/runner";
+import {
+  resources,
+  defineResource,
+  type ResourceMiddlewareStoreElementType,
+  type ResourceStoreElementType,
+  type Store,
+  type TaskMiddlewareStoreElementType,
+} from "@bluelibs/runner";
 import { type DurableFlowShape } from "@bluelibs/runner/node";
 import { getCorrelationId } from "./telemetry.chain";
 import { describeDurableTaskFromStore } from "./models/durable.runtime";
@@ -182,14 +189,15 @@ const liveService = defineResource({
     const nodeIds = [
       ...Array.from(store.tasks.values()).map((entry) => String(entry.task.id)),
       ...Array.from(store.hooks.values()).map((entry) => String(entry.hook.id)),
-      ...Array.from(store.resources.values()).map((entry: any) =>
-        String(entry.resource.id)
+      ...Array.from(store.resources.values()).map(
+        (entry: ResourceStoreElementType) => String(entry.resource.id)
       ),
-      ...Array.from(store.taskMiddlewares.values()).map((entry: any) =>
-        String(entry.middleware.id)
+      ...Array.from(store.taskMiddlewares.values()).map(
+        (entry: TaskMiddlewareStoreElementType) => String(entry.middleware.id)
       ),
-      ...Array.from(store.resourceMiddlewares.values()).map((entry: any) =>
-        String(entry.middleware.id)
+      ...Array.from(store.resourceMiddlewares.values()).map(
+        (entry: ResourceMiddlewareStoreElementType) =>
+          String(entry.middleware.id)
       ),
       ...eventIds,
     ];

@@ -2,7 +2,6 @@ import { resources, defineResource } from "@bluelibs/runner";
 import { introspector } from "./introspector.resource";
 import {
   compileRunFunction,
-  getTaskFromStore,
   getTaskStoreElement,
   getTaskDependencies,
   serializeResult,
@@ -155,11 +154,105 @@ export const swapManager = defineResource({
       }
     };
 
+    const idsMatch = (candidateId: string, referenceId: string): boolean => {
+      return (
+        candidateId === referenceId || candidateId.endsWith(`.${referenceId}`)
+      );
+    };
+
+    const resolveReference = <T>(
+      inputId: string,
+      elements: Iterable<T>,
+      getId: (element: T) => string | null | undefined
+    ) => {
+      let exactMatch: { element: T; id: string } | null = null;
+      const suffixMatches: Array<{ element: T; id: string }> = [];
+
+      for (const element of elements) {
+        const candidateId = getId(element);
+        if (!candidateId) continue;
+
+        if (candidateId === inputId) {
+          exactMatch = { element, id: candidateId };
+          break;
+        }
+
+        if (idsMatch(candidateId, inputId)) {
+          suffixMatches.push({ element, id: candidateId });
+        }
+      }
+
+      if (exactMatch) {
+        return {
+          element: exactMatch.element,
+          resolvedId: exactMatch.id,
+          ambiguousIds: [] as string[],
+        };
+      }
+
+      if (suffixMatches.length === 1) {
+        return {
+          element: suffixMatches[0].element,
+          resolvedId: suffixMatches[0].id,
+          ambiguousIds: [] as string[],
+        };
+      }
+
+      return {
+        element: null,
+        resolvedId: inputId,
+        ambiguousIds: suffixMatches.map((match) => match.id),
+      };
+    };
+
+    const resolveTaskReference = (inputTaskId: string) => {
+      const match = resolveReference(
+        inputTaskId,
+        store.tasks.values(),
+        (entry: any) => (entry?.task ? String(entry.task.id) : null)
+      );
+
+      return {
+        task: match.element?.task ?? null,
+        taskId: match.resolvedId,
+        ambiguousTaskIds: match.ambiguousIds,
+      };
+    };
+
+    const resolveEventReference = (inputEventId: string) => {
+      const match = resolveReference(
+        inputEventId,
+        store.events.values(),
+        (entry: any) => (entry?.event ? String(entry.event.id) : null)
+      );
+
+      return {
+        event: match.element?.event ?? null,
+        eventId: match.resolvedId,
+        ambiguousEventIds: match.ambiguousIds,
+      };
+    };
+
     const api: ISwapManager = {
       async swap(taskId: string, runCode: string): Promise<SwapResult> {
         try {
+          const {
+            task,
+            taskId: resolvedTaskId,
+            ambiguousTaskIds,
+          } = resolveTaskReference(taskId);
+
+          if (ambiguousTaskIds.length > 1) {
+            return {
+              success: false,
+              error: `Task '${taskId}' is ambiguous. Use one of: ${ambiguousTaskIds.join(
+                ", "
+              )}`,
+              taskId,
+            };
+          }
+
           // Validate task exists
-          const task = getTaskFromStore(store, taskId);
           if (!task) {
             return {
               success: false,
@@ -175,30 +268,34 @@ export const swapManager = defineResource({
           }
 
           // Capture original code for diagnostics/history.
-          if (!originalRunCodeByTaskId.has(taskId)) {
+          if (!originalRunCodeByTaskId.has(resolvedTaskId)) {
             originalRunCodeByTaskId.set(
-              taskId,
+              resolvedTaskId,
               typeof task.run === "function" ? task.run.toString() : undefined
             );
           }
 
-          const installError = ensureSwapInterceptor(taskId);
+          const installError = ensureSwapInterceptor(resolvedTaskId);
           if (installError) {
-            return { success: false, error: installError, taskId };
+            return {
+              success: false,
+              error: installError,
+              taskId: resolvedTaskId,
+            };
           }
 
           // Register swapped function; interceptor dispatches to this map.
-          swappedRunFunctions.set(taskId, compileResult.func as any);
-          invalidateTaskRunnerCache(taskId);
+          swappedRunFunctions.set(resolvedTaskId, compileResult.func as any);
+          invalidateTaskRunnerCache(resolvedTaskId);
 
           // Track the swap
-          swappedTasks.set(taskId, {
-            taskId,
+          swappedTasks.set(resolvedTaskId, {
+            taskId: resolvedTaskId,
             swappedAt: Date.now(),
-            originalCode: originalRunCodeByTaskId.get(taskId),
+            originalCode: originalRunCodeByTaskId.get(resolvedTaskId),
           });
 
-          return { success: true, taskId };
+          return { success: true, taskId: resolvedTaskId };
         } catch (error) {
           return {
             success: false,
@@ -212,8 +309,23 @@ export const swapManager = defineResource({
 
       async unswap(taskId: string): Promise<SwapResult> {
         try {
+          const {
+            task,
+            taskId: resolvedTaskId,
+            ambiguousTaskIds,
+          } = resolveTaskReference(taskId);
+
+          if (ambiguousTaskIds.length > 1) {
+            return {
+              success: false,
+              error: `Task '${taskId}' is ambiguous. Use one of: ${ambiguousTaskIds.join(
+                ", "
+              )}`,
+              taskId,
+            };
+          }
+
           // Validate task exists and is swapped
-          const task = getTaskFromStore(store, taskId);
           if (!task) {
             return {
               success: false,
@@ -222,24 +334,24 @@ export const swapManager = defineResource({
             };
           }
 
-          if (!swappedTasks.has(taskId)) {
+          if (!swappedTasks.has(resolvedTaskId)) {
             return {
               success: false,
-              error: `Task '${taskId}' is not swapped`,
-              taskId,
+              error: `Task '${resolvedTaskId}' is not swapped`,
+              taskId: resolvedTaskId,
             };
           }
 
           // Remove swapped run and interceptor wiring for this task.
-          swappedRunFunctions.delete(taskId);
-          removeSwapInterceptor(taskId);
-          invalidateTaskRunnerCache(taskId);
+          swappedRunFunctions.delete(resolvedTaskId);
+          removeSwapInterceptor(resolvedTaskId);
+          invalidateTaskRunnerCache(resolvedTaskId);
 
           // Clean up tracking
-          originalRunCodeByTaskId.delete(taskId);
-          swappedTasks.delete(taskId);
+          originalRunCodeByTaskId.delete(resolvedTaskId);
+          swappedTasks.delete(resolvedTaskId);
 
-          return { success: true, taskId };
+          return { success: true, taskId: resolvedTaskId };
         } catch (error) {
           return {
             success: false,
@@ -268,7 +380,14 @@ export const swapManager = defineResource({
       },
 
       isSwapped(taskId: string): boolean {
-        return swappedRunFunctions.has(taskId);
+        const { taskId: resolvedTaskId, ambiguousTaskIds } =
+          resolveTaskReference(taskId);
+
+        if (ambiguousTaskIds.length > 1) {
+          return false;
+        }
+
+        return swappedRunFunctions.has(resolvedTaskId);
       },
 
       async invokeTask(
@@ -281,8 +400,24 @@ export const swapManager = defineResource({
         const startTime = Date.now();
 
         try {
+          const {
+            task,
+            taskId: resolvedTaskId,
+            ambiguousTaskIds,
+          } = resolveTaskReference(taskId);
+
+          if (ambiguousTaskIds.length > 1) {
+            return {
+              success: false,
+              error: `Task '${taskId}' is ambiguous. Use one of: ${ambiguousTaskIds.join(
+                ", "
+              )}`,
+              taskId,
+              invocationId,
+            };
+          }
+
           // Validate task exists
-          const task = getTaskFromStore(store, taskId);
           if (!task) {
             return {
               success: false,
@@ -312,7 +447,7 @@ export const swapManager = defineResource({
                 error: `Input ${method} failed: ${
                   error instanceof Error ? error.message : String(error)
                 }`,
-                taskId,
+                taskId: resolvedTaskId,
                 invocationId,
               };
             }
@@ -323,8 +458,8 @@ export const swapManager = defineResource({
           try {
             if (pure) {
               // Pure mode: Get computed dependencies from store (no middleware pipeline)
-              const dependencies = getTaskDependencies(store, taskId);
-              const swappedRun = swappedRunFunctions.get(taskId);
+              const dependencies = getTaskDependencies(store, resolvedTaskId);
+              const swappedRun = swappedRunFunctions.get(resolvedTaskId);
               if (swappedRun) {
                 result = await swappedRun(input, dependencies);
               } else {
@@ -343,7 +478,7 @@ export const swapManager = defineResource({
                   ? taskError.message
                   : String(taskError)
               }`,
-              taskId,
+              taskId: resolvedTaskId,
               executionTimeMs,
               invocationId,
             };
@@ -355,7 +490,7 @@ export const swapManager = defineResource({
 
           return {
             success: true,
-            taskId,
+            taskId: resolvedTaskId,
             result: serializedResult,
             executionTimeMs,
             invocationId,
@@ -380,8 +515,19 @@ export const swapManager = defineResource({
         evalInput?: boolean
       ): Promise<InvokeEventResult> {
         const invocationId = randomUUID();
-        const eventDefinition = store.events.get(eventId);
-        if (!eventDefinition) {
+        const { event, ambiguousEventIds } = resolveEventReference(eventId);
+
+        if (ambiguousEventIds.length > 1) {
+          return {
+            success: false,
+            error: `Event '${eventId}' is ambiguous. Use one of: ${ambiguousEventIds.join(
+              ", "
+            )}`,
+            invocationId,
+          };
+        }
+
+        if (!event) {
           return {
             success: false,
             error: `Event '${eventId}' not found`,
@@ -399,7 +545,7 @@ export const swapManager = defineResource({
         }
 
         const startTime = Date.now();
-        await eventManager.emit(eventDefinition.event, input, {
+        await eventManager.emit(event, input, {
           kind: "runtime",
           id: swapManager.id,
         });

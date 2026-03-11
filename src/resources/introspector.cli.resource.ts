@@ -32,9 +32,15 @@ export const introspectorCli = defineResource({
               dryRun: true,
               lazy: false,
               lifecycleMode: "sequential",
-              disposeBudgetMs: null,
-              disposeDrainBudgetMs: null,
-              runtimeEventCycleDetection: null,
+              dispose: {
+                totalBudgetMs: null,
+                drainingBudgetMs: null,
+                cooldownWindowMs: null,
+              },
+              executionContext: {
+                enabled: false,
+                cycleDetection: null,
+              },
               hasOnUnhandledError: true,
               rootId:
                 cli.store.root?.resource?.id != null

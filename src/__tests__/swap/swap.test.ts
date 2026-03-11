@@ -1,4 +1,10 @@
-import { run, defineTask, defineResource } from "@bluelibs/runner";
+import {
+  run,
+  defineTask,
+  defineResource,
+  defineEvent,
+  defineHook,
+} from "@bluelibs/runner";
 import { resources } from "../../index";
 import type { ISwapManager } from "../../resources/swap.resource";
 import { createDummyApp, dummyAppIds } from "../dummy/dummyApp";
@@ -10,6 +16,7 @@ import {
 describe("SwapManager", () => {
   let swapManager: ISwapManager;
   let taskContainer: any;
+  const observedEventPayloads: Array<{ message: string }> = [];
   const originalTaskLocalId = "test-swap-task";
   const originalTaskId = `${dummyAppIds.resource(
     "test-resource"
@@ -18,6 +25,11 @@ describe("SwapManager", () => {
   const middlewareReturnTaskId = `${dummyAppIds.resource(
     "test-middleware-resource"
   )}.tasks.${middlewareReturnTaskLocalId}`;
+  const testEventLocalId = "test-swap-event";
+  const testEventId = `${dummyAppIds.resource(
+    "test-resource"
+  )}.events.${testEventLocalId}`;
+  const ambiguousEventLocalId = "evt-shared-local-id";
   const missingTaskId = "non-existent-task";
 
   // Test task for swapping
@@ -28,9 +40,21 @@ describe("SwapManager", () => {
     },
   });
 
+  const testEvent = defineEvent<{ message: string }>({
+    id: testEventLocalId,
+  });
+
+  const testEventHook = defineHook({
+    id: "test-swap-event-hook",
+    on: testEvent,
+    async run(input) {
+      observedEventPayloads.push(input.data);
+    },
+  });
+
   const testResource = defineResource({
     id: "test-resource",
-    register: [originalTask],
+    register: [originalTask, testEvent, testEventHook],
   });
 
   const middlewareReturnTask = defineTask({
@@ -40,6 +64,28 @@ describe("SwapManager", () => {
     },
   });
 
+  const ambiguousTaskA = defineTask({
+    id: "task-shared-local-id",
+    async run() {
+      return { source: "ambiguous-a" };
+    },
+  });
+
+  const ambiguousTaskB = defineTask({
+    id: "task-shared-local-id",
+    async run() {
+      return { source: "ambiguous-b" };
+    },
+  });
+
+  const ambiguousEventA = defineEvent<{ source: string }>({
+    id: ambiguousEventLocalId,
+  });
+
+  const ambiguousEventB = defineEvent<{ source: string }>({
+    id: ambiguousEventLocalId,
+  });
+
   const middlewareResource = defineResource({
     id: "test-middleware-resource",
     register: [
@@ -47,6 +93,16 @@ describe("SwapManager", () => {
       supportRequestContextMiddleware,
       middlewareReturnTask,
     ],
+  });
+
+  const ambiguousResourceA = defineResource({
+    id: "ambiguous-resource-a",
+    register: [ambiguousTaskA, ambiguousEventA],
+  });
+
+  const ambiguousResourceB = defineResource({
+    id: "ambiguous-resource-b",
+    register: [ambiguousTaskB, ambiguousEventB],
   });
 
   // Probe resource to capture dependencies after initialization
@@ -66,6 +122,8 @@ describe("SwapManager", () => {
     const app = createDummyApp([
       testResource,
       middlewareResource,
+      ambiguousResourceA,
+      ambiguousResourceB,
       resources.introspector,
       resources.swapManager,
       probe,
@@ -76,6 +134,7 @@ describe("SwapManager", () => {
   beforeEach(async () => {
     // Ensure clean state
     await swapManager.unswapAll();
+    observedEventPayloads.length = 0;
   });
 
   describe("Basic Swap Operations", () => {
@@ -223,11 +282,28 @@ describe("SwapManager", () => {
       expect(result.error).toContain("Compilation failed");
     });
 
+    test("should reject ambiguous local task ids when swapping", async () => {
+      const result = await swapManager.swap(
+        "task-shared-local-id",
+        "async function run() { return { source: 'swap' }; }"
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("ambiguous");
+    });
+
     test("should fail to unswap task that is not swapped", async () => {
       const result = await swapManager.unswap(originalTaskId);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("is not swapped");
+    });
+
+    test("should reject ambiguous local task ids when unswapping", async () => {
+      const result = await swapManager.unswap("task-shared-local-id");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("ambiguous");
     });
 
     test("should fail to unswap non-existent task", async () => {
@@ -290,6 +366,14 @@ describe("SwapManager", () => {
   });
 
   describe("Task Invocation", () => {
+    test("should invoke task using a local id and return the canonical task id", async () => {
+      const result = await swapManager.invokeTask(originalTaskLocalId);
+
+      expect(result.success).toBe(true);
+      expect(result.taskId).toBe(originalTaskId);
+      expect(result.result).toContain("original");
+    });
+
     test("should invoke task with no input", async () => {
       const result = await swapManager.invokeTask(originalTaskId);
 
@@ -341,6 +425,23 @@ describe("SwapManager", () => {
       expect(result.error).toContain("not found");
       expect(result.taskId).toBe(missingTaskId);
       expect(result.invocationId).toBeTruthy();
+    });
+
+    test("should reject ambiguous local task ids", async () => {
+      const result = await swapManager.invokeTask("task-shared-local-id");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("ambiguous");
+      expect(result.error).toContain(
+        `${dummyAppIds.resource(
+          "ambiguous-resource-a"
+        )}.tasks.task-shared-local-id`
+      );
+      expect(result.error).toContain(
+        `${dummyAppIds.resource(
+          "ambiguous-resource-b"
+        )}.tasks.task-shared-local-id`
+      );
     });
 
     test("should handle invalid JSON input", async () => {
@@ -521,6 +622,40 @@ describe("SwapManager", () => {
       expect(result.error).toContain("JavaScript evaluation failed");
       expect(result.taskId).toBe(originalTaskId);
       expect(result.invocationId).toBeTruthy();
+    });
+  });
+
+  describe("Event Invocation", () => {
+    test("should invoke an event using its canonical id", async () => {
+      const result = await swapManager.invokeEvent(
+        testEventId,
+        JSON.stringify({ message: "hello event" })
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.invocationId).toBeTruthy();
+      expect(typeof result.executionTimeMs).toBe("number");
+      expect(observedEventPayloads).toEqual([{ message: "hello event" }]);
+    });
+
+    test("should reject ambiguous local event ids", async () => {
+      const result = await swapManager.invokeEvent(
+        ambiguousEventLocalId,
+        JSON.stringify({ source: "ambiguous" })
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("ambiguous");
+      expect(result.error).toContain(
+        `${dummyAppIds.resource(
+          "ambiguous-resource-a"
+        )}.events.${ambiguousEventLocalId}`
+      );
+      expect(result.error).toContain(
+        `${dummyAppIds.resource(
+          "ambiguous-resource-b"
+        )}.events.${ambiguousEventLocalId}`
+      );
     });
   });
 

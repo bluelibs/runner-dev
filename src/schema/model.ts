@@ -164,7 +164,6 @@ export interface Hook extends BaseElement {
   dependsOn: string[];
   emits: string[];
 }
-
 export interface Resource extends BaseElement {
   id: string;
   meta?: Meta | null;
@@ -255,6 +254,22 @@ export interface AsyncContext extends BaseElement {
   providedBy: string[];
 }
 
+export interface RunDisposeOptions {
+  // Total shutdown disposal budget in milliseconds.
+  totalBudgetMs?: number | null;
+  // Drain wait budget in milliseconds during shutdown.
+  drainingBudgetMs?: number | null;
+  // Post-cooldown admission window in milliseconds during shutdown.
+  cooldownWindowMs?: number | null;
+}
+
+export interface RunExecutionContextOptions {
+  // Whether execution context capture is enabled.
+  enabled: boolean;
+  // Whether cycle detection is enabled when execution context is active.
+  cycleDetection?: boolean | null;
+}
+
 // Run options (effective at startup)
 export interface RunOptions {
   mode: string;
@@ -280,12 +295,10 @@ export interface RunOptions {
   lazy: boolean;
   // Startup scheduler mode summary.
   lifecycleMode: "sequential" | "parallel";
-  // Shutdown disposal total budget in milliseconds.
-  disposeBudgetMs?: number | null;
-  // Shutdown drain wait budget in milliseconds.
-  disposeDrainBudgetMs?: number | null;
-  // Runtime event cycle detection toggle when known.
-  runtimeEventCycleDetection?: boolean | null;
+  // Effective shutdown disposal configuration.
+  dispose: RunDisposeOptions;
+  // Effective execution context configuration.
+  executionContext: RunExecutionContextOptions;
   // Presence flag for onUnhandledError callback.
   hasOnUnhandledError: boolean;
   rootId: string;

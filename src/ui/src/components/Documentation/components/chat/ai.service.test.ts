@@ -1,9 +1,6 @@
 /** @jest-environment jsdom */
 
-import {
-  MAX_OUTPUT_TOKENS,
-  streamChatCompletion,
-} from "./ai.service";
+import { MAX_OUTPUT_TOKENS, streamChatCompletion } from "./ai.service";
 
 describe("streamChatCompletion", () => {
   const originalFetch = global.fetch;

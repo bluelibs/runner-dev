@@ -2,6 +2,8 @@ import {
   run,
   defineTask,
   defineResource,
+  defineEvent,
+  defineHook,
   resources as runnerResources,
 } from "@bluelibs/runner";
 import { ApolloServer } from "@apollo/server";
@@ -62,14 +64,27 @@ function assertInvokeTaskData(
   }
 }
 
+function assertInvokeEventData(
+  data: unknown
+): asserts data is { invokeEvent: any } {
+  if (!data || typeof data !== "object" || !("invokeEvent" in data)) {
+    throw new Error("Expected invokeEvent data object");
+  }
+}
+
 describe("Swap GraphQL Integration", () => {
   let _testApp: any;
   let apolloServer: ApolloServer;
   let context: CustomGraphQLContext;
+  const observedEventPayloads: Array<{ message: string }> = [];
   const testTaskLocalId = "test-graphql-task";
   const testTaskId = `${dummyAppIds.resource(
     "test-graphql-resource"
   )}.tasks.${testTaskLocalId}`;
+  const testEventLocalId = "test-graphql-event";
+  const testEventId = `${dummyAppIds.resource(
+    "test-graphql-resource"
+  )}.events.${testEventLocalId}`;
   const missingTaskId = "non-existent-task";
 
   const testTask = defineTask({
@@ -80,9 +95,21 @@ describe("Swap GraphQL Integration", () => {
     },
   });
 
+  const testEvent = defineEvent<{ message: string }>({
+    id: testEventLocalId,
+  });
+
+  const testEventHook = defineHook({
+    id: "test-graphql-event-hook",
+    on: testEvent,
+    async run(input) {
+      observedEventPayloads.push(input.data);
+    },
+  });
+
   const testResource = defineResource({
     id: "test-graphql-resource",
-    register: [testTask],
+    register: [testTask, testEvent, testEventHook],
   });
 
   // Probe resource to capture dependencies after initialization
@@ -130,6 +157,7 @@ describe("Swap GraphQL Integration", () => {
   beforeEach(async () => {
     // Clean up any swapped tasks
     await context.swapManager.unswapAll();
+    observedEventPayloads.length = 0;
   });
 
   describe("Query Operations", () => {
@@ -342,6 +370,38 @@ describe("Swap GraphQL Integration", () => {
   });
 
   describe("Task Invocation", () => {
+    test("should invoke task via GraphQL using a local id", async () => {
+      const mutation = `
+        mutation InvokeTask($taskId: ID!) {
+          invokeTask(taskId: $taskId) {
+            success
+            error
+            taskId
+            result
+            executionTimeMs
+            invocationId
+          }
+        }
+      `;
+
+      const response = await apolloServer.executeOperation(
+        { query: mutation, variables: { taskId: testTaskLocalId } },
+        { contextValue: context }
+      );
+
+      expect(response.body.kind).toBe("single");
+      if (response.body.kind === "single") {
+        expect(response.body.singleResult.errors).toBeUndefined();
+        const responseData = response.body.singleResult.data;
+        assertInvokeTaskData(responseData);
+        expect(responseData.invokeTask.success).toBe(true);
+        expect(responseData.invokeTask.taskId).toBe(testTaskId);
+        expect(responseData.invokeTask.result).toContain(
+          "original graphql test"
+        );
+      }
+    });
+
     test("should invoke task via GraphQL mutation", async () => {
       const mutation = `
         mutation InvokeTask($taskId: ID!) {
@@ -422,6 +482,44 @@ describe("Swap GraphQL Integration", () => {
         expect(responseData.invokeTask.result).toContain("Hello GraphQL User");
         expect(responseData.invokeTask.result).toContain("processed");
       }
+    });
+
+    test("should invoke an event via GraphQL using its canonical id", async () => {
+      const mutation = `
+        mutation InvokeEvent($eventId: ID!, $inputJson: String) {
+          invokeEvent(eventId: $eventId, inputJson: $inputJson) {
+            success
+            error
+            executionTimeMs
+            invocationId
+          }
+        }
+      `;
+
+      const response = await apolloServer.executeOperation(
+        {
+          query: mutation,
+          variables: {
+            eventId: testEventId,
+            inputJson: JSON.stringify({ message: "hello graphql event" }),
+          },
+        },
+        { contextValue: context }
+      );
+
+      expect(response.body.kind).toBe("single");
+      if (response.body.kind === "single") {
+        expect(response.body.singleResult.errors).toBeUndefined();
+        const responseData = response.body.singleResult.data;
+        assertInvokeEventData(responseData);
+        expect(responseData.invokeEvent.success).toBe(true);
+        expect(responseData.invokeEvent.invocationId).toBeTruthy();
+        expect(typeof responseData.invokeEvent.executionTimeMs).toBe("number");
+      }
+
+      expect(observedEventPayloads).toEqual([
+        { message: "hello graphql event" },
+      ]);
     });
 
     test("should handle task invocation errors via GraphQL", async () => {

@@ -23,7 +23,7 @@ export const enhancedSuperAppIds = {
     return `${ENHANCED_SUPERAPP_ID}.tags.${localId}`;
   },
   asyncContext(localId: string) {
-    return `${ENHANCED_SUPERAPP_ID}.ctx.${localId}`;
+    return `${ENHANCED_SUPERAPP_ID}.asyncContexts.${localId}`;
   },
   error(localId: string) {
     return `${ENHANCED_SUPERAPP_ID}.errors.${localId}`;

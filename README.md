@@ -1,3 +1,5 @@
+| `RunOptions.initMode` | `RunOptions.lifecycleMode` + `dispose.{ totalBudgetMs, drainingBudgetMs, cooldownWindowMs }` |
+
 # @bluelibs/runner-dev
 
 [![npm version](https://img.shields.io/npm/v/@bluelibs/runner-dev.svg)](https://www.npmjs.com/package/@bluelibs/runner-dev)
@@ -58,16 +60,16 @@ const app = resource({
 
 ## Runner 6.0 Migration Notes
 
-| Before                | After (hard switch)                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------- |
-| `Resource.exports`    | `Resource.isolation { deny, only, exports, exportsMode }`                                   |
-| `Middleware.global`   | `Middleware.autoApply { enabled, scope, hasPredicate }`                                     |
-| `Tag.middlewares`     | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares`                                           |
-| N/A                   | `Tag.errors`, `Tag.targets`                                                                 |
-| `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ `disposeBudgetMs`, `disposeDrainBudgetMs`)                    |
-| N/A                   | `Resource.subtree`, `Resource.cooldown`                                                     |
-| N/A                   | `Event.transactional`, `Event.parallel`, `Event.eventLane`, `Event.rpcLane`, `Task.rpcLane` |
-| `Resource.tunnelInfo` | Removed (hard switch to lane surfaces)                                                      |
+| Before                | After (hard switch)                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `Resource.exports`    | `Resource.isolation { deny, only, exports, exportsMode }`                                    |
+| `Middleware.global`   | `Middleware.autoApply { enabled, scope, hasPredicate }`                                      |
+| `Tag.middlewares`     | `Tag.taskMiddlewares` + `Tag.resourceMiddlewares`                                            |
+| N/A                   | `Tag.errors`, `Tag.targets`                                                                  |
+| `RunOptions.initMode` | `RunOptions.lifecycleMode` + `dispose.{ totalBudgetMs, drainingBudgetMs, cooldownWindowMs }` |
+| N/A                   | `Resource.subtree`, `Resource.cooldown`                                                      |
+| N/A                   | `Event.transactional`, `Event.parallel`, `Event.eventLane`, `Event.rpcLane`, `Task.rpcLane`  |
+| `Resource.tunnelInfo` | Removed (hard switch to lane surfaces)                                                       |
 
 ## Table of Contents
 

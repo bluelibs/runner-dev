@@ -17,7 +17,7 @@ const asyncContextIds = {
     return `${ASYNC_CONTEXT_APP_ID}.middleware.task.${localId}`;
   },
   asyncContext(localId: string) {
-    return `${ASYNC_CONTEXT_APP_ID}.ctx.${localId}`;
+    return `${ASYNC_CONTEXT_APP_ID}.asyncContexts.${localId}`;
   },
 };
 

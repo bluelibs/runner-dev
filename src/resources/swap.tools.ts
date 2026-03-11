@@ -1,6 +1,33 @@
 import * as ts from "typescript";
 import type { Store } from "@bluelibs/runner";
 
+function idsMatch(candidateId: string, referenceId: string): boolean {
+  return candidateId === referenceId || candidateId.endsWith(`.${referenceId}`);
+}
+
+function findStoreElementById<T>(
+  elements: Iterable<T>,
+  referenceId: string,
+  getId: (element: T) => string | null | undefined
+): T | null {
+  let suffixMatch: T | null = null;
+
+  for (const element of elements) {
+    const candidateId = getId(element);
+    if (!candidateId) continue;
+
+    if (candidateId === referenceId) {
+      return element;
+    }
+
+    if (!suffixMatch && idsMatch(candidateId, referenceId)) {
+      suffixMatch = element;
+    }
+  }
+
+  return suffixMatch;
+}
+
 /**
  * Compile TypeScript/JavaScript code and return the compiled function
  */
@@ -104,16 +131,12 @@ export function compileRunFunction(
 }
 
 export function getTaskStoreElement(store: Store, taskId: string): any | null {
-  if (taskId.includes("Symbol")) {
-    for (const taskElement of store.tasks.values()) {
-      if (taskElement.task.id.toString() === taskId) {
-        return taskElement;
-      }
-    }
-    return null;
-  }
-
-  return store.tasks.get(taskId) ?? null;
+  return (
+    store.tasks.get(taskId) ??
+    findStoreElementById(store.tasks.values(), taskId, (taskElement: any) =>
+      taskElement?.task ? String(taskElement.task.id) : null
+    )
+  );
 }
 
 /**
@@ -127,15 +150,11 @@ export function getTaskFromStore(store: Store, taskId: string) {
  * Get task from store by ID
  */
 export function getEventFromStore(store: Store, eventId: string) {
-  if (eventId.includes("Symbol")) {
-    for (const eventElement of store.events.values()) {
-      if (eventElement.event.id.toString() === eventId) {
-        return eventElement.event;
-      }
-    }
-  }
-
-  const eventStoreElement = store.events.get(eventId);
+  const eventStoreElement =
+    store.events.get(eventId) ??
+    findStoreElementById(store.events.values(), eventId, (entry: any) =>
+      entry?.event ? String(entry.event.id) : null
+    );
 
   return eventStoreElement?.event;
 }
@@ -146,17 +165,7 @@ export function getEventFromStore(store: Store, eventId: string) {
 export function getTaskDependencies(store: any, taskId: string): any {
   try {
     // Prefer reading from the task store element directly to access computedDependencies
-    let storeElement = store.tasks.get(taskId);
-
-    if (!storeElement) {
-      // Handle symbol-based task ids where Map key may differ from id string
-      for (const candidate of store.tasks.values()) {
-        if (candidate?.task && String(candidate.task.id) === taskId) {
-          storeElement = candidate;
-          break;
-        }
-      }
-    }
+    const storeElement = getTaskStoreElement(store, taskId);
 
     const dependencies = storeElement?.computedDependencies;
     return dependencies ?? {};

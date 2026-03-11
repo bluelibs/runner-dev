@@ -74,9 +74,15 @@ describe("GraphQL schema (integration)", () => {
           dryRun
           lazy
           lifecycleMode
-          disposeBudgetMs
-          disposeDrainBudgetMs
-          runtimeEventCycleDetection
+          dispose {
+            totalBudgetMs
+            drainingBudgetMs
+            cooldownWindowMs
+          }
+          executionContext {
+            enabled
+            cycleDetection
+          }
           hasOnUnhandledError
           rootId
         }
@@ -311,17 +317,24 @@ describe("GraphQL schema (integration)", () => {
     expect(typeof data.runOptions.dryRun).toBe("boolean");
     expect(typeof data.runOptions.lazy).toBe("boolean");
     expect(["sequential", "parallel"]).toContain(data.runOptions.lifecycleMode);
+    expect(data.runOptions.dispose).toBeDefined();
     expect(
-      data.runOptions.disposeBudgetMs === null ||
-        typeof data.runOptions.disposeBudgetMs === "number"
+      data.runOptions.dispose.totalBudgetMs === null ||
+        typeof data.runOptions.dispose.totalBudgetMs === "number"
     ).toBe(true);
     expect(
-      data.runOptions.disposeDrainBudgetMs === null ||
-        typeof data.runOptions.disposeDrainBudgetMs === "number"
+      data.runOptions.dispose.drainingBudgetMs === null ||
+        typeof data.runOptions.dispose.drainingBudgetMs === "number"
     ).toBe(true);
     expect(
-      data.runOptions.runtimeEventCycleDetection === null ||
-        typeof data.runOptions.runtimeEventCycleDetection === "boolean"
+      data.runOptions.dispose.cooldownWindowMs === null ||
+        typeof data.runOptions.dispose.cooldownWindowMs === "number"
+    ).toBe(true);
+    expect(data.runOptions.executionContext).toBeDefined();
+    expect(typeof data.runOptions.executionContext.enabled).toBe("boolean");
+    expect(
+      data.runOptions.executionContext.cycleDetection === null ||
+        typeof data.runOptions.executionContext.cycleDetection === "boolean"
     ).toBe(true);
     expect(typeof data.runOptions.hasOnUnhandledError).toBe("boolean");
     expect(typeof data.runOptions.rootId).toBe("string");

@@ -457,6 +457,11 @@ export class Introspector {
    * the previously serialized snapshot is used.
    */
   private normalizeRunOptions(runOptions: Partial<RunOptions>): RunOptions {
+    const legacyRunOptions = runOptions as Partial<RunOptions> & {
+      disposeBudgetMs?: number | null;
+      disposeDrainBudgetMs?: number | null;
+      runtimeEventCycleDetection?: boolean | null;
+    };
     const mode = runOptions.mode ?? "dev";
     const debug = Boolean(runOptions.debug);
     const rootId = runOptions.rootId ?? this.rootId ?? "";
@@ -464,6 +469,28 @@ export class Introspector {
       runOptions.logsPrintThreshold !== undefined
         ? runOptions.logsPrintThreshold
         : "info";
+    const dispose =
+      runOptions.dispose ??
+      ({
+        totalBudgetMs:
+          typeof legacyRunOptions.disposeBudgetMs === "number"
+            ? legacyRunOptions.disposeBudgetMs
+            : null,
+        drainingBudgetMs:
+          typeof legacyRunOptions.disposeDrainBudgetMs === "number"
+            ? legacyRunOptions.disposeDrainBudgetMs
+            : null,
+        cooldownWindowMs: null,
+      } satisfies RunOptions["dispose"]);
+    const executionContext =
+      runOptions.executionContext ??
+      ({
+        enabled: false,
+        cycleDetection:
+          typeof legacyRunOptions.runtimeEventCycleDetection === "boolean"
+            ? legacyRunOptions.runtimeEventCycleDetection
+            : null,
+      } satisfies RunOptions["executionContext"]);
 
     return {
       mode,
@@ -491,18 +518,8 @@ export class Introspector {
       lazy: Boolean(runOptions.lazy),
       lifecycleMode:
         runOptions.lifecycleMode === "parallel" ? "parallel" : "sequential",
-      disposeBudgetMs:
-        typeof runOptions.disposeBudgetMs === "number"
-          ? runOptions.disposeBudgetMs
-          : null,
-      disposeDrainBudgetMs:
-        typeof runOptions.disposeDrainBudgetMs === "number"
-          ? runOptions.disposeDrainBudgetMs
-          : null,
-      runtimeEventCycleDetection:
-        runOptions.runtimeEventCycleDetection !== undefined
-          ? runOptions.runtimeEventCycleDetection
-          : null,
+      dispose,
+      executionContext,
       hasOnUnhandledError: Boolean(runOptions.hasOnUnhandledError),
       rootId,
     };
@@ -541,33 +558,7 @@ export class Introspector {
 
       const runtimeRunOptions = this.runtime?.runOptions;
 
-      const lifecycleMode =
-        runtimeRunOptions?.lifecycleMode === "parallel"
-          ? "parallel"
-          : "sequential";
-      const disposeBudgetMs =
-        typeof runtimeRunOptions?.disposeBudgetMs === "number"
-          ? runtimeRunOptions.disposeBudgetMs
-          : null;
-      const disposeDrainBudgetMs =
-        typeof runtimeRunOptions?.disposeDrainBudgetMs === "number"
-          ? runtimeRunOptions.disposeDrainBudgetMs
-          : null;
-      const lazy = Boolean(runtimeRunOptions?.lazy);
-      const dryRun = Boolean(runtimeRunOptions?.dryRun);
-      const errorBoundary =
-        typeof runtimeRunOptions?.errorBoundary === "boolean"
-          ? runtimeRunOptions.errorBoundary
-          : null;
-      const shutdownHooks =
-        typeof runtimeRunOptions?.shutdownHooks === "boolean"
-          ? runtimeRunOptions.shutdownHooks
-          : null;
-
-      // runtimeEventCycleDetection was removed in runner 6.0
-      const runtimeEventCycleDetection = null;
-
-      return {
+      return this.normalizeRunOptions({
         mode: this.store.mode ?? "dev",
         debug: hasDebug,
         debugMode,
@@ -575,23 +566,48 @@ export class Introspector {
         logsPrintThreshold,
         logsPrintStrategy,
         logsBuffer,
-        errorBoundary,
-        shutdownHooks,
-        dryRun,
-        lazy,
-        lifecycleMode,
-        disposeBudgetMs,
-        disposeDrainBudgetMs,
-        runtimeEventCycleDetection:
-          typeof runtimeEventCycleDetection === "boolean"
-            ? runtimeEventCycleDetection
+        errorBoundary:
+          typeof runtimeRunOptions?.errorBoundary === "boolean"
+            ? runtimeRunOptions.errorBoundary
             : null,
+        shutdownHooks:
+          typeof runtimeRunOptions?.shutdownHooks === "boolean"
+            ? runtimeRunOptions.shutdownHooks
+            : null,
+        dryRun: Boolean(runtimeRunOptions?.dryRun),
+        lazy: Boolean(runtimeRunOptions?.lazy),
+        lifecycleMode:
+          runtimeRunOptions?.lifecycleMode === "parallel"
+            ? "parallel"
+            : "sequential",
+        dispose: {
+          totalBudgetMs:
+            typeof runtimeRunOptions?.dispose?.totalBudgetMs === "number"
+              ? runtimeRunOptions.dispose.totalBudgetMs
+              : null,
+          drainingBudgetMs:
+            typeof runtimeRunOptions?.dispose?.drainingBudgetMs === "number"
+              ? runtimeRunOptions.dispose.drainingBudgetMs
+              : null,
+          cooldownWindowMs:
+            typeof runtimeRunOptions?.dispose?.cooldownWindowMs === "number"
+              ? runtimeRunOptions.dispose.cooldownWindowMs
+              : null,
+        },
+        executionContext: {
+          enabled: runtimeRunOptions?.executionContext != null,
+          cycleDetection:
+            runtimeRunOptions?.executionContext == null
+              ? null
+              : runtimeRunOptions.executionContext.cycleDetection != null,
+        },
         hasOnUnhandledError: typeof this.store.onUnhandledError === "function",
         rootId,
-      };
+      });
     }
-    // Fallback to serialized data
+
     if (this.runOptions) return this.normalizeRunOptions(this.runOptions);
+
     return this.normalizeRunOptions({
       mode: "dev",
       debug: false,

@@ -87,16 +87,24 @@ describe("Introspector serialize/deserialize", () => {
     expect(typeof opts.dryRun).toBe("boolean");
     expect(typeof opts.lazy).toBe("boolean");
     expect(["sequential", "parallel"]).toContain(opts.lifecycleMode);
+    expect(opts.dispose).toBeDefined();
     expect(
-      opts.disposeBudgetMs === null || typeof opts.disposeBudgetMs === "number"
+      opts.dispose.totalBudgetMs === null ||
+        typeof opts.dispose.totalBudgetMs === "number"
     ).toBe(true);
     expect(
-      opts.disposeDrainBudgetMs === null ||
-        typeof opts.disposeDrainBudgetMs === "number"
+      opts.dispose.drainingBudgetMs === null ||
+        typeof opts.dispose.drainingBudgetMs === "number"
     ).toBe(true);
     expect(
-      opts.runtimeEventCycleDetection === null ||
-        typeof opts.runtimeEventCycleDetection === "boolean"
+      opts.dispose.cooldownWindowMs === null ||
+        typeof opts.dispose.cooldownWindowMs === "number"
+    ).toBe(true);
+    expect(opts.executionContext).toBeDefined();
+    expect(typeof opts.executionContext.enabled).toBe("boolean");
+    expect(
+      opts.executionContext.cycleDetection === null ||
+        typeof opts.executionContext.cycleDetection === "boolean"
     ).toBe(true);
     expect(typeof opts.hasOnUnhandledError).toBe("boolean");
     expect(typeof opts.rootId).toBe("string");

@@ -37,7 +37,7 @@ export const dummyAppIds = {
     return `${DUMMY_APP_ID}.middleware.resource.${localId}`;
   },
   asyncContext(localId: string) {
-    return `${DUMMY_APP_ID}.ctx.${localId}`;
+    return `${DUMMY_APP_ID}.asyncContexts.${localId}`;
   },
   error(localId: string) {
     return `${DUMMY_APP_ID}.errors.${localId}`;

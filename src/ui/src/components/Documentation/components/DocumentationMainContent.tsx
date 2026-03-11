@@ -64,6 +64,8 @@ export const DocumentationMainContent: React.FC<
 }) => {
   const rootResource = introspector.getRoot();
   const runOptions = introspector.getRunOptions();
+  const disposeOptions = runOptions.dispose;
+  const executionContext = runOptions.executionContext;
   const formatBooleanOption = (value: boolean | null | undefined) => {
     if (typeof value === "boolean") return value ? "enabled" : "disabled";
     return "unknown";
@@ -348,21 +350,31 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    ⏱️ Dispose Budget
+                    ⏱️ Dispose Total
                   </span>
                   <span className="overview-run-info__value">
-                    {typeof runOptions.disposeBudgetMs === "number"
-                      ? `${runOptions.disposeBudgetMs}ms`
+                    {typeof disposeOptions.totalBudgetMs === "number"
+                      ? `${disposeOptions.totalBudgetMs}ms`
                       : "unknown"}
                   </span>
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    ⌛ Drain Budget
+                    ⌛ Dispose Drain
                   </span>
                   <span className="overview-run-info__value">
-                    {typeof runOptions.disposeDrainBudgetMs === "number"
-                      ? `${runOptions.disposeDrainBudgetMs}ms`
+                    {typeof disposeOptions.drainingBudgetMs === "number"
+                      ? `${disposeOptions.drainingBudgetMs}ms`
+                      : "unknown"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
+                    🪟 Cooldown Window
+                  </span>
+                  <span className="overview-run-info__value">
+                    {typeof disposeOptions.cooldownWindowMs === "number"
+                      ? `${disposeOptions.cooldownWindowMs}ms`
                       : "unknown"}
                   </span>
                 </div>
@@ -412,14 +424,26 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
+                    🧭 Execution Context
+                  </span>
+                  <span
+                    className={`overview-run-info__badge overview-run-info__badge--${
+                      executionContext.enabled ? "enabled" : "disabled"
+                    }`}
+                  >
+                    {executionContext.enabled ? "enabled" : "disabled"}
+                  </span>
+                </div>
+                <div className="overview-run-info__item">
+                  <span className="overview-run-info__label">
                     🔄 Cycle Detection
                   </span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${formatBooleanOption(
-                      runOptions.runtimeEventCycleDetection
+                      executionContext.cycleDetection
                     )}`}
                   >
-                    {formatBooleanOption(runOptions.runtimeEventCycleDetection)}
+                    {formatBooleanOption(executionContext.cycleDetection)}
                   </span>
                 </div>
                 <div className="overview-run-info__item">

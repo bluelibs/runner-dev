@@ -6,6 +6,44 @@ import {
   GraphQLString,
 } from "graphql";
 
+const RunDisposeOptionsType = new GraphQLObjectType({
+  name: "RunDisposeOptions",
+  description: "Effective shutdown disposal configuration used by run().",
+  fields: () => ({
+    totalBudgetMs: {
+      description:
+        "Total shutdown disposal budget in milliseconds. Null when unknown.",
+      type: GraphQLFloat,
+    },
+    drainingBudgetMs: {
+      description:
+        "Drain wait budget in milliseconds during shutdown. Null when unknown.",
+      type: GraphQLFloat,
+    },
+    cooldownWindowMs: {
+      description:
+        "Post-cooldown admission window in milliseconds during shutdown. Null when unknown.",
+      type: GraphQLFloat,
+    },
+  }),
+});
+
+const RunExecutionContextOptionsType = new GraphQLObjectType({
+  name: "RunExecutionContextOptions",
+  description: "Effective execution context configuration used by run().",
+  fields: () => ({
+    enabled: {
+      description: "Whether execution context capture is enabled.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+    },
+    cycleDetection: {
+      description:
+        "Whether execution-context cycle detection is enabled. Null when disabled or unknown.",
+      type: GraphQLBoolean,
+    },
+  }),
+});
+
 export const RunOptionsType = new GraphQLObjectType({
   name: "RunOptions",
   description:
@@ -66,20 +104,13 @@ export const RunOptionsType = new GraphQLObjectType({
         'Startup/disposal scheduler mode: "sequential" or "parallel".',
       type: new GraphQLNonNull(GraphQLString),
     },
-    disposeBudgetMs: {
-      description:
-        "Total shutdown disposal budget in milliseconds. Null when unknown.",
-      type: GraphQLFloat,
+    dispose: {
+      description: "Effective shutdown disposal configuration.",
+      type: new GraphQLNonNull(RunDisposeOptionsType),
     },
-    disposeDrainBudgetMs: {
-      description:
-        "Drain wait budget in milliseconds during shutdown. Null when unknown.",
-      type: GraphQLFloat,
-    },
-    runtimeEventCycleDetection: {
-      description:
-        "Whether runtime event cycle detection is enabled. Null when unknown.",
-      type: GraphQLBoolean,
+    executionContext: {
+      description: "Effective execution context configuration.",
+      type: new GraphQLNonNull(RunExecutionContextOptionsType),
     },
     hasOnUnhandledError: {
       description: "Presence flag for an onUnhandledError callback.",

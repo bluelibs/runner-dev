@@ -1,6 +1,6 @@
 import { resources, defineResource } from "@bluelibs/runner";
 import { ApolloServer } from "@apollo/server";
-import { ApolloServerPluginLandingPageDisabled } from "@apollo/server/plugin/disabled";
+import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
 import type { StartStandaloneServerOptions } from "@apollo/server/standalone";
 import { graphql as graphqlResource } from "./graphql-accumulator.resource";
 import type { CustomGraphQLContext } from "../schema/context";
@@ -60,7 +60,7 @@ export const serverResource = defineResource({
     });
     const server = new ApolloServer({
       schema: graphql.getSchema(),
-      plugins: [ApolloServerPluginLandingPageDisabled()],
+      plugins: [ApolloServerPluginLandingPageLocalDefault()],
     });
     const port = config.port ?? 1337;
     const host = config.host;

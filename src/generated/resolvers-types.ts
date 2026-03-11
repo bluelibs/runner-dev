@@ -1102,6 +1102,26 @@ export type RpcLaneSummary = {
   laneId: Scalars['String']['output'];
 };
 
+/** Effective shutdown disposal configuration used by run(). */
+export type RunDisposeOptions = {
+  __typename?: 'RunDisposeOptions';
+  /** Post-cooldown admission window in milliseconds during shutdown. Null when unknown. */
+  cooldownWindowMs: Maybe<Scalars['Float']['output']>;
+  /** Drain wait budget in milliseconds during shutdown. Null when unknown. */
+  drainingBudgetMs: Maybe<Scalars['Float']['output']>;
+  /** Total shutdown disposal budget in milliseconds. Null when unknown. */
+  totalBudgetMs: Maybe<Scalars['Float']['output']>;
+};
+
+/** Effective execution context configuration used by run(). */
+export type RunExecutionContextOptions = {
+  __typename?: 'RunExecutionContextOptions';
+  /** Whether execution-context cycle detection is enabled. Null when disabled or unknown. */
+  cycleDetection: Maybe<Scalars['Boolean']['output']>;
+  /** Whether execution context capture is enabled. */
+  enabled: Scalars['Boolean']['output'];
+};
+
 /** Filters for execution run records */
 export type RunFilterInput = {
   /** Filter by correlation ids */
@@ -1125,14 +1145,14 @@ export type RunOptions = {
   debug: Scalars['Boolean']['output'];
   /** High-level debug mode summary: "normal", "verbose", "custom", or "disabled". */
   debugMode: Maybe<Scalars['String']['output']>;
-  /** Total shutdown disposal budget in milliseconds. Null when unknown. */
-  disposeBudgetMs: Maybe<Scalars['Float']['output']>;
-  /** Drain wait budget in milliseconds during shutdown. Null when unknown. */
-  disposeDrainBudgetMs: Maybe<Scalars['Float']['output']>;
+  /** Effective shutdown disposal configuration. */
+  dispose: RunDisposeOptions;
   /** Whether startup runs in dry-run mode. */
   dryRun: Scalars['Boolean']['output'];
   /** Whether process-level error boundaries are enabled. Null when unknown. */
   errorBoundary: Maybe<Scalars['Boolean']['output']>;
+  /** Effective execution context configuration. */
+  executionContext: RunExecutionContextOptions;
   /** Presence flag for an onUnhandledError callback. */
   hasOnUnhandledError: Scalars['Boolean']['output'];
   /** Whether lazy resource mode is enabled. */
@@ -1151,8 +1171,6 @@ export type RunOptions = {
   mode: Scalars['String']['output'];
   /** The id of the root resource passed to run(). */
   rootId: Scalars['String']['output'];
-  /** Whether runtime event cycle detection is enabled. Null when unknown. */
-  runtimeEventCycleDetection: Maybe<Scalars['Boolean']['output']>;
   /** Whether SIGINT/SIGTERM shutdown hooks are enabled. Null when unknown. */
   shutdownHooks: Maybe<Scalars['Boolean']['output']>;
 };
@@ -1558,6 +1576,8 @@ export type ResolversTypes = ResolversObject<{
   ResourceSubtreePolicy: ResolverTypeWrapper<ResourceSubtreePolicy>;
   ResourceSubtreeValidationBranch: ResolverTypeWrapper<ResourceSubtreeValidationBranch>;
   RpcLaneSummary: ResolverTypeWrapper<RpcLaneSummary>;
+  RunDisposeOptions: ResolverTypeWrapper<RunDisposeOptions>;
+  RunExecutionContextOptions: ResolverTypeWrapper<RunExecutionContextOptions>;
   RunFilterInput: RunFilterInput;
   RunOptions: ResolverTypeWrapper<RunOptions>;
   RunRecord: ResolverTypeWrapper<Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversTypes['BaseElement']> }>;
@@ -1632,6 +1652,8 @@ export type ResolversParentTypes = ResolversObject<{
   ResourceSubtreePolicy: ResourceSubtreePolicy;
   ResourceSubtreeValidationBranch: ResourceSubtreeValidationBranch;
   RpcLaneSummary: RpcLaneSummary;
+  RunDisposeOptions: RunDisposeOptions;
+  RunExecutionContextOptions: RunExecutionContextOptions;
   RunFilterInput: RunFilterInput;
   RunOptions: RunOptions;
   RunRecord: Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversParentTypes['BaseElement']> };
@@ -2165,13 +2187,26 @@ export type RpcLaneSummaryResolvers<ContextType = CustomGraphQLContext, ParentTy
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type RunDisposeOptionsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunDisposeOptions'] = ResolversParentTypes['RunDisposeOptions']> = ResolversObject<{
+  cooldownWindowMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  drainingBudgetMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  totalBudgetMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RunExecutionContextOptionsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunExecutionContextOptions'] = ResolversParentTypes['RunExecutionContextOptions']> = ResolversObject<{
+  cycleDetection: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  enabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type RunOptionsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunOptions'] = ResolversParentTypes['RunOptions']> = ResolversObject<{
   debug: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   debugMode: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  disposeBudgetMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  disposeDrainBudgetMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  dispose: Resolver<ResolversTypes['RunDisposeOptions'], ParentType, ContextType>;
   dryRun: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   errorBoundary: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  executionContext: Resolver<ResolversTypes['RunExecutionContextOptions'], ParentType, ContextType>;
   hasOnUnhandledError: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   lazy: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   lifecycleMode: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -2181,7 +2216,6 @@ export type RunOptionsResolvers<ContextType = CustomGraphQLContext, ParentType e
   logsPrintThreshold: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   mode: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   rootId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  runtimeEventCycleDetection: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   shutdownHooks: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2380,6 +2414,8 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   ResourceSubtreePolicy: ResourceSubtreePolicyResolvers<ContextType>;
   ResourceSubtreeValidationBranch: ResourceSubtreeValidationBranchResolvers<ContextType>;
   RpcLaneSummary: RpcLaneSummaryResolvers<ContextType>;
+  RunDisposeOptions: RunDisposeOptionsResolvers<ContextType>;
+  RunExecutionContextOptions: RunExecutionContextOptionsResolvers<ContextType>;
   RunOptions: RunOptionsResolvers<ContextType>;
   RunRecord: RunRecordResolvers<ContextType>;
   SwapResult: SwapResultResolvers<ContextType>;

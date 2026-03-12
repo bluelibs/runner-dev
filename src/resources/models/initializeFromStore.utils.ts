@@ -759,53 +759,141 @@ function toSubtreeMiddlewareIds(entries: unknown): string[] {
   return Array.from(new Set(ids));
 }
 
-function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
-  const subtree = resource?.subtree;
-  if (!subtree || typeof subtree !== "object") return null;
+type SubtreePolicyInput = {
+  tasks?: { middleware?: unknown; validate?: unknown } | null;
+  resources?: { middleware?: unknown; validate?: unknown } | null;
+  hooks?: { validate?: unknown } | null;
+  taskMiddleware?: { validate?: unknown } | null;
+  resourceMiddleware?: { validate?: unknown } | null;
+  events?: { validate?: unknown } | null;
+  tags?: { validate?: unknown } | null;
+};
 
-  const tasks = subtree.tasks
-    ? {
-        middleware: toSubtreeMiddlewareIds(subtree.tasks.middleware),
-        validatorCount: normalizeSubtreeValidatorCount(subtree.tasks.validate),
-      }
-    : null;
-  const resources = subtree.resources
-    ? {
-        middleware: toSubtreeMiddlewareIds(subtree.resources.middleware),
-        validatorCount: normalizeSubtreeValidatorCount(
-          subtree.resources.validate
-        ),
-      }
-    : null;
-  const hooks = subtree.hooks
-    ? {
-        validatorCount: normalizeSubtreeValidatorCount(subtree.hooks.validate),
-      }
-    : null;
-  const taskMiddleware = subtree.taskMiddleware
-    ? {
-        validatorCount: normalizeSubtreeValidatorCount(
-          subtree.taskMiddleware.validate
-        ),
-      }
-    : null;
-  const resourceMiddleware = subtree.resourceMiddleware
-    ? {
-        validatorCount: normalizeSubtreeValidatorCount(
-          subtree.resourceMiddleware.validate
-        ),
-      }
-    : null;
-  const events = subtree.events
-    ? {
-        validatorCount: normalizeSubtreeValidatorCount(subtree.events.validate),
-      }
-    : null;
-  const tags = subtree.tags
-    ? {
-        validatorCount: normalizeSubtreeValidatorCount(subtree.tags.validate),
-      }
-    : null;
+function appendSubtreeMiddlewareIds(
+  target: Set<string>,
+  entries: unknown
+): void {
+  for (const id of toSubtreeMiddlewareIds(entries)) {
+    target.add(id);
+  }
+}
+
+function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
+  const rawSubtree = resource?.subtree;
+  if (!rawSubtree || typeof rawSubtree !== "object") return null;
+
+  const subtreePolicies = Array.isArray(rawSubtree)
+    ? rawSubtree.filter(
+        (policy): policy is SubtreePolicyInput =>
+          Boolean(policy) && typeof policy === "object"
+      )
+    : [rawSubtree as SubtreePolicyInput];
+
+  if (subtreePolicies.length === 0) return null;
+
+  const taskMiddlewareIds = new Set<string>();
+  const resourceMiddlewareIds = new Set<string>();
+  let tasksValidatorCount = 0;
+  let resourcesValidatorCount = 0;
+  let hooksValidatorCount = 0;
+  let taskMiddlewareValidatorCount = 0;
+  let resourceMiddlewareValidatorCount = 0;
+  let eventsValidatorCount = 0;
+  let tagsValidatorCount = 0;
+
+  for (const subtree of subtreePolicies) {
+    if (subtree.tasks) {
+      appendSubtreeMiddlewareIds(taskMiddlewareIds, subtree.tasks.middleware);
+      tasksValidatorCount += normalizeSubtreeValidatorCount(
+        subtree.tasks.validate
+      );
+    }
+
+    if (subtree.resources) {
+      appendSubtreeMiddlewareIds(
+        resourceMiddlewareIds,
+        subtree.resources.middleware
+      );
+      resourcesValidatorCount += normalizeSubtreeValidatorCount(
+        subtree.resources.validate
+      );
+    }
+
+    if (subtree.hooks) {
+      hooksValidatorCount += normalizeSubtreeValidatorCount(
+        subtree.hooks.validate
+      );
+    }
+
+    if (subtree.taskMiddleware) {
+      taskMiddlewareValidatorCount += normalizeSubtreeValidatorCount(
+        subtree.taskMiddleware.validate
+      );
+    }
+
+    if (subtree.resourceMiddleware) {
+      resourceMiddlewareValidatorCount += normalizeSubtreeValidatorCount(
+        subtree.resourceMiddleware.validate
+      );
+    }
+
+    if (subtree.events) {
+      eventsValidatorCount += normalizeSubtreeValidatorCount(
+        subtree.events.validate
+      );
+    }
+
+    if (subtree.tags) {
+      tagsValidatorCount += normalizeSubtreeValidatorCount(
+        subtree.tags.validate
+      );
+    }
+  }
+
+  const tasks =
+    taskMiddlewareIds.size > 0 || tasksValidatorCount > 0
+      ? {
+          middleware: Array.from(taskMiddlewareIds),
+          validatorCount: tasksValidatorCount,
+        }
+      : null;
+  const resources =
+    resourceMiddlewareIds.size > 0 || resourcesValidatorCount > 0
+      ? {
+          middleware: Array.from(resourceMiddlewareIds),
+          validatorCount: resourcesValidatorCount,
+        }
+      : null;
+  const hooks =
+    hooksValidatorCount > 0
+      ? {
+          validatorCount: hooksValidatorCount,
+        }
+      : null;
+  const taskMiddleware =
+    taskMiddlewareValidatorCount > 0
+      ? {
+          validatorCount: taskMiddlewareValidatorCount,
+        }
+      : null;
+  const resourceMiddleware =
+    resourceMiddlewareValidatorCount > 0
+      ? {
+          validatorCount: resourceMiddlewareValidatorCount,
+        }
+      : null;
+  const events =
+    eventsValidatorCount > 0
+      ? {
+          validatorCount: eventsValidatorCount,
+        }
+      : null;
+  const tags =
+    tagsValidatorCount > 0
+      ? {
+          validatorCount: tagsValidatorCount,
+        }
+      : null;
 
   if (
     !tasks &&

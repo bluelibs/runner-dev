@@ -71,6 +71,17 @@ const app = r
 | N/A                   | `Event.transactional`, `Event.parallel`, `Event.eventLane`, `Event.rpcLane`, `Task.rpcLane`  |
 | `Resource.tunnelInfo` | Removed (hard switch to lane surfaces)                                                       |
 
+## Runner 6.1 Migration Notes
+
+- Temporal middleware now supports per-key partitioning through `keyBuilder(taskId, input)` on `rateLimit`, `debounce`, and `throttle`.
+- Resource ownership is now fully structural for user resources:
+  - normal resources can be registered directly at the root and passed to `run(...)`
+  - canonical runtime IDs now retain each user resource segment
+  - `runtime-framework-root` is reserved for internal Runner use
+- `resource.subtree(...)` can now compose multiple policies with an array, and runner-dev merges them into one summarized introspection view.
+- `gateway: true` has been removed from user resources. Update any string-based task/resource references that previously relied on transparent user resources.
+- Advanced Node integrations should use the internal RPC lanes resource id `runner.node.rpcLanes`.
+
 ## Table of Contents
 
 - [Quickstart Guide](#quickstart)

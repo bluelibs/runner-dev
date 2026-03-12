@@ -2,6 +2,7 @@ import { r, run } from "@bluelibs/runner";
 import { rpcLanesResource, tags } from "@bluelibs/runner/node";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
+import { RPC_LANES_RESOURCE_ID } from "../../utils/lane-resources";
 
 describe("Lane Introspection", () => {
   const rpcLaneTag = tags.rpcLane;
@@ -91,6 +92,11 @@ describe("Lane Introspection", () => {
     .build();
 
   const rpcLanesRegistration = rpcLanesResource.with(rpcLanesConfig);
+
+  test("tracks the Runner 6.1 rpc lanes internal resource id", () => {
+    expect(RPC_LANES_RESOURCE_ID).toBe("runner.node.rpcLanes");
+    expect(rpcLanesResource.id).toBe(RPC_LANES_RESOURCE_ID);
+  });
 
   test("maps rpc and event lane summaries from tagsDetailed", async () => {
     const appId = "test-app-lanes-1";

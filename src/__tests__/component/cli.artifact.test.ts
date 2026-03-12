@@ -26,7 +26,9 @@ describe("CLI artifact scaffold", () => {
     expect(result.id).toBe("create-user");
     expect(result.content).toContain(".task<CreateUserInput>('create-user')");
     expect(result.content).not.toContain("app.users.tasks.create-user");
-    expect(result.relDir).toBe(path.join(tempDir, "src", "app", "users", "tasks"));
+    expect(result.relDir).toBe(
+      path.join(tempDir, "src", "app", "users", "tasks")
+    );
   });
 
   test("rejects dotted explicit ids", async () => {

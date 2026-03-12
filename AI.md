@@ -33,6 +33,17 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 | `RunOptions.initMode` | `RunOptions.lifecycleMode` (+ disposal budgets)           |
 | `Resource.tunnelInfo` | Removed (hard switch to Event Lane + RPC Lane surfaces)   |
 
+## Runner 6.1 Migration Notes
+
+- Temporal middleware now supports per-key partitioning through `keyBuilder(taskId, input)` on `rateLimit`, `debounce`, and `throttle`.
+- User resources are no longer transparent:
+  - root resources can register tasks/resources/middleware directly and be passed to `run(...)`
+  - canonical runtime ids retain each user resource segment
+  - `runtime-framework-root` is reserved for internal Runner use
+- `resource.subtree(...)` may now receive a policy array; runner-dev merges those policies into one summarized subtree view.
+- `gateway: true` has been removed from user resources, so any references that skipped a user resource segment need to be updated.
+- Advanced Node integrations should now use `runner.node.rpcLanes` for the internal RPC lanes resource id.
+
 ## Available GraphQL Queries
 
 ### System Architecture Queries

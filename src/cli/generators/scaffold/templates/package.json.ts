@@ -8,8 +8,8 @@ export function packageJson(projectName: string) {
       dev: "tsx watch src/main.ts",
       start: "node --enable-source-maps dist/main.js",
       build: "tsc -p tsconfig.json",
-      test: "jest",
-      "test:watch": "jest --watch",
+      test: "vitest run",
+      "test:watch": "vitest",
       "schema:sdl": "runner-dev schema sdl",
     },
     dependencies: {
@@ -18,10 +18,8 @@ export function packageJson(projectName: string) {
     devDependencies: {
       "@bluelibs/runner-dev": "^6.1.0",
       typescript: "^5.6.3",
-      tsx: "^4.19.2",
-      jest: "^29.7.0",
-      "ts-jest": "^29.1.1",
-      "@types/jest": "^29.5.12",
+      tsx: "^4.20.5",
+      vitest: "^3.2.4",
     },
   } as const;
 }

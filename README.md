@@ -198,8 +198,8 @@ runner-dev new my-awesome-app
 
 This command creates a new Runner project with:
 
-- Complete TypeScript setup with ts-node-dev for development
-- Jest configuration for testing
+- Complete TypeScript setup with `tsx watch` for development
+- Vitest configuration for testing without deprecated install-time transitive deps
 - Package.json with all necessary dependencies
 - Basic project structure with main.ts entry point
 - README and .gitignore files
@@ -207,7 +207,7 @@ This command creates a new Runner project with:
 Flags for `new`:
 
 - `--install`: install dependencies after scaffolding
-- `--run-tests`: run the generated test suite (`npm test -- --runInBand`) after install
+- `--run-tests`: run the generated test suite (`npm run test`) after install
 - `--run`: start the dev server (`npm run dev`) after install/tests; this keeps the process running
 
 Examples:

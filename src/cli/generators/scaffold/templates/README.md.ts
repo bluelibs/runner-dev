@@ -27,7 +27,8 @@ The server starts on http://localhost:1337
 - dev: Run with tsx watch (TypeScript ESM)
 - build: Type-check and emit to dist
 - start: Run built app
-- test: Run Jest
+- test: Run Vitest once
+- test:watch: Run Vitest in watch mode
 
 ## Useful CLI commands
 

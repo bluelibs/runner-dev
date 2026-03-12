@@ -343,7 +343,7 @@ npx @bluelibs/runner-dev new <project-name>
 npx @bluelibs/runner-dev new my-awesome-app
 ```
 
-This command creates a new Runner project with a complete TypeScript setup, Jest for testing, and all necessary dependencies.
+This command creates a new Runner project with a complete TypeScript setup, `tsx watch` for development, Vitest for testing, and all necessary dependencies.
 
 Key flags for `new`:
 

@@ -18,14 +18,6 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
     templates.packageJson(projectName)
   );
   await writeJson(path.join(targetDir, "tsconfig.json"), templates.tsconfig());
-  await writeFile(
-    path.join(targetDir, "jest.config.cjs"),
-    templates.jestConfig()
-  );
-  await writeJson(
-    path.join(targetDir, "tsconfig.jest.json"),
-    templates.tsconfigJest()
-  );
 
   await ensureDir(path.join(targetDir, "src"));
   await writeFile(

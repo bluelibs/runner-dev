@@ -168,12 +168,7 @@ export async function main(argv: string[]): Promise<void> {
     }
     if (shouldRunTests && !SKIP_TESTS) {
       console.log("\nRunning tests...\n");
-      // Force non-interactive Jest inside the generated project to avoid watch mode hangs
-      await runCommand(
-        "npm",
-        ["run", "test", "--", "--ci", "--watchAll=false", "--runInBand"],
-        targetDir
-      );
+      await runCommand("npm", ["run", "test"], targetDir);
     } else if (shouldRunTests && SKIP_TESTS) {
       console.log("\nSkipping tests due to RUNNER_DEV_* env.\n");
     }

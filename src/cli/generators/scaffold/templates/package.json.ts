@@ -13,10 +13,10 @@ export function packageJson(projectName: string) {
       "schema:sdl": "runner-dev schema sdl",
     },
     dependencies: {
-      "@bluelibs/runner": "^6.1.0",
+      "@bluelibs/runner": "^6.2.0",
     },
     devDependencies: {
-      "@bluelibs/runner-dev": "^6.1.0",
+      "@bluelibs/runner-dev": "^6.2.0",
       typescript: "^5.6.3",
       tsx: "^4.20.5",
       vitest: "^3.2.4",

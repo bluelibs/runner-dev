@@ -81,35 +81,6 @@ export function computeUnusedMiddleware(
     .map((m) => ({ id: m.id }));
 }
 
-export function computeOverrideConflicts(
-  introspector: Introspector
-): Array<{ targetId: string; by: string }> {
-  // If multiple resources declare overrides for the same target, it is a conflict.
-  const resources = introspector.getResources();
-  const targetToBy = new Map<string, Set<string>>();
-  for (const r of resources) {
-    for (const target of r.overrides ?? []) {
-      if (!targetToBy.has(target)) targetToBy.set(target, new Set());
-      targetToBy.get(target)!.add(r.id);
-    }
-  }
-  const result: Array<{ targetId: string; by: string }> = [];
-  for (const [target, bySet] of targetToBy) {
-    if (bySet.size > 1) {
-      for (const by of bySet) {
-        result.push({ targetId: target, by });
-      }
-    }
-  }
-  // stable ordering
-  result.sort((a, b) =>
-    a.targetId === b.targetId
-      ? a.by.localeCompare(b.by)
-      : a.targetId.localeCompare(b.targetId)
-  );
-  return result;
-}
-
 export function computeOverriddenElements(introspector: Introspector): Array<{
   id: string;
   kind: "TASK" | "HOOK" | "MIDDLEWARE";
@@ -215,15 +186,6 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
       message: `Middleware is defined but not used: ${m.id}`,
       nodeId: m.id,
       nodeKind: "MIDDLEWARE",
-    });
-  }
-
-  for (const c of computeOverrideConflicts(introspector)) {
-    diags.push({
-      severity: "error",
-      code: "OVERRIDE_CONFLICT",
-      message: `Override conflict on ${c.targetId} by ${c.by}`,
-      nodeId: c.targetId,
     });
   }
 

@@ -17,7 +17,7 @@ export const AsyncContextType = new GraphQLObjectType<
 >({
   name: "AsyncContext",
   description:
-    "An async context definition for request-scoped data propagation",
+    "An async context definition for async call-chain data propagation",
   interfaces: [BaseElementInterface],
   fields: () => ({
     ...baseElementCommonFields(),
@@ -31,26 +31,34 @@ export const AsyncContextType = new GraphQLObjectType<
     },
     usedBy: {
       description:
-        "Tasks and resources that use this async context as a dependency",
+        "Tasks, hooks, resources, and middlewares that use this async context as a dependency",
       type: new GraphQLNonNull(
-        new GraphQLList(
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          new GraphQLNonNull(require("./AllType").AllType)
-        )
+        new GraphQLList(new GraphQLNonNull(BaseElementInterface))
       ),
       resolve: (context, _args, ctx: CustomGraphQLContext) => {
         const results: any[] = [];
 
-        // Get tasks that use this context
-        for (const taskId of context.usedBy || []) {
-          const task = ctx.introspector.getTask(taskId);
-          if (task) results.push(task);
-        }
+        for (const elementId of context.usedBy || []) {
+          const task = ctx.introspector.getTask(elementId);
+          if (task) {
+            results.push(task);
+            continue;
+          }
 
-        // Get resources that use this context
-        for (const resourceId of context.usedBy || []) {
-          const resource = ctx.introspector.getResource(resourceId);
-          if (resource) results.push(resource);
+          const hook = ctx.introspector.getHook(elementId);
+          if (hook) {
+            results.push(hook);
+            continue;
+          }
+
+          const resource = ctx.introspector.getResource(elementId);
+          if (resource) {
+            results.push(resource);
+            continue;
+          }
+
+          const middleware = ctx.introspector.getMiddleware(elementId);
+          if (middleware) results.push(middleware);
         }
 
         return results;
@@ -60,10 +68,7 @@ export const AsyncContextType = new GraphQLObjectType<
       description:
         "Tasks that use .require() middleware for this async context",
       type: new GraphQLNonNull(
-        new GraphQLList(
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          new GraphQLNonNull(require("./AllType").AllType)
-        )
+        new GraphQLList(new GraphQLNonNull(BaseElementInterface))
       ),
       resolve: (context, _args, ctx: CustomGraphQLContext) => {
         const results: any[] = [];

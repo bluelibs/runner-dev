@@ -93,7 +93,7 @@ describe("Lane Introspection", () => {
 
   const rpcLanesRegistration = rpcLanesResource.with(rpcLanesConfig);
 
-  test("tracks the Runner 6.1 rpc lanes internal resource id", () => {
+  test("tracks the Runner rpc lanes internal resource id", () => {
     expect(RPC_LANES_RESOURCE_ID).toBe("runner.node.rpcLanes");
     expect(rpcLanesResource.id).toBe(RPC_LANES_RESOURCE_ID);
   });

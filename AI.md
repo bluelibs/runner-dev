@@ -44,6 +44,14 @@ Runner-Dev is a powerful development toolkit for applications built with the **@
 - `gateway: true` has been removed from user resources, so any references that skipped a user resource segment need to be updated.
 - Advanced Node integrations should now use `runner.node.rpcLanes` for the internal RPC lanes resource id.
 
+## Runner 6.2 Migration Notes
+
+- Built-in async contexts now include `asyncContexts.tenant`, and `IAsyncContext` officially exposes safe probe helpers via `tryUse()` and `has()`.
+- Built-in task middleware such as `cache`, `concurrency`, and `rateLimit` can partition internal state per tenant via `tenantScope`.
+- Lazy resource initialization now fails fast once shutdown begins; runner-dev will surface the new typed shutdown errors through normal error introspection.
+- Subtree middleware conflicts now fail fast inside Runner instead of remaining a post-compose diagnostic concern.
+- The internal framework root is now described as the synthetic framework root, with clearer internal `runner` and `system` namespace resources.
+
 ## Available GraphQL Queries
 
 ### System Architecture Queries

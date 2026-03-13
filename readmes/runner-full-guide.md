@@ -425,18 +425,20 @@ Resources move through a deliberate sequence of phases. Understanding which phas
 
 - `init(config, deps, context)` creates the resource value
 - `ready(value, config, deps, context)` starts ingress after startup lock
+- `runtime.getLazyResourceValue(...)` can wake a startup-unused lazy resource only before shutdown starts; once the runtime enters `coolingDown` or later, that wakeup is rejected fail-fast.
 - `cooldown(value, config, deps, context)` stops new ingress **quickly**, a way of saying "stop any additional work, but let in-flight work finish".
   When `dispose.cooldownWindowMs` is greater than `0`, Runner keeps the broader `coolingDown` admission policy open for that bounded post-cooldown window before it enters `disposing`. At the default `0`, Runner skips that wait. Once `disposing` begins, admissions narrow to in-flight continuations plus resource-origin calls from the cooling resource itself and any additional resource definitions returned from `cooldown()`.
 - `dispose(value, config, deps, context)` performs final teardown after task/event drain.
 - Config-only resources can omit `.init()` and resolve to `undefined`
-- `r.resource(id, { gateway: true })` suppresses the resource's own namespace segment
-- gateway resources cannot be passed directly to `run(...)`; wrap them in a non-gateway root
+- user resources contribute their own ownership segment to canonical ids
+- the app resource passed to `run(...)` is a normal resource, so direct registrations compile as `app.tasks.x`, `app.events.x`, `app.middleware.task.x`, and so on
+- child resources continue that chain, so nested registrations compile as `app.billing.tasks.x`
+- only the internal synthetic framework root is transparent, and it does not appear in user-facing ids
+- `runtime-framework-root` is reserved for that internal framework root and cannot be used as a user resource id
 - If a resource declares `.register(...)`, it is non-leaf and cannot be forked
 - `.context(() => initialContext)` provides private and mutable resource-local state shared across lifecycle methods
 
 Do not use `cooldown()` as a general teardown phase for support resources such as databases. Cooldown is designed for ingress points that need to stop accepting new work quickly while letting in-flight work finish.
-
-Gateway resources are structural parents. A gateway resource still owns registration and lifecycle, but it does not add its own id segment when child ids are compiled. Use `r.resource(id, { gateway: true })` when you want a module boundary without another namespace layer in the final ids, then mount that gateway under a separate non-gateway app root when calling `run(...)`.
 
 ### Resource Configuration
 
@@ -528,7 +530,6 @@ Fork rules:
 - tags, middleware, and type parameters are inherited
 - each fork gets independent runtime state
 - non-leaf resources must be composed explicitly
-- gateway resources cannot be forked
 
 ### Resource Exports and Isolation Boundaries
 
@@ -644,15 +645,17 @@ Behavior rules:
 
 ### Subtree Policies
 
-Resources also support `.subtree(policy)` and `.subtree((config) => policy)` for subtree-wide middleware and validation.
+Resources also support `.subtree(policy)`, `.subtree([policyA, policyB])`, and `.subtree((config) => policy | policy[])` for subtree-wide middleware and validation.
 
 Keep the two APIs distinct:
 
 - `subtreeOf(resource, { types })` is an isolation selector used inside `.isolate(...)`
 - `.subtree({ validate })` is a generic resource policy hook that inspects compiled definitions in that resource subtree
-- `.subtree((config) => ({ ... }))` lets subtree policy depend on the owning resource config
+- `.subtree([policyA, policyB])` applies multiple subtree policies in declaration order
+- `.subtree((config) => ({ ... }))` and `.subtree((config) => [{ ... }, { ... }])` let subtree policy depend on the owning resource config
 - `subtree.validate` can be one function or an array of functions
 - typed validator branches are also available on `tasks`, `resources`, `hooks`, `events`, `tags`, `taskMiddleware`, and `resourceMiddleware`
+- if subtree middleware and local middleware resolve to the same middleware id on one target, Runner fails fast
 
 Use the generic validator with exported type guards when you need type-specific checks:
 
@@ -1320,13 +1323,15 @@ Subtree validation is return-based. You can import `SubtreeViolation` from Runne
 
 - subtree middleware entries can be conditional with `{ use, when }`
 - subtree middleware resolves before local `.middleware([...])`
-  import { isTask, r, run } from "@bluelibs/runner";
-  import type { SubtreeViolation } from "@bluelibs/runner";
+- if subtree and local middleware resolve to the same middleware id, Runner fails fast instead of letting the local middleware override the subtree one
 
 ```typescript
-import { r, run } from "@bluelibs/runner";
+import { isTask, r, run } from "@bluelibs/runner";
+import type { SubtreeViolation } from "@bluelibs/runner";
 
-type SubtreeViolation = {
+const app = r
+  .resource("app")
+  .subtree({
     validate: (definition): SubtreeViolation[] => {
       if (!isTask(definition) || definition.meta?.title) {
         return [];
@@ -1339,22 +1344,15 @@ type SubtreeViolation = {
         },
       ];
     },
-          {
-            code: "missing-meta-title",
-            message: `Task "${taskDefinition.id}" must define meta.title`,
-          },
-        ];
-      },
-    },
   })
   .build();
-- use exported type guards inside `subtree.validate(...)` when the policy only targets tasks, resources, events, hooks, tags, or middleware
 
 await run(app);
 ```
 
 Rules:
 
+- use exported type guards inside `subtree.validate(...)` when the policy only targets tasks, resources, events, hooks, tags, or middleware
 - return `SubtreeViolation[]` for expected policy failures
 - do not throw for normal validation failures
 - invalid validator returns are aggregated into one subtree validation error
@@ -1396,17 +1394,17 @@ If you use multiple contract middleware, their contracts combine.
 
 Runner ships with built-in middleware for common reliability concerns:
 
-| Middleware     | Config                                    | Notes                                                         |
-| -------------- | ----------------------------------------- | ------------------------------------------------------------- |
-| cache          | `{ ttl, max, ttlAutopurge, keyBuilder }`  | requires `resources.cache`; Node exposes `redisCacheProvider` |
-| concurrency    | `{ limit, key?, semaphore? }`             | limits in-flight executions                                   |
-| circuitBreaker | `{ failureThreshold, resetTimeout }`      | opens after failures, then fails fast                         |
-| debounce       | `{ ms }`                                  | runs only after inactivity                                    |
-| throttle       | `{ ms }`                                  | runs at most once per window                                  |
-| fallback       | `{ fallback }`                            | static value, function, or task fallback                      |
-| rateLimit      | `{ windowMs, max }`                       | fixed-window admission limit per instance                     |
-| retry          | `{ retries, stopRetryIf, delayStrategy }` | transient failures with configurable logic                    |
-| timeout        | `{ ttl }`                                 | aborts long-running executions via AbortController            |
+| Middleware     | Config                                    | Notes                                                                     |
+| -------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
+| cache          | `{ ttl, max, ttlAutopurge, keyBuilder }`  | backed by `resources.cache`; customize with `resources.cache.with(...)`   |
+| concurrency    | `{ limit, key?, semaphore? }`             | limits in-flight executions                                               |
+| circuitBreaker | `{ failureThreshold, resetTimeout }`      | opens after failures, then fails fast                                     |
+| debounce       | `{ ms, keyBuilder? }`                     | waits for inactivity, then runs once with the latest input for that key   |
+| throttle       | `{ ms, keyBuilder? }`                     | runs immediately, then suppresses burst calls until the window ends       |
+| fallback       | `{ fallback }`                            | static value, function, or task fallback                                  |
+| rateLimit      | `{ windowMs, max, keyBuilder? }`          | fixed-window admission limit per key, for cases like "50 per second"      |
+| retry          | `{ retries, stopRetryIf, delayStrategy }` | transient failures with configurable logic                                |
+| timeout        | `{ ttl }`                                 | rejects after the deadline and aborts cooperative work via `AbortSignal`  |
 
 Resource equivalents:
 
@@ -1417,7 +1415,7 @@ Recommended ordering:
 
 - fallback outermost
 - timeout inside retry when you want per-attempt budgets
-- rate-limit for admission
+- rate-limit for admission control such as "max 50 calls per second"
 - concurrency for in-flight control
 - cache for idempotent reads
 
@@ -1459,6 +1457,12 @@ const getUser = r
   })
   .build();
 ```
+
+> **Note:** `throttle` and `debounce` shape bursty traffic, but they do not express quotas like "50 calls per second". Use `rateLimit` for that kind of policy.
+
+> **Note:** `rateLimit`, `debounce`, and `throttle` all default to partitioning by `taskId`. Provide `keyBuilder(taskId, input)` when you want per-user, per-tenant, or per-IP behavior. If that key lives in an async context, call `YourContext.use()` directly inside `keyBuilder`.
+
+> **Note:** When tenant-aware middleware runs with `tenantScope`, Runner prefixes the final internal key as `tenantId:<baseKey>`. For example, a `keyBuilder` result of `search:ada` becomes `acme:search:ada` when the active tenant is `acme`. The default behavior is `"auto"`: use the tenant prefix when tenant context exists, otherwise keep the shared key. Use `"required"` when tenant context must exist, and `"off"` only for intentional cross-tenant sharing.
 
 ### Global Interception
 
@@ -3574,6 +3578,92 @@ In `mode: "network"`, Event Lane bindings support `prefetch`, `maxAttempts`, and
 For complete examples, common patterns, testing strategies, debugging, migration notes, and RabbitMQ configuration, see [REMOTE_LANES.md](./REMOTE_LANES.md).
 
 > **runtime:** "Serve it or ship it. There is no 'maybe call the other service.'"
+## Multi-Tenant Systems
+
+Multi-tenant work in Runner usually means one `run(app)` serving many tenants without mixing their logical state.
+The built-in same-runtime pattern uses `asyncContexts.tenant`: provide tenant identity at ingress, require it where correctness depends on it, and let tenant-aware middleware partition its internal state when tenant context exists.
+
+```typescript
+import { asyncContexts, middleware, r, run } from "@bluelibs/runner";
+
+const projectRepo = r
+  .resource("projectRepo")
+  .init(async () => {
+    const storage = new Map<string, string[]>();
+
+    return {
+      async list() {
+        const { tenantId } = asyncContexts.tenant.use();
+        return storage.get(tenantId) ?? [];
+      },
+      async add(name: string) {
+        const { tenantId } = asyncContexts.tenant.use();
+        const current = storage.get(tenantId) ?? [];
+        current.push(name);
+        storage.set(tenantId, current);
+      },
+    };
+  })
+  .build();
+
+const listProjects = r
+  .task("listProjects")
+  .middleware([
+    asyncContexts.tenant.require(),
+    middleware.task.cache.with({ ttl: 30_000 }),
+  ])
+  .dependencies({ projectRepo })
+  .run(async (_input, { projectRepo }) => projectRepo.list())
+  .build();
+
+const app = r.resource("app").register([projectRepo, listProjects]).build();
+const runtime = await run(app);
+
+// Starting a task with our custom tenant provider.
+const projects = await asyncContexts.tenant.provide(
+  { tenantId: "acme" },
+  async () => runtime.runTask(listProjects),
+);
+```
+
+This pattern keeps tenant identity in async context instead of global mutable state.
+The flow is: ingress provides the tenant, tenant-sensitive tasks require it, downstream code reads it, and middleware such as `cache` uses it to partition internal keys.
+
+Use the built-in tenant accessor in two modes:
+
+- strict: `asyncContexts.tenant.use()` when tenant context must exist, throws if not.
+- safe: `asyncContexts.tenant.tryUse()` or `asyncContexts.tenant.has()` in shared or frontend-safe helpers
+
+```typescript
+export function getTelemetryTenantId(): string | undefined {
+  return asyncContexts.tenant.tryUse()?.tenantId;
+}
+```
+
+Tenant-sensitive middleware defaults to `tenantScope: "auto"`.
+That means `cache`, `rateLimit`, `debounce`, `throttle`, and `concurrency` prefix their internal keys with `tenantId` when tenant context exists, and fall back to the shared non-tenant keyspace when it does not.
+
+- Use `asyncContexts.tenant.provide({ tenantId }, fn)` at HTTP, RPC, queue, or job ingress.
+- Use `asyncContexts.tenant.require()` or `asyncContexts.tenant.use()` when running without a tenant would be a correctness bug.
+- Omit `tenantScope` for the default `"auto"` behavior.
+- Use `tenantScope: "auto"` when you want to make that default explicit in config.
+- Use `tenantScope: "required"` when middleware correctness depends on tenant context being present.
+- Use `tenantScope: "off"` only for intentional cross-tenant sharing.
+
+```typescript
+import { middleware } from "@bluelibs/runner";
+
+middleware.task.rateLimit.with({
+  windowMs: 60_000,
+  max: 10,
+  tenantScope: "required",
+});
+```
+
+Runner still reads tenant identity from `asyncContexts.tenant`.
+If a specific provider or middleware family needs extra metadata, keep that on that provider's own config instead of overloading `tenantScope`.
+
+> **Platform Note:** Async context propagation requires `AsyncLocalStorage`, so this same-runtime tenant pattern is Node-only in practice. On platforms without async local storage, `provide()` still runs the callback but does not propagate tenant state, so shared or frontend-compatible code should treat tenant presence as optional and use `tryUse()` or `has()` when probing.
 ## Serialization
 
 Serialization is where data crosses boundaries: HTTP, queues, storage, or process hops.
@@ -5370,7 +5460,7 @@ Important behavior:
 - Inside `run(...)`, middleware, hooks, lane policies, and validators, `definition.id` is always the canonical runtime ID.
 - Original definition objects are not mutated; per-run compiled definitions are stored internally (run isolation safe).
 - Canonical ids are composed structurally from owner resources; prefer local definition ids and reference-based wiring.
-- Use `defineResource({ id, gateway: true })` for namespace gateways when a resource should not add its own segment to compiled canonical ids.
+- Only the internal synthetic framework root is transparent; user resources always contribute their own ownership segment to canonical ids.
 - Local names fail fast if they use reserved segments: `tasks`, `resources`, `events`, `hooks`, `tags`, `errors`, `asyncContexts`.
 - All definition ids fail fast when they start/end with `.`, contain empty segments (`..`), or equal a reserved standalone local name.
 

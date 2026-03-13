@@ -28,7 +28,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   const orphanEvents = introspector.getOrphanEvents();
   const unemittedEvents = introspector.getUnemittedEvents();
   const unusedMiddleware = introspector.getUnusedMiddleware();
-  const overrideConflicts = introspector.getOverrideConflicts();
   const overriddenElements = introspector.getOverriddenElements();
   const unusedErrors = introspector.getUnusedErrors();
 
@@ -52,11 +51,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
       id: "unused",
       label: "Unused Middleware",
       count: unusedMiddleware.length,
-    },
-    {
-      id: "conflicts",
-      label: "Override Conflicts",
-      count: overrideConflicts.length,
     },
     {
       id: "overridden",
@@ -235,14 +229,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           "diagnostics-panel__summary-card--unused"
         )}
         {renderSummaryCard(
-          "Override Conflicts",
-          overrideConflicts.length,
-          "#dc3545",
-          "⚔️",
-          "Resource override issues",
-          "diagnostics-panel__summary-card--conflicts"
-        )}
-        {renderSummaryCard(
           "Overridden Elements",
           overriddenElements.length,
           "#17a2b8",
@@ -400,47 +386,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             (item) => `${formatId(item.id)} (Not used)`,
             "diagnostics-panel__special-section__item--unused"
           )}
-
-        {activeCategory === "conflicts" && (
-          <div className="diagnostics-panel__special-section">
-            <h4>
-              <span className="icon">⚔️</span>
-              Override Conflicts ({overrideConflicts.length})
-            </h4>
-            {overrideConflicts.length === 0 ? (
-              <div className="diagnostics-panel__empty-state">
-                <div className="celebration">🎉</div>
-                No override conflicts found. Great job!
-              </div>
-            ) : (
-              <div className="diagnostics-panel__special-section__items">
-                {overrideConflicts.map((item, index) => (
-                  <div
-                    key={index}
-                    className="diagnostics-panel__special-section__item diagnostics-panel__special-section__item--conflict diagnostics-panel__conflict-item"
-                  >
-                    <div className="title">
-                      <a
-                        href={`#element-${item.targetId}`}
-                        className="diagnostics-panel__conflict-link"
-                      >
-                        {formatId(item.targetId)}
-                      </a>
-                      {" ← overridden by → "}
-                      <a
-                        href={`#element-${item.by}`}
-                        className="diagnostics-panel__conflict-link"
-                      >
-                        {formatId(item.by)}
-                      </a>
-                    </div>
-                    <div className="id">Target: {item.targetId}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {activeCategory === "overridden" && (
           <div className="diagnostics-panel__special-section">

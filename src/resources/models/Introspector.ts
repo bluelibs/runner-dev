@@ -15,7 +15,6 @@ import {
   computeOrphanEvents,
   computeUnemittedEvents,
   computeUnusedMiddleware,
-  computeOverrideConflicts,
   computeOverriddenElements,
   computeUnusedErrors,
   buildDiagnostics,
@@ -68,7 +67,6 @@ export type SerializedIntrospector = {
   }>;
   unusedErrors?: Array<{ id: string }>;
   missingFiles?: Array<{ id: string; filePath: string }>;
-  overrideConflicts?: Array<{ targetId: string; by: string }>;
   rootId?: string | null;
   runOptions?: RunOptions | null;
   interceptorOwners?: InterceptorOwnersSnapshot | null;
@@ -1029,10 +1027,6 @@ export class Introspector {
     return computeUnusedMiddleware(this);
   }
 
-  getOverrideConflicts(): Array<{ targetId: string; by: string }> {
-    return computeOverrideConflicts(this);
-  }
-
   getOverriddenElements(): Array<{
     id: string;
     kind: "TASK" | "HOOK" | "MIDDLEWARE";
@@ -1405,7 +1399,6 @@ export class Introspector {
       unusedMiddleware: this.getUnusedMiddleware(),
       overriddenElements: this.getOverriddenElements(),
       unusedErrors: this.getUnusedErrors(),
-      overrideConflicts: this.getOverrideConflicts(),
       rootId:
         this.store?.root?.resource?.id != null
           ? String(this.store.root.resource.id)

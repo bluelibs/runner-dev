@@ -156,8 +156,8 @@ describe("CLI init", () => {
     );
     const pkg = JSON.parse(packageJson);
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.1.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.1.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.2.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.2.0");
 
     // Verify src directory exists with main.ts using runner-dev scaffold
     const mainTs = await fs.readFile(
@@ -237,8 +237,8 @@ describe("CLI init", () => {
     );
     const pkg = JSON.parse(packageJson);
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.1.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.1.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.2.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.2.0");
   });
 
   test("scaffolds project and simulates --install and --run-tests", async () => {
@@ -284,7 +284,7 @@ describe("CLI init", () => {
       await fs.readFile(path.join(projectDir, "package.json"), "utf-8")
     );
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.1.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.1.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.2.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.2.0");
   });
 });

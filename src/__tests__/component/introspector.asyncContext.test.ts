@@ -1,4 +1,6 @@
-import { r, defineResource, run } from "@bluelibs/runner";
+import { graphql } from "graphql";
+import { r, defineResource, resources, run } from "@bluelibs/runner";
+import { schema } from "../../schema";
 import { introspector } from "../../resources/introspector.resource";
 
 const ASYNC_CONTEXT_APP_ID = "test-app-asyncCtx";
@@ -24,6 +26,7 @@ const asyncContextIds = {
 describe("introspector (async context usage)", () => {
   test("tracks usedBy (dependency) and requiredBy (.require()) for async contexts", async () => {
     let snapshot: any = {};
+    let graphqlCtx: any;
 
     // Define async contexts
     const RequestCtx = r
@@ -81,8 +84,15 @@ describe("introspector (async context usage)", () => {
 
     const probe = defineResource({
       id: "test-probe-asyncCtx",
-      dependencies: { introspector },
-      async init(_, { introspector }) {
+      dependencies: { introspector, store: resources.store },
+      async init(_, { introspector, store }) {
+        graphqlCtx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+
         const requestCtx = introspector.getAsyncContext(
           asyncContextIds.asyncContext("test-ctx-request")
         );
@@ -174,61 +184,105 @@ describe("introspector (async context usage)", () => {
       ])
       .build();
 
-    await run(app, { logs: false });
+    const runtime = await run(app, { logs: false });
 
-    // RequestCtx: used as dependency by depOnlyTask, dbResource, ctxHook
-    // RequestCtx: required by requireOnlyTask
-    expect(snapshot.request.usedBy).toEqual(
-      expect.arrayContaining([
+    try {
+      // RequestCtx: used as dependency by depOnlyTask, dbResource, ctxHook
+      // RequestCtx: required by requireOnlyTask
+      expect(snapshot.request.usedBy).toEqual(
+        expect.arrayContaining([
+          asyncContextIds.task("test-tasks-depOnly"),
+          asyncContextIds.resource("test-resources-db"),
+          asyncContextIds.hook("test-hooks-ctxHook"),
+        ])
+      );
+      expect(snapshot.request.usedBy).not.toContain(
+        asyncContextIds.task("test-tasks-requireOnly")
+      );
+      expect(snapshot.request.requiredBy).toEqual([
+        asyncContextIds.task("test-tasks-requireOnly"),
+      ]);
+
+      expect(snapshot.request.usedByTasks).toEqual([
         asyncContextIds.task("test-tasks-depOnly"),
+      ]);
+      expect(snapshot.request.usedByResources).toEqual([
         asyncContextIds.resource("test-resources-db"),
+      ]);
+      expect(snapshot.request.usedByHooks).toEqual([
         asyncContextIds.hook("test-hooks-ctxHook"),
-      ])
-    );
-    expect(snapshot.request.usedBy).not.toContain(
-      asyncContextIds.task("test-tasks-requireOnly")
-    );
-    expect(snapshot.request.requiredBy).toEqual([
-      asyncContextIds.task("test-tasks-requireOnly"),
-    ]);
+      ]);
+      expect(snapshot.request.requiredByTasks).toEqual([
+        asyncContextIds.task("test-tasks-requireOnly"),
+      ]);
 
-    expect(snapshot.request.usedByTasks).toEqual([
-      asyncContextIds.task("test-tasks-depOnly"),
-    ]);
-    expect(snapshot.request.usedByResources).toEqual([
-      asyncContextIds.resource("test-resources-db"),
-    ]);
-    expect(snapshot.request.usedByHooks).toEqual([
-      asyncContextIds.hook("test-hooks-ctxHook"),
-    ]);
-    expect(snapshot.request.requiredByTasks).toEqual([
-      asyncContextIds.task("test-tasks-requireOnly"),
-    ]);
+      // isContextRequiredBy checks
+      expect(snapshot.request.isRequiredByDepOnly).toBe(false);
+      expect(snapshot.request.isRequiredByRequireOnly).toBe(true);
 
-    // isContextRequiredBy checks
-    expect(snapshot.request.isRequiredByDepOnly).toBe(false);
-    expect(snapshot.request.isRequiredByRequireOnly).toBe(true);
-
-    // TenantCtx: used as dependency by bothTask and auditMiddleware
-    // TenantCtx: required by bothTask
-    expect(snapshot.tenant.usedBy).toEqual(
-      expect.arrayContaining([
+      // TenantCtx: used as dependency by bothTask and auditMiddleware
+      // TenantCtx: required by bothTask
+      expect(snapshot.tenant.usedBy).toEqual(
+        expect.arrayContaining([
+          asyncContextIds.task("test-tasks-both"),
+          asyncContextIds.taskMiddleware("test-middleware-audit"),
+        ])
+      );
+      expect(snapshot.tenant.requiredBy).toEqual([
         asyncContextIds.task("test-tasks-both"),
+      ]);
+      expect(snapshot.tenant.usedByTasks).toEqual([
+        asyncContextIds.task("test-tasks-both"),
+      ]);
+      expect(snapshot.tenant.usedByMiddlewares).toEqual([
         asyncContextIds.taskMiddleware("test-middleware-audit"),
-      ])
-    );
-    expect(snapshot.tenant.requiredBy).toEqual([
-      asyncContextIds.task("test-tasks-both"),
-    ]);
-    expect(snapshot.tenant.usedByTasks).toEqual([
-      asyncContextIds.task("test-tasks-both"),
-    ]);
-    expect(snapshot.tenant.usedByMiddlewares).toEqual([
-      asyncContextIds.taskMiddleware("test-middleware-audit"),
-    ]);
-    expect(snapshot.tenant.requiredByTasks).toEqual([
-      asyncContextIds.task("test-tasks-both"),
-    ]);
-    expect(snapshot.tenant.isRequiredByBoth).toBe(true);
+      ]);
+      expect(snapshot.tenant.requiredByTasks).toEqual([
+        asyncContextIds.task("test-tasks-both"),
+      ]);
+      expect(snapshot.tenant.isRequiredByBoth).toBe(true);
+
+      const result = await graphql({
+        schema,
+        source: `
+          query AsyncContextUsage($requestId: ID!, $tenantId: ID!) {
+            request: asyncContext(id: $requestId) {
+              usedBy {
+                id
+              }
+            }
+            tenant: asyncContext(id: $tenantId) {
+              usedBy {
+                id
+              }
+            }
+          }
+        `,
+        variableValues: {
+          requestId: asyncContextIds.asyncContext("test-ctx-request"),
+          tenantId: asyncContextIds.asyncContext("test-ctx-tenant"),
+        },
+        contextValue: graphqlCtx,
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        request: {
+          usedBy: expect.arrayContaining([
+            { id: asyncContextIds.task("test-tasks-depOnly") },
+            { id: asyncContextIds.resource("test-resources-db") },
+            { id: asyncContextIds.hook("test-hooks-ctxHook") },
+          ]),
+        },
+        tenant: {
+          usedBy: expect.arrayContaining([
+            { id: asyncContextIds.task("test-tasks-both") },
+            { id: asyncContextIds.taskMiddleware("test-middleware-audit") },
+          ]),
+        },
+      });
+    } finally {
+      await runtime.dispose();
+    }
   });
 });

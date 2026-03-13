@@ -82,6 +82,14 @@ const app = r
 - `gateway: true` has been removed from user resources. Update any string-based task/resource references that previously relied on transparent user resources.
 - Advanced Node integrations should use the internal RPC lanes resource id `runner.node.rpcLanes`.
 
+## Runner 6.2 Migration Notes
+
+- Built-in async contexts now include `asyncContexts.tenant`, and `IAsyncContext` officially exposes safe probe helpers via `tryUse()` and `has()`.
+- Built-in task middleware such as `cache`, `concurrency`, and `rateLimit` can partition internal state per tenant via `tenantScope`.
+- Lazy resource initialization now fails fast once shutdown begins; runner-dev will surface the new typed shutdown errors through normal error introspection.
+- Subtree middleware conflicts now fail fast inside Runner instead of remaining a post-compose diagnostic concern.
+- The internal framework root is now described as the synthetic framework root, with clearer internal `runner` and `system` namespace resources.
+
 ## Table of Contents
 
 - [Quickstart Guide](#quickstart)

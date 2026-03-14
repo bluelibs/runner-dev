@@ -1,4 +1,4 @@
-import { Match } from "@bluelibs/runner";
+import { Match, type MatchPattern } from "@bluelibs/runner";
 
 function defineCompiledSchema<TShape extends Record<string, unknown>>(
   shape: TShape
@@ -6,14 +6,14 @@ function defineCompiledSchema<TShape extends Record<string, unknown>>(
   return Match.compile(Match.ObjectIncluding(shape));
 }
 
-export const regionPattern: any = Match.OneOf("US", "EU", "APAC");
+export const regionPattern: MatchPattern = Match.OneOf("US", "EU", "APAC");
 
-export const positiveNumberPattern: any = Match.Where(
+export const positiveNumberPattern: MatchPattern = Match.Where(
   (value): value is number =>
     typeof value === "number" && Number.isFinite(value) && value > 0
 );
 
-export const nonNegativeIntegerPattern: any = Match.Where(
+export const nonNegativeIntegerPattern: MatchPattern = Match.Where(
   (value): value is number =>
     typeof value === "number" && Number.isInteger(value) && value >= 0
 );

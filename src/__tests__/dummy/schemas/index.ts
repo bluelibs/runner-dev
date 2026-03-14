@@ -1,4 +1,4 @@
-import { Match } from "@bluelibs/runner";
+import { Match, type MatchPattern } from "@bluelibs/runner";
 
 export function defineSchema(
   shape: Record<string, unknown>,
@@ -11,27 +11,27 @@ export function defineSchema(
   return Match.compile(pattern);
 }
 
-export const finiteNumberPattern = Match.Where(
+export const finiteNumberPattern: MatchPattern = Match.Where(
   (value): value is number =>
     typeof value === "number" && Number.isFinite(value)
 );
 
-export const positiveNumberPattern = Match.Where(
+export const positiveNumberPattern: MatchPattern = Match.Where(
   (value): value is number =>
     typeof value === "number" && Number.isFinite(value) && value > 0
 );
 
-export const integerNumberPattern = Match.Where(
+export const integerNumberPattern: MatchPattern = Match.Where(
   (value): value is number =>
     typeof value === "number" && Number.isInteger(value)
 );
 
-export const nonNegativeIntegerPattern = Match.Where(
+export const nonNegativeIntegerPattern: MatchPattern = Match.Where(
   (value): value is number =>
     typeof value === "number" && Number.isInteger(value) && value >= 0
 );
 
-export const minimumLengthPattern = (length: number) =>
+export const minimumLengthPattern = (length: number): MatchPattern =>
   Match.Where(
     (value): value is string =>
       typeof value === "string" && value.length >= length

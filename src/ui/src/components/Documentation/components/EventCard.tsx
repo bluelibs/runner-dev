@@ -171,7 +171,9 @@ export const EventCard: React.FC<EventCardProps> = ({
             <div
               className={`event-card__system-docs event-card__system-docs--${systemEventDocs.tone}`}
             >
-              <div className="event-card__system-docs__eyebrow">System Event</div>
+              <div className="event-card__system-docs__eyebrow">
+                System Event
+              </div>
               <div className="event-card__system-docs__title">
                 {systemEventDocs.title}
               </div>

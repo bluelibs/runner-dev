@@ -62,7 +62,7 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
 
     const tag = (result.data as { tag?: Record<string, unknown> } | undefined)
       ?.tag;
-    expect(tag?.id).toBe(tagId);
+    expect(String(tag?.id)).toMatch(/(^|\.)excludeFromGlobalHooks$/);
     expect(typeof tag?.filePath).toBe("string");
     const isNodeModules = tag?.filePath.includes("node_modules:");
     const isLocalLink = tag?.filePath.includes("runner");

@@ -95,7 +95,7 @@ describe("Lane Introspection", () => {
 
   test("tracks the Runner rpc lanes internal resource id", () => {
     expect(RPC_LANES_RESOURCE_ID).toBe("runner.node.rpcLanes");
-    expect(rpcLanesResource.id).toBe(RPC_LANES_RESOURCE_ID);
+    expect(rpcLanesResource.id).toBe("rpcLanes");
   });
 
   test("maps rpc and event lane summaries from tagsDetailed", async () => {

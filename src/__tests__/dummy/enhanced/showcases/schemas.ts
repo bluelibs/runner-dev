@@ -1,6 +1,10 @@
 import { Match } from "@bluelibs/runner";
 
-const schema = Match.Schema as (...args: any[]) => ClassDecorator;
+function defineCompiledSchema<TShape extends Record<string, unknown>>(
+  shape: TShape
+) {
+  return Match.compile(Match.ObjectIncluding(shape));
+}
 
 export const regionPattern: any = Match.OneOf("US", "EU", "APAC");
 
@@ -14,184 +18,104 @@ export const nonNegativeIntegerPattern: any = Match.Where(
     typeof value === "number" && Number.isInteger(value) && value >= 0
 );
 
-@schema()
-export class InterceptorInputSchema {
-  @Match.Field(Number)
-  value!: number;
-}
+export const InterceptorInputSchema = defineCompiledSchema({
+  value: Number,
+});
 
-@schema()
-export class InterceptorResultSchema {
-  @Match.Field(Number)
-  value!: number;
+export const InterceptorResultSchema = defineCompiledSchema({
+  value: Number,
+  intercepted: Boolean,
+});
 
-  @Match.Field(Boolean)
-  intercepted!: boolean;
-}
+export const FeaturedTagConfigSchema = defineCompiledSchema({
+  source: Match.OneOf("catalog", "search"),
+});
 
-@schema()
-export class FeaturedTagConfigSchema {
-  @Match.Field(Match.OneOf("catalog", "search"))
-  source!: "catalog" | "search";
-}
+export const CatalogSearchInputSchema = defineCompiledSchema({
+  query: Match.Optional(String),
+});
 
-@schema()
-export class CatalogSearchInputSchema {
-  @Match.Field(Match.Optional(String))
-  query?: string;
-}
+export const CatalogSearchResultSchema = defineCompiledSchema({
+  query: String,
+  total: nonNegativeIntegerPattern,
+});
 
-@schema()
-export class CatalogSearchResultSchema {
-  @Match.Field(String)
-  query!: string;
+export const FeaturedInspectorResultSchema = defineCompiledSchema({
+  taggedTaskIds: Match.ArrayOf(String),
+  taggedResourceIds: Match.ArrayOf(String),
+});
 
-  @Match.Field(nonNegativeIntegerPattern)
-  total!: number;
-}
+export const RpcPricingPreviewInputSchema = defineCompiledSchema({
+  sku: String,
+  basePrice: positiveNumberPattern,
+  region: Match.Optional(regionPattern),
+});
 
-@schema()
-export class FeaturedInspectorResultSchema {
-  @Match.Field(Match.ArrayOf(String))
-  taggedTaskIds!: string[];
+export const RpcPricingPreviewResultSchema = defineCompiledSchema({
+  sku: String,
+  adjustedPrice: positiveNumberPattern,
+  source: Match.OneOf("rpc-lane-task"),
+});
 
-  @Match.Field(Match.ArrayOf(String))
-  taggedResourceIds!: string[];
-}
+export const RpcCatalogSyncInputSchema = defineCompiledSchema({
+  supplierId: String,
+  changedSkus: Match.NonEmptyArray(String),
+});
 
-@schema()
-export class RpcPricingPreviewInputSchema {
-  @Match.Field(String)
-  sku!: string;
+export const RpcCatalogSyncResultSchema = defineCompiledSchema({
+  supplierId: String,
+  syncedCount: nonNegativeIntegerPattern,
+  emittedEvent: String,
+});
 
-  @Match.Field(positiveNumberPattern)
-  basePrice!: number;
+export const LaneCatalogUpdatedPayloadSchema = defineCompiledSchema({
+  supplierId: String,
+  updatedAt: Date,
+});
 
-  @Match.Field(Match.Optional(regionPattern))
-  region?: "US" | "EU" | "APAC";
-}
+export const LaneCatalogProjectionUpdatedPayloadSchema = defineCompiledSchema({
+  supplierId: String,
+  projectedAt: Date,
+});
 
-@schema()
-export class RpcPricingPreviewResultSchema {
-  @Match.Field(String)
-  sku!: string;
+export const DurableOrderApprovalInputSchema = defineCompiledSchema({
+  orderId: String,
+  amount: positiveNumberPattern,
+  region: Match.OneOf("US", "EU", "APAC"),
+});
 
-  @Match.Field(positiveNumberPattern)
-  adjustedPrice!: number;
+export const DurableOrderApprovalResultSchema = defineCompiledSchema({
+  orderId: String,
+  status: Match.OneOf("approved"),
+  riskScore: Match.Where(
+    (value): value is number =>
+      typeof value === "number" &&
+      Number.isFinite(value) &&
+      value >= 0 &&
+      value <= 100
+  ),
+  approvalReference: String,
+  cooldownMs: nonNegativeIntegerPattern,
+});
 
-  @Match.Field(Match.OneOf("rpc-lane-task"))
-  source!: "rpc-lane-task";
-}
+export const DurableExecutionIdResultSchema = defineCompiledSchema({
+  executionId: String,
+});
 
-@schema()
-export class RpcCatalogSyncInputSchema {
-  @Match.Field(String)
-  supplierId!: string;
+export const SupportProbeInputSchema = defineCompiledSchema({
+  fail: Match.Optional(Boolean),
+  requestId: Match.Optional(String),
+});
 
-  @Match.Field(Match.NonEmptyArray(String))
-  changedSkus!: string[];
-}
+export const SupportProbeResultSchema = defineCompiledSchema({
+  ok: Boolean,
+  requestId: String,
+});
 
-@schema()
-export class RpcCatalogSyncResultSchema {
-  @Match.Field(String)
-  supplierId!: string;
-
-  @Match.Field(nonNegativeIntegerPattern)
-  syncedCount!: number;
-
-  @Match.Field(String)
-  emittedEvent!: string;
-}
-
-@schema()
-export class LaneCatalogUpdatedPayloadSchema {
-  @Match.Field(String)
-  supplierId!: string;
-
-  @Match.Field(Date)
-  updatedAt!: Date;
-}
-
-@schema()
-export class LaneCatalogProjectionUpdatedPayloadSchema {
-  @Match.Field(String)
-  supplierId!: string;
-
-  @Match.Field(Date)
-  projectedAt!: Date;
-}
-
-@schema()
-export class DurableOrderApprovalInputSchema {
-  @Match.Field(String)
-  orderId!: string;
-
-  @Match.Field(positiveNumberPattern)
-  amount!: number;
-
-  @Match.Field(Match.OneOf("US", "EU", "APAC"))
-  region!: "US" | "EU" | "APAC";
-}
-
-@schema()
-export class DurableOrderApprovalResultSchema {
-  @Match.Field(String)
-  orderId!: string;
-
-  @Match.Field(Match.OneOf("approved"))
-  status!: "approved";
-
-  @Match.Field(
-    Match.Where(
-      (value): value is number =>
-        typeof value === "number" &&
-        Number.isFinite(value) &&
-        value >= 0 &&
-        value <= 100
-    )
-  )
-  riskScore!: number;
-
-  @Match.Field(String)
-  approvalReference!: string;
-
-  @Match.Field(nonNegativeIntegerPattern)
-  cooldownMs!: number;
-}
-
-@schema()
-export class DurableExecutionIdResultSchema {
-  @Match.Field(String)
-  executionId!: string;
-}
-
-@schema()
-export class SupportProbeInputSchema {
-  @Match.Field(Match.Optional(Boolean))
-  fail?: boolean;
-
-  @Match.Field(Match.Optional(String))
-  requestId?: string;
-}
-
-@schema()
-export class SupportProbeResultSchema {
-  @Match.Field(Boolean)
-  ok!: boolean;
-
-  @Match.Field(String)
-  requestId!: string;
-}
-
-@schema()
-export class InvalidInputErrorDataSchema {
-  @Match.Field(String)
-  field!: string;
-
-  @Match.Field(String)
-  message!: string;
-}
+export const InvalidInputErrorDataSchema = defineCompiledSchema({
+  field: String,
+  message: String,
+});
 
 export type InvalidInputErrorData = {
   field: string;

@@ -98,16 +98,16 @@ describe("Live correlation and chain tracking", () => {
     const runsById: Record<string, any> = Object.fromEntries(
       data.live.runs.map((r: any) => [r.nodeId, r])
     );
-    expect(runsById[rootHookId].parentId).toBe(events.ready.id);
-    expect(runsById[rootHookId].rootId).toBe(events.ready.id);
+    expect(runsById[rootHookId].parentId).toBe("system.events.ready");
+    expect(runsById[rootHookId].rootId).toBe("system.events.ready");
     expect(runsById[rootHookId].correlationId).toBe(corr);
 
-    expect(runsById[outerTaskId].parentId).toBe(events.ready.id);
-    expect(runsById[outerTaskId].rootId).toBe(events.ready.id);
+    expect(runsById[outerTaskId].parentId).toBe("system.events.ready");
+    expect(runsById[outerTaskId].rootId).toBe("system.events.ready");
     expect(runsById[outerTaskId].correlationId).toBe(corr);
 
     expect(runsById[innerTaskId].parentId).toBe(outerTaskId);
-    expect(runsById[innerTaskId].rootId).toBe(events.ready.id);
+    expect(runsById[innerTaskId].rootId).toBe("system.events.ready");
     expect(runsById[innerTaskId].correlationId).toBe(corr);
 
     // Validate logs filtering by correlation id and log correlation ids

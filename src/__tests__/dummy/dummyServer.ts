@@ -1,4 +1,3 @@
-import "../../runtime/symbolMetadata";
 import { run } from "@bluelibs/runner";
 import { dev } from "../../resources/dev.resource";
 import { createEnhancedSuperApp } from "./enhanced";

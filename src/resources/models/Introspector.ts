@@ -848,11 +848,14 @@ export class Introspector {
     }
     const detailed = task.middlewareDetailed ?? [];
     return detailed
-      .map((d) => ({
-        id: d.id,
-        config: d.config ?? null,
-        node: this.middlewareMap.get(d.id),
-      }))
+      .map((d) => {
+        const node = this.getMiddleware(d.id);
+        return {
+          id: node?.id ?? d.id,
+          config: d.config ?? null,
+          node,
+        };
+      })
       .filter(
         (x): x is { id: string; config: string | null; node: Middleware } =>
           Boolean(x.node)
@@ -870,11 +873,14 @@ export class Introspector {
     }
     const detailed = res.middlewareDetailed ?? [];
     return detailed
-      .map((d) => ({
-        id: d.id,
-        config: d.config ?? null,
-        node: this.middlewareMap.get(d.id),
-      }))
+      .map((d) => {
+        const node = this.getMiddleware(d.id);
+        return {
+          id: node?.id ?? d.id,
+          config: d.config ?? null,
+          node,
+        };
+      })
       .filter(
         (x): x is { id: string; config: string | null; node: Middleware } =>
           Boolean(x.node)

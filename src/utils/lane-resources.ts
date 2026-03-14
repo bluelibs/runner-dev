@@ -50,12 +50,21 @@ export type RpcLaneProfileSummary = {
 
 function hasTag(tags: TagIds, tagId: string): boolean {
   if (!Array.isArray(tags)) return false;
-  return tags.some((candidate) => candidate === tagId);
+  const expectedLocalId = tagId.split(".").pop();
+  return tags.some(
+    (candidate) =>
+      candidate === tagId ||
+      candidate.endsWith(`.${tagId}`) ||
+      tagId.endsWith(`.${candidate}`) ||
+      candidate.split(".").pop() === expectedLocalId
+  );
 }
 
 export function isEventLanesResource(resource: LaneResourceLike): boolean {
   return (
     resource.id === EVENT_LANES_RESOURCE_ID ||
+    resource.id === "eventLanes" ||
+    resource.id.endsWith(".eventLanes") ||
     hasTag(resource.tags, EVENT_LANES_RESOURCE_TAG_ID)
   );
 }
@@ -63,6 +72,8 @@ export function isEventLanesResource(resource: LaneResourceLike): boolean {
 export function isRpcLanesResource(resource: LaneResourceLike): boolean {
   return (
     resource.id === RPC_LANES_RESOURCE_ID ||
+    resource.id === "rpcLanes" ||
+    resource.id.endsWith(".rpcLanes") ||
     hasTag(resource.tags, RPC_LANES_RESOURCE_TAG_ID)
   );
 }

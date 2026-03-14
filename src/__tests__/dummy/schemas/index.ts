@@ -4,14 +4,11 @@ export function defineSchema(
   shape: Record<string, unknown>,
   options?: { exact?: boolean }
 ) {
-  class InlineSchema {}
+  const pattern = options?.exact
+    ? Match.ObjectStrict(shape)
+    : Match.ObjectIncluding(shape);
 
-  Match.Schema(options)(InlineSchema);
-  for (const [key, pattern] of Object.entries(shape)) {
-    Match.Field(pattern as never)(InlineSchema.prototype, key);
-  }
-
-  return Match.fromSchema(InlineSchema);
+  return Match.compile(pattern);
 }
 
 export const finiteNumberPattern = Match.Where(

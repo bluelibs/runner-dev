@@ -1,16 +1,32 @@
 import { spawn } from "child_process";
+import fs from "fs";
 import path from "node:path";
 
 function runCli(
   args: string[]
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
+    const builtCliPath = path.join(process.cwd(), "dist/cli.js");
+    const sourceCliPath = path.join(process.cwd(), "src/cli.ts");
+    const tsNodeRegisterPath = path.join(
+      process.cwd(),
+      "node_modules",
+      "ts-node",
+      "register",
+      "transpile-only"
+    );
+    const useBuiltCli = fs.existsSync(builtCliPath);
     const proc = spawn(
       process.execPath,
-      [path.join(process.cwd(), "dist/cli.js"), ...args],
+      useBuiltCli
+        ? [builtCliPath, ...args]
+        : ["-r", tsNodeRegisterPath, sourceCliPath, ...args],
       {
         cwd: process.cwd(),
-        env: process.env,
+        env: {
+          ...process.env,
+          TS_NODE_PROJECT: path.join(process.cwd(), "config/ts/tsconfig.json"),
+        },
         stdio: ["ignore", "pipe", "pipe"],
       }
     );

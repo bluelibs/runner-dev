@@ -15,7 +15,9 @@ export function isDurableWorkflowTagId(
   tagId: string | null | undefined
 ): boolean {
   return (
+    tagId === "durableWorkflow" ||
     tagId === DURABLE_WORKFLOW_TAG_ID ||
+    tagId?.endsWith(".durableWorkflow") === true ||
     tagId?.endsWith(`.${DURABLE_WORKFLOW_TAG_ID}`) === true
   );
 }

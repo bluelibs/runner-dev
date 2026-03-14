@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import path from "node:path";
 import fs from "fs/promises";
+import syncFs from "fs";
 import os from "os";
 
 async function writeFakeNpm(
@@ -87,12 +88,28 @@ function runCli(
   envOverride: Record<string, string> = {}
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
+    const builtCliPath = path.join(process.cwd(), "dist/cli.js");
+    const sourceCliPath = path.join(process.cwd(), "src/cli.ts");
+    const tsNodeRegisterPath = path.join(
+      process.cwd(),
+      "node_modules",
+      "ts-node",
+      "register",
+      "transpile-only"
+    );
+    const useBuiltCli = syncFs.existsSync(builtCliPath);
     const proc = spawn(
       process.execPath,
-      [path.join(process.cwd(), "dist/cli.js"), ...args],
+      useBuiltCli
+        ? [builtCliPath, ...args]
+        : ["-r", tsNodeRegisterPath, sourceCliPath, ...args],
       {
         cwd,
-        env: { ...process.env, ...envOverride },
+        env: {
+          ...process.env,
+          TS_NODE_PROJECT: path.join(process.cwd(), "config/ts/tsconfig.json"),
+          ...envOverride,
+        },
         stdio: ["ignore", "pipe", "pipe"],
       }
     );

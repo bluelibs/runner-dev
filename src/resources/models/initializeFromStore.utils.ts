@@ -198,11 +198,19 @@ export function mapStoreResourceToResourceModel(
   resource: definitions.IResource,
   resourceConfig?: unknown
 ): Resource {
-  // TODO: We might be able to improve typesafety somehow here.
-  const register =
-    typeof resource.register === "function"
-      ? resource.register()
-      : resource.register;
+  const introspectorMode = "dev" as never;
+
+  const register = Array.isArray(resource.register)
+    ? resource.register
+    : typeof resource.register === "function"
+    ? resource.register(resourceConfig as never, introspectorMode)
+    : [];
+
+  const overrides = Array.isArray(resource.overrides)
+    ? resource.overrides
+    : typeof resource.overrides === "function"
+    ? resource.overrides(resourceConfig as never, introspectorMode)
+    : [];
 
   const depsObj = normalizeDependencies(resource?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
@@ -252,9 +260,9 @@ export function mapStoreResourceToResourceModel(
       config,
       middleware: resource.middleware.map((m) => m.id.toString()),
       middlewareDetailed,
-      overrides: resource.overrides
-        .filter((o) => !!o)
-        .map((o) => o.id.toString()),
+      overrides: overrides.flatMap((override) =>
+        override ? [override.id.toString()] : []
+      ),
       registers: register.map((r) => r.id.toString()) as string[],
       isolation,
       subtree,
@@ -344,6 +352,17 @@ function buildMiddlewaresGeneric(
   resources: Resource[],
   kind: "task" | "resource"
 ): Middleware[] {
+  const matchesMiddlewareId = (
+    candidateIds: string[] | null | undefined,
+    middlewareId: string
+  ) =>
+    (candidateIds ?? []).some(
+      (candidateId) =>
+        candidateId === middlewareId ||
+        candidateId.endsWith(`.${middlewareId}`) ||
+        middlewareId.endsWith(`.${candidateId}`)
+    );
+
   return toArray(middlewaresCollection).map((entry: any) => {
     const mw = entry?.middleware ?? entry;
     const id = readId(mw);
@@ -361,13 +380,13 @@ function buildMiddlewaresGeneric(
     const usedByTasks =
       kind === "task"
         ? tasks
-            .filter((t) => (t.middleware || []).includes(id))
+            .filter((t) => matchesMiddlewareId(t.middleware, id))
             .map((t) => t.id)
         : [];
     const usedByResources =
       kind === "resource"
         ? resources
-            .filter((r) => (r.middleware || []).includes(id))
+            .filter((r) => matchesMiddlewareId(r.middleware, id))
             .map((r) => r.id)
         : [];
 
@@ -557,10 +576,25 @@ export const REQUIRE_CONTEXT_MIDDLEWARE_ID =
 
 const REQUIRE_CONTEXT_MIDDLEWARE_IDS = [
   REQUIRE_CONTEXT_MIDDLEWARE_ID,
+  "requireContext",
   // Legacy ids used by older Runner versions
   "globals.middleware.task.requireContext",
   "globals.middleware.requireContext",
 ] as const;
+
+function matchesTagId(candidateId: string, expectedId: string): boolean {
+  const candidateLocalId = candidateId.split(".").pop();
+  const expectedLocalId = expectedId.split(".").pop();
+
+  return (
+    candidateId === expectedId ||
+    candidateId.endsWith(`.${expectedId}`) ||
+    expectedId.endsWith(`.${candidateId}`) ||
+    (candidateLocalId !== undefined &&
+      expectedLocalId !== undefined &&
+      candidateLocalId === expectedLocalId)
+  );
+}
 
 export function extractRequiredContextIds(middleware: any[]): string[] {
   const result: string[] = [];
@@ -930,7 +964,9 @@ function parseTagConfigJson(config: string | null | undefined): any | null {
 function extractEventLaneSummary(
   tagsDetailed: Array<{ id: string; config: string | null }>
 ): Event["eventLane"] {
-  const laneTag = tagsDetailed.find((tag) => tag.id === EVENT_LANE_TAG_ID);
+  const laneTag = tagsDetailed.find((tag) =>
+    matchesTagId(tag.id, EVENT_LANE_TAG_ID)
+  );
   if (!laneTag) return null;
 
   const parsed = parseTagConfigJson(laneTag.config);
@@ -949,7 +985,9 @@ function extractEventLaneSummary(
 function extractRpcLaneSummary(
   tagsDetailed: Array<{ id: string; config: string | null }>
 ): Task["rpcLane"] {
-  const laneTag = tagsDetailed.find((tag) => tag.id === RPC_LANE_TAG_ID);
+  const laneTag = tagsDetailed.find((tag) =>
+    matchesTagId(tag.id, RPC_LANE_TAG_ID)
+  );
   if (!laneTag) return null;
 
   const parsed = parseTagConfigJson(laneTag.config);

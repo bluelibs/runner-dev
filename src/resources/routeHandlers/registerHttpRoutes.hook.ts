@@ -4,7 +4,7 @@ import { httpTag } from "../http.tag";
 import { serverResource } from "../server.resource";
 
 export const registerHttpRoutes = defineHook({
-  id: "runner-dev-hooks-registerHttpRoutes",
+  id: "registerHttpRoutes",
   meta: {
     title: "HTTP Routes Registration",
     description:

@@ -3,7 +3,7 @@ import { live } from "./live.resource";
 import { deriveParentAndRoot, withTaskRunContext } from "./telemetry.chain";
 
 const overrideEventManagerEmittor = defineResource({
-  id: "runner-dev-telemetry-resources-overrideEventManagerEmittor",
+  id: "overrideEventManagerEmittor",
   meta: {
     title: "Override event manager emittor",
     description:
@@ -25,7 +25,7 @@ const overrideEventManagerEmittor = defineResource({
 });
 
 const hookInterceptors = defineResource({
-  id: "runner-dev-telemetry-resources-hookInterceptors",
+  id: "hookInterceptors",
   meta: {
     title: "Hook Interceptors",
     description:
@@ -61,7 +61,7 @@ const hookInterceptors = defineResource({
 });
 
 const taskInterceptors = defineResource({
-  id: "runner-dev-telemetry-resources-taskInterceptors",
+  id: "taskInterceptors",
   meta: {
     title: "Telemetry Task Interceptors",
     description:
@@ -76,7 +76,7 @@ const taskInterceptors = defineResource({
       const id = String(input.task.definition.id);
 
       // Skip internal dev tools nodes to avoid self-instrumentation
-      if (id.startsWith("runner-dev.")) {
+      if (id === "dev" || id.startsWith("dev.") || id.includes(".dev.")) {
         return next(input);
       }
 
@@ -123,7 +123,7 @@ const taskInterceptors = defineResource({
 });
 
 export const telemetry = defineResource({
-  id: "runner-dev-telemetry-resources-telemetry",
+  id: "telemetry",
   meta: {
     title: "Telemetry System",
     description:

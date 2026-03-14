@@ -6,7 +6,7 @@ import { introspectorCli } from "./introspector.cli.resource";
 // Minimal CLI-specific swap manager that uses the CLI store.
 // Provides read-only visibility for GraphQL queries (empty by default).
 export const swapManagerCli = defineResource({
-  id: "runner-dev-resources-swap-manager-cli",
+  id: "swap-manager-cli",
   meta: {
     title: "CLI Swap Manager",
     description:

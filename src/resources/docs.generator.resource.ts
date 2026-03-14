@@ -203,7 +203,7 @@ ${mdSchema("Config Schema", m.configSchema)}
 }
 
 export const docsGenerator = defineResource({
-  id: "runner-dev-resources-docs-generator",
+  id: "docs-generator",
   meta: {
     title: "Documentation Generator",
     description:

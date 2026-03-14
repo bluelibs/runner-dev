@@ -4,7 +4,7 @@ import { initializeFromStore } from "./models/initializeFromStore";
 import { cliConfig } from "./cli.config.resource";
 
 export const introspectorCli = defineResource({
-  id: "runner-dev-resources-introspector-cli",
+  id: "introspector-cli",
   meta: {
     title: "CLI Application Introspector",
     description:

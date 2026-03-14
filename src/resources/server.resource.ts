@@ -35,7 +35,7 @@ export interface ServerInstance {
 }
 
 export const serverResource = defineResource({
-  id: "runner-dev-resources-server",
+  id: "server",
   meta: {
     title: "HTTP Server",
     description:

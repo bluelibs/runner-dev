@@ -23,7 +23,7 @@ import {
 } from "../schema/types";
 
 export const graphqlAccumulator = defineResource({
-  id: "runner-dev-resources-graphql",
+  id: "graphql",
   meta: {
     title: "GraphQL Schema Builder",
     description:

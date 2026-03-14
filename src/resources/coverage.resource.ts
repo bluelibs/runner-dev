@@ -241,7 +241,7 @@ async function tryLoadCoverage(): Promise<LoadedCoverage | null> {
 }
 
 export const coverage = defineResource({
-  id: "runner-dev-resources-coverage",
+  id: "coverage",
   meta: {
     title: "Code Coverage Service",
     description:

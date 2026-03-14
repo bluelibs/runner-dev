@@ -7,7 +7,7 @@ import { graphql as graphqlAccumulator } from "./graphql-accumulator.resource";
 import { graphqlQueryCliTask } from "./graphql.query.cli.task";
 
 export const graphqlCli = defineResource({
-  id: "runner-dev-resources-graphql-cli",
+  id: "graphql-cli",
   meta: {
     title: "CLI GraphQL Resource",
     description:

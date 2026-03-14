@@ -309,6 +309,61 @@
   }
 }
 
+.event-card__system-docs {
+  display: grid;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+  border: 1px solid var(--docs-border-primary);
+  background: linear-gradient(
+    180deg,
+    var(--docs-panel-bg),
+    var(--docs-bg-secondary)
+  );
+
+  &--info {
+    border-color: var(--docs-primary);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--docs-primary) 18%, transparent);
+  }
+
+  &--warning {
+    border-color: var(--docs-warning);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--docs-warning) 20%, transparent);
+  }
+
+  &__eyebrow {
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--docs-text-muted);
+  }
+
+  &__title {
+    font-size: $font-size-md;
+    font-weight: 700;
+    color: var(--docs-text-primary);
+  }
+
+  &__summary {
+    font-size: $font-size-sm;
+    line-height: 1.55;
+    color: var(--docs-text-secondary);
+  }
+
+  &__list {
+    margin: 0;
+    padding-left: 1.15rem;
+    color: var(--docs-text-secondary);
+    font-size: $font-size-sm;
+    line-height: 1.55;
+
+    li + li {
+      margin-top: $spacing-xs;
+    }
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Event Flow Section
 // -----------------------------------------------------------------------------

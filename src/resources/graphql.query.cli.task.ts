@@ -10,7 +10,7 @@ import { graphql as executeGraphQL } from "graphql";
 type Variables = Record<string, unknown> | undefined;
 
 export const graphqlQueryCliTask = defineTask({
-  id: "runner-dev-tasks-graphqlQueryCli",
+  id: "graphqlQueryCli",
   meta: {
     title: "Execute GraphQL Query (CLI)",
     description:

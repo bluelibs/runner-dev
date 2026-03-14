@@ -16,7 +16,7 @@ export type DevConfig = {
 };
 
 export const dev = defineResource({
-  id: "runner-dev-resources-dev",
+  id: "dev",
   meta: {
     title: "Development Environment",
     description:

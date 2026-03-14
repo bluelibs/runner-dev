@@ -66,7 +66,7 @@ export interface ISwapManager {
 }
 
 export const swapManager = defineResource({
-  id: "runner-dev-resources-swap-manager",
+  id: "swap-manager",
   meta: {
     title: "Task Swap Manager",
     description:

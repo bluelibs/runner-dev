@@ -3,7 +3,7 @@ import { Introspector } from "./models/Introspector";
 import { initializeFromStore } from "./models/initializeFromStore";
 
 export const introspector = defineResource({
-  id: "runner-dev-resources-introspector",
+  id: "introspector",
   meta: {
     title: "Application Introspector",
     description:

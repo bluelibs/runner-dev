@@ -9,7 +9,7 @@ import { swapManager } from "./swap.resource";
 type Variables = Record<string, unknown> | undefined;
 
 export const graphqlQueryTask = defineTask({
-  id: "runner-dev-tasks-graphqlQuery",
+  id: "graphqlQuery",
   meta: {
     title: "Execute GraphQL Query",
     description:

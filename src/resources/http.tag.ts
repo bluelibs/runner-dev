@@ -6,5 +6,5 @@ export type HttpTagConfig = {
 };
 
 export const httpTag = defineTag<HttpTagConfig>({
-  id: "runner-dev-tags-http",
+  id: "http",
 });

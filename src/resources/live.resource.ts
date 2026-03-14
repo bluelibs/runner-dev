@@ -147,7 +147,7 @@ export interface Live {
 }
 
 const liveService = defineResource({
-  id: "runner-dev-resources-live-service",
+  id: "liveService",
   meta: {
     title: "Live Telemetry Service",
     description:
@@ -477,7 +477,7 @@ const liveService = defineResource({
 });
 
 // const onGlobalEvent = hook({
-//   id: "runner-dev.live.onEvent",
+//   id: "dev.live.onEvent",
 //   on: "*",
 //   dependencies: {
 //     liveService,
@@ -495,7 +495,7 @@ const liveService = defineResource({
 // });
 
 export const live = defineResource({
-  id: "runner-dev-resources-live",
+  id: "live",
   meta: {
     title: "Live Telemetry Manager",
     description:

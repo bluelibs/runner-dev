@@ -162,7 +162,9 @@ export const QueryType = new GraphQLObjectType({
         if (filter.hideSystem) {
           result = result.filter(
             (e) =>
-              !e.id.startsWith("runner-dev.") &&
+              e.id !== "dev" &&
+              !e.id.startsWith("dev.") &&
+              !e.id.includes(".dev.") &&
               !e.id.startsWith("system.events") &&
               !e.id.startsWith("runner.") &&
               !isSystemEventId(e.id)

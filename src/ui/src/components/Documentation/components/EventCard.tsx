@@ -19,6 +19,49 @@ export interface EventCardProps {
   introspector: Introspector;
 }
 
+type SystemEventDocs = {
+  title: string;
+  tone: "info" | "warning";
+  summary: string;
+  bullets: string[];
+};
+
+const SYSTEM_EVENT_DOCS: Record<string, SystemEventDocs> = {
+  "system.events.ready": {
+    title: "Lifecycle: Runtime Ready",
+    tone: "info",
+    summary:
+      "Runner emits this after resource init has finished, the startup graph is locked, and dependency-ordered ready() hooks have completed.",
+    bullets: [
+      "Use it for post-startup orchestration that should begin only after the application is fully online.",
+      "Typical listeners register HTTP routes, start consumers, or kick off bootstrap tasks that depend on initialized resources.",
+      "This is a framework lifecycle event, so having no user emitters is expected.",
+    ],
+  },
+  "system.events.disposing": {
+    title: "Lifecycle: Runtime Disposing",
+    tone: "warning",
+    summary:
+      "Runner emits this when shutdown leaves cooldown and enters the disposing phase, right before in-flight work is drained.",
+    bullets: [
+      "Use it for final shutdown coordination after ingress has been stopped.",
+      "This is the point where fresh admissions are narrowed and the runtime is preparing to tear resources down.",
+      "This is a framework lifecycle event, so having no user emitters is expected.",
+    ],
+  },
+  "system.events.drained": {
+    title: "Lifecycle: Runtime Drained",
+    tone: "info",
+    summary:
+      "Runner emits this after in-flight work has drained and just before reverse-order resource disposal completes.",
+    bullets: [
+      "Use it for final observability, flushing, or shutdown bookkeeping that should happen after active work finishes.",
+      "At this point the runtime is effectively in teardown, not normal operation.",
+      "This is a framework lifecycle event, so having no user emitters is expected.",
+    ],
+  },
+};
+
 export const EventCard: React.FC<EventCardProps> = ({
   event,
   introspector,
@@ -65,6 +108,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   const status = getEventStatus();
   const [isExecuteOpen, setIsExecuteOpen] = React.useState(false);
+  const systemEventDocs = SYSTEM_EVENT_DOCS[event.id] ?? null;
 
   // Listen for execute requests from ElementTable
   React.useEffect(() => {
@@ -120,6 +164,25 @@ export const EventCard: React.FC<EventCardProps> = ({
                 This event is part of the global/system namespace and can be
                 used across the entire application lifecycle.
               </div>
+            </div>
+          )}
+
+          {systemEventDocs && (
+            <div
+              className={`event-card__system-docs event-card__system-docs--${systemEventDocs.tone}`}
+            >
+              <div className="event-card__system-docs__eyebrow">System Event</div>
+              <div className="event-card__system-docs__title">
+                {systemEventDocs.title}
+              </div>
+              <div className="event-card__system-docs__summary">
+                {systemEventDocs.summary}
+              </div>
+              <ul className="event-card__system-docs__list">
+                {systemEventDocs.bullets.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </div>
           )}
 

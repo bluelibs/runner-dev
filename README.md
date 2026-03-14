@@ -677,7 +677,9 @@ All Dev UI modals (code viewer, execute, trace view, log details, stats overlay)
 ```ts
 import { r } from "@bluelibs/runner";
 
-export const userCreated = r.event<{ id: string; name: string }>("userCreated").build();
+export const userCreated = r
+  .event<{ id: string; name: string }>("userCreated")
+  .build();
 ```
 
 - Use it in a task:

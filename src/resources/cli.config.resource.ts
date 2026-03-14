@@ -5,7 +5,7 @@ export interface CliConfigValue {
 }
 
 export const cliConfig = defineResource({
-  id: "runner-dev-resources-cli-config",
+  id: "cli-config",
   meta: {
     title: "CLI Configuration",
     description:

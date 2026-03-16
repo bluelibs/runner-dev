@@ -15,6 +15,7 @@ import {
   computeOrphanEvents,
   computeUnemittedEvents,
   computeUnusedMiddleware,
+  computeOverrideConflicts,
   computeOverriddenElements,
   computeUnusedErrors,
   buildDiagnostics,
@@ -60,6 +61,7 @@ export type SerializedIntrospector = {
   orphanEvents?: { id: string }[];
   unemittedEvents?: { id: string }[];
   unusedMiddleware?: { id: string }[];
+  overrideConflicts?: Array<{ targetId: string; by: string }>;
   overriddenElements?: Array<{
     id: string;
     kind: "TASK" | "HOOK" | "MIDDLEWARE";
@@ -1033,6 +1035,10 @@ export class Introspector {
     return computeUnusedMiddleware(this);
   }
 
+  getOverrideConflicts(): Array<{ targetId: string; by: string }> {
+    return computeOverrideConflicts(this);
+  }
+
   getOverriddenElements(): Array<{
     id: string;
     kind: "TASK" | "HOOK" | "MIDDLEWARE";
@@ -1403,6 +1409,7 @@ export class Introspector {
       orphanEvents: this.getOrphanEvents(),
       unemittedEvents: this.getUnemittedEvents(),
       unusedMiddleware: this.getUnusedMiddleware(),
+      overrideConflicts: this.getOverrideConflicts(),
       overriddenElements: this.getOverriddenElements(),
       unusedErrors: this.getUnusedErrors(),
       rootId:

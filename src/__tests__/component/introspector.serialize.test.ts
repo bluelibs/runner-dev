@@ -1,4 +1,9 @@
-import { defineResource, run } from "@bluelibs/runner";
+import {
+  defineResource,
+  defineResourceMiddleware,
+  r,
+  run,
+} from "@bluelibs/runner";
 import { createDummyApp, dummyAppIds, helloTask } from "../dummy/dummyApp";
 import { introspector as introspectorResource } from "../../resources/introspector.resource";
 import { Introspector } from "../../resources/models/Introspector";
@@ -101,6 +106,82 @@ describe("Introspector serialize/deserialize", () => {
       expect(typeof opts.hasOnUnhandledError).toBe("boolean");
       expect(typeof opts.rootId).toBe("string");
       expect(opts.rootId).toBeTruthy();
+    } finally {
+      await runtime.dispose();
+    }
+  });
+
+  test("serialize preserves override conflicts and derived diagnostics", async () => {
+    let inst: Introspector;
+
+    const conflictingMiddleware = defineResourceMiddleware({
+      id: "mw-conflict",
+      async run({ next }) {
+        return next();
+      },
+    });
+
+    const rootOverride = r.override(conflictingMiddleware, async ({ next }) =>
+      next()
+    );
+
+    const moduleOverride = r.override(conflictingMiddleware, async ({ next }) =>
+      next()
+    );
+
+    const overrideModule = defineResource({
+      id: "probe-override-module",
+      register: [conflictingMiddleware],
+      overrides: [moduleOverride],
+    });
+
+    const probe = defineResource({
+      id: "probe-serialize-override-conflicts",
+      dependencies: { introspector: introspectorResource },
+      async init(_config, { introspector }) {
+        inst = introspector;
+      },
+    });
+
+    const runtime = await run(
+      createDummyApp([introspectorResource, overrideModule, probe], {
+        overrides: [rootOverride],
+      })
+    );
+
+    try {
+      const data = inst!.serialize();
+      const targetId = `${dummyAppIds.resource(
+        "probe-override-module"
+      )}.middleware.resource.mw-conflict`;
+
+      expect(data.overrideConflicts).toEqual([
+        {
+          targetId,
+          by: "dummy-app",
+        },
+        {
+          targetId,
+          by: dummyAppIds.resource("probe-override-module"),
+        },
+      ]);
+
+      expect(
+        data.diagnostics?.filter(
+          (diag) =>
+            diag.code === "OVERRIDE_CONFLICT" && diag.nodeId === targetId
+        )
+      ).toHaveLength(2);
+
+      const clientInst = Introspector.deserialize(data);
+      expect(
+        clientInst
+          .getDiagnostics()
+          .filter(
+            (diag) =>
+              diag.code === "OVERRIDE_CONFLICT" && diag.nodeId === targetId
+          )
+      ).toHaveLength(2);
     } finally {
       await runtime.dispose();
     }

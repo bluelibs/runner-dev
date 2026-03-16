@@ -13,7 +13,7 @@ type MinimalTestContext = {
 
 describe("GraphQL Tag fileContents for node_modules tag", () => {
   test("fetches fileContents for tags.excludeFromGlobalHooks", async () => {
-    let ctx: MinimalTestContext;
+    let ctx: MinimalTestContext | undefined;
 
     const taggedEvt = defineEvent({
       id: "probe-taggedWithGlobal",
@@ -40,6 +40,10 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
     });
 
     await run(app);
+    expect(ctx).toBeDefined();
+    if (!ctx) {
+      throw new Error("Expected GraphQL context to be initialized");
+    }
 
     const q = `
       query($id: ID!){
@@ -60,17 +64,30 @@ describe("GraphQL Tag fileContents for node_modules tag", () => {
     });
     expect(result.errors).toBeUndefined();
 
-    const tag = (result.data as { tag?: Record<string, unknown> } | undefined)
-      ?.tag;
+    const tag = (
+      result.data as
+        | {
+            tag?: {
+              id?: string;
+              filePath?: string;
+              fileContents?: string;
+            };
+          }
+        | undefined
+    )?.tag;
+    expect(tag).toBeDefined();
+    if (!tag) {
+      throw new Error("Expected tag query result");
+    }
+
     expect(String(tag?.id)).toMatch(/(^|\.)excludeFromGlobalHooks$/);
-    expect(typeof tag?.filePath).toBe("string");
-    const isNodeModules = tag?.filePath.includes("node_modules:");
-    const isLocalLink = tag?.filePath.includes("runner");
+    expect(typeof tag.filePath).toBe("string");
+    const filePath = tag.filePath ?? "";
+    const isNodeModules = filePath.includes("node_modules:");
+    const isLocalLink = filePath.includes("runner");
     expect(isNodeModules || isLocalLink).toBe(true);
     // Should resolve to the dist globals/globalTags.js file
-    expect(tag?.fileContents && typeof tag.fileContents === "string").toBe(
-      true
-    );
+    expect(typeof tag.fileContents).toBe("string");
     expect(tag.fileContents).toContain("Exclude Event From Global Hooks");
   });
 });

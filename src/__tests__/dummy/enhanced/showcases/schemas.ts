@@ -1,121 +1,195 @@
-import { Match, type MatchPattern } from "@bluelibs/runner";
+import { Match, type CheckSchemaLike } from "@bluelibs/runner";
 
-function defineCompiledSchema<TShape extends Record<string, unknown>>(
-  shape: TShape
-) {
-  return Match.compile(Match.ObjectIncluding(shape));
-}
+const regionPattern = Match.OneOf("US", "EU", "APAC");
+const positiveNumberPattern = Match.Range({ min: 0, inclusive: false });
+const nonNegativeIntegerPattern = Match.Range({ min: 0, integer: true });
 
-export const regionPattern: MatchPattern = Match.OneOf("US", "EU", "APAC");
+export const InterceptorInputSchema = Match.compile(
+  Match.ObjectIncluding({
+    value: Number,
+  })
+) as CheckSchemaLike<{ value: number }>;
 
-export const positiveNumberPattern: MatchPattern = Match.Where(
-  (value): value is number =>
-    typeof value === "number" && Number.isFinite(value) && value > 0
-);
+export const InterceptorResultSchema = Match.compile(
+  Match.ObjectIncluding({
+    value: Number,
+    intercepted: Boolean,
+  })
+) as CheckSchemaLike<{
+  value: number;
+  intercepted: boolean;
+}>;
 
-export const nonNegativeIntegerPattern: MatchPattern = Match.Where(
-  (value): value is number =>
-    typeof value === "number" && Number.isInteger(value) && value >= 0
-);
+export const FeaturedTagConfigSchema = Match.compile(
+  Match.ObjectIncluding({
+    source: Match.OneOf("catalog", "search"),
+  })
+) as CheckSchemaLike<{
+  source: "catalog" | "search";
+}>;
 
-export const InterceptorInputSchema = defineCompiledSchema({
-  value: Number,
-});
+export const CatalogSearchInputSchema = Match.compile(
+  Match.ObjectIncluding({
+    query: Match.Optional(String),
+  })
+) as CheckSchemaLike<{
+  query?: string;
+}>;
 
-export const InterceptorResultSchema = defineCompiledSchema({
-  value: Number,
-  intercepted: Boolean,
-});
+export const CatalogSearchResultSchema = Match.compile(
+  Match.ObjectIncluding({
+    query: String,
+    total: nonNegativeIntegerPattern,
+  })
+) as CheckSchemaLike<{
+  query: string;
+  total: number;
+}>;
 
-export const FeaturedTagConfigSchema = defineCompiledSchema({
-  source: Match.OneOf("catalog", "search"),
-});
+export const FeaturedInspectorResultSchema = Match.compile(
+  Match.ObjectIncluding({
+    taggedTaskIds: Match.ArrayOf(String),
+    taggedResourceIds: Match.ArrayOf(String),
+  })
+) as CheckSchemaLike<{
+  taggedTaskIds: string[];
+  taggedResourceIds: string[];
+}>;
 
-export const CatalogSearchInputSchema = defineCompiledSchema({
-  query: Match.Optional(String),
-});
+export const RpcPricingPreviewInputSchema = Match.compile(
+  Match.ObjectIncluding({
+    sku: String,
+    basePrice: positiveNumberPattern,
+    region: Match.Optional(regionPattern),
+  })
+) as CheckSchemaLike<{
+  sku: string;
+  basePrice: number;
+  region?: "US" | "EU" | "APAC";
+}>;
 
-export const CatalogSearchResultSchema = defineCompiledSchema({
-  query: String,
-  total: nonNegativeIntegerPattern,
-});
+export const RpcPricingPreviewResultSchema = Match.compile(
+  Match.ObjectIncluding({
+    sku: String,
+    adjustedPrice: positiveNumberPattern,
+    source: Match.OneOf("rpc-lane-task"),
+  })
+) as CheckSchemaLike<{
+  sku: string;
+  adjustedPrice: number;
+  source: "rpc-lane-task";
+}>;
 
-export const FeaturedInspectorResultSchema = defineCompiledSchema({
-  taggedTaskIds: Match.ArrayOf(String),
-  taggedResourceIds: Match.ArrayOf(String),
-});
+export const RpcCatalogSyncInputSchema = Match.compile(
+  Match.ObjectIncluding({
+    supplierId: String,
+    changedSkus: Match.NonEmptyArray(String),
+  })
+) as CheckSchemaLike<{
+  supplierId: string;
+  changedSkus: string[];
+}>;
 
-export const RpcPricingPreviewInputSchema = defineCompiledSchema({
-  sku: String,
-  basePrice: positiveNumberPattern,
-  region: Match.Optional(regionPattern),
-});
+export const RpcCatalogSyncResultSchema = Match.compile(
+  Match.ObjectIncluding({
+    supplierId: String,
+    syncedCount: nonNegativeIntegerPattern,
+    emittedEvent: String,
+  })
+) as CheckSchemaLike<{
+  supplierId: string;
+  syncedCount: number;
+  emittedEvent: string;
+}>;
 
-export const RpcPricingPreviewResultSchema = defineCompiledSchema({
-  sku: String,
-  adjustedPrice: positiveNumberPattern,
-  source: Match.OneOf("rpc-lane-task"),
-});
+export const LaneCatalogUpdatedPayloadSchema = Match.compile(
+  Match.ObjectIncluding({
+    supplierId: String,
+    updatedAt: Date,
+  })
+) as CheckSchemaLike<{
+  supplierId: string;
+  updatedAt: Date;
+}>;
 
-export const RpcCatalogSyncInputSchema = defineCompiledSchema({
-  supplierId: String,
-  changedSkus: Match.NonEmptyArray(String),
-});
+export const LaneCatalogProjectionUpdatedPayloadSchema = Match.compile(
+  Match.ObjectIncluding({
+    supplierId: String,
+    projectedAt: Date,
+  })
+) as CheckSchemaLike<{
+  supplierId: string;
+  projectedAt: Date;
+}>;
 
-export const RpcCatalogSyncResultSchema = defineCompiledSchema({
-  supplierId: String,
-  syncedCount: nonNegativeIntegerPattern,
-  emittedEvent: String,
-});
+export const DurableOrderApprovalInputSchema = Match.compile(
+  Match.ObjectIncluding({
+    orderId: String,
+    amount: positiveNumberPattern,
+    region: Match.OneOf("US", "EU", "APAC"),
+  })
+) as CheckSchemaLike<{
+  orderId: string;
+  amount: number;
+  region: "US" | "EU" | "APAC";
+}>;
 
-export const LaneCatalogUpdatedPayloadSchema = defineCompiledSchema({
-  supplierId: String,
-  updatedAt: Date,
-});
+export const DurableOrderApprovalResultSchema = Match.compile(
+  Match.ObjectIncluding({
+    orderId: String,
+    status: Match.OneOf("approved"),
+    riskScore: Match.Where(
+      (value): value is number =>
+        typeof value === "number" &&
+        Number.isFinite(value) &&
+        value >= 0 &&
+        value <= 100
+    ),
+    approvalReference: String,
+    cooldownMs: nonNegativeIntegerPattern,
+  })
+) as CheckSchemaLike<{
+  orderId: string;
+  status: "approved";
+  riskScore: number;
+  approvalReference: string;
+  cooldownMs: number;
+}>;
 
-export const LaneCatalogProjectionUpdatedPayloadSchema = defineCompiledSchema({
-  supplierId: String,
-  projectedAt: Date,
-});
+export const DurableExecutionIdResultSchema = Match.compile(
+  Match.ObjectIncluding({
+    executionId: String,
+  })
+) as CheckSchemaLike<{
+  executionId: string;
+}>;
 
-export const DurableOrderApprovalInputSchema = defineCompiledSchema({
-  orderId: String,
-  amount: positiveNumberPattern,
-  region: Match.OneOf("US", "EU", "APAC"),
-});
+export const SupportProbeInputSchema = Match.compile(
+  Match.ObjectIncluding({
+    fail: Match.Optional(Boolean),
+    requestId: Match.Optional(String),
+  })
+) as CheckSchemaLike<{
+  fail?: boolean;
+  requestId?: string;
+}>;
 
-export const DurableOrderApprovalResultSchema = defineCompiledSchema({
-  orderId: String,
-  status: Match.OneOf("approved"),
-  riskScore: Match.Where(
-    (value): value is number =>
-      typeof value === "number" &&
-      Number.isFinite(value) &&
-      value >= 0 &&
-      value <= 100
-  ),
-  approvalReference: String,
-  cooldownMs: nonNegativeIntegerPattern,
-});
+export const SupportProbeResultSchema = Match.compile(
+  Match.ObjectIncluding({
+    ok: Boolean,
+    requestId: String,
+  })
+) as CheckSchemaLike<{
+  ok: boolean;
+  requestId: string;
+}>;
 
-export const DurableExecutionIdResultSchema = defineCompiledSchema({
-  executionId: String,
-});
-
-export const SupportProbeInputSchema = defineCompiledSchema({
-  fail: Match.Optional(Boolean),
-  requestId: Match.Optional(String),
-});
-
-export const SupportProbeResultSchema = defineCompiledSchema({
-  ok: Boolean,
-  requestId: String,
-});
-
-export const InvalidInputErrorDataSchema = defineCompiledSchema({
-  field: String,
-  message: String,
-});
+export const InvalidInputErrorDataSchema = Match.compile(
+  Match.ObjectIncluding({
+    field: String,
+    message: String,
+  })
+) as CheckSchemaLike<InvalidInputErrorData>;
 
 export type InvalidInputErrorData = {
   field: string;

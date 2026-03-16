@@ -81,6 +81,41 @@ export function computeUnusedMiddleware(
     .map((m) => ({ id: m.id }));
 }
 
+export function computeOverrideConflicts(
+  introspector: Introspector
+): Array<{ targetId: string; by: string }> {
+  const resources = introspector.getResources();
+  const targetToBy = new Map<string, Set<string>>();
+
+  for (const resource of resources) {
+    for (const targetId of resource.overrides ?? []) {
+      if (!targetToBy.has(targetId)) {
+        targetToBy.set(targetId, new Set());
+      }
+
+      targetToBy.get(targetId)!.add(resource.id);
+    }
+  }
+
+  const result: Array<{ targetId: string; by: string }> = [];
+
+  for (const [targetId, owners] of targetToBy.entries()) {
+    if (owners.size < 2) continue;
+
+    for (const by of owners) {
+      result.push({ targetId, by });
+    }
+  }
+
+  result.sort((a, b) =>
+    a.targetId === b.targetId
+      ? a.by.localeCompare(b.by)
+      : a.targetId.localeCompare(b.targetId)
+  );
+
+  return result;
+}
+
 export function computeOverriddenElements(introspector: Introspector): Array<{
   id: string;
   kind: "TASK" | "HOOK" | "MIDDLEWARE";
@@ -186,6 +221,16 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
       message: `Middleware is defined but not used: ${m.id}`,
       nodeId: m.id,
       nodeKind: "MIDDLEWARE",
+    });
+  }
+
+  for (const conflict of computeOverrideConflicts(introspector)) {
+    diags.push({
+      severity: "error",
+      code: "OVERRIDE_CONFLICT",
+      message: `Override conflict on ${conflict.targetId} by ${conflict.by}`,
+      nodeId: conflict.targetId,
+      nodeKind: "RESOURCE",
     });
   }
 

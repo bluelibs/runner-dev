@@ -1,5 +1,9 @@
 import { r, run } from "@bluelibs/runner";
-import { rpcLanesResource, tags } from "@bluelibs/runner/node";
+import {
+  rpcLanesResource,
+  tags,
+  type RpcLanesResourceConfig,
+} from "@bluelibs/runner/node";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
 import { RPC_LANES_RESOURCE_ID } from "../../utils/lane-resources";
@@ -22,12 +26,15 @@ describe("Lane Introspection", () => {
     laneId: string,
     orderingKey: string,
     metadata: Record<string, unknown>
-  ) =>
-    eventLaneTag.with({
+  ) => {
+    const config = {
       lane: { id: laneId },
       orderingKey,
       metadata,
-    });
+    };
+
+    return eventLaneTag.with(config);
+  };
 
   const createRpcCommunicatorResource = (id: string) =>
     r
@@ -46,7 +53,7 @@ describe("Lane Introspection", () => {
     "test-communicators-catalog-events"
   );
 
-  const rpcLanesConfig = {
+  const rpcLanesConfig: RpcLanesResourceConfig = {
     mode: "network",
     profile: "catalog",
     topology: {

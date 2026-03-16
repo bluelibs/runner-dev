@@ -1,6 +1,34 @@
-import { resources, defineResource } from "@bluelibs/runner";
+import { resources, defineResource, type Store } from "@bluelibs/runner";
+import { graphqlQueryCliTask } from "./graphql.query.cli.task";
+import { graphqlQueryTask } from "./graphql.query.task";
 import { live } from "./live.resource";
 import { deriveParentAndRoot, withTaskRunContext } from "./telemetry.chain";
+
+const RUNNER_DEV_INTERNAL_TASK_DEFINITIONS = [
+  graphqlQueryTask,
+  graphqlQueryCliTask,
+];
+
+function getRunnerDevInternalTaskIds(store: Store): Set<string> {
+  const taskIds = new Set<string>();
+
+  for (const definition of RUNNER_DEV_INTERNAL_TASK_DEFINITIONS) {
+    if (!store.hasDefinition(definition)) {
+      continue;
+    }
+
+    taskIds.add(store.findIdByDefinition(definition));
+  }
+
+  return taskIds;
+}
+
+function isRunnerDevInternalNodeId(
+  nodeId: string,
+  runnerDevInternalTaskIds: ReadonlySet<string>
+): boolean {
+  return runnerDevInternalTaskIds.has(nodeId);
+}
 
 const overrideEventManagerEmittor = defineResource({
   id: "overrideEventManagerEmittor",
@@ -69,14 +97,17 @@ const taskInterceptors = defineResource({
   },
   dependencies: {
     live,
+    store: resources.store,
     taskRunner: resources.taskRunner,
   },
-  async init(_, { live, taskRunner }) {
+  async init(_, { live, store, taskRunner }) {
+    const runnerDevInternalTaskIds = getRunnerDevInternalTaskIds(store);
+
     taskRunner.intercept(async (next, input) => {
       const id = String(input.task.definition.id);
 
       // Skip internal dev tools nodes to avoid self-instrumentation
-      if (id === "dev" || id.startsWith("dev.") || id.includes(".dev.")) {
+      if (isRunnerDevInternalNodeId(id, runnerDevInternalTaskIds)) {
         return next(input);
       }
 

@@ -2,11 +2,16 @@ import {
   defineResource,
   run,
   defineHook,
+  defineTask,
   resources,
   events,
 } from "@bluelibs/runner";
 import { createDummyApp, dummyAppIds, evtHello } from "../dummy/dummyApp";
+import { graphql as graphqlAccumulator } from "../../resources/graphql-accumulator.resource";
+import { graphqlQueryTask } from "../../resources/graphql.query.task";
+import { introspector } from "../../resources/introspector.resource";
 import { live } from "../../resources/live.resource";
+import { swapManager } from "../../resources/swap.resource";
 import { telemetry } from "../../resources/telemetry.resource";
 
 describe("live resource (integration)", () => {
@@ -128,5 +133,66 @@ describe("live resource (integration)", () => {
     // by checking there's a finite number)
     expect(logsBefore).toBeGreaterThan(0);
     expect(logsBefore).toBeLessThan(1000); // sanity
+  });
+
+  test("does not record runner-dev internal tasks in live runs", async () => {
+    const userServerTask = defineTask({
+      id: "server",
+      async run() {
+        return "ok" as const;
+      },
+    });
+
+    const trigger = defineHook({
+      id: "probe-live-internal-skip-trigger",
+      on: events.ready,
+      order: 1,
+      dependencies: {
+        userServerTask,
+        graphqlQuery: graphqlQueryTask,
+      },
+      async run(_event, { userServerTask, graphqlQuery }) {
+        await userServerTask();
+
+        const result = await graphqlQuery({
+          query: "query InternalSkip { root { id } }",
+        });
+
+        expect(result.ok).toBe(true);
+      },
+    });
+
+    const probe = defineResource({
+      id: "probe-live-internal-skip",
+      register: [userServerTask, trigger],
+    });
+
+    const runtime = await run(
+      createDummyApp([
+        live,
+        introspector,
+        telemetry,
+        swapManager,
+        graphqlAccumulator,
+        graphqlQueryTask,
+        probe,
+      ])
+    );
+
+    try {
+      const containerLive = await runtime.getResourceValue(live);
+      const runNodeIds = containerLive
+        .getRuns(0)
+        .map((record) => record.nodeId);
+
+      expect(
+        runNodeIds.some((nodeId) => nodeId.endsWith(".tasks.server"))
+      ).toBe(true);
+      expect(
+        runNodeIds.some((nodeId) => nodeId.endsWith(".tasks.graphqlQuery"))
+      ).toBe(false);
+    } finally {
+      await runtime.dispose();
+    }
   });
 });

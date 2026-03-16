@@ -110,7 +110,7 @@ export const runDurableOrderApprovalTask = r
   .meta({
     title: "Run Durable Order Approval Workflow",
     description:
-      "Helper task to execute durable workflow via durable.execute(...).",
+      "Helper task to execute durable workflow via durable.startAndWait(...).",
   })
   .dependencies({
     durable: showcaseDurableResource,
@@ -118,9 +118,10 @@ export const runDurableOrderApprovalTask = r
   })
   .inputSchema(DurableOrderApprovalInputSchema)
   .resultSchema(DurableOrderApprovalResultSchema)
-  .run(async (input, { durable }) =>
-    durable.execute(durableOrderApprovalTask, input)
-  )
+  .run(async (input, { durable }) => {
+    const result = await durable.startAndWait(durableOrderApprovalTask, input);
+    return result.data;
+  })
   .build();
 
 export const startDurableOrderApprovalTask = r
@@ -137,10 +138,7 @@ export const startDurableOrderApprovalTask = r
   .inputSchema(DurableOrderApprovalInputSchema)
   .resultSchema(DurableExecutionIdResultSchema)
   .run(async (input, { durable }) => {
-    const executionId = await durable.startExecution(
-      durableOrderApprovalTask,
-      input
-    );
+    const executionId = await durable.start(durableOrderApprovalTask, input);
     return { executionId };
   })
   .build();

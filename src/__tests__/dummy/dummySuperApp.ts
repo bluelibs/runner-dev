@@ -8,7 +8,6 @@ import {
   defineTag,
 } from "@bluelibs/runner";
 import {
-  defineSchema as createSchema,
   finiteNumberPattern as finiteNumber,
   integerNumberPattern as integerNumber,
   minimumLengthPattern as minimumLength,
@@ -24,9 +23,11 @@ import {
 export const performanceTag = defineTag<{ warnAboveMs: number }>({
   id: "app-tags-performance",
   meta: { title: "xxx yyy" },
-  configSchema: createSchema({
-    warnAboveMs: Match.PositiveInteger,
-  }),
+  configSchema: Match.compile(
+    Match.ObjectIncluding({
+      warnAboveMs: Match.PositiveInteger,
+    })
+  ),
 });
 
 export const securityTag = defineTag<{
@@ -34,12 +35,11 @@ export const securityTag = defineTag<{
   roles?: string[];
 }>({
   id: "app-tags-security",
-  configSchema: createSchema(
-    {
+  configSchema: Match.compile(
+    Match.ObjectStrict({
       requiresAuth: Boolean,
       roles: Match.Optional([String]),
-    },
-    { exact: true }
+    })
   ),
 });
 
@@ -49,13 +49,13 @@ export const domainTag = defineTag<{ domain: string }>({
     title: "Domain",
     description: "Tags related to the domain layer",
   },
-  configSchema: createSchema({ domain: String }),
+  configSchema: Match.compile(Match.ObjectIncluding({ domain: String })),
 });
 
 export const apiTag = defineTag<{ method: string; path: string }>({
   id: "app-tags-api",
-  configSchema: createSchema(
-    {
+  configSchema: Match.compile(
+    Match.ObjectStrict({
       method: Match.OneOf(
         "GET",
         "POST",
@@ -66,8 +66,7 @@ export const apiTag = defineTag<{ method: string; path: string }>({
         "HEAD"
       ),
       path: String,
-    },
-    { exact: true }
+    })
   ),
 });
 
@@ -81,12 +80,11 @@ export const validationMiddleware = defineTaskMiddleware<{
     title: "Input Validation Middleware",
     description: "Validates task inputs and results using schemas",
   },
-  configSchema: createSchema(
-    {
+  configSchema: Match.compile(
+    Match.ObjectStrict({
       enabled: Match.Optional(Boolean),
       mode: Match.Optional(Match.OneOf("loose", "strict")),
-    },
-    { exact: true }
+    })
   ),
   async run({ task, next }, _evt, _config) {
     // In a real app, you'd validate against task.inputSchema
@@ -102,11 +100,10 @@ export const loggingMiddleware = defineTaskMiddleware<{
     title: "Activity Logging Middleware",
     description: "Logs all task executions with performance metrics",
   },
-  configSchema: createSchema(
-    {
+  configSchema: Match.compile(
+    Match.ObjectStrict({
       logLevel: Match.Optional(Match.OneOf("debug", "info", "warn", "error")),
-    },
-    { exact: true }
+    })
   ),
   async run({ task, next }, _evt, _config) {
     const start = Date.now();
@@ -124,7 +121,7 @@ export const authMiddleware = defineTaskMiddleware<{ required: boolean }>({
     title: "Authentication Middleware",
     description: "Validates user authentication and permissions",
   },
-  configSchema: createSchema({ required: Boolean }, { exact: true }),
+  configSchema: Match.compile(Match.ObjectStrict({ required: Boolean })),
   async run({ task, next }, _, config) {
     if (config.required) {
       // In a real app, check for valid session/token
@@ -145,13 +142,12 @@ export const userRegisteredEvent = defineEvent<{
   registrationMethod: string;
 }>({
   id: "app-users-events-registered",
-  payloadSchema: createSchema(
-    {
+  payloadSchema: Match.compile(
+    Match.ObjectStrict({
       userId: String,
       email: Match.Email,
       registrationMethod: String,
-    },
-    { exact: true }
+    })
   ),
 });
 
@@ -161,13 +157,12 @@ export const userLoggedInEvent = defineEvent<{
   ipAddress: string;
 }>({
   id: "app-users-events-loggedIn",
-  payloadSchema: createSchema(
-    {
+  payloadSchema: Match.compile(
+    Match.ObjectStrict({
       userId: String,
       loginMethod: String,
       ipAddress: String,
-    },
-    { exact: true }
+    })
   ),
 });
 
@@ -177,13 +172,12 @@ export const passwordResetRequestedEvent = defineEvent<{
   resetToken: string;
 }>({
   id: "app-users-events-passwordResetRequested",
-  payloadSchema: createSchema(
-    {
+  payloadSchema: Match.compile(
+    Match.ObjectStrict({
       userId: String,
       email: Match.Email,
       resetToken: String,
-    },
-    { exact: true }
+    })
   ),
 });
 
@@ -209,10 +203,12 @@ export const sessionStoreResource = defineResource({
     title: "Session Store",
     description: "Redis-based session storage",
   },
-  configSchema: createSchema({
-    ttlSeconds: Match.PositiveInteger,
-    redisUrl: Match.URL,
-  }),
+  configSchema: Match.compile(
+    Match.ObjectIncluding({
+      ttlSeconds: Match.PositiveInteger,
+      redisUrl: Match.URL,
+    })
+  ),
   tags: [domainTag.with({ domain: "users" })],
   async init(config: { ttlSeconds: number; redisUrl: string }) {
     return {
@@ -244,19 +240,20 @@ export const registerUserTask = defineTask({
     apiTag.with({ method: "POST", path: "/api/users/register" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: createSchema({
-    email: Match.Email,
-    password: minimumLength(8),
-    firstName: String,
-    lastName: String,
-  }),
-  resultSchema: createSchema(
-    {
+  inputSchema: Match.compile(
+    Match.ObjectIncluding({
+      email: Match.Email,
+      password: minimumLength(8),
+      firstName: String,
+      lastName: String,
+    })
+  ),
+  resultSchema: Match.compile(
+    Match.ObjectStrict({
       userId: String,
       email: Match.Email,
       verificationToken: String,
-    },
-    { exact: true }
+    })
   ),
   async run(input: any, { emitUserRegistered }) {
     // Simulate user creation
@@ -303,18 +300,19 @@ export const authenticateUserTask = defineTask({
     apiTag.with({ method: "POST", path: "/api/users/login" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: createSchema({
-    email: Match.Email,
-    password: String,
-    ipAddress: String,
-  }),
-  resultSchema: createSchema(
-    {
+  inputSchema: Match.compile(
+    Match.ObjectIncluding({
+      email: Match.Email,
+      password: String,
+      ipAddress: String,
+    })
+  ),
+  resultSchema: Match.compile(
+    Match.ObjectStrict({
       userId: String,
       sessionToken: String,
       expiresAt: Date,
-    },
-    { exact: true }
+    })
   ),
   async run(input: any, { emitUserLoggedIn }) {
     // Simulate authentication
@@ -357,13 +355,17 @@ export const requestPasswordResetTask = defineTask({
     apiTag.with({ method: "POST", path: "/api/users/forgot-password" }),
     securityTag.with({ requiresAuth: false }),
   ],
-  inputSchema: createSchema({
-    email: Match.Email,
-  }),
-  resultSchema: createSchema({
-    success: Boolean,
-    resetToken: String,
-  }),
+  inputSchema: Match.compile(
+    Match.ObjectIncluding({
+      email: Match.Email,
+    })
+  ),
+  resultSchema: Match.compile(
+    Match.ObjectIncluding({
+      success: Boolean,
+      resetToken: String,
+    })
+  ),
   async run(input: any, { emitPasswordResetRequested }) {
     const resetToken = `reset_${Math.random().toString(36).substr(2, 9)}`;
     const userId = `user_lookup_${input.email}`;
@@ -430,14 +432,13 @@ export const productCreatedEvent = defineEvent<{
   price: number;
 }>({
   id: "app-products-events-created",
-  payloadSchema: createSchema(
-    {
+  payloadSchema: Match.compile(
+    Match.ObjectStrict({
       productId: String,
       name: String,
       category: String,
       price: positiveNumber,
-    },
-    { exact: true }
+    })
   ),
 });
 
@@ -448,14 +449,13 @@ export const inventoryUpdatedEvent = defineEvent<{
   changeReason: string;
 }>({
   id: "app-products-events-inventoryUpdated",
-  payloadSchema: createSchema(
-    {
+  payloadSchema: Match.compile(
+    Match.ObjectStrict({
       productId: String,
       oldStock: integerNumber,
       newStock: integerNumber,
       changeReason: String,
-    },
-    { exact: true }
+    })
   ),
 });
 
@@ -465,13 +465,12 @@ export const productOutOfStockEvent = defineEvent<{
   waitingListCount: number;
 }>({
   id: "app-products-events-outOfStock",
-  payloadSchema: createSchema(
-    {
+  payloadSchema: Match.compile(
+    Match.ObjectStrict({
       productId: String,
       name: String,
       waitingListCount: integerNumber,
-    },
-    { exact: true }
+    })
   ),
 });
 
@@ -497,10 +496,12 @@ export const inventoryCacheResource = defineResource({
     title: "Inventory Cache",
     description: "Redis cache for inventory levels",
   },
-  configSchema: createSchema({
-    ttlSeconds: Match.PositiveInteger,
-    redisUrl: Match.URL,
-  }),
+  configSchema: Match.compile(
+    Match.ObjectIncluding({
+      ttlSeconds: Match.PositiveInteger,
+      redisUrl: Match.URL,
+    })
+  ),
   tags: [domainTag.with({ domain: "products" })],
   async init(config: { ttlSeconds: number; redisUrl: string }) {
     return {
@@ -532,22 +533,23 @@ export const createProductTask = defineTask({
     apiTag.with({ method: "POST", path: "/api/products" }),
     securityTag.with({ requiresAuth: true, roles: ["admin", "merchant"] }),
   ],
-  inputSchema: createSchema({
-    name: Match.NonEmptyString,
-    description: String,
-    category: String,
-    price: positiveNumber,
-    initialStock: nonNegativeInteger,
-    sku: String,
-  }),
-  resultSchema: createSchema(
-    {
+  inputSchema: Match.compile(
+    Match.ObjectIncluding({
+      name: Match.NonEmptyString,
+      description: String,
+      category: String,
+      price: positiveNumber,
+      initialStock: nonNegativeInteger,
+      sku: String,
+    })
+  ),
+  resultSchema: Match.compile(
+    Match.ObjectStrict({
       productId: String,
       name: String,
       category: String,
       price: finiteNumber,
-    },
-    { exact: true }
+    })
   ),
   async run(input: any, { emitProductCreated }) {
     const productId = `product_${Date.now()}`;
@@ -592,19 +594,20 @@ export const updateInventoryTask = defineTask({
     apiTag.with({ method: "PATCH", path: "/api/products/{id}/inventory" }),
     securityTag.with({ requiresAuth: true, roles: ["admin", "merchant"] }),
   ],
-  inputSchema: createSchema({
-    productId: String,
-    newStock: nonNegativeInteger,
-    changeReason: String,
-  }),
-  resultSchema: createSchema(
-    {
+  inputSchema: Match.compile(
+    Match.ObjectIncluding({
+      productId: String,
+      newStock: nonNegativeInteger,
+      changeReason: String,
+    })
+  ),
+  resultSchema: Match.compile(
+    Match.ObjectStrict({
       productId: String,
       oldStock: finiteNumber,
       newStock: finiteNumber,
       isOutOfStock: Boolean,
-    },
-    { exact: true }
+    })
   ),
   async run(input: any, { emitInventoryUpdated, emitOutOfStock }) {
     const oldStock = Math.floor(Math.random() * 100); // Simulate DB lookup
@@ -649,18 +652,20 @@ export const orderCreatedEvent = defineEvent<{
   items: Array<{ productId: string; quantity: number; price: number }>;
 }>({
   id: "app-orders-events-created",
-  payloadSchema: createSchema({
-    orderId: String,
-    userId: String,
-    totalAmount: positiveNumber,
-    items: [
-      createSchema({
-        productId: String,
-        quantity: Match.PositiveInteger,
-        price: positiveNumber,
-      }),
-    ],
-  }),
+  payloadSchema: Match.compile(
+    Match.ObjectIncluding({
+      orderId: String,
+      userId: String,
+      totalAmount: positiveNumber,
+      items: [
+        {
+          productId: String,
+          quantity: Match.PositiveInteger,
+          price: positiveNumber,
+        },
+      ],
+    })
+  ),
 });
 
 export const orderPaidEvent = defineEvent<{
@@ -670,12 +675,14 @@ export const orderPaidEvent = defineEvent<{
   paymentMethod: string;
 }>({
   id: "app-orders-events-paid",
-  payloadSchema: createSchema({
-    orderId: String,
-    paymentId: String,
-    amount: positiveNumber,
-    paymentMethod: String,
-  }),
+  payloadSchema: Match.compile(
+    Match.ObjectIncluding({
+      orderId: String,
+      paymentId: String,
+      amount: positiveNumber,
+      paymentMethod: String,
+    })
+  ),
 });
 
 export const orderShippedEvent = defineEvent<{
@@ -685,12 +692,14 @@ export const orderShippedEvent = defineEvent<{
   estimatedDelivery: Date;
 }>({
   id: "app-orders-events-shipped",
-  payloadSchema: createSchema({
-    orderId: String,
-    trackingNumber: String,
-    carrier: String,
-    estimatedDelivery: Date,
-  }),
+  payloadSchema: Match.compile(
+    Match.ObjectIncluding({
+      orderId: String,
+      trackingNumber: String,
+      carrier: String,
+      estimatedDelivery: Date,
+    })
+  ),
 });
 
 // Resources
@@ -731,20 +740,24 @@ export const createOrderTask = defineTask({
     apiTag.with({ method: "POST", path: "/api/orders" }),
     securityTag.with({ requiresAuth: true }),
   ],
-  inputSchema: createSchema({
-    userId: String,
-    items: [
-      createSchema({
-        productId: String,
-        quantity: Match.PositiveInteger,
-      }),
-    ],
-  }),
-  resultSchema: createSchema({
-    orderId: String,
-    totalAmount: finiteNumber,
-    status: String,
-  }),
+  inputSchema: Match.compile(
+    Match.ObjectIncluding({
+      userId: String,
+      items: [
+        {
+          productId: String,
+          quantity: Match.PositiveInteger,
+        },
+      ],
+    })
+  ),
+  resultSchema: Match.compile(
+    Match.ObjectIncluding({
+      orderId: String,
+      totalAmount: finiteNumber,
+      status: String,
+    })
+  ),
   async run(input: any, { emitOrderCreated }) {
     const orderId = `order_${Date.now()}`;
     const totalAmount = input.items.reduce(
@@ -793,19 +806,23 @@ export const processPaymentTask = defineTask({
     apiTag.with({ method: "POST", path: "/api/orders/{id}/payment" }),
     securityTag.with({ requiresAuth: true }),
   ],
-  inputSchema: createSchema({
-    orderId: String,
-    paymentMethod: String,
-    paymentDetails: createSchema({
-      cardToken: String,
-      amount: positiveNumber,
-    }),
-  }),
-  resultSchema: createSchema({
-    paymentId: String,
-    status: String,
-    orderId: String,
-  }),
+  inputSchema: Match.compile(
+    Match.ObjectIncluding({
+      orderId: String,
+      paymentMethod: String,
+      paymentDetails: {
+        cardToken: String,
+        amount: positiveNumber,
+      },
+    })
+  ),
+  resultSchema: Match.compile(
+    Match.ObjectIncluding({
+      paymentId: String,
+      status: String,
+      orderId: String,
+    })
+  ),
   async run(input: any, { emitOrderPaid }) {
     const paymentId = `payment_${Date.now()}`;
 
@@ -841,12 +858,14 @@ export const emailSentEvent = defineEvent<{
   metadata: Record<string, any>;
 }>({
   id: "app-notifications-events-emailSent",
-  payloadSchema: createSchema({
-    emailId: String,
-    to: Match.Email,
-    template: String,
-    metadata: Match.MapOf(Match.Any),
-  }),
+  payloadSchema: Match.compile(
+    Match.ObjectIncluding({
+      emailId: String,
+      to: Match.Email,
+      template: String,
+      metadata: Match.MapOf(Match.Any),
+    })
+  ),
 });
 
 export const webhookDeliveredEvent = defineEvent<{
@@ -856,12 +875,14 @@ export const webhookDeliveredEvent = defineEvent<{
   statusCode: number;
 }>({
   id: "app-notifications-events-webhookDelivered",
-  payloadSchema: createSchema({
-    webhookId: String,
-    url: Match.URL,
-    payload: Match.MapOf(Match.Any),
-    statusCode: integerNumber,
-  }),
+  payloadSchema: Match.compile(
+    Match.ObjectIncluding({
+      webhookId: String,
+      url: Match.URL,
+      payload: Match.MapOf(Match.Any),
+      statusCode: integerNumber,
+    })
+  ),
 });
 
 // Resources
@@ -871,11 +892,13 @@ export const emailServiceResource = defineResource({
     title: "Email Service",
     description: "SendGrid email delivery service",
   },
-  configSchema: createSchema({
-    apiKey: String,
-    fromEmail: Match.Email,
-    fromName: String,
-  }),
+  configSchema: Match.compile(
+    Match.ObjectIncluding({
+      apiKey: String,
+      fromEmail: Match.Email,
+      fromName: String,
+    })
+  ),
   tags: [domainTag.with({ domain: "notifications" })],
   async init(config: { apiKey: string; fromEmail: string; fromName: string }) {
     return {
@@ -903,15 +926,19 @@ export const sendWelcomeEmailTask = defineTask({
     domainTag.with({ domain: "notifications" }),
     apiTag.with({ method: "POST", path: "/api/notifications/welcome-email" }),
   ],
-  inputSchema: createSchema({
-    userId: String,
-    email: Match.Email,
-    firstName: String,
-  }),
-  resultSchema: createSchema({
-    emailId: String,
-    sent: Boolean,
-  }),
+  inputSchema: Match.compile(
+    Match.ObjectIncluding({
+      userId: String,
+      email: Match.Email,
+      firstName: String,
+    })
+  ),
+  resultSchema: Match.compile(
+    Match.ObjectIncluding({
+      emailId: String,
+      sent: Boolean,
+    })
+  ),
   async run(input: any, { emitEmailSent }) {
     const emailId = `email_${Date.now()}`;
 

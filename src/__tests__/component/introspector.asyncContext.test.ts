@@ -184,7 +184,7 @@ describe("introspector (async context usage)", () => {
       ])
       .build();
 
-    const runtime = await run(app, { logs: false });
+    const runtime = await run(app, { logs: {} });
 
     try {
       // RequestCtx: used as dependency by depOnlyTask, dbResource, ctxHook

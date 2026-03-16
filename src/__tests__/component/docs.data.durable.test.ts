@@ -37,7 +37,7 @@ function createDurableDocsFixtureApp() {
     id: "tests-docs-tasks-runDurableWorkflow",
     dependencies: { durable, durableWorkflowTask },
     async run(input, { durable }) {
-      return durable.execute(taskId(durableWorkflowTask.id), input);
+      return durable.startAndWait(taskId(durableWorkflowTask.id), input);
     },
   });
 

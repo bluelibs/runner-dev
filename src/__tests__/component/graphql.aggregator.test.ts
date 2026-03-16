@@ -6,7 +6,7 @@ import { createDummyApp } from "../dummy/dummyApp";
 
 describe("GraphQL aggregator (registry)", () => {
   test("registry builds base schema (no extension hooks)", async () => {
-    let schema: GraphQLSchema;
+    let schema: GraphQLSchema | undefined;
 
     const plugin = defineResource({
       id: "probe-graphql-aggregator-plugin",
@@ -24,6 +24,11 @@ describe("GraphQL aggregator (registry)", () => {
       plugin,
     ]);
     await run(app);
+
+    expect(schema).toBeDefined();
+    if (!schema) {
+      throw new Error("Expected GraphQL schema to be initialized");
+    }
 
     const res = await executeGraphql({
       schema,

@@ -10,7 +10,6 @@ import {
 } from "@bluelibs/runner";
 import { createDummySuperApp } from "./largeApp";
 import { dev } from "../../resources/dev.resource";
-import { defineSchema } from "./schemas";
 
 export const DUMMY_APP_ID = "dummy-app";
 
@@ -76,7 +75,9 @@ export const cacheRes = defineResource({
     title: "Cache resource",
     description: "Cache with TTL configuration used for tests",
   },
-  configSchema: defineSchema({ ttlMs: Match.PositiveInteger }),
+  configSchema: Match.compile(
+    Match.ObjectIncluding({ ttlMs: Match.PositiveInteger })
+  ),
   async init(config: { ttlMs: number }) {
     return { ttlMs: config.ttlMs };
   },
@@ -85,7 +86,7 @@ export const cacheRes = defineResource({
 // Event
 export const evtHello = defineEvent<{ name: string }>({
   id: "evt-hello",
-  payloadSchema: defineSchema({ name: String }),
+  payloadSchema: Match.compile(Match.ObjectIncluding({ name: String })),
 });
 
 export const logMwTask = defineTaskMiddleware({
@@ -149,7 +150,7 @@ export const tagMw = defineTaskMiddleware<{ label: string }>({
     title: "Tagging middleware",
     description: "Configurable middleware used to tag tasks in tests",
   },
-  configSchema: defineSchema({ label: String }),
+  configSchema: Match.compile(Match.ObjectIncluding({ label: String })),
   async run({ next }) {
     return next();
   },

@@ -40,9 +40,7 @@ function printBanner(totalFiles: number) {
   console.log("");
   console.log(accent);
   console.log(`  ${title}`);
-  console.log(
-    `  ${dim("Syncing docs from ../runner/readmes into ./readmes")}`
-  );
+  console.log(`  ${dim("Syncing docs from ../runner/readmes into ./readmes")}`);
   console.log(`  ${gray(`Files queued: ${totalFiles}`)}`);
   console.log(accent);
   console.log("");
@@ -60,7 +58,10 @@ async function copyDoc(file: FileCopyTarget): Promise<CopyResult> {
   spinner.start();
 
   try {
-    await Promise.all([fs.copyFile(file.src, file.dest), sleep(MIN_SPINNER_VISIBILITY_MS)]);
+    await Promise.all([
+      fs.copyFile(file.src, file.dest),
+      sleep(MIN_SPINNER_VISIBILITY_MS),
+    ]);
     const durationMs = Date.now() - startedAt;
 
     spinner.stop(
@@ -88,9 +89,7 @@ async function copyDoc(file: FileCopyTarget): Promise<CopyResult> {
     spinner.stop(
       `${red("[FAIL]")} ${bold(label)} ${gray(file.src)} ${dim("->")} ${gray(
         file.dest
-      )}\n       ${dim(
-        errorMessage
-      )}`
+      )}\n       ${dim(errorMessage)}`
     );
 
     return {
@@ -114,9 +113,9 @@ function printSummary(results: CopyResult[]) {
     )}`
   );
   console.log(
-    `${failed.length ? red(pad("  Failed", 10)) : gray(pad("  Failed", 10))} ${bold(
-      String(failed.length)
-    )} ${dim("files need attention")}`
+    `${
+      failed.length ? red(pad("  Failed", 10)) : gray(pad("  Failed", 10))
+    } ${bold(String(failed.length))} ${dim("files need attention")}`
   );
 
   if (failed.length > 0) {
@@ -137,7 +136,7 @@ function printSummary(results: CopyResult[]) {
 async function copyDocs() {
   const filesToCopy: FileCopyTarget[] = [
     {
-      src: path.join("..", "runner", "readmes", "AI.md"),
+      src: path.join("..", "runner", "readmes", "COMPACT_GUIDE.md"),
       dest: path.join("readmes", "runner-AI.md"),
     },
     {
@@ -176,6 +175,8 @@ async function copyDocs() {
 
 copyDocs().catch((err: unknown) => {
   const errorMessage = err instanceof Error ? err.message : String(err);
-  console.error(`${red("[ABORTED]")} ${bold("sync-docs crashed")} ${dim(errorMessage)}`);
+  console.error(
+    `${red("[ABORTED]")} ${bold("sync-docs crashed")} ${dim(errorMessage)}`
+  );
   process.exitCode = 1;
 });

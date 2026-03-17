@@ -1,4 +1,4 @@
-# BlueLibs Runner: AI Field Guide
+# BlueLibs Runner: Compact Guide
 
 Runner is a strongly typed application composition framework built around explicit contracts.
 You declare a graph of resources, tasks, events, hooks, middleware, tags, and errors, then `run(app)` turns that graph into a constrained runtime with validation, lifecycle, isolation, and observability built in.
@@ -155,7 +155,7 @@ Main runtime helpers:
 - `getLazyResourceValue`
 - `getResourceConfig`
 - `getHealth`
-- `dispose`
+- `dispose(options?)`
 
 The returned runtime also exposes:
 
@@ -169,6 +169,7 @@ Important run options:
 - `lazy: true`: keep startup-unused resources asleep until `getLazyResourceValue(...)` wakes them, then run their `ready()` when they initialize
 - `lifecycleMode: "parallel"`: preserve dependency ordering, but run same-wave lifecycle hooks in parallel
 - `shutdownHooks: true`: install graceful `SIGINT` / `SIGTERM` hooks; signals during bootstrap cancel startup and roll back initialized resources
+- `signal: AbortSignal`: let an outer owner cancel bootstrap before readiness or start graceful runtime disposal after readiness without feeding ambient execution cancellation
 - `dispose: { totalBudgetMs, drainingBudgetMs, cooldownWindowMs }`: control bounded shutdown timing
 - `errorBoundary: true`: install process-level unhandled error capture and route it through `onUnhandledError`
 - `executionContext: true | { ... }`: enable correlation ids and inherited execution signals, with optional frame tracking and cycle detection
@@ -201,6 +202,19 @@ Lifecycle order:
   - drain in-flight work within the remaining shutdown budget
   - emit `events.drained`
   - run `dispose()` in reverse dependency order
+
+Disposal modes:
+
+- `runtime.dispose()` is the normal graceful path above.
+- `runtime.dispose({ force: true })` is a manual fast path:
+  - skip any remaining graceful phases that have not started yet
+  - this can skip `cooldown()`
+  - this can skip `dispose.cooldownWindowMs`
+  - this can skip `events.disposing`
+  - this can skip drain wait
+  - this can skip `events.drained`
+  - jump directly to resource `dispose()` in reverse dependency order
+  - it does not preempt lifecycle work that is already in flight
 
 Pause and recovery:
 
@@ -239,6 +253,7 @@ const app = r
 - Prefer task input schemas for business validation. Keep the handler focused on HTTP adaptation and error mapping.
 - Require request-local business state with `r.asyncContext(...).require()` so missing context fails fast.
 - Use an explicit `disposeRunner()` helper only in tests, local scripts, or environments where you truly control teardown.
+- If an external host owns shutdown, prefer `run(app, { signal, shutdownHooks: false })` over forwarding that signal into business execution.
 - See `examples/aws-lambda-quickstart` for examples.
 
 ## Resources
@@ -252,7 +267,9 @@ Resources model shared services and state. They are Runner's primary composition
   Runner fully awaits it before narrowing admissions, and its time still counts against the remaining `dispose.totalBudgetMs` budget.
   During `coolingDown`, task runs and event emissions stay open; if `dispose.cooldownWindowMs > 0`, Runner keeps that broader admission policy open for the extra bounded window after `cooldown()` completes.
   Once `disposing` begins, fresh admissions narrow to the cooling resource itself, any additional resource definitions returned from `cooldown()`, and in-flight continuations.
+  `runtime.dispose({ force: true })` skips `cooldown()` entirely.
 - `dispose(value, config, deps, context)` performs final teardown after drain.
+  With `runtime.dispose({ force: true })`, this becomes the first resource lifecycle phase reached during shutdown.
 - `health(value, config, deps, context)` is an optional probe used by `resources.health.getHealth(...)` and `runtime.getHealth(...)`.
   Return `{ status: "healthy" | "degraded" | "unhealthy", message?, details? }`.
 - Config-only resources can omit `.init()`. Their resolved value is `undefined`.
@@ -276,6 +293,10 @@ Ownership and ids:
 - Child resources continue that chain, for example `app.billing.tasks.createInvoice`.
 - Only the internal synthetic framework root is invisible to user-facing ids.
 - `runtime-framework-root` is reserved and cannot be used as a user resource id.
+- Runner also creates two real framework namespace resources:
+  - `system`: owns locked internals such as `resources.store`, `resources.eventManager`, `resources.taskRunner`, `resources.middlewareManager`, `resources.runtime`, lifecycle events, and the internal system tag
+  - `runner`: owns built-in utility globals such as `resources.mode`, `resources.health`, `resources.timers`, `resources.logger`, `resources.serializer`, `resources.queue`, core tags, middleware, and framework errors
+- `system` and `runner` carry proper `.meta.title` and `.meta.description` for docs and tooling, even though the transparent `runtime-framework-root` stays internal-only.
 
 Lazy resources:
 
@@ -341,14 +362,25 @@ For lifecycle-owned timers, prefer `resources.timers` inside a task or resource:
 
 ## Events and Hooks
 
-Events decouple producers from listeners. Hooks subscribe with `.on(event)` or `.on(onAnyOf(...))`.
-Passing arrays directly is invalid.
+Events decouple producers from listeners. Hooks subscribe with:
+
+- `.on(event)` for one exact event
+- `.on(onAnyOf(...))` for tuple-friendly exact-event unions
+- `.on(subtreeOf(resource))` for all visible events in a resource subtree
+- `.on((event) => boolean)` for bootstrap-time predicate matching over registered events
+- `.on([...])` to mix exact events, `subtreeOf(...)`, and predicates
+
+Literal `"*"` stays standalone and cannot be used inside arrays.
 
 Key rules:
 
 - `.order(priority)` controls execution order. Lower numbers run first.
 - `event.stopPropagation()` prevents downstream hooks from running.
 - `.on("*")` listens to all visible events except those tagged with `tags.excludeFromGlobalHooks`.
+- Selector-based hooks (`subtreeOf(...)`, predicates, or arrays containing them) resolve once at bootstrap and subscribe only to events visible to the hook on the `listening` channel.
+- Exact direct event refs still fail fast on visibility violations; selector matches that are not visible are skipped.
+- Selector-based hooks trade away payload autocomplete. Exact event refs and exact event tuples keep strong payload inference.
+- `isOneOf()` is a runtime guard for Runner emissions that retain definition identity; arbitrary `{ id }`-shaped objects are not exact matches.
 - `.parallel(true)` allows concurrent same-priority listeners.
 - `.transactional(true)` makes listeners reversible. Each executed hook must return an async undo closure.
 
@@ -434,7 +466,7 @@ Built-in resilience middleware:
 
 Important config surfaces:
 
-- `cache.with({ ttl, max, ttlAutopurge, keyBuilder })`
+- `cache.with({ ttl, max, ttlAutopurge, keyBuilder, tenantScope })`
 - `concurrency.with({ limit, key?, semaphore? })`
 - `circuitBreaker.with({ failureThreshold, resetTimeout })`
 - `debounce.with({ ms, keyBuilder? })`
@@ -447,10 +479,12 @@ Important config surfaces:
 Operational notes:
 
 - Register `resources.cache` in a parent resource before using task cache middleware.
+- `cache.keyBuilder(taskId, input)` may return either a plain key string or `{ cacheKey, refs? }`.
+- Call `resources.cache.invalidateRefs(ref | ref[])` to delete cached entries linked to semantic refs such as `user:123`.
 - Order matters. Common pattern: `fallback` outermost, `timeout` inside `retry` when you want per-attempt budgets.
 - Use `rateLimit` for quotas, `concurrency` for in-flight limits, `circuitBreaker` for fail-fast protection, `cache` for idempotent reads, and `debounce` / `throttle` for burst shaping.
 - `rateLimit`, `debounce`, and `throttle` default to `taskId` partitioning. Pass `keyBuilder(taskId, input)` to partition by user, tenant, request context, or similar keys.
-- When `tenantScope` is active, Runner prefixes internal middleware keys with `<tenantId>:`.
+- When `tenantScope` is active, Runner prefixes internal middleware keys with `<tenantId>:`. Cache refs are scoped the same way as cache keys.
 - Resource `retry` and `timeout` use the same semantics on `middleware.resource.*`.
 
 Built-in journal keys exist for middleware introspection, for example cache hits, retry attempts, circuit-breaker state, and timeout abort controllers.
@@ -712,6 +746,27 @@ Key rules:
   `degraded` still runs, bootstrap-time task calls are not gated, and sleeping lazy resources stay skipped.
 - Tags are often the cleanest way to implement route discovery, cron scheduling, cache warmers, or internal policies without manual registries.
 
+Depending on a tag injects a typed accessor over all matching definitions. The accessor is grouped by kind (`tasks`, `resources`, `events`, `hooks`, `taskMiddlewares`, `resourceMiddlewares`, `errors`); task matches expose `definition`, `config`, and runtime `run(...)`, while resource matches expose `definition`, `config`, and runtime `value`.
+
+Use a normal tag dependency when the accessor can resolve as part of the normal dependency graph. Use `tag.startup()` when the accessor must exist earlier, while Runner is building the startup dependency tree during bootstrap.
+
+```ts
+import { r } from "@bluelibs/runner";
+
+const warmup = r.tag("warmup").for(["tasks"]).build();
+
+const boot = r
+  .resource("boot")
+  .dependencies({
+    runtimeWarmups: warmup,
+    startupWarmups: warmup.startup(),
+  })
+  .build();
+
+// `runtimeWarmups` resolves in the normal dependency graph.
+// `startupWarmups` resolves earlier, in the startup dependency tree.
+```
+
 Cron:
 
 - `tags.cron` schedules tasks with cron expressions.
@@ -835,6 +890,7 @@ Runner's official same-runtime multi-tenant pattern uses `asyncContexts.tenant`.
 - `tenant.require()` enforces tenant presence.
 - Augment `TenantContextValue` when your app needs extra tenant metadata.
 - Provide tenant identity at ingress with `tenant.provide({ tenantId }, fn)`.
+- `tenantId` must be a non-empty string, cannot contain `:`, and cannot be `__global__` because tenant-aware middleware reserves those for internal namespace partitioning.
 
 Tenant-sensitive middleware such as `cache`, `rateLimit`, `debounce`, `throttle`, and `concurrency` default to `tenantScope: "auto"`:
 

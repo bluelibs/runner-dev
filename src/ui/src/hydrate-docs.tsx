@@ -8,6 +8,7 @@ import {
 } from "../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "./components/Documentation/config/documentationConstants";
 import { DocsContentPayload } from "../../resources/routeHandlers/getDocsData";
+import { isSystemNamespaceId } from "../../utils/system-namespace";
 
 // Expect SSR to inject window.__DOCS_PROPS__ with pre-fetched data
 declare global {
@@ -60,7 +61,7 @@ function createIntrospectorFromData(data: SerializedIntrospector) {
   return Introspector.deserialize(data);
 }
 
-// If the URL hash targets a system-tagged element and system is hidden,
+// If the URL hash targets a system element and system is hidden,
 // enable system visibility before rendering so the element is present.
 function getHashTargetElementId(): string | null {
   const hash = window.location.hash;
@@ -93,34 +94,11 @@ function setShowSystemInStorage(value: boolean): void {
   }
 }
 
-function isSystemElementById(
-  introspector: Introspector,
-  elementId: string
-): boolean {
-  const systemTagId = DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID;
-  if (elementId === systemTagId) return true;
-
-  const candidates: Array<any | null> = [
-    introspector.getTask(elementId),
-    introspector.getHook(elementId),
-    introspector.getResource(elementId),
-    introspector.getMiddleware(elementId),
-    introspector.getEvent(elementId),
-  ];
-
-  for (const el of candidates) {
-    if (el && Array.isArray((el as any).tags)) {
-      if ((el as any).tags.includes(systemTagId)) return true;
-    }
-  }
-  return false;
-}
-
-function ensureSystemVisibilityForHash(introspector: Introspector): void {
+function ensureSystemVisibilityForHash(_introspector: Introspector): void {
   const targetId = getHashTargetElementId();
   if (!targetId) return;
   const showSystem = getShowSystemFromStorage();
-  if (!showSystem && isSystemElementById(introspector, targetId)) {
+  if (!showSystem && isSystemNamespaceId(targetId)) {
     setShowSystemInStorage(true);
   }
 }

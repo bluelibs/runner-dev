@@ -2,6 +2,7 @@ import type { ElementKind, WithElementKind } from "../../schema/model";
 import { elementKindSymbol } from "../../schema/model";
 import type { Introspector } from "./Introspector";
 import type { DiagnosticItem } from "../../schema/model";
+import { isSystemNamespaceId } from "../../utils/system-namespace";
 
 export function buildIdMap<T extends { id: string }>(
   items: T[]
@@ -267,8 +268,7 @@ export function buildDiagnostics(introspector: Introspector): DiagnosticItem[] {
 
 // System events helpers
 export function isSystemEventId(eventId: string): boolean {
-  const id = String(eventId).toLowerCase();
-  return id.startsWith("system.") || id.startsWith("runner.") || id === "*";
+  return isSystemNamespaceId(eventId) || eventId === "*";
 }
 
 function isIgnoredEventDiagnosticId(eventId: string): boolean {

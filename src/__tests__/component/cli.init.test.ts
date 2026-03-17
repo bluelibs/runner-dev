@@ -173,8 +173,14 @@ describe("CLI init", () => {
     );
     const pkg = JSON.parse(packageJson);
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.2.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.2.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["npm-skills"]).toBe("^0.0.1");
+    expect(pkg.scripts?.["skills:extract"]).toBe(
+      "npm-skills extract --override"
+    );
+    expect(pkg.scripts?.postinstall).toBe("npm run skills:extract");
+    expect(pkg.npmSkills).toBeUndefined();
 
     // Verify src directory exists with main.ts using runner-dev scaffold
     const mainTs = await fs.readFile(
@@ -254,8 +260,10 @@ describe("CLI init", () => {
     );
     const pkg = JSON.parse(packageJson);
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.2.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.2.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["npm-skills"]).toBe("^0.0.1");
+    expect(pkg.scripts?.postinstall).toBe("npm run skills:extract");
   });
 
   test("scaffolds project and simulates --install and --run-tests", async () => {
@@ -301,7 +309,9 @@ describe("CLI init", () => {
       await fs.readFile(path.join(projectDir, "package.json"), "utf-8")
     );
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.2.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.2.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["npm-skills"]).toBe("^0.0.1");
+    expect(pkg.scripts?.postinstall).toBe("npm run skills:extract");
   });
 });

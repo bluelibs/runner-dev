@@ -155,7 +155,7 @@ export function initializeFromStore(
   }
 
   for (const h of s.hooks.values()) {
-    introspector.hooks.push(mapStoreHookToHookModel(h));
+    introspector.hooks.push(mapStoreHookToHookModel(h, store));
   }
 
   const taskInterceptorOwnersById = buildTaskInterceptorOwnersSnapshot(store);

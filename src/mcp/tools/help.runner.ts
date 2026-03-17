@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { buildTOC, extractSectionsByHeadings, readPackageDoc } from "../help";
+import {
+  buildTOC,
+  extractSectionsByHeadings,
+  readFirstAvailablePackageDoc,
+} from "../help";
+
+const RUNNER_FRAMEWORK_DOC_PATHS = [
+  ".agents/skills/runner/references/COMPACT_GUIDE.md",
+  "readmes/COMPACT_GUIDE.md",
+  "AI.md",
+  "README.md",
+];
 
 export function registerHelpRunner(server: McpServer) {
   server.registerTool(
@@ -15,7 +26,10 @@ export function registerHelpRunner(server: McpServer) {
       },
     },
     async ({ headingIncludes, toc }) => {
-      const pkg = await readPackageDoc("@bluelibs/runner", "AI.md");
+      const pkg = await readFirstAvailablePackageDoc(
+        "@bluelibs/runner",
+        RUNNER_FRAMEWORK_DOC_PATHS
+      );
       let content = pkg.content;
 
       if (!content) {

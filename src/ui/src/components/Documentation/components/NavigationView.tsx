@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TreeNode, getElementType } from "../utils/tree-utils";
+import { TreeNode, getElementType, getNodeIcon } from "../utils/tree-utils";
+import { TreeType } from "../hooks/useViewMode";
+import { isSystemElement } from "../utils/isSystemElement";
 import "./NavigationView.scss";
 
 export type NavigationMode = "list" | "tree";
 
 export interface NavigationViewProps {
   mode: NavigationMode;
+  treeType?: TreeType;
   nodes?: TreeNode[];
   sections?: Array<{
     id: string;
@@ -24,6 +27,7 @@ export interface NavigationViewProps {
 
 export const NavigationView: React.FC<NavigationViewProps> = ({
   mode,
+  treeType = "namespace",
   nodes = [],
   sections = [],
   onNodeClick,
@@ -243,9 +247,16 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
       return (
         <div key={node.id} className="nav-node-container">
           <div
-            className={`nav-node ${isFocused ? "nav-node--focused" : ""} ${
-              !isFolder ? "nav-node--leaf" : ""
-            }`}
+            className={[
+              "nav-node",
+              isFocused ? "nav-node--focused" : "",
+              !isFolder ? "nav-node--leaf" : "",
+              isFolder && node.folderType
+                ? `nav-node--folder-${node.folderType}`
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={{ paddingLeft: `${depth * 10 + 8}px` }}
             onClick={handleNodeClick}
             tabIndex={0}
@@ -269,11 +280,15 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
               <span className="nav-expander nav-expander--placeholder" />
             )}
 
-            <span className="nav-node-icon">{node.icon}</span>
+            <span className="nav-node-icon">
+              {getNodeIcon(node, {
+                preferNamespaceFolderIcon: treeType === "namespace",
+              })}
+            </span>
 
             <span className="nav-node-label">
               {highlightSearchTerm(node.label, searchTerm)}
-              {node.element?.tags?.includes("system.tags.internal") && (
+              {isSystemElement(node.element) && (
                 <span className="system-label">SYS</span>
               )}
             </span>

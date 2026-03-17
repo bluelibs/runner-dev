@@ -18,12 +18,14 @@
 </general>
 
 <specifics>
-- AI.md contains AI-token-friendly documentation about Runner. Read it if the task implies that you know Runner.
+- Prefer Runner docs from extracted skills under `.agents/skills` when they are available. `AI.md` remains useful for runner-dev-specific context.
+- Runner-Dev publishes its own skill from `skills/runner-dev`; refresh it with `npm run skills:prepare` after changing `AI.md` or `README.md`.
 </specifics>
 
 <new_feature>
 
 - When building new features/enhancements/changes
 - Must be implemented with care without affecting the system and not over-polute files.
-- Ensure AI.md (minimal version of README) and README.md is properly updated
+- Ensure README.md and any agent-facing project guidance stay properly updated
+- If `AI.md` or `README.md` changes, regenerate the published skill with `npm run skills:prepare`
   </new_feature>

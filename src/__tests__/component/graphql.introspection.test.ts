@@ -17,6 +17,7 @@ import {
 } from "../dummy/dummyApp";
 import { introspector } from "../../resources/introspector.resource";
 import { graphql } from "graphql";
+import { Introspector } from "../../resources/models/Introspector";
 
 const visibilityAppIds = {
   resource(localId: string) {
@@ -824,5 +825,68 @@ describe("GraphQL schema (integration)", () => {
     expect(data.eventsHello.map((e: any) => e.id)).toEqual(
       expect.arrayContaining([dummyAppIds.event(evtHello.id)])
     );
+  });
+
+  test("hideSystem hides only system namespace events", async () => {
+    const ctx = {
+      store: null,
+      logger: console,
+      introspector: new Introspector({
+        data: {
+          tasks: [],
+          hooks: [],
+          resources: [],
+          middlewares: [],
+          tags: [],
+          errors: [],
+          asyncContexts: [],
+          events: [
+            {
+              id: "system.events.ready",
+              listenedToBy: [],
+              transactional: false,
+              parallel: false,
+            },
+            {
+              id: "system.events.custom",
+              listenedToBy: [],
+              transactional: false,
+              parallel: false,
+            },
+            {
+              id: "runner.events.visible",
+              listenedToBy: [],
+              transactional: false,
+              parallel: false,
+            },
+            {
+              id: "app.events.visible",
+              listenedToBy: [],
+              transactional: false,
+              parallel: false,
+            },
+          ],
+        },
+      }),
+      live: { logs: [] },
+    };
+
+    const query = `
+      query HideSystemEvents {
+        visibleEvents: events(filter: { hideSystem: true }) { id }
+      }
+    `;
+
+    const result = await graphql({ schema, source: query, contextValue: ctx });
+    expect(result.errors).toBeUndefined();
+
+    const eventIds = (
+      (result.data?.visibleEvents ?? []) as Array<{ id: string }>
+    ).map((e) => e.id);
+
+    expect(eventIds).not.toContain("system.events.ready");
+    expect(eventIds).not.toContain("system.events.custom");
+    expect(eventIds).toContain("runner.events.visible");
+    expect(eventIds).toContain("app.events.visible");
   });
 });

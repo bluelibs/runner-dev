@@ -8,6 +8,9 @@ export const useDocumentationFilters = (
   introspector: Introspector,
   namespacePrefix?: string
 ) => {
+  const withType = <T extends { id: string }>(type: string, items: T[]) =>
+    items.map((item) => ({ ...item, type }));
+
   const readStoredBoolean = (key: string, fallback: boolean): boolean => {
     try {
       const raw = localStorage.getItem(key);
@@ -103,14 +106,14 @@ export const useDocumentationFilters = (
       middlewares,
       tags,
       allElements: [
-        ...tasks,
-        ...resources,
-        ...events,
-        ...hooks,
-        ...middlewares,
-        ...errors,
-        ...asyncContexts,
-        ...tags,
+        ...withType("task", tasks),
+        ...withType("resource", resources),
+        ...withType("event", events),
+        ...withType("hook", hooks),
+        ...withType("middleware", middlewares),
+        ...withType("error", errors),
+        ...withType("async-context", asyncContexts),
+        ...withType("tag", tags),
       ],
       errors,
       asyncContexts,

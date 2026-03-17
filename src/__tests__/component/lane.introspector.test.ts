@@ -1,8 +1,10 @@
 import { r, run } from "@bluelibs/runner";
 import {
+  eventLanesResource,
   rpcLanesResource,
-  tags,
   type RpcLanesResourceConfig,
+  tags,
+  type EventLanesResourceConfig,
 } from "@bluelibs/runner/node";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
@@ -10,7 +12,6 @@ import { RPC_LANES_RESOURCE_ID } from "../../utils/lane-resources";
 
 describe("Lane Introspection", () => {
   const rpcLaneTag = tags.rpcLane;
-  const eventLaneTag = tags.eventLane;
 
   const canonicalTaskId = (appId: string, localId: string) =>
     `${appId}.tasks.${localId}`;
@@ -21,20 +22,6 @@ describe("Lane Introspection", () => {
 
   const buildRpcLaneTag = (laneId: string) =>
     rpcLaneTag.with({ lane: { id: laneId } });
-
-  const buildEventLaneTag = (
-    laneId: string,
-    orderingKey: string,
-    metadata: Record<string, unknown>
-  ) => {
-    const config = {
-      lane: { id: laneId },
-      orderingKey,
-      metadata,
-    };
-
-    return eventLaneTag.with(config);
-  };
 
   const createRpcCommunicatorResource = (id: string) =>
     r
@@ -52,6 +39,12 @@ describe("Lane Introspection", () => {
   const catalogEventsCommunicatorResource = createRpcCommunicatorResource(
     "test-communicators-catalog-events"
   );
+  const eventLaneQueue = {
+    enqueue: async () => "message-1",
+    consume: async () => undefined,
+    ack: async () => undefined,
+    nack: async () => undefined,
+  };
 
   const rpcLanesConfig: RpcLanesResourceConfig = {
     mode: "network",
@@ -91,21 +84,40 @@ describe("Lane Introspection", () => {
 
   const eventLaneEvent = r
     .event("test-lanes-events-catalogProjectionUpdated")
-    .tags([
-      buildEventLaneTag("test-lanes-event-catalog-updates", "supplierId", {
-        domain: "catalog",
-      }),
-    ])
     .build();
 
+  const eventCatalogUpdatesLane = r
+    .eventLane("test-lanes-event-catalog-updates")
+    .applyTo([eventLaneEvent])
+    .build();
+
+  const eventLanesConfig: EventLanesResourceConfig = {
+    mode: "network",
+    profile: "catalog-events",
+    topology: {
+      bindings: [
+        {
+          lane: eventCatalogUpdatesLane,
+          queue: eventLaneQueue,
+        },
+      ],
+      profiles: {
+        "catalog-events": {
+          consume: [{ lane: eventCatalogUpdatesLane }],
+        },
+      },
+    },
+  };
+
   const rpcLanesRegistration = rpcLanesResource.with(rpcLanesConfig);
+  const eventLanesRegistration = eventLanesResource.with(eventLanesConfig);
 
   test("tracks the Runner rpc lanes internal resource id", () => {
     expect(RPC_LANES_RESOURCE_ID).toBe("runner.node.rpcLanes");
     expect(rpcLanesResource.id).toBe("rpcLanes");
   });
 
-  test("maps rpc and event lane summaries from tagsDetailed", async () => {
+  test("maps rpc tag summaries and event lane applyTo summaries", async () => {
     const appId = "test-app-lanes-1";
     const app = r
       .resource(appId)
@@ -116,6 +128,7 @@ describe("Lane Introspection", () => {
         pricingCommunicatorResource,
         catalogEventsCommunicatorResource,
         rpcLanesRegistration,
+        eventLanesRegistration,
       ])
       .build();
 
@@ -141,7 +154,6 @@ describe("Lane Introspection", () => {
       expect(eventLaneNode?.eventLane?.laneId).toBe(
         "test-lanes-event-catalog-updates"
       );
-      expect(eventLaneNode?.eventLane?.orderingKey).toBe("supplierId");
     } finally {
       await runtime.dispose();
     }
@@ -158,6 +170,7 @@ describe("Lane Introspection", () => {
         pricingCommunicatorResource,
         catalogEventsCommunicatorResource,
         rpcLanesRegistration,
+        eventLanesRegistration,
       ])
       .build();
 
@@ -198,6 +211,7 @@ describe("Lane Introspection", () => {
         pricingCommunicatorResource,
         catalogEventsCommunicatorResource,
         rpcLanesRegistration,
+        eventLanesRegistration,
       ])
       .build();
 

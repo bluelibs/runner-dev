@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TreeNode } from "../utils/tree-utils";
+import { TreeNode, getNodeIcon } from "../utils/tree-utils";
 import "./TreeView.scss";
 
 export interface TreeViewProps {
@@ -103,12 +103,19 @@ export const TreeView: React.FC<TreeViewProps> = ({
       onToggleExpansion(node.id);
     };
 
-    return (
+      return (
       <div key={node.id} className="tree-node-container">
         <div
-          className={`tree-node ${isFocused ? "tree-node--focused" : ""} ${
-            !isFolder ? "tree-node--leaf" : ""
-          }`}
+          className={[
+            "tree-node",
+            isFocused ? "tree-node--focused" : "",
+            !isFolder ? "tree-node--leaf" : "",
+            isFolder && node.folderType
+              ? `tree-node--folder-${node.folderType}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           style={{ "--tree-depth": depth } as React.CSSProperties}
           onClick={handleNodeClick}
           tabIndex={0}
@@ -132,7 +139,7 @@ export const TreeView: React.FC<TreeViewProps> = ({
             <span className="tree-expander tree-expander--placeholder" />
           )}
 
-          <span className="tree-node-icon">{node.icon}</span>
+          <span className="tree-node-icon">{getNodeIcon(node)}</span>
 
           <span className="tree-node-label">
             {highlightSearchTerm(node.label, searchTerm)}

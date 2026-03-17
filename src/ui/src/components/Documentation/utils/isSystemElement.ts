@@ -1,22 +1,17 @@
-import { DOCUMENTATION_CONSTANTS } from "../config/documentationConstants";
+import { isSystemNamespaceId } from "../../../../../utils/system-namespace";
 
 /**
  * Determines whether an element is a "system" element.
- * An element is system if its tags include the system tag id,
- * or if the element itself IS the system tag.
+ * An element is system when its id belongs to the system namespace.
  */
 export function isSystemElement(
   el:
     | {
         id: string;
-        tags?: string[] | null;
       }
     | null
     | undefined
 ): boolean {
   if (!el) return false;
-  if (Array.isArray(el.tags)) {
-    return el.tags.includes(DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID);
-  }
-  return el.id === DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID;
+  return isSystemNamespaceId(el.id);
 }

@@ -1,6 +1,6 @@
 {
   "name": "@bluelibs/runner-dev",
-  "version": "6.2.0",
+  "version": "6.3.0",
   "description": "BlueLibs Runner DevTools",
   "main": "dist/index.js",
   "repository": {
@@ -34,13 +34,16 @@
     "qa": "npm run lint:fix && npm run typecheck && npm run build && npm run test && npm run typedoc",
     "coverage:ai": "jest --config config/jest/jest.config.js --coverage --coverageReporters=text-summary",
     "codegen": "graphql-codegen --config config/codegen.ts",
-    "prebuild": "ts-node --project config/ts/tsconfig.json scripts/sync-version.ts && npm run codegen",
+    "skills:prepare": "ts-node --project config/ts/tsconfig.json scripts/prepare-skills.ts",
+    "prepack": "npm run skills:prepare",
+    "prebuild": "ts-node --project config/ts/tsconfig.json scripts/sync-version.ts && npm run codegen && npm run skills:prepare",
     "play": "concurrently -k -n UI,SRV -c blue,green \"npm:build:ui:watch\" \"npm:play:server\"",
     "play:cli": "npm run play:server",
     "demo:ping": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js ping",
     "demo:query": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js query 'query { tasks { id } }' --format pretty",
     "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5",
-    "sync:docs": "ts-node --project config/ts/tsconfig.json scripts/sync-docs.ts"
+    "skills:extract": "npm-skills extract --override",
+    "postinstall": "npm run skills:extract"
   },
   "bin": {
     "runner-dev": "dist/cli.js"
@@ -81,6 +84,7 @@
     "jest-environment-jsdom": "^30.2.0",
     "jest-junit": "^10.0.0",
     "marked": "^16.2.1",
+    "npm-skills": "^0.2.0",
     "openai": "^5.15.0",
     "prettier": "^2.0.5",
     "react-hook-form": "^7.62.0",
@@ -106,7 +110,7 @@
     "@adobe/jsonschema2md": "^8.0.5",
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
-    "@bluelibs/runner": "^6.2.0",
+    "@bluelibs/runner": "../runner",
     "@bluelibs/smart": "^2.2.1",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@types/prismjs": "^1.26.5",
@@ -126,6 +130,22 @@
     "@mui/material": {
       "react": "18.3.1",
       "react-dom": "18.3.1"
+    }
+  },
+  "npmSkills": {
+    "consume": {
+      "only": [
+        "@bluelibs/runner"
+      ],
+      "map": {
+        "@bluelibs/runner": ".agents/skills"
+      }
+    },
+    "publish": {
+      "source": "skills",
+      "export": [
+        "runner-dev"
+      ]
     }
   },
   "prettier": {

@@ -4,8 +4,8 @@ import {
   memoryDurableResource,
 } from "@bluelibs/runner/node";
 import type { Request, Response } from "express";
-import fs from "node:fs/promises";
 import { createDocsDataRouteHandler } from "../../resources/routeHandlers/getDocsData";
+import * as help from "../../mcp/help";
 import { Introspector } from "../../resources/models/Introspector";
 
 function createDurableDocsFixtureApp() {
@@ -104,10 +104,10 @@ describe("/docs/data durable enrichment", () => {
     }
   });
 
-  test("returns docsContent from local readmes and degrades when a doc is missing", async () => {
+  test("returns docsContent from installed Runner docs and degrades when a doc is missing", async () => {
     const { app } = createDurableDocsFixtureApp();
     const runtime = await run(app);
-    let readFileSpy: jest.SpyInstance | null = null;
+    let readFirstAvailablePackageDocSpy: jest.SpyInstance | null = null;
 
     try {
       const store = await runtime.getResourceValue(resources.store);
@@ -119,28 +119,34 @@ describe("/docs/data durable enrichment", () => {
         logger: { info: () => undefined },
       });
 
-      const originalReadFile = fs.readFile.bind(fs);
-      readFileSpy = jest
-        .spyOn(fs, "readFile")
-        .mockImplementation(async (filePath, options) => {
-          const normalizedPath = String(filePath);
-
-          if (normalizedPath.includes("runner-full-guide.md")) {
-            throw new Error("missing full guide");
+      const originalReadFirstAvailablePackageDoc =
+        help.readFirstAvailablePackageDoc;
+      readFirstAvailablePackageDocSpy = jest
+        .spyOn(help, "readFirstAvailablePackageDoc")
+        .mockImplementation(async (packageName, docPaths) => {
+          if (
+            packageName === "@bluelibs/runner" &&
+            docPaths.includes("README.md")
+          ) {
+            return {
+              packageName,
+              filePath: "/mocked/node_modules/@bluelibs/runner/README.md",
+              content: "",
+            };
           }
 
-          return originalReadFile(filePath as any, options as any);
+          return originalReadFirstAvailablePackageDoc(packageName, docPaths);
         });
 
       const { req, res, payloadRef } = createMockReqRes();
       await handler(req, res);
 
       expect(payloadRef.value?.docsContent?.minimalMd).toContain(
-        "BlueLibs Runner: AI Field Guide"
+        "BlueLibs Runner: Compact Guide"
       );
       expect(payloadRef.value?.docsContent?.completeMd).toBe("");
     } finally {
-      readFileSpy?.mockRestore();
+      readFirstAvailablePackageDocSpy?.mockRestore();
       await runtime.dispose();
     }
   });

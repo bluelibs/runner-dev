@@ -4,7 +4,10 @@ import { Store } from "@bluelibs/runner";
 import { initializeFromStore } from "../models/initializeFromStore";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { readPackageDoc } from "../../mcp/help";
+import {
+  readFirstAvailablePackageDoc,
+  readPackageDoc,
+} from "../../mcp/help";
 import { findDurableResourceIdFromStore } from "../models/durable.runtime";
 
 export interface DocsContentPayload {
@@ -51,14 +54,27 @@ async function readDocsAsset(
   }
 }
 
+const RUNNER_MINIMAL_DOC_PATHS = [
+  ".agents/skills/runner/references/COMPACT_GUIDE.md",
+  "readmes/COMPACT_GUIDE.md",
+  "AI.md",
+];
+
+const RUNNER_COMPLETE_DOC_PATHS = [
+  "README.md",
+  "readmes/FULL_GUIDE.md",
+];
+
 async function readDocsContent(): Promise<DocsContentPayload | undefined> {
-  const [minimalMd, completeMd] = await Promise.all([
-    readDocsAsset("../../../readmes/runner-AI.md", "readmes/runner-AI.md"),
-    readDocsAsset(
-      "../../../readmes/runner-full-guide.md",
-      "readmes/runner-full-guide.md"
-    ),
+  const [minimalDoc, completeDoc] = await Promise.all([
+    readFirstAvailablePackageDoc("@bluelibs/runner", RUNNER_MINIMAL_DOC_PATHS),
+    readFirstAvailablePackageDoc("@bluelibs/runner", RUNNER_COMPLETE_DOC_PATHS),
   ]);
+  const minimalMd = minimalDoc.content;
+  const completeMd =
+    completeDoc.content && completeDoc.content !== minimalMd
+      ? completeDoc.content
+      : "";
 
   if (!minimalMd && !completeMd) {
     return undefined;
@@ -139,12 +155,12 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
       }
     }
 
-    // Try to read framework and runner-dev AI.md from node_modules
-    const runnerFrameworkDoc = await readPackageDoc(
+    // Try to read framework docs from the installed Runner skill first.
+    const runnerFrameworkDoc = await readFirstAvailablePackageDoc(
       "@bluelibs/runner",
-      "AI.md"
+      RUNNER_MINIMAL_DOC_PATHS
     ).catch(() => ({ content: "" } as any));
-    const runnerFrameworkAiMd = runnerFrameworkDoc.content || "";
+    const runnerFrameworkMd = runnerFrameworkDoc.content || "";
 
     // Runner-Dev AI.md (when this package is a dependency)
     const runnerDevDoc = await readPackageDoc(
@@ -167,7 +183,6 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
     }
 
     // Expose framework and dev docs separately
-    const runnerFrameworkMd = runnerFrameworkAiMd || "";
     const runnerDevMd = runnerDevAiMd || "";
     const docsContent = await readDocsContent();
 

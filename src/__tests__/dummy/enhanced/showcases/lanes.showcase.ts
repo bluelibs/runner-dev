@@ -19,15 +19,6 @@ import {
 const rpcLaneTag = (laneId: string) =>
   tags.rpcLane.with({ lane: { id: laneId } });
 
-const eventLaneTag = (
-  laneId: string,
-  _orderingKey: string,
-  _metadata: Record<string, unknown>
-) =>
-  tags.eventLane.with({
-    lane: { id: laneId },
-  });
-
 const createRpcCommunicatorResource = (id: string) =>
   r
     .resource(id)
@@ -75,14 +66,14 @@ export const eventLaneCatalogProjectionUpdatedEvent = r
   .event("catalog-projection-updated")
   .meta({
     title: "Event Lane Catalog Projection Updated",
-    description: "Event lane tagged showcase event.",
+    description: "Event lane routed showcase event.",
   })
-  .tags([
-    eventLaneTag("event-catalog-updates", "supplierId", {
-      domain: "catalog",
-    }),
-  ])
   .payloadSchema(LaneCatalogProjectionUpdatedPayloadSchema)
+  .build();
+
+const catalogUpdatesEventLane = r
+  .eventLane("event-catalog-updates")
+  .applyTo([eventLaneCatalogProjectionUpdatedEvent])
   .build();
 
 export const rpcLanePricingPreviewTask = r
@@ -174,14 +165,14 @@ const eventLanesShowcaseConfig: EventLanesResourceConfig = {
     relaySourcePrefix: "runner.event-lanes.relay:",
     bindings: [
       {
-        lane: { id: "event-catalog-updates" },
+        lane: catalogUpdatesEventLane,
         queue: catalogUpdatesQueueResource,
         prefetch: 8,
       },
     ],
     profiles: {
       "catalog-events": {
-        consume: [{ id: "event-catalog-updates" }],
+        consume: [{ lane: catalogUpdatesEventLane }],
       },
     },
   },

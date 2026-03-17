@@ -38,6 +38,7 @@ import type {
   QueryHookArgs,
 } from "../generated/resolvers-types";
 import { isSystemEventId } from "../resources/models/introspector.tools";
+import { isSystemNamespaceId } from "../utils/system-namespace";
 
 export const QueryType = new GraphQLObjectType({
   name: "Query",
@@ -147,7 +148,7 @@ export const QueryType = new GraphQLObjectType({
       args: {
         filter: {
           description:
-            "Filter events. Use hideSystem to hide internal/system events.",
+            "Filter events. Use hideSystem to hide system namespace events.",
           type: EventFilterInput,
         },
       },
@@ -165,8 +166,7 @@ export const QueryType = new GraphQLObjectType({
               e.id !== "dev" &&
               !e.id.startsWith("dev.") &&
               !e.id.includes(".dev.") &&
-              !e.id.startsWith("system.events") &&
-              !e.id.startsWith("runner.") &&
+              !isSystemNamespaceId(e.id) &&
               !isSystemEventId(e.id)
           );
         }

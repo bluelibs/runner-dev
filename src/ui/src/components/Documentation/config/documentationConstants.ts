@@ -37,7 +37,4 @@ export const DOCUMENTATION_CONSTANTS = {
     HIGHLIGHT_TARGET: "docs-highlight-target",
     SIDEBAR_RESIZER_ACTIVE: "docs-sidebar-resizer--active",
   },
-
-  // System tag identifier
-  SYSTEM_TAG_ID: "system.tags.internal",
 } as const;

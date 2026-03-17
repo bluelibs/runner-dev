@@ -506,7 +506,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     docsRunner && {
       id: "docs.runner",
       title: "Add Runner Context",
-      description: "High-quality Runner docs context (AI.md)",
+      description: "High-quality Runner framework skill docs",
     },
     docsRunnerDev && {
       id: "docs.runnerDev",

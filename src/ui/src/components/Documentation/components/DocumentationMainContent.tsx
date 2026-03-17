@@ -13,6 +13,7 @@ import { LivePanel } from "./LivePanel";
 import { ElementTable } from "./ElementTable";
 import { DocsSection } from "./DocsSection";
 import { DocsContentPayload } from "../../../../../resources/routeHandlers/getDocsData";
+import { getDocumentationIcon } from "../config/documentationIcons";
 
 export interface DocumentationMainContentProps {
   introspector: Introspector;
@@ -526,7 +527,7 @@ export const DocumentationMainContent: React.FC<
           <ElementTable
             elements={tasks}
             title="Tasks Overview"
-            icon="⚙️"
+            icon={getDocumentationIcon("tasks")}
             id="tasks"
             enableActions="task"
             onAction={(el) => {
@@ -541,7 +542,7 @@ export const DocumentationMainContent: React.FC<
         )}
         {activeSection === "tasks" && tasks.length > 0 && (
           <section className="docs-section">
-            <h2>⚙️ Tasks ({tasks.length})</h2>
+            <h2>{getDocumentationIcon("tasks")} Tasks ({tasks.length})</h2>
             <div className="docs-component-grid">
               {tasks.map((task) => (
                 <TaskCard
@@ -558,13 +559,13 @@ export const DocumentationMainContent: React.FC<
           <ElementTable
             elements={resources}
             title="Resources Overview"
-            icon="🔧"
+            icon={getDocumentationIcon("resources")}
             id="resources"
           />
         )}
         {activeSection === "resources" && resources.length > 0 && (
           <section className="docs-section">
-            <h2>🔧 Resources ({resources.length})</h2>
+            <h2>{getDocumentationIcon("resources")} Resources ({resources.length})</h2>
             <div className="docs-component-grid">
               {resources.map((resource) => (
                 <ResourceCard
@@ -636,13 +637,13 @@ export const DocumentationMainContent: React.FC<
           <ElementTable
             elements={errors}
             title="Errors Overview"
-            icon="❌"
+            icon={getDocumentationIcon("errors")}
             id="errors"
           />
         )}
         {activeSection === "errors" && errors.length > 0 && (
           <section className="docs-section">
-            <h2>❌ Errors ({errors.length})</h2>
+            <h2>{getDocumentationIcon("errors")} Errors ({errors.length})</h2>
             <div className="docs-component-grid">
               {errors.map((error) => (
                 <ErrorCard

@@ -8,9 +8,9 @@ import type {
 
 import { definitions, Store } from "@bluelibs/runner";
 import {
-  EVENT_LANE_TAG_ID,
   RPC_LANE_TAG_ID,
   extractLaneId,
+  isEventLanesResource,
 } from "../../utils/lane-resources";
 import { formatSchemaIfZod } from "../../utils/zod";
 import { sanitizePath } from "../../utils/path";
@@ -146,7 +146,8 @@ export function mapStoreTaskToHookModel(
 }
 
 export function mapStoreHookToHookModel(
-  hkStoreElement: definitions.HookStoreElementType
+  hkStoreElement: definitions.HookStoreElementType,
+  store?: Store
 ): Hook {
   const hk = hkStoreElement.hook;
   const depsObj = normalizeDependencies(hk?.dependencies);
@@ -157,9 +158,7 @@ export function mapStoreHookToHookModel(
   const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(hk.tags);
 
-  const eventIds = Array.isArray(hk.on)
-    ? hk.on.map((e) => String(e.id))
-    : [String(hk.on?.id ?? "*")];
+  const eventIds = resolveHookEventIds(hk, store);
 
   return stampElementKind(
     {
@@ -294,26 +293,28 @@ export function buildEvents(store: Store): Event[] {
     (e) => e.event
   );
   const allEventIds = eventsCollection.map((e) => e.id.toString());
-  const hooks = Array.from(store.hooks.values()).map((h) => h.hook);
+  const hookEntries = Array.from(store.hooks.values());
+  const hookTargetEventIdsByHookId = new Map<string, string[]>();
+  const eventLaneByEventId = buildEventLaneSummaryByEventId(store);
+
+  for (const hookEntry of hookEntries) {
+    hookTargetEventIdsByHookId.set(
+      hookEntry.hook.id,
+      resolveHookEventIds(hookEntry.hook, store)
+    );
+  }
 
   return allEventIds.map((eventId) => {
     const e = findById(eventsCollection, eventId) as Event;
     const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(e.tags);
-    // Keep wildcard hooks in listenedToBy per design, but match specific listeners robustly
-    const hooksListeningToEvent = hooks
-      .filter((h) => {
-        const on: any = h?.on;
-        if (on === "*") return true;
-        if (typeof on === "string") return on === eventId;
-        if (on && typeof on === "object" && !Array.isArray(on))
-          return String(on.id) === eventId;
-        if (Array.isArray(on))
-          return on.some((v: any) =>
-            typeof v === "string" ? v === eventId : String(v?.id) === eventId
-          );
-        return false;
+    const hooksListeningToEvent = hookEntries
+      .filter(({ hook }) => {
+        if (hook.on === "*") return true;
+        return (
+          hookTargetEventIdsByHookId.get(hook.id)?.includes(eventId) ?? false
+        );
       })
-      .map((h) => h.id);
+      .map(({ hook }) => hook.id);
 
     return stampElementKind(
       {
@@ -323,7 +324,7 @@ export function buildEvents(store: Store): Event[] {
         tagsDetailed,
         transactional: Boolean((e as any)?.transactional),
         parallel: Boolean((e as any)?.parallel),
-        eventLane: extractEventLaneSummary(tagsDetailed),
+        eventLane: eventLaneByEventId.get(eventId) ?? null,
         rpcLane: extractRpcLaneSummary(tagsDetailed),
         filePath: sanitizePath(
           (e && (e as any)[definitions.symbolFilePath]) ?? e?.filePath ?? null
@@ -337,6 +338,138 @@ export function buildEvents(store: Store): Event[] {
       "EVENT"
     );
   });
+}
+
+function resolveHookEventIds(
+  hook: definitions.IHook,
+  store?: Store
+): string[] {
+  if (hook.on === "*") {
+    return ["*"];
+  }
+
+  if (store && hook.on) {
+    return store.resolveHookTargets(hook).map((entry) => entry.event.id);
+  }
+
+  if (Array.isArray(hook.on)) {
+    return hook.on.map((entry) =>
+      typeof entry === "string" ? entry : String(entry?.id)
+    );
+  }
+
+  return [String(hook.on?.id ?? "*")];
+}
+
+function buildEventLaneSummaryByEventId(
+  store: Store
+): Map<string, NonNullable<Event["eventLane"]>> {
+  const laneByEventId = new Map<string, NonNullable<Event["eventLane"]>>();
+  const topologyLanesById = new Map<
+    string,
+    { id: string; applyTo?: readonly unknown[] | ((event: unknown) => boolean) }
+  >();
+
+  for (const resourceEntry of store.resources.values()) {
+    const resource = resourceEntry.resource;
+    const normalizedTags = normalizeTags((resource as any)?.tags).ids;
+
+    if (
+      !isEventLanesResource({
+        id: String(resource.id),
+        tags: normalizedTags,
+      })
+    ) {
+      continue;
+    }
+
+    const topology = (resourceEntry as { config?: { topology?: unknown } }).config
+      ?.topology as
+      | {
+          bindings?: Array<{ lane?: { id?: unknown; applyTo?: unknown } }>;
+          profiles?: Record<
+            string,
+            {
+              consume?: Array<{
+                lane?: { id?: unknown; applyTo?: unknown };
+              }>;
+            }
+          >;
+        }
+      | undefined;
+
+    if (Array.isArray(topology?.bindings)) {
+      for (const binding of topology.bindings) {
+        const laneId = extractLaneId(binding?.lane);
+        if (!laneId || !binding?.lane) continue;
+        topologyLanesById.set(laneId, {
+          id: laneId,
+          applyTo: normalizeEventLaneApplyTo(binding.lane.applyTo),
+        });
+      }
+    }
+
+    if (topology?.profiles && typeof topology.profiles === "object") {
+      for (const profile of Object.values(topology.profiles)) {
+        if (!Array.isArray(profile?.consume)) continue;
+        for (const entry of profile.consume) {
+          const laneId = extractLaneId(entry?.lane);
+          if (!laneId || !entry?.lane) continue;
+          topologyLanesById.set(laneId, {
+            id: laneId,
+            applyTo: normalizeEventLaneApplyTo(entry.lane.applyTo),
+          });
+        }
+      }
+    }
+  }
+
+  const registeredEvents = Array.from(store.events.values()).map(
+    (eventEntry) => eventEntry.event
+  );
+
+  for (const lane of topologyLanesById.values()) {
+    if (typeof lane.applyTo === "function") {
+      for (const event of registeredEvents) {
+        if (laneByEventId.has(event.id)) continue;
+        if (!(lane.applyTo as (event: unknown) => boolean)(event)) continue;
+        laneByEventId.set(event.id, { laneId: lane.id });
+      }
+      continue;
+    }
+
+    if (!Array.isArray(lane.applyTo)) {
+      continue;
+    }
+
+    for (const target of lane.applyTo) {
+      const targetId =
+        typeof target === "string"
+          ? target
+          : store.findIdByDefinition(target as never) ?? extractLaneId(target);
+      if (!targetId) continue;
+
+      const event = store.events.get(targetId)?.event;
+      if (!event || laneByEventId.has(event.id)) continue;
+      laneByEventId.set(event.id, { laneId: lane.id });
+    }
+  }
+
+  return laneByEventId;
+}
+
+function normalizeEventLaneApplyTo(
+  applyTo: unknown
+): readonly unknown[] | ((event: unknown) => boolean) | undefined {
+  if (Array.isArray(applyTo)) {
+    return applyTo;
+  }
+
+  if (typeof applyTo === "function") {
+    return applyTo as (event: unknown) => boolean;
+  }
+
+  return undefined;
 }
 
 function buildMiddlewaresGeneric(
@@ -959,27 +1092,6 @@ function parseTagConfigJson(config: string | null | undefined): any | null {
   } catch {
     return null;
   }
-}
-
-function extractEventLaneSummary(
-  tagsDetailed: Array<{ id: string; config: string | null }>
-): Event["eventLane"] {
-  const laneTag = tagsDetailed.find((tag) =>
-    matchesTagId(tag.id, EVENT_LANE_TAG_ID)
-  );
-  if (!laneTag) return null;
-
-  const parsed = parseTagConfigJson(laneTag.config);
-  const laneId = extractLaneId(parsed?.lane);
-  if (!laneId) return null;
-
-  return {
-    laneId,
-    orderingKey:
-      parsed?.orderingKey != null ? String(parsed.orderingKey) : null,
-    metadata:
-      parsed?.metadata != null ? stringifyIfObject(parsed.metadata) : null,
-  };
 }
 
 function extractRpcLaneSummary(

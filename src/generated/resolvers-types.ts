@@ -270,7 +270,7 @@ export type Event = BaseElement & {
   emittedBy: Array<Scalars['String']['output']>;
   /** Nodes that emit this event (resolved). Can be Task, Hook or Resource. */
   emittedByResolved: Array<BaseElement>;
-  /** Event lane summary derived from globals.tags.eventLane when present. */
+  /** Event lane summary derived from Event Lane applyTo() assignments when present. */
   eventLane: Maybe<EventLaneSummary>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
@@ -320,7 +320,7 @@ export type EventFileContentsArgs = {
 export type EventFilterInput = {
   /** When true, only events without hooks are returned. */
   hasNoHooks: InputMaybe<Scalars['Boolean']['input']>;
-  /** When true, hides internal/system events (runner-dev/globals). */
+  /** When true, hides system namespace events (`system` / `system.*`). */
   hideSystem: InputMaybe<Scalars['Boolean']['input']>;
   /** Return only events whose id contains this substring. */
   idIncludes: InputMaybe<Scalars['String']['input']>;

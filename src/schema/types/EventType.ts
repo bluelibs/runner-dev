@@ -46,7 +46,7 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
     },
     eventLane: {
       description:
-        "Event lane summary derived from globals.tags.eventLane when present.",
+        "Event lane summary derived from Event Lane applyTo() assignments when present.",
       type: EventLaneSummaryType,
     },
     rpcLane: {
@@ -128,7 +128,7 @@ export const EventFilterInput = new GraphQLInputObjectType({
     },
     hideSystem: {
       description:
-        "When true, hides internal/system events (runner-dev/globals).",
+        "When true, hides system namespace events (`system` / `system.*`).",
       type: GraphQLBoolean,
     },
     idIncludes: {

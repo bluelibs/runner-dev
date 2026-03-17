@@ -149,7 +149,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       <div className="docs-visibility-toggles">
         <div
           className="docs-visibility-toggle-row"
-          title="Toggle visibility of system-tagged elements"
+          title="Toggle visibility of system namespace elements"
         >
           <label className="docs-switch" htmlFor="show-system-toggle">
             <input
@@ -243,6 +243,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       <div className="docs-nav-container">
         <NavigationView
           mode={viewMode}
+          treeType={treeType}
           nodes={treeNodes}
           sections={sections}
           onNodeClick={onTreeNodeClick}

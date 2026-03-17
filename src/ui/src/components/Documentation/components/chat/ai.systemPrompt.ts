@@ -26,7 +26,7 @@ export const SYSTEM_PROMPT = [
   "# DOC BLOCKS AND @docs.*",
   "- Do NOT treat @docs.* as element ids.",
   "- If present, the user message may include trusted hidden blocks you MUST use as persistent context:",
-  "  <runner_docs>…AI.md…</runner_docs>",
+  "  <runner_docs>…Runner skill docs…</runner_docs>",
   "  <runner_dev_docs>…AI.md…</runner_dev_docs>",
   "  <graphql_sdl>…SDL…</graphql_sdl>",
   "  <project_overview>…Markdown overview…</project_overview>",

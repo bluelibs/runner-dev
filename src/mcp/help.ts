@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import * as path from "path";
 import { sanitizePath } from "../utils/path";
 
-export type HelpDoc = "readme" | "ai";
+export type HelpDoc = "readme" | "compact";
 
 export async function readDocContent(doc: HelpDoc): Promise<{
   doc: HelpDoc;
@@ -10,7 +10,10 @@ export async function readDocContent(doc: HelpDoc): Promise<{
   content: string;
 }> {
   const root = process.cwd();
-  const fileName = doc === "readme" ? "README.md" : "AI.md";
+  const fileName =
+    doc === "readme"
+      ? "README.md"
+      : "skills/runner-dev/references/COMPACT_GUIDE.md";
   const filePath = path.join(root, fileName);
   const content = await fs.readFile(filePath, "utf8").catch(() => "");
   return { doc, filePath: sanitizePath(filePath) ?? filePath, content };

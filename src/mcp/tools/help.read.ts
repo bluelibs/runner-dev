@@ -39,18 +39,18 @@ export function registerHelpRead(server: McpServer) {
         filePath = pkg.filePath;
       } else {
         const readmeRes = await readDocContent("readme");
-        const aiRes = await readDocContent("ai");
+        const compactRes = await readDocContent("compact");
 
         const sections: string[] = [];
         if (readmeRes.content) {
           sections.push(`# Runner-Dev Application\n\n${readmeRes.content}`);
         }
-        if (aiRes.content) {
-          sections.push(`# AI Assistant Guide\n\n${aiRes.content}`);
+        if (compactRes.content) {
+          sections.push(`# Runner-Dev Compact Guide\n\n${compactRes.content}`);
         }
 
         content = sections.join("\n\n---\n\n");
-        filePath = `${readmeRes.filePath} + ${aiRes.filePath}`;
+        filePath = `${readmeRes.filePath} + ${compactRes.filePath}`;
       }
 
       if (!content) {

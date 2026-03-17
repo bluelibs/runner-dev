@@ -16,14 +16,14 @@ export function registerHelpRunnerDev(server: McpServer) {
     },
     async ({ headingIncludes, toc }) => {
       const readmeRes = await readDocContent("readme");
-      const aiRes = await readDocContent("ai");
+      const compactRes = await readDocContent("compact");
 
       const sections: string[] = [];
       if (readmeRes.content) {
         sections.push(`# Runner-Dev Application\n\n${readmeRes.content}`);
       }
-      if (aiRes.content) {
-        sections.push(`# AI Assistant Guide\n\n${aiRes.content}`);
+      if (compactRes.content) {
+        sections.push(`# Runner-Dev Compact Guide\n\n${compactRes.content}`);
       }
 
       const content = sections.join("\n\n---\n\n");
@@ -33,7 +33,7 @@ export function registerHelpRunnerDev(server: McpServer) {
           content: [
             {
               type: "text",
-              text: "Runner-Dev documentation not found. Please ensure README.md and AI.md exist.",
+              text: "Runner-Dev documentation not found. Please ensure README.md and skills/runner-dev/references/COMPACT_GUIDE.md exist.",
             },
           ],
         };

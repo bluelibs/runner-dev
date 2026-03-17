@@ -4,10 +4,7 @@ import { Store } from "@bluelibs/runner";
 import { initializeFromStore } from "../models/initializeFromStore";
 import fs from "node:fs/promises";
 import path from "node:path";
-import {
-  readFirstAvailablePackageDoc,
-  readPackageDoc,
-} from "../../mcp/help";
+import { readFirstAvailablePackageDoc, readPackageDoc } from "../../mcp/help";
 import { findDurableResourceIdFromStore } from "../models/durable.runtime";
 
 export interface DocsContentPayload {
@@ -33,37 +30,13 @@ export interface DocsRouteConfig {
   };
 }
 
-async function readDocsAsset(
-  localPath: string,
-  packageDocPath: string
-): Promise<string> {
-  const packageDoc = await readPackageDoc(
-    "@bluelibs/runner-dev",
-    packageDocPath
-  ).catch(() => ({ content: "" } as const));
-  const packageContent = packageDoc.content || "";
-
-  if (packageContent) {
-    return packageContent;
-  }
-
-  try {
-    return await fs.readFile(path.resolve(__dirname, localPath), "utf8");
-  } catch {
-    return "";
-  }
-}
-
 const RUNNER_MINIMAL_DOC_PATHS = [
   ".agents/skills/runner/references/COMPACT_GUIDE.md",
   "readmes/COMPACT_GUIDE.md",
   "AI.md",
 ];
 
-const RUNNER_COMPLETE_DOC_PATHS = [
-  "README.md",
-  "readmes/FULL_GUIDE.md",
-];
+const RUNNER_COMPLETE_DOC_PATHS = ["README.md", "readmes/FULL_GUIDE.md"];
 
 async function readDocsContent(): Promise<DocsContentPayload | undefined> {
   const [minimalDoc, completeDoc] = await Promise.all([
@@ -162,28 +135,31 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
     ).catch(() => ({ content: "" } as any));
     const runnerFrameworkMd = runnerFrameworkDoc.content || "";
 
-    // Runner-Dev AI.md (when this package is a dependency)
+    // Runner-Dev compact guide (when this package is a dependency)
     const runnerDevDoc = await readPackageDoc(
       "@bluelibs/runner-dev",
-      "AI.md"
+      "skills/runner-dev/references/COMPACT_GUIDE.md"
     ).catch(() => ({ content: "" } as any));
-    let runnerDevAiMd = runnerDevDoc.content || "";
+    let runnerDevCompactMd = runnerDevDoc.content || "";
 
-    // Fallback to package-relative AI.md (when developing this repo)
-    if (!runnerDevAiMd) {
+    // Fallback to package-relative compact guide (when developing this repo)
+    if (!runnerDevCompactMd) {
       try {
         const fallback = await fs.readFile(
-          path.resolve(__dirname, "../../../AI.md"),
+          path.resolve(
+            __dirname,
+            "../../../skills/runner-dev/references/COMPACT_GUIDE.md"
+          ),
           "utf8"
         );
-        runnerDevAiMd = fallback || runnerDevAiMd;
+        runnerDevCompactMd = fallback || runnerDevCompactMd;
       } catch {
         /* best-effort fallback */
       }
     }
 
     // Expose framework and dev docs separately
-    const runnerDevMd = runnerDevAiMd || "";
+    const runnerDevMd = runnerDevCompactMd || "";
     const docsContent = await readDocsContent();
 
     // Obtain GraphQL SDL if available

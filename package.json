@@ -34,7 +34,6 @@
     "qa": "npm run lint:fix && npm run typecheck && npm run build && npm run test && npm run typedoc",
     "coverage:ai": "jest --config config/jest/jest.config.js --coverage --coverageReporters=text-summary",
     "codegen": "graphql-codegen --config config/codegen.ts",
-    "skills:prepare": "ts-node --project config/ts/tsconfig.json scripts/prepare-skills.ts",
     "prepack": "npm run skills:prepare",
     "prebuild": "ts-node --project config/ts/tsconfig.json scripts/sync-version.ts && npm run codegen && npm run skills:prepare",
     "play": "concurrently -k -n UI,SRV -c blue,green \"npm:build:ui:watch\" \"npm:play:server\"",

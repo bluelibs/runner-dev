@@ -511,7 +511,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     docsRunnerDev && {
       id: "docs.runnerDev",
       title: "Add Runner-Dev Docs",
-      description: "Runner-Dev AI Assistant Guide (this toolkit)",
+      description: "Runner-Dev compact guide (this toolkit)",
     },
     docsSchema && {
       id: "docs.schema",
@@ -520,8 +520,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     },
     docsProjectOverview && {
       id: "docs.projectOverview",
-      title: "Add Project AI.md",
-      description: "Project-specific AI guidelines/context",
+      title: "Add Project Overview",
+      description: "Project-specific architecture and context",
     },
   ].filter(Boolean) as Array<{
     id: string;

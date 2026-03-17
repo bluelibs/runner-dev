@@ -18,8 +18,9 @@
 </general>
 
 <specifics>
-- Prefer Runner docs from extracted skills under `.agents/skills` when they are available. `AI.md` remains useful for runner-dev-specific context.
-- Runner-Dev publishes its own skill from `skills/runner-dev`; refresh it with `npm run skills:prepare` after changing `AI.md` or `README.md`.
+- Prefer Runner docs from extracted skills under `.agents/skills` when they are available.
+- For runner-dev-specific context, use `skills/runner-dev/references/COMPACT_GUIDE.md`.
+- Runner-Dev publishes its own skill from `skills/runner-dev`; refresh it with `npm run skills:prepare` after changing `README.md` or `skills/runner-dev/SKILL.md`.
 </specifics>
 
 <new_feature>
@@ -27,5 +28,5 @@
 - When building new features/enhancements/changes
 - Must be implemented with care without affecting the system and not over-polute files.
 - Ensure README.md and any agent-facing project guidance stay properly updated
-- If `AI.md` or `README.md` changes, regenerate the published skill with `npm run skills:prepare`
+- If `README.md` or `skills/runner-dev/SKILL.md` changes, regenerate the published skill with `npm run skills:prepare`
   </new_feature>

@@ -22,7 +22,7 @@ npx @bluelibs/runner-dev
 ```
 
 For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
-Runner-Dev also publishes its own generated skill from `skills/runner-dev`. Refresh it locally with `npm run skills:prepare` when `AI.md` or `README.md` changes; the generated compact reference is `skills/runner-dev/references/COMPACT_GUIDE.md`.
+Runner-Dev also publishes its own skill from `skills/runner-dev`. Refresh it locally with `npm run skills:prepare` when `README.md` changes; the compact runner-dev reference lives at `skills/runner-dev/references/COMPACT_GUIDE.md`.
 
 ```ts
 import { r } from "@bluelibs/runner";

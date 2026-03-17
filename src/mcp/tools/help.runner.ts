@@ -4,14 +4,8 @@ import {
   buildTOC,
   extractSectionsByHeadings,
   readFirstAvailablePackageDoc,
+  RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
 } from "../help";
-
-const RUNNER_FRAMEWORK_DOC_PATHS = [
-  ".agents/skills/runner/references/COMPACT_GUIDE.md",
-  "readmes/COMPACT_GUIDE.md",
-  "AI.md",
-  "README.md",
-];
 
 export function registerHelpRunner(server: McpServer) {
   server.registerTool(
@@ -28,7 +22,7 @@ export function registerHelpRunner(server: McpServer) {
     async ({ headingIncludes, toc }) => {
       const pkg = await readFirstAvailablePackageDoc(
         "@bluelibs/runner",
-        RUNNER_FRAMEWORK_DOC_PATHS
+        [...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS]
       );
       let content = pkg.content;
 

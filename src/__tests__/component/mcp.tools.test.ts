@@ -12,6 +12,9 @@ import {
   buildTOC,
   extractSectionByHeading,
   readPackageDoc,
+  readFirstAvailablePackageDoc,
+  RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
+  RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS,
 } from "../../mcp/help";
 
 describe("MCP tools (env/http/format/help)", () => {
@@ -123,6 +126,27 @@ describe("MCP tools (env/http/format/help)", () => {
       // use a dependency likely present
       const pkg = await readPackageDoc("graphql");
       expect(typeof pkg.content).toBe("string");
+    });
+
+    it("runner docs prefer compact and full guides from readmes", async () => {
+      expect(RUNNER_FRAMEWORK_COMPACT_DOC_PATHS[0]).toBe(
+        "readmes/COMPACT_GUIDE.md"
+      );
+      expect(RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS[0]).toBe(
+        "readmes/FULL_GUIDE.md"
+      );
+
+      const compact = await readFirstAvailablePackageDoc("@bluelibs/runner", [
+        ...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
+      ]);
+      const complete = await readFirstAvailablePackageDoc("@bluelibs/runner", [
+        ...RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS,
+      ]);
+
+      expect(compact.filePath).toMatch(/readmes\/COMPACT_GUIDE\.md$/);
+      expect(compact.content.length).toBeGreaterThan(0);
+      expect(complete.filePath).toMatch(/readmes\/FULL_GUIDE\.md$/);
+      expect(complete.content.length).toBeGreaterThan(0);
     });
   });
 });

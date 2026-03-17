@@ -4,6 +4,14 @@ import { sanitizePath } from "../utils/path";
 
 export type HelpDoc = "readme" | "compact";
 
+export const RUNNER_FRAMEWORK_COMPACT_DOC_PATHS = [
+  "readmes/COMPACT_GUIDE.md",
+] as const;
+
+export const RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS = [
+  "readmes/FULL_GUIDE.md",
+] as const;
+
 export async function readDocContent(doc: HelpDoc): Promise<{
   doc: HelpDoc;
   filePath: string;

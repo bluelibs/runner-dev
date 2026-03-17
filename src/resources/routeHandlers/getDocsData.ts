@@ -4,7 +4,12 @@ import { Store } from "@bluelibs/runner";
 import { initializeFromStore } from "../models/initializeFromStore";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { readFirstAvailablePackageDoc, readPackageDoc } from "../../mcp/help";
+import {
+  readFirstAvailablePackageDoc,
+  readPackageDoc,
+  RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
+  RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS,
+} from "../../mcp/help";
 import { findDurableResourceIdFromStore } from "../models/durable.runtime";
 
 export interface DocsContentPayload {
@@ -30,18 +35,16 @@ export interface DocsRouteConfig {
   };
 }
 
-const RUNNER_MINIMAL_DOC_PATHS = [
-  ".agents/skills/runner/references/COMPACT_GUIDE.md",
-  "readmes/COMPACT_GUIDE.md",
-  "AI.md",
-];
-
-const RUNNER_COMPLETE_DOC_PATHS = ["README.md", "readmes/FULL_GUIDE.md"];
-
 async function readDocsContent(): Promise<DocsContentPayload | undefined> {
   const [minimalDoc, completeDoc] = await Promise.all([
-    readFirstAvailablePackageDoc("@bluelibs/runner", RUNNER_MINIMAL_DOC_PATHS),
-    readFirstAvailablePackageDoc("@bluelibs/runner", RUNNER_COMPLETE_DOC_PATHS),
+    readFirstAvailablePackageDoc(
+      "@bluelibs/runner",
+      [...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS]
+    ),
+    readFirstAvailablePackageDoc(
+      "@bluelibs/runner",
+      [...RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS]
+    ),
   ]);
   const minimalMd = minimalDoc.content;
   const completeMd =
@@ -131,7 +134,7 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
     // Try to read framework docs from the installed Runner skill first.
     const runnerFrameworkDoc = await readFirstAvailablePackageDoc(
       "@bluelibs/runner",
-      RUNNER_MINIMAL_DOC_PATHS
+      [...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS]
     ).catch(() => ({ content: "" } as any));
     const runnerFrameworkMd = runnerFrameworkDoc.content || "";
 

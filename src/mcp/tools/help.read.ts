@@ -4,7 +4,9 @@ import {
   buildTOC,
   extractSectionsByHeadings,
   readDocContent,
+  readFirstAvailablePackageDoc,
   readPackageDoc,
+  RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
 } from "../help";
 
 export function registerHelpRead(server: McpServer) {
@@ -34,7 +36,10 @@ export function registerHelpRead(server: McpServer) {
         content = pkg.content;
         filePath = pkg.filePath;
       } else if (doc === "runner") {
-        const pkg = await readPackageDoc("@bluelibs/runner", "README.md");
+        const pkg = await readFirstAvailablePackageDoc(
+          "@bluelibs/runner",
+          [...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS]
+        );
         content = pkg.content;
         filePath = pkg.filePath;
       } else {

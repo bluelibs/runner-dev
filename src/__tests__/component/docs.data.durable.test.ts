@@ -126,11 +126,12 @@ describe("/docs/data durable enrichment", () => {
         .mockImplementation(async (packageName, docPaths) => {
           if (
             packageName === "@bluelibs/runner" &&
-            docPaths.includes("README.md")
+            docPaths[0] === "readmes/FULL_GUIDE.md"
           ) {
             return {
               packageName,
-              filePath: "/mocked/node_modules/@bluelibs/runner/README.md",
+              filePath:
+                "/mocked/node_modules/@bluelibs/runner/readmes/FULL_GUIDE.md",
               content: "",
             };
           }

@@ -13,12 +13,14 @@ export type LaneResourceLike = {
 };
 
 export type EventLaneApplyTargetLike = { id?: unknown } | string;
-export type EventLaneLike = {
-  id?: unknown;
-  applyTo?: readonly EventLaneApplyTargetLike[];
-  orderingKey?: unknown;
-  metadata?: unknown;
-} | string;
+export type EventLaneLike =
+  | {
+      id?: unknown;
+      applyTo?: readonly EventLaneApplyTargetLike[];
+      orderingKey?: unknown;
+      metadata?: unknown;
+    }
+  | string;
 export type EventLaneHookLike = { id?: unknown } | string;
 export type EventLaneQueueLike =
   | { id?: unknown; resource?: { id?: unknown } }
@@ -198,7 +200,8 @@ export function extractQueueId(queueLike: unknown): string | null {
     return directId.trim();
   }
 
-  const resourceId = (queueLike as { resource?: { id?: unknown } }).resource?.id;
+  const resourceId = (queueLike as { resource?: { id?: unknown } }).resource
+    ?.id;
   if (typeof resourceId !== "string") return null;
 
   const queueId = resourceId.trim();
@@ -285,7 +288,9 @@ export function collectEventLaneSummaries(
 export function collectEventLaneSummariesFromResourceConfig(
   resourceConfig: string | null | undefined
 ): Map<string, EventLaneSummaryLike> {
-  return collectEventLaneSummaries(parseEventLanesResourceConfig(resourceConfig));
+  return collectEventLaneSummaries(
+    parseEventLanesResourceConfig(resourceConfig)
+  );
 }
 
 export function getEventLaneBindings(

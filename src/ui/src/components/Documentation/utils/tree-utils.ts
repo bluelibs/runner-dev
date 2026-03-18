@@ -50,9 +50,7 @@ export function parseNamespace(id: string): string[] {
 /**
  * Get element type from ID or explicit type property
  */
-export function getElementType(
-  element: Element
-): ElementType {
+export function getElementType(element: Element): ElementType {
   if (element.type) return element.type;
 
   // Try to infer from ID pattern first
@@ -100,7 +98,11 @@ export function getNodeIcon(
     return getTypeIcon("folder");
   }
 
-  if (node.type === "folder" && node.folderType && node.folderType !== "mixed") {
+  if (
+    node.type === "folder" &&
+    node.folderType &&
+    node.folderType !== "mixed"
+  ) {
     return getTypeIcon(node.folderType);
   }
 
@@ -204,7 +206,8 @@ function countLeafNodes(node: TreeNode): number {
   const selfCount = node.elementId ? 1 : 0;
   if (node.children.length === 0) return selfCount;
   return (
-    selfCount + node.children.reduce((sum, child) => sum + countLeafNodes(child), 0)
+    selfCount +
+    node.children.reduce((sum, child) => sum + countLeafNodes(child), 0)
   );
 }
 

@@ -151,7 +151,7 @@ export function initializeFromStore(
 
   const s = store;
   for (const t of s.tasks.values()) {
-    introspector.tasks.push(mapStoreTaskToTaskModel(t.task, t));
+    introspector.tasks.push(mapStoreTaskToTaskModel(t.task, store, t));
   }
 
   for (const h of s.hooks.values()) {

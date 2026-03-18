@@ -103,7 +103,7 @@ export const TreeView: React.FC<TreeViewProps> = ({
       onToggleExpansion(node.id);
     };
 
-      return (
+    return (
       <div key={node.id} className="tree-node-container">
         <div
           className={[

@@ -542,7 +542,9 @@ export const DocumentationMainContent: React.FC<
         )}
         {activeSection === "tasks" && tasks.length > 0 && (
           <section className="docs-section">
-            <h2>{getDocumentationIcon("tasks")} Tasks ({tasks.length})</h2>
+            <h2>
+              {getDocumentationIcon("tasks")} Tasks ({tasks.length})
+            </h2>
             <div className="docs-component-grid">
               {tasks.map((task) => (
                 <TaskCard
@@ -565,7 +567,9 @@ export const DocumentationMainContent: React.FC<
         )}
         {activeSection === "resources" && resources.length > 0 && (
           <section className="docs-section">
-            <h2>{getDocumentationIcon("resources")} Resources ({resources.length})</h2>
+            <h2>
+              {getDocumentationIcon("resources")} Resources ({resources.length})
+            </h2>
             <div className="docs-component-grid">
               {resources.map((resource) => (
                 <ResourceCard
@@ -643,7 +647,9 @@ export const DocumentationMainContent: React.FC<
         )}
         {activeSection === "errors" && errors.length > 0 && (
           <section className="docs-section">
-            <h2>{getDocumentationIcon("errors")} Errors ({errors.length})</h2>
+            <h2>
+              {getDocumentationIcon("errors")} Errors ({errors.length})
+            </h2>
             <div className="docs-component-grid">
               {errors.map((error) => (
                 <ErrorCard

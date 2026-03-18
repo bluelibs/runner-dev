@@ -118,9 +118,25 @@ export interface MiddlewareAutoApply {
   hasPredicate: boolean;
 }
 
+export type MiddlewareUsageOrigin = "local" | "subtree";
+
 export interface MiddlewareUsage {
   id: string;
   config?: string | null;
+  origin?: MiddlewareUsageOrigin | null;
+  subtreeOwnerId?: string | null;
+}
+
+export interface IdentityRequirementSummary {
+  tenant: true;
+  user: boolean;
+  roles: string[];
+}
+
+export interface IdentityScopeSummary {
+  tenant: true;
+  user: boolean;
+  required: boolean;
 }
 
 export interface Middleware extends BaseElement {
@@ -201,6 +217,10 @@ export interface Resource extends BaseElement {
     tasks?: {
       middleware: string[];
       validatorCount: number;
+      identity?: IdentityRequirementSummary[];
+    } | null;
+    middleware?: {
+      identityScope?: IdentityScopeSummary | null;
     } | null;
     resources?: {
       middleware: string[];

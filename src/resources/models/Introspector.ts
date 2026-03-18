@@ -232,6 +232,15 @@ export class Introspector {
         task.middleware,
         middlewareIds
       );
+      task.middlewareDetailed = Array.isArray(task.middlewareDetailed)
+        ? task.middlewareDetailed.map((entry) => ({
+            ...entry,
+            id: this.resolveCanonicalId(entry.id, middlewareIds),
+            subtreeOwnerId: entry.subtreeOwnerId
+              ? this.resolveCanonicalId(entry.subtreeOwnerId, resourceIds)
+              : null,
+          }))
+        : task.middlewareDetailed;
       this.normalizeMetaTags(task, tagIds);
     }
 
@@ -267,6 +276,12 @@ export class Introspector {
         resource.middleware,
         middlewareIds
       );
+      resource.middlewareDetailed = Array.isArray(resource.middlewareDetailed)
+        ? resource.middlewareDetailed.map((entry) => ({
+            ...entry,
+            id: this.resolveCanonicalId(entry.id, middlewareIds),
+          }))
+        : resource.middlewareDetailed;
       resource.overrides = this.canonicalizeReferenceArray(
         resource.overrides,
         taskHookResourceMiddlewareIds
@@ -839,9 +854,13 @@ export class Introspector {
     return this.events.filter((e) => emittedIds.has(e.id));
   }
 
-  getMiddlewareUsagesForTask(
-    taskId: string
-  ): Array<{ id: string; config: string | null; node: Middleware }> {
+  getMiddlewareUsagesForTask(taskId: string): Array<{
+    id: string;
+    config: string | null;
+    origin: "local" | "subtree";
+    subtreeOwnerId: string | null;
+    node: Middleware;
+  }> {
     const task = this.taskMap.get(taskId);
     if (!task) {
       const resolvedTask = this.getTask(taskId);
@@ -855,12 +874,21 @@ export class Introspector {
         return {
           id: node?.id ?? d.id,
           config: d.config ?? null,
+          origin: d.origin ?? "local",
+          subtreeOwnerId: d.subtreeOwnerId ?? null,
           node,
         };
       })
       .filter(
-        (x): x is { id: string; config: string | null; node: Middleware } =>
-          Boolean(x.node)
+        (
+          x
+        ): x is {
+          id: string;
+          config: string | null;
+          origin: "local" | "subtree";
+          subtreeOwnerId: string | null;
+          node: Middleware;
+        } => Boolean(x.node)
       );
   }
 
@@ -889,28 +917,39 @@ export class Introspector {
       );
   }
 
-  getTasksUsingMiddlewareDetailed(
-    middlewareId: string
-  ): Array<{ id: string; config: string | null; node: Task | Hook }> {
+  getTasksUsingMiddlewareDetailed(middlewareId: string): Array<{
+    id: string;
+    config: string | null;
+    origin: "local" | "subtree";
+    subtreeOwnerId: string | null;
+    node: Task | Hook;
+  }> {
     const result: Array<{
       id: string;
       config: string | null;
+      origin: "local" | "subtree";
+      subtreeOwnerId: string | null;
       node: Task;
     }> = [];
     const addFrom = (arr: Array<Task>) => {
       for (const tl of arr) {
         if (this.idsContainLike(tl.middleware, middlewareId)) {
-          const conf =
-            (tl.middlewareDetailed || []).find((m) =>
-              this.idsMatch(
-                this.resolveCanonicalId(
-                  m.id,
-                  this.middlewares.map((entry) => entry.id)
-                ),
-                middlewareId
-              )
-            )?.config ?? null;
-          result.push({ id: tl.id, config: conf ?? null, node: tl });
+          const usage = (tl.middlewareDetailed || []).find((m) =>
+            this.idsMatch(
+              this.resolveCanonicalId(
+                m.id,
+                this.middlewares.map((entry) => entry.id)
+              ),
+              middlewareId
+            )
+          );
+          result.push({
+            id: tl.id,
+            config: usage?.config ?? null,
+            origin: usage?.origin ?? "local",
+            subtreeOwnerId: usage?.subtreeOwnerId ?? null,
+            node: tl,
+          });
         }
       }
     };

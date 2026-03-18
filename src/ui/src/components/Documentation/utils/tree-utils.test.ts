@@ -141,7 +141,9 @@ describe("tree-utils", () => {
 
     const systemNode = tree.find((node) => node.id === "system");
     const appNode = tree.find((node) => node.id === "app");
-    const errorsFolder = appNode?.children.find((node) => node.label === "errors");
+    const errorsFolder = appNode?.children.find(
+      (node) => node.label === "errors"
+    );
     const errorNode = errorsFolder?.children.find(
       (node) => node.label === "invalidInput"
     );

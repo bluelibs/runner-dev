@@ -37,14 +37,12 @@ export interface DocsRouteConfig {
 
 async function readDocsContent(): Promise<DocsContentPayload | undefined> {
   const [minimalDoc, completeDoc] = await Promise.all([
-    readFirstAvailablePackageDoc(
-      "@bluelibs/runner",
-      [...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS]
-    ),
-    readFirstAvailablePackageDoc(
-      "@bluelibs/runner",
-      [...RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS]
-    ),
+    readFirstAvailablePackageDoc("@bluelibs/runner", [
+      ...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
+    ]),
+    readFirstAvailablePackageDoc("@bluelibs/runner", [
+      ...RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS,
+    ]),
   ]);
   const minimalMd = minimalDoc.content;
   const completeMd =

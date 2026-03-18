@@ -477,6 +477,20 @@
     border: 1px solid var(--docs-border-primary);
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
+    position: relative;
+
+    &-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: $spacing-md;
+    }
+
+    .task-card__middleware-link {
+      flex: 1;
+      min-width: 0;
+      text-decoration: none;
+    }
 
     .title {
       font-weight: 600;
@@ -510,6 +524,35 @@
       border: 1px solid var(--docs-border-primary);
       line-height: 1.4;
       font-family: $font-family-mono;
+    }
+  }
+
+  &__badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    border-radius: $border-radius-pill;
+    padding: $spacing-xs $spacing-sm;
+    background: rgba(255, 184, 77, 0.18);
+    border: 1px solid rgba(255, 184, 77, 0.38);
+    color: var(--docs-warning, #ffb84d);
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  &__source {
+    margin-bottom: $spacing-md;
+    color: var(--docs-text-secondary);
+    font-size: $font-size-xs;
+    font-family: $font-family-mono;
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--docs-border-hover);
     }
   }
 }

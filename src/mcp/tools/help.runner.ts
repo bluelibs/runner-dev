@@ -20,10 +20,9 @@ export function registerHelpRunner(server: McpServer) {
       },
     },
     async ({ headingIncludes, toc }) => {
-      const pkg = await readFirstAvailablePackageDoc(
-        "@bluelibs/runner",
-        [...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS]
-      );
+      const pkg = await readFirstAvailablePackageDoc("@bluelibs/runner", [
+        ...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
+      ]);
       let content = pkg.content;
 
       if (!content) {

@@ -150,13 +150,17 @@ export const ResourceEventLanesSection: React.FC<
                       ? profile.consumeLaneIds.join(", ")
                       : "(none)"}
                   </span>
-                  {profile.hookAllowlists.some((hookIds) => hookIds.length > 0) && (
+                  {profile.hookAllowlists.some(
+                    (hookIds) => hookIds.length > 0
+                  ) && (
                     <span>
                       hooks.only:{" "}
                       {profile.hookAllowlists
                         .map((hookIds, index) =>
                           hookIds.length > 0
-                            ? `${profile.consumeLaneIds[index] || "unknown"} -> ${hookIds.join(", ")}`
+                            ? `${
+                                profile.consumeLaneIds[index] || "unknown"
+                              } -> ${hookIds.join(", ")}`
                             : null
                         )
                         .filter(Boolean)

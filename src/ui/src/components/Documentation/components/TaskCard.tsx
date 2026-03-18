@@ -683,15 +683,37 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           <div className="task-card__middleware__items">
             {middlewareUsages.map((usage) => (
               <div key={usage.id} className="task-card__middleware__item">
-                <a
-                  href={`#element-${usage.id}`}
-                  className="task-card__middleware-link"
-                >
-                  <div className="title">
-                    {usage.node.meta?.title || formatId(usage.id)}
+                <div className="task-card__middleware__item-header">
+                  <a
+                    href={`#element-${usage.id}`}
+                    className="task-card__middleware-link"
+                  >
+                    <div className="title">
+                      {usage.node.meta?.title || formatId(usage.id)}
+                    </div>
+                    <div className="id">{usage.id}</div>
+                  </a>
+                  {usage.origin === "subtree" && (
+                    <span
+                      className="task-card__middleware__badge"
+                      title={
+                        usage.subtreeOwnerId
+                          ? `Applied by subtree policy from ${usage.subtreeOwnerId}`
+                          : "Applied by subtree policy"
+                      }
+                    >
+                      Subtree Policy
+                    </span>
+                  )}
+                </div>
+                {usage.origin === "subtree" && usage.subtreeOwnerId && (
+                  <div className="task-card__middleware__source">
+                    Source:{" "}
+                    <a href={`#element-${usage.subtreeOwnerId}`}>
+                      {formatId(usage.subtreeOwnerId)}
+                    </a>
                   </div>
-                  <div className="id">{usage.id}</div>
-                </a>
+                )}
                 {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>

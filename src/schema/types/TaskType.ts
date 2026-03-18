@@ -81,6 +81,8 @@ export const TaskMiddlewareUsageType = new GraphQLObjectType({
   fields: (): GraphQLFieldConfigMap<any, any> => ({
     id: { type: new GraphQLNonNull(GraphQLID) },
     config: { type: GraphQLString },
+    origin: { type: GraphQLString },
+    subtreeOwnerId: { type: GraphQLID },
     node: { type: new GraphQLNonNull(TaskMiddlewareType) },
   }),
 });

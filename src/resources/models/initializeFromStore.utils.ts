@@ -4,9 +4,16 @@ import type {
   Resource,
   Event,
   Middleware,
+  IdentityRequirementSummary,
+  IdentityScopeSummary,
 } from "../../schema/model";
 
-import { definitions, Store } from "@bluelibs/runner";
+import {
+  definitions,
+  Store,
+  type IdentityRequirementConfig,
+  type IdentityScopeConfig,
+} from "@bluelibs/runner";
 import {
   RPC_LANE_TAG_ID,
   extractLaneId,
@@ -69,9 +76,197 @@ export function findById(collection: any, id: string): any | undefined {
   return undefined;
 }
 
+const taskMiddlewareScopeMarker = ".middleware.task.";
+const resourceMiddlewareScopeMarker = ".middleware.resource.";
+
+function getMiddlewareDuplicateKey(id: string): string {
+  const taskScopeIndex = id.lastIndexOf(taskMiddlewareScopeMarker);
+  if (taskScopeIndex >= 0) {
+    return id.slice(taskScopeIndex + taskMiddlewareScopeMarker.length);
+  }
+
+  const resourceScopeIndex = id.lastIndexOf(resourceMiddlewareScopeMarker);
+  if (resourceScopeIndex >= 0) {
+    return id.slice(resourceScopeIndex + resourceMiddlewareScopeMarker.length);
+  }
+
+  return id;
+}
+
+function getTaskOwnerResourceChain(store: Store, taskId: string): string[] {
+  const chain: string[] = [];
+  const visited = new Set<string>();
+  let currentOwnerId = store.getOwnerResourceId(taskId);
+
+  while (currentOwnerId && !visited.has(currentOwnerId)) {
+    visited.add(currentOwnerId);
+    chain.push(currentOwnerId);
+    currentOwnerId = store.getOwnerResourceId(currentOwnerId);
+  }
+
+  return chain;
+}
+
+function normalizeIdentityRequirementSummary(
+  value: unknown
+): IdentityRequirementSummary | null {
+  if (!value || typeof value !== "object") return null;
+  const config = value as IdentityRequirementConfig;
+  return {
+    tenant: true,
+    user: config.user === true,
+    roles: Array.isArray(config.roles)
+      ? config.roles.map((role) => String(role))
+      : [],
+  };
+}
+
+function normalizeIdentityRequirementSummaries(
+  value: unknown
+): IdentityRequirementSummary[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeIdentityRequirementSummary(entry))
+    .filter((entry): entry is IdentityRequirementSummary => Boolean(entry));
+}
+
+function normalizeIdentityScopeSummary(
+  value: unknown
+): IdentityScopeSummary | null {
+  if (!value || typeof value !== "object") return null;
+  const config = value as IdentityScopeConfig;
+  return {
+    tenant: true,
+    user: config.user === true,
+    required: config.required ?? true,
+  };
+}
+
+function getSubtreePolicies(resource: any): SubtreePolicyInput[] {
+  const rawSubtree = resource?.subtree;
+  if (!rawSubtree || typeof rawSubtree !== "object") return [];
+  return Array.isArray(rawSubtree)
+    ? rawSubtree.filter(
+        (policy): policy is SubtreePolicyInput =>
+          Boolean(policy) && typeof policy === "object"
+      )
+    : [rawSubtree as SubtreePolicyInput];
+}
+
+function readSubtreeMiddlewareEntryId(entry: unknown): string | null {
+  if (!entry || typeof entry !== "object") return null;
+  if ("use" in (entry as Record<string, unknown>)) {
+    return readSubtreeMiddlewareEntryId(
+      (entry as { use?: unknown }).use ?? null
+    );
+  }
+
+  const id = readId(entry);
+  return id ? id : null;
+}
+
+function resolveTaskSubtreeMiddlewareEntry(
+  entry: unknown,
+  task: definitions.ITask
+): string | null {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  if ("use" in (entry as Record<string, unknown>)) {
+    const conditionalEntry = entry as {
+      use?: unknown;
+      when?: (definition: definitions.ITask) => boolean;
+    };
+
+    if (
+      typeof conditionalEntry.when === "function" &&
+      !conditionalEntry.when(task)
+    ) {
+      return null;
+    }
+
+    return readSubtreeMiddlewareEntryId(conditionalEntry.use ?? null);
+  }
+
+  return readSubtreeMiddlewareEntryId(entry);
+}
+
+function collectSubtreeTaskMiddlewareOwnerIds(
+  store: Store,
+  task: definitions.ITask
+): Map<string, string> {
+  const ownerIds = new Map<string, string>();
+  const chainRootToNearest = [
+    ...getTaskOwnerResourceChain(store, task.id),
+  ].reverse();
+
+  for (const ownerResourceId of chainRootToNearest) {
+    const ownerResource = store.resources.get(ownerResourceId)?.resource;
+    if (!ownerResource) continue;
+
+    for (const policy of getSubtreePolicies(ownerResource)) {
+      const taskMiddlewares = Array.isArray(policy.tasks?.middleware)
+        ? policy.tasks.middleware
+        : [];
+
+      for (const entry of taskMiddlewares) {
+        const middlewareId = resolveTaskSubtreeMiddlewareEntry(entry, task);
+        if (!middlewareId) continue;
+
+        const duplicateKey = getMiddlewareDuplicateKey(middlewareId);
+        if (!ownerIds.has(duplicateKey)) {
+          ownerIds.set(duplicateKey, ownerResourceId);
+        }
+      }
+    }
+  }
+
+  return ownerIds;
+}
+
+function hasMiddlewareConfig(middleware: { config?: unknown }): boolean {
+  return (
+    Boolean((middleware as any)?.[definitions.symbolMiddlewareConfigured]) ||
+    middleware?.config !== undefined
+  );
+}
+
+function buildEffectiveTaskMiddlewareUsages(
+  store: Store,
+  task: definitions.ITask
+): NonNullable<Task["middlewareDetailed"]> {
+  const resolver = (store.getMiddlewareManager() as any)?.middlewareResolver as
+    | {
+        getApplicableTaskMiddlewares: (
+          taskDefinition: definitions.ITask
+        ) => definitions.ITaskMiddleware[];
+      }
+    | undefined;
+  const effectiveMiddlewares = resolver
+    ? resolver.getApplicableTaskMiddlewares(task)
+    : task.middleware;
+  const subtreeOwnersByKey = collectSubtreeTaskMiddlewareOwnerIds(store, task);
+
+  return effectiveMiddlewares.map((middleware: any) => {
+    const duplicateKey = getMiddlewareDuplicateKey(String(middleware.id));
+    const subtreeOwnerId = subtreeOwnersByKey.get(duplicateKey) ?? null;
+
+    return {
+      id: String(middleware.id),
+      config: hasMiddlewareConfig(middleware)
+        ? stringifyIfObject(middleware.config)
+        : null,
+      origin: subtreeOwnerId ? "subtree" : "local",
+      subtreeOwnerId,
+    };
+  });
+}
+
 // Mapping helpers
 export function mapStoreTaskToTaskModel(
   task: definitions.ITask,
+  store?: Store,
   taskStoreElement?: {
     interceptors?: Array<{ ownerResourceId?: string }>;
   }
@@ -82,15 +277,14 @@ export function mapStoreTaskToTaskModel(
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
   const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
-  const middlewareDetailed = (task.middleware || []).map((m: any) => ({
-    id: String(m.id),
-    // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
-    config:
-      (m && m[definitions.symbolMiddlewareConfigured]) ||
-      m?.config !== undefined
-        ? stringifyIfObject(m.config)
-        : null,
-  }));
+  const middlewareDetailed = store
+    ? buildEffectiveTaskMiddlewareUsages(store, task)
+    : (task.middleware || []).map((m: any) => ({
+        id: String(m.id),
+        config: hasMiddlewareConfig(m) ? stringifyIfObject(m.config) : null,
+        origin: "local" as const,
+        subtreeOwnerId: null,
+      }));
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
     (task as any)?.tags
   );
@@ -120,7 +314,7 @@ export function mapStoreTaskToTaskModel(
         ...errorIdsFromDeps,
         ...tagIdsFromDeps,
       ],
-      middleware: task.middleware.map((m) => m.id.toString()),
+      middleware: middlewareDetailed.map((m) => m.id),
       middlewareDetailed,
       registeredBy: null,
       kind: "TASK",
@@ -340,10 +534,7 @@ export function buildEvents(store: Store): Event[] {
   });
 }
 
-function resolveHookEventIds(
-  hook: definitions.IHook,
-  store?: Store
-): string[] {
+function resolveHookEventIds(hook: definitions.IHook, store?: Store): string[] {
   if (hook.on === "*") {
     return ["*"];
   }
@@ -383,8 +574,8 @@ function buildEventLaneSummaryByEventId(
       continue;
     }
 
-    const topology = (resourceEntry as { config?: { topology?: unknown } }).config
-      ?.topology as
+    const topology = (resourceEntry as { config?: { topology?: unknown } })
+      .config?.topology as
       | {
           bindings?: Array<{ lane?: { id?: unknown; applyTo?: unknown } }>;
           profiles?: Record<
@@ -921,13 +1112,20 @@ function normalizeSubtreeValidatorCount(value: unknown): number {
 function toSubtreeMiddlewareIds(entries: unknown): string[] {
   if (!Array.isArray(entries)) return [];
   const ids = entries
-    .map((entry) => (typeof entry === "string" ? entry : readId(entry)))
-    .filter(Boolean);
+    .map((entry) =>
+      typeof entry === "string" ? entry : readSubtreeMiddlewareEntryId(entry)
+    )
+    .filter((id): id is string => Boolean(id));
   return Array.from(new Set(ids));
 }
 
 type SubtreePolicyInput = {
-  tasks?: { middleware?: unknown; validate?: unknown } | null;
+  tasks?: {
+    middleware?: unknown;
+    identity?: unknown;
+    validate?: unknown;
+  } | null;
+  middleware?: { identityScope?: unknown } | null;
   resources?: { middleware?: unknown; validate?: unknown } | null;
   hooks?: { validate?: unknown } | null;
   taskMiddleware?: { validate?: unknown } | null;
@@ -946,20 +1144,14 @@ function appendSubtreeMiddlewareIds(
 }
 
 function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
-  const rawSubtree = resource?.subtree;
-  if (!rawSubtree || typeof rawSubtree !== "object") return null;
-
-  const subtreePolicies = Array.isArray(rawSubtree)
-    ? rawSubtree.filter(
-        (policy): policy is SubtreePolicyInput =>
-          Boolean(policy) && typeof policy === "object"
-      )
-    : [rawSubtree as SubtreePolicyInput];
-
+  const subtreePolicies = getSubtreePolicies(resource);
   if (subtreePolicies.length === 0) return null;
 
   const taskMiddlewareIds = new Set<string>();
   const resourceMiddlewareIds = new Set<string>();
+  const taskIdentityRequirements: NonNullable<
+    NonNullable<NonNullable<Resource["subtree"]>["tasks"]>["identity"]
+  > = [];
   let tasksValidatorCount = 0;
   let resourcesValidatorCount = 0;
   let hooksValidatorCount = 0;
@@ -967,12 +1159,24 @@ function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
   let resourceMiddlewareValidatorCount = 0;
   let eventsValidatorCount = 0;
   let tagsValidatorCount = 0;
+  let subtreeMiddlewareIdentityScope: NonNullable<
+    NonNullable<Resource["subtree"]>["middleware"]
+  >["identityScope"] = null;
 
   for (const subtree of subtreePolicies) {
     if (subtree.tasks) {
       appendSubtreeMiddlewareIds(taskMiddlewareIds, subtree.tasks.middleware);
+      taskIdentityRequirements.push(
+        ...normalizeIdentityRequirementSummaries(subtree.tasks.identity)
+      );
       tasksValidatorCount += normalizeSubtreeValidatorCount(
         subtree.tasks.validate
+      );
+    }
+
+    if (subtree.middleware && "identityScope" in subtree.middleware) {
+      subtreeMiddlewareIdentityScope = normalizeIdentityScopeSummary(
+        subtree.middleware.identityScope
       );
     }
 
@@ -1018,10 +1222,21 @@ function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
   }
 
   const tasks =
-    taskMiddlewareIds.size > 0 || tasksValidatorCount > 0
+    taskMiddlewareIds.size > 0 ||
+    tasksValidatorCount > 0 ||
+    taskIdentityRequirements.length > 0
       ? {
           middleware: Array.from(taskMiddlewareIds),
           validatorCount: tasksValidatorCount,
+          ...(taskIdentityRequirements.length > 0
+            ? { identity: taskIdentityRequirements }
+            : {}),
+        }
+      : null;
+  const middleware =
+    subtreeMiddlewareIdentityScope !== null
+      ? {
+          identityScope: subtreeMiddlewareIdentityScope,
         }
       : null;
   const resources =
@@ -1064,6 +1279,7 @@ function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
 
   if (
     !tasks &&
+    !middleware &&
     !resources &&
     !hooks &&
     !taskMiddleware &&
@@ -1076,6 +1292,7 @@ function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
 
   return {
     tasks,
+    middleware,
     resources,
     hooks,
     taskMiddleware,

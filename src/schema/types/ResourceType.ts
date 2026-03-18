@@ -16,7 +16,7 @@ import { ResourceMiddlewareType } from "./MiddlewareType";
 import { TaskType } from "./TaskType";
 import { EventType } from "./EventType";
 import { CustomGraphQLContext } from "../context";
-import { TaskMiddlewareUsageType } from "./TaskType";
+import { MiddlewareResourceUsageType } from "./middleware/UsageTypes";
 import { Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
@@ -88,15 +88,66 @@ const ResourceIsolationType = new GraphQLObjectType({
   },
 });
 
-const ResourceSubtreeBranchType = new GraphQLObjectType({
-  name: "ResourceSubtreeBranch",
+const ResourceSubtreeIdentityRequirementType = new GraphQLObjectType({
+  name: "ResourceSubtreeIdentityRequirement",
+  fields: {
+    tenant: { type: new GraphQLNonNull(GraphQLBoolean) },
+    user: { type: new GraphQLNonNull(GraphQLBoolean) },
+    roles: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+  },
+});
+
+const ResourceSubtreeIdentityScopeType = new GraphQLObjectType({
+  name: "ResourceSubtreeIdentityScope",
+  fields: {
+    tenant: { type: new GraphQLNonNull(GraphQLBoolean) },
+    user: { type: new GraphQLNonNull(GraphQLBoolean) },
+    required: { type: new GraphQLNonNull(GraphQLBoolean) },
+  },
+});
+
+const ResourceSubtreeTaskBranchType = new GraphQLObjectType({
+  name: "ResourceSubtreeTaskBranch",
   fields: {
     middleware: {
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
+      resolve: (node: any) => node?.middleware ?? [],
     },
     validatorCount: { type: new GraphQLNonNull(GraphQLInt) },
+    identity: {
+      type: new GraphQLNonNull(
+        new GraphQLList(
+          new GraphQLNonNull(ResourceSubtreeIdentityRequirementType)
+        )
+      ),
+      resolve: (node: any) => node?.identity ?? [],
+    },
+  },
+});
+
+const ResourceSubtreeResourceBranchType = new GraphQLObjectType({
+  name: "ResourceSubtreeResourceBranch",
+  fields: {
+    middleware: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+      resolve: (node: any) => node?.middleware ?? [],
+    },
+    validatorCount: { type: new GraphQLNonNull(GraphQLInt) },
+  },
+});
+
+const ResourceSubtreeMiddlewareScopeType = new GraphQLObjectType({
+  name: "ResourceSubtreeMiddlewareScope",
+  fields: {
+    identityScope: { type: ResourceSubtreeIdentityScopeType },
   },
 });
 
@@ -110,8 +161,9 @@ const ResourceSubtreeValidationBranchType = new GraphQLObjectType({
 const ResourceSubtreePolicyType = new GraphQLObjectType({
   name: "ResourceSubtreePolicy",
   fields: {
-    tasks: { type: ResourceSubtreeBranchType },
-    resources: { type: ResourceSubtreeBranchType },
+    tasks: { type: ResourceSubtreeTaskBranchType },
+    middleware: { type: ResourceSubtreeMiddlewareScopeType },
+    resources: { type: ResourceSubtreeResourceBranchType },
     hooks: { type: ResourceSubtreeValidationBranchType },
     taskMiddleware: { type: ResourceSubtreeValidationBranchType },
     resourceMiddleware: { type: ResourceSubtreeValidationBranchType },
@@ -183,7 +235,7 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     middlewareResolvedDetailed: {
       description: "Middlewares applied to this resource with per-usage config",
       type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
+        new GraphQLList(new GraphQLNonNull(MiddlewareResourceUsageType))
       ),
       resolve: (node, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getMiddlewareUsagesForResource(node.id),

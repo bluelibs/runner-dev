@@ -36,10 +36,9 @@ export function registerHelpRead(server: McpServer) {
         content = pkg.content;
         filePath = pkg.filePath;
       } else if (doc === "runner") {
-        const pkg = await readFirstAvailablePackageDoc(
-          "@bluelibs/runner",
-          [...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS]
-        );
+        const pkg = await readFirstAvailablePackageDoc("@bluelibs/runner", [
+          ...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
+        ]);
         content = pkg.content;
         filePath = pkg.filePath;
       } else {

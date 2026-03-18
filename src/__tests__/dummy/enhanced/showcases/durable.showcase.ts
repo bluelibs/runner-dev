@@ -1,5 +1,5 @@
 import type { IResource, IResourceWithConfig } from "@bluelibs/runner";
-import { RegisterableItems, r } from "@bluelibs/runner";
+import { defineResource, RegisterableItems, r } from "@bluelibs/runner";
 import {
   durableWorkflowTag,
   memoryDurableResource,
@@ -57,8 +57,29 @@ function normalizeDurableOrderApprovalInput(
 
 export const showcaseDurableResource: IResource<
   any,
-  Promise<DurableResource>
-> = memoryDurableResource.fork("durable-runtime");
+  Promise<DurableResource>,
+  any,
+  any,
+  { title: string; description: string }
+> = defineResource({
+  id: "durable-runtime",
+  tags: memoryDurableResource.tags,
+  configSchema: memoryDurableResource.configSchema,
+  resultSchema: memoryDurableResource.resultSchema,
+  dependencies: memoryDurableResource.dependencies,
+  context: memoryDurableResource.context,
+  init: memoryDurableResource.init,
+  middleware: memoryDurableResource.middleware,
+  dispose: memoryDurableResource.dispose,
+  ready: memoryDurableResource.ready,
+  cooldown: memoryDurableResource.cooldown,
+  health: memoryDurableResource.health,
+  meta: {
+    title: "Durable Runtime",
+    description:
+      "Hosts the order approval workflow state.\n\n- Uses the in-memory durable backend\n- Kept intentionally minimal for docs and topology",
+  },
+});
 
 export const showcaseDurableRegistration: IResourceWithConfig<
   any,

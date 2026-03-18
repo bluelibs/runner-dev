@@ -121,6 +121,15 @@ describe("Enhanced play showcase app", () => {
     expect(eventLanesNode?.meta?.description).toContain("event-lane topology");
   });
 
+  test("attaches meta to the durable resource", () => {
+    const durableNode = contextValue.introspector.getResource(
+      ordersIds.resource(showcaseDurableResource.id)
+    );
+
+    expect(durableNode?.meta?.title).toBe("Durable Runtime");
+    expect(durableNode?.meta?.description).toContain("order approval");
+  });
+
   test("exposes tags and tag handlers", async () => {
     const result = await graphql({
       schema,

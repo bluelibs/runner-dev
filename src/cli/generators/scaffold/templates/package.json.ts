@@ -11,13 +11,12 @@ export function packageJson(projectName: string) {
       test: "vitest run",
       "test:watch": "vitest",
       "schema:sdl": "runner-dev schema sdl",
-      "skills:extract": "npm-skills extract --override",
-      prepare:
-        "node -e \"process.exit((process.env.npm_config_omit||'').split(',').includes('dev') ? 0 : 1)\" || npm run skills:extract",
+      "skills:extract": "npm-skills extract --skip-production --override",
+      postinstall: "npm run skills:extract",
     },
     dependencies: {
       "@bluelibs/runner": "^6.3.0",
-      "npm-skills": "^0.2.0",
+      "npm-skills": "^0.4.0",
     },
     devDependencies: {
       "@bluelibs/runner-dev": "^6.3.0",

@@ -39,6 +39,9 @@ module.exports = {
           },
         ],
       },
+      moduleNameMapper: {
+        "\\.(css|scss)$": "<rootDir>/config/jest/styleMock.js",
+      },
     },
     {
       rootDir: rootDir,

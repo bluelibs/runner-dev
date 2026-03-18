@@ -108,7 +108,7 @@
     "@adobe/jsonschema2md": "^8.0.5",
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
-    "@bluelibs/runner": "../runner",
+    "@bluelibs/runner": "^6.3.1",
     "@bluelibs/smart": "^2.2.1",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@types/prismjs": "^1.26.5",

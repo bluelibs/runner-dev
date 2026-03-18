@@ -16,5 +16,6 @@ Use this skill when the task involves:
 - MCP helpers, GraphQL tooling, introspection resources, or chat context wiring
 - live telemetry, hot-swapping, CLI surfaces, or other runner-dev tooling
 - agent-facing documentation that must stay aligned with `COMPACT_GUIDE.md` and `README.md`
+- For GraphQL schema reference for MCP look into ./references/API_REFERENCE.md
 
 Reach for the general Runner skill when the problem is about framework design rather than runner-dev's tooling surface.

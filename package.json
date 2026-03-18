@@ -41,7 +41,7 @@
     "demo:query": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js query 'query { tasks { id } }' --format pretty",
     "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5",
     "skills:extract": "npm-skills extract --override",
-    "prepare": "node -e \"process.exit((process.env.npm_config_omit||'').split(',').includes('dev') ? 0 : 1)\" || npm run skills:extract"
+    "prepare": "node -e \"process.exit(process.env.NODE_ENV=='production' ? 0 : 1)\" || npm run skills:extract"
   },
   "bin": {
     "runner-dev": "dist/cli.js"

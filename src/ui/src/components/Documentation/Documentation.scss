@@ -313,7 +313,7 @@ body {
   display: flex;
   gap: $spacing-md;
   align-items: center;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-md;
   width: 100%;
   min-width: 0;
 
@@ -398,7 +398,7 @@ body {
 }
 
 .docs-nav-container {
-  margin-bottom: $spacing-xl;
+  margin-bottom: $spacing-lg;
   overflow-x: hidden; // prevent horizontal overflow
   padding-right: 5px;
 
@@ -514,7 +514,7 @@ body {
 }
 
 .docs-namespace-input {
-  margin-bottom: $spacing-xl;
+  margin-bottom: $spacing-lg;
   min-width: 0; // Allow flex shrinking
 
   label {
@@ -523,7 +523,7 @@ body {
     align-items: center;
     font-size: $font-size-xs;
     color: rgba(255, 255, 255, 0.8);
-    margin-bottom: $spacing-xs;
+    margin-bottom: 3px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -535,7 +535,7 @@ body {
 
   .docs-namespace-input__field {
     position: relative;
-    margin-bottom: $spacing-sm;
+    margin-bottom: 6px;
     width: 100%;
     min-width: 0;
     max-width: 100%;
@@ -548,7 +548,7 @@ body {
       min-width: 0;
       max-width: 100%;
       box-sizing: border-box;
-      padding: $spacing-sm 38px $spacing-sm $spacing-md;
+      padding: 6px 36px 6px 12px;
       border-radius: $border-radius-lg;
       border: 1px solid rgba(255, 255, 255, 0.15);
       background: rgba(255, 255, 255, 0.08);
@@ -642,8 +642,8 @@ body {
 // Visibility Toggles
 // -----------------------------------------------------------------------------
 .docs-visibility-toggles {
-  margin-bottom: $spacing-lg;
-  padding: 6px 8px;
+  margin-bottom: $spacing-md;
+  padding: 5px 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: $border-radius-md;
   background: linear-gradient(
@@ -652,7 +652,7 @@ body {
     rgba(255, 255, 255, 0.03) 100%
   );
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .docs-visibility-toggle-row {
@@ -667,7 +667,7 @@ body {
   gap: 8px;
   cursor: pointer;
   user-select: none;
-  min-height: 24px;
+  min-height: 22px;
 
   .docs-switch-copy {
     display: inline-flex;

@@ -38,9 +38,9 @@
 
     display: flex;
     align-items: center;
-    padding: 6px 8px;
+    padding: 4px 8px;
     margin: 1px 0;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
     transition: all 0.15s ease;
     border: 1px solid transparent;
@@ -105,7 +105,7 @@
     justify-content: center;
     width: 16px;
     height: 16px;
-    margin-right: 6px;
+    margin-right: 4px;
     border: none;
     background: none;
     cursor: pointer;
@@ -135,7 +135,7 @@
   }
 
   .nav-node-icon {
-    margin-right: 8px;
+    margin-right: 6px;
     font-size: 14px;
     flex-shrink: 0;
 
@@ -152,7 +152,7 @@
     word-break: break-word;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 
     .nav-node[class*="nav-node--folder-"] & {
       color: var(--nav-folder-accent);
@@ -171,7 +171,7 @@
   }
 
   .nav-node-count {
-    margin-left: 8px;
+    margin-left: 6px;
     padding: 2px 6px;
     background-color: rgba(var(--nav-folder-accent-rgb), 0.12);
     color: var(--nav-folder-accent);
@@ -199,11 +199,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    margin: 2px 0;
+    padding: 9px 12px;
+    margin: 1px 0;
     text-decoration: none;
     color: var(--text-primary);
-    border-radius: 8px;
+    border-radius: 6px;
     transition: all 0.15s ease;
     border: 1px solid transparent;
     outline: none;

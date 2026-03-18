@@ -463,9 +463,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                     <div className="element-table__id-container">
                       <code
                         className={`element-table__id-code ${
-                          isIdExpanded
-                            ? "element-table__id-code--expanded"
-                            : ""
+                          isIdExpanded ? "element-table__id-code--expanded" : ""
                         }`}
                       >
                         {displayId.hasHiddenAncestors && !isIdExpanded && (

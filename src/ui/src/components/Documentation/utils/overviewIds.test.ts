@@ -68,7 +68,10 @@ describe("overviewIds", () => {
   test("keeps singular namespace segments because only plural collection buckets are synthetic", () => {
     expect(
       formatOverviewDisplayId(
-        { id: "enhanced-app.catalog.hook.isolationBoundary", registeredBy: null },
+        {
+          id: "enhanced-app.catalog.hook.isolationBoundary",
+          registeredBy: null,
+        },
         []
       )
     ).toBe("...>hook>isolationBoundary");
@@ -92,7 +95,12 @@ describe("overviewIds", () => {
       )
     ).toEqual({
       collapsedSegments: ["catalog", "isolationBoundary"],
-      fullSegments: ["enhanced-app", "features", "catalog", "isolationBoundary"],
+      fullSegments: [
+        "enhanced-app",
+        "features",
+        "catalog",
+        "isolationBoundary",
+      ],
       hasHiddenAncestors: true,
     });
   });

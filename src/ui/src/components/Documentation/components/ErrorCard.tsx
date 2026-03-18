@@ -80,19 +80,25 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
     <div id={`element-${error.id}`} className="error-card">
       <div className="error-card__header">
         <div className="error-card__header-content">
-          <div className="main">
-            <h3 className="error-card__title">
-              {error.meta?.title || formatId(error.id)}
-            </h3>
-            <div className="error-card__id">{error.id}</div>
-            {error.meta?.description && (
-              <p className="error-card__description">
-                {error.meta.description}
-              </p>
-            )}
+          <div className="error-card__header-top">
+            <div className="main">
+              <h3 className="error-card__title">
+                {error.meta?.title || formatId(error.id)}
+              </h3>
+              <div className="error-card__id">{error.id}</div>
+              {error.meta?.description && (
+                <p className="error-card__description">
+                  {error.meta.description}
+                </p>
+              )}
+            </div>
           </div>
-          {isSystemElement(error) && <SystemBadge />}
-          <ElementKindBadge kind="error" />
+          <div className="error-card__header-bottom">
+            <div className="error-card__badges">
+              {isSystemElement(error) && <SystemBadge />}
+              <ElementKindBadge kind="error" />
+            </div>
+          </div>
         </div>
       </div>
 

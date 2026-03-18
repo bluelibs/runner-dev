@@ -17,6 +17,7 @@ import { TaggedElements } from "./tag/TaggedElements";
 import { SchemaRenderer } from "./SchemaRenderer";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
+import { TopologyActionButton } from "./TopologyActionButton";
 
 export interface TagCardProps {
   tag: Tag;
@@ -127,6 +128,13 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
       title={tag.meta?.title || formatId(tag.id)}
       id={tag.id}
       description={tag.meta?.description}
+      actions={
+        <TopologyActionButton
+          focus={{ kind: "tag", id: tag.id }}
+          title="Open tag topology"
+          className="btn--primary"
+        />
+      }
     >
       <div className="tag-card__grid">
         <CardSection prefix="tag-card" title="Overview">

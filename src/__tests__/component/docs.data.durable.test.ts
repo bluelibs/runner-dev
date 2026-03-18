@@ -5,7 +5,7 @@ import {
 } from "@bluelibs/runner/node";
 import type { Request, Response } from "express";
 import { createDocsDataRouteHandler } from "../../resources/routeHandlers/getDocsData";
-import * as help from "../../mcp/help";
+import * as packageDocs from "../../docs/packageDocs";
 import { Introspector } from "../../resources/models/Introspector";
 
 function createDurableDocsFixtureApp() {
@@ -120,9 +120,9 @@ describe("/docs/data durable enrichment", () => {
       });
 
       const originalReadFirstAvailablePackageDoc =
-        help.readFirstAvailablePackageDoc;
+        packageDocs.readFirstAvailablePackageDoc;
       readFirstAvailablePackageDocSpy = jest
-        .spyOn(help, "readFirstAvailablePackageDoc")
+        .spyOn(packageDocs, "readFirstAvailablePackageDoc")
         .mockImplementation(async (packageName, docPaths) => {
           if (
             packageName === "@bluelibs/runner" &&

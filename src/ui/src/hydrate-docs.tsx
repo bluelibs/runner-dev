@@ -94,11 +94,14 @@ function setShowSystemInStorage(value: boolean): void {
   }
 }
 
-function ensureSystemVisibilityForHash(_introspector: Introspector): void {
+function ensureSystemVisibilityForHash(introspector: Introspector): void {
   const targetId = getHashTargetElementId();
   if (!targetId) return;
   const showSystem = getShowSystemFromStorage();
-  if (!showSystem && isSystemNamespaceId(targetId)) {
+  const targetExists = introspector
+    .getAll()
+    .some((entry: { id: string }) => entry.id === targetId);
+  if (!showSystem && targetExists && isSystemNamespaceId(targetId)) {
     setShowSystemInStorage(true);
   }
 }

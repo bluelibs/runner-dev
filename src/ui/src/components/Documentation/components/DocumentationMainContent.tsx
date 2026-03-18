@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { TaskCard } from "./TaskCard";
 import { ResourceCard } from "./ResourceCard";
@@ -12,6 +12,7 @@ import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { LivePanel } from "./LivePanel";
 import { ElementTable } from "./ElementTable";
 import { DocsSection } from "./DocsSection";
+import { TopologyPanel } from "./TopologyPanel";
 import { DocsContentPayload } from "../../../../../resources/routeHandlers/getDocsData";
 import { getDocumentationIcon } from "../config/documentationIcons";
 
@@ -35,6 +36,7 @@ export interface DocumentationMainContentProps {
   asyncContexts: any[];
   tags: any[];
   docsContent?: DocsContentPayload;
+  topologyConnections: number;
   sections: Array<{
     id: string;
     label: string;
@@ -65,8 +67,10 @@ export const DocumentationMainContent: React.FC<
   asyncContexts,
   tags,
   docsContent,
+  topologyConnections,
   sections,
 }) => {
+  const mainContentRef = React.useRef<HTMLDivElement>(null);
   const rootResource = introspector.getRoot();
   const runOptions = introspector.getRunOptions();
   const disposeOptions = runOptions.dispose;
@@ -80,16 +84,6 @@ export const DocumentationMainContent: React.FC<
   const rootDescription =
     rootResource?.meta?.description ||
     "Complete overview of your application's architecture and components";
-
-  // Count total connections: dependsOn + middleware usage across tasks, hooks, resources
-  const totalConnections = useMemo(() => {
-    let count = 0;
-    for (const node of [...tasks, ...hooks, ...resources] as any[]) {
-      if (Array.isArray(node.dependsOn)) count += node.dependsOn.length;
-      if (Array.isArray(node.middleware)) count += node.middleware.length;
-    }
-    return count;
-  }, [tasks, hooks, resources]);
 
   const resolveSectionFromHash = React.useCallback(
     (hash: string): string => {
@@ -112,6 +106,8 @@ export const DocumentationMainContent: React.FC<
       if (!cleanHash || cleanHash === "top" || cleanHash === "overview-stats") {
         return pickSection("overview");
       }
+
+      if (cleanHash.startsWith("topology")) return pickSection("topology");
 
       if (availableSections.has(cleanHash)) return cleanHash;
 
@@ -141,9 +137,11 @@ export const DocumentationMainContent: React.FC<
 
     const targetId = (() => {
       try {
-        return decodeURIComponent(hash.slice(1));
+        const decoded = decodeURIComponent(hash.slice(1));
+        return decoded.startsWith("topology") ? "topology" : decoded;
       } catch {
-        return hash.slice(1);
+        const fallback = hash.slice(1);
+        return fallback.startsWith("topology") ? "topology" : fallback;
       }
     })();
 
@@ -188,14 +186,13 @@ export const DocumentationMainContent: React.FC<
 
   return (
     <div
+      ref={mainContentRef}
       className={`docs-main-content ${
         suspendRendering ? "docs-main-content--suspended" : ""
       }`}
       style={{
         marginLeft: `${
-          sidebarWidth +
-          (chatPushesLeft && isChatOpen ? chatWidth || 0 : 0) +
-          40
+          sidebarWidth + (chatPushesLeft && isChatOpen ? chatWidth || 0 : 0)
         }px`,
         marginRight: undefined,
       }}
@@ -294,10 +291,10 @@ export const DocumentationMainContent: React.FC<
                 <h3>Tags</h3>
                 <div className="count">{tags.length}</div>
               </a>
-              <div className="card card--connections">
-                <h3>Connections</h3>
-                <div className="count">{totalConnections}</div>
-              </div>
+              <a href="#topology" className="card card--topology">
+                <h3>Topology</h3>
+                <div className="count">{topologyConnections}</div>
+              </a>
             </div>
 
             <div className="overview-run-info">
@@ -493,10 +490,10 @@ export const DocumentationMainContent: React.FC<
             {docsContent && (
               <div className="overview-support-block">
                 <DocsSection
+                  docsContent={docsContent}
                   id="docs-support"
                   title="📚 Docs & Support"
                   description="Reference guides for Runner, plus quick ways to report issues or reach the creator."
-                  docsContent={docsContent}
                   actions={
                     <>
                       <a
@@ -521,11 +518,26 @@ export const DocumentationMainContent: React.FC<
           </section>
         )}
 
+        {activeSection === "topology" && (
+          <TopologyPanel
+            introspector={introspector}
+            tasks={tasks}
+            resources={resources}
+            events={events}
+            hooks={hooks}
+            middlewares={middlewares}
+            errors={errors}
+            asyncContexts={asyncContexts}
+            tags={tags}
+          />
+        )}
+
         {/* Inline stats panel is no longer rendered here; overlay is handled by parent */}
 
         {activeSection === "tasks" && tasks.length > 0 && (
           <ElementTable
             elements={tasks}
+            resources={resources}
             title="Tasks Overview"
             icon={getDocumentationIcon("tasks")}
             id="tasks"
@@ -560,6 +572,7 @@ export const DocumentationMainContent: React.FC<
         {activeSection === "resources" && resources.length > 0 && (
           <ElementTable
             elements={resources}
+            resources={resources}
             title="Resources Overview"
             icon={getDocumentationIcon("resources")}
             id="resources"
@@ -585,6 +598,7 @@ export const DocumentationMainContent: React.FC<
         {activeSection === "events" && events.length > 0 && (
           <ElementTable
             elements={events}
+            resources={resources}
             title="Events Overview"
             icon="📡"
             id="events"
@@ -617,6 +631,7 @@ export const DocumentationMainContent: React.FC<
         {activeSection === "hooks" && hooks.length > 0 && (
           <ElementTable
             elements={hooks}
+            resources={resources}
             title="Hooks Overview"
             icon="🪝"
             id="hooks"
@@ -640,6 +655,7 @@ export const DocumentationMainContent: React.FC<
         {activeSection === "errors" && errors.length > 0 && (
           <ElementTable
             elements={errors}
+            resources={resources}
             title="Errors Overview"
             icon={getDocumentationIcon("errors")}
             id="errors"
@@ -665,6 +681,7 @@ export const DocumentationMainContent: React.FC<
         {activeSection === "asyncContexts" && asyncContexts.length > 0 && (
           <ElementTable
             elements={asyncContexts}
+            resources={resources}
             title="Async Contexts Overview"
             icon="🔄"
             id="asyncContexts"
@@ -688,6 +705,7 @@ export const DocumentationMainContent: React.FC<
         {activeSection === "middlewares" && middlewares.length > 0 && (
           <ElementTable
             elements={middlewares}
+            resources={resources}
             title="Middlewares Overview"
             icon="🔗"
             id="middlewares"
@@ -711,6 +729,7 @@ export const DocumentationMainContent: React.FC<
         {activeSection === "tags" && tags.length > 0 && (
           <ElementTable
             elements={tags}
+            resources={resources}
             title="Tags Overview"
             icon="🏷️"
             id="tags"

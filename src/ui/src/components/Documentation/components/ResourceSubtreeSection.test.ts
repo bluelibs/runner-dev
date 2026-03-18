@@ -52,4 +52,34 @@ describe("ResourceSubtreeSection", () => {
     ).toBeTruthy();
     expect(screen.getByText(/tenant, user, required/)).toBeTruthy();
   });
+
+  it("omits tenant when identity metadata marks it as false", () => {
+    render(
+      React.createElement(ResourceSubtreeSection, {
+        subtree: {
+          tasks: {
+            middleware: [],
+            validatorCount: 0,
+            identity: [{ tenant: false, user: true, roles: [] }],
+          },
+          middleware: {
+            identityScope: {
+              tenant: false,
+              user: true,
+              required: false,
+            },
+          },
+          resources: null,
+          hooks: null,
+          taskMiddleware: null,
+          resourceMiddleware: null,
+          events: null,
+          tags: null,
+        },
+      })
+    );
+
+    expect(screen.getByText(/identity=user/)).toBeTruthy();
+    expect(screen.getByText(/^user, optional$/)).toBeTruthy();
+  });
 });

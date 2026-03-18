@@ -80,19 +80,25 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
     <div id={`element-${asyncContext.id}`} className="async-context-card">
       <div className="async-context-card__header">
         <div className="async-context-card__header-content">
-          <div className="main">
-            <h3 className="async-context-card__title">
-              {asyncContext.meta?.title || formatId(asyncContext.id)}
-            </h3>
-            <div className="async-context-card__id">{asyncContext.id}</div>
-            {asyncContext.meta?.description && (
-              <p className="async-context-card__description">
-                {asyncContext.meta.description}
-              </p>
-            )}
+          <div className="async-context-card__header-top">
+            <div className="main">
+              <h3 className="async-context-card__title">
+                {asyncContext.meta?.title || formatId(asyncContext.id)}
+              </h3>
+              <div className="async-context-card__id">{asyncContext.id}</div>
+              {asyncContext.meta?.description && (
+                <p className="async-context-card__description">
+                  {asyncContext.meta.description}
+                </p>
+              )}
+            </div>
           </div>
-          {isSystemElement(asyncContext) && <SystemBadge />}
-          <ElementKindBadge kind="async-context" />
+          <div className="async-context-card__header-bottom">
+            <div className="async-context-card__badges">
+              {isSystemElement(asyncContext) && <SystemBadge />}
+              <ElementKindBadge kind="async-context" />
+            </div>
+          </div>
         </div>
       </div>
 

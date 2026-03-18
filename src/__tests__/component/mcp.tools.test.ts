@@ -8,16 +8,13 @@ import {
 } from "../../mcp/format";
 import { parseHeadersFromEnv, assertEndpoint } from "../../mcp/env";
 import {
-  readDocContent,
-  buildTOC,
-  extractSectionByHeading,
   readPackageDoc,
   readFirstAvailablePackageDoc,
   RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
   RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS,
-} from "../../mcp/help";
+} from "../../docs/packageDocs";
 
-describe("MCP tools (env/http/format/help)", () => {
+describe("MCP tools (env/http/format/docs)", () => {
   const ORIGINAL_ENV = { ...process.env };
 
   afterEach(() => {
@@ -102,26 +99,7 @@ describe("MCP tools (env/http/format/help)", () => {
     });
   });
 
-  describe("help docs", () => {
-    it("readDocContent(readme) returns content", async () => {
-      const { content, filePath } = await readDocContent("readme");
-      expect(filePath).toMatch(/README\.md$/);
-      expect(typeof content).toBe("string");
-      expect(content.length).toBeGreaterThan(0);
-    });
-
-    it("buildTOC and extractSectionByHeading work", async () => {
-      const { content } = await readDocContent("readme");
-      const toc = buildTOC(content);
-      expect(Array.isArray(toc)).toBe(true);
-      // try common headings
-      const section = extractSectionByHeading(
-        content,
-        "AI Assistant Integration"
-      );
-      expect(typeof section).toBe("string");
-    });
-
+  describe("package docs", () => {
     it("readPackageDoc returns content or empty string gracefully", async () => {
       // use a dependency likely present
       const pkg = await readPackageDoc("graphql");

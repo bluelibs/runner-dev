@@ -31,6 +31,7 @@ import {
   isEventLanesResource,
   isRpcLanesResource,
 } from "../../../../../utils/lane-resources";
+import { TopologyActionButton } from "./TopologyActionButton";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -168,6 +169,13 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       }
       id={resource.id}
       description={resource.meta?.description}
+      actions={
+        <TopologyActionButton
+          focus={{ kind: "resource", id: resource.id }}
+          title="Open resource mindmap"
+          className="btn--primary"
+        />
+      }
     >
       <div className="resource-card__grid">
         <CardSection prefix="resource-card" title="Overview">

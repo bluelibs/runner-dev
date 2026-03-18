@@ -3,6 +3,7 @@ import { Introspector } from "../../../../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "../config/documentationConstants";
 import { parseSearchQuery, elementMatchesParsed } from "../utils/search-utils";
 import { isSystemElement } from "../utils/isSystemElement";
+import { isRunnerElement } from "../utils/isRunnerElement";
 
 export const useDocumentationFilters = (
   introspector: Introspector,
@@ -36,6 +37,12 @@ export const useDocumentationFilters = (
       DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_SYSTEM
     )
   );
+  const [showRunner, setShowRunner] = useState<boolean>(() =>
+    readStoredBoolean(
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
+      DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER
+    )
+  );
   const [showPrivate, setShowPrivate] = useState<boolean>(() =>
     readStoredBoolean(
       DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE,
@@ -55,6 +62,9 @@ export const useDocumentationFilters = (
     let result = items;
     if (!showSystem) {
       result = result.filter((item) => !isSystemElement(item));
+    }
+    if (!showRunner) {
+      result = result.filter((item) => !isRunnerElement(item));
     }
     if (!showPrivate) {
       result = result.filter((item) => item.isPrivate !== true);
@@ -84,6 +94,9 @@ export const useDocumentationFilters = (
     let tags = introspector.getAllTags();
     if (!showSystem) {
       tags = tags.filter((t) => !isSystemElement(t));
+    }
+    if (!showRunner) {
+      tags = tags.filter((t) => !isRunnerElement(t));
     }
     if (!showPrivate) {
       tags = tags.filter((t) => t.isPrivate !== true);
@@ -121,6 +134,7 @@ export const useDocumentationFilters = (
   }, [
     introspector,
     showSystem,
+    showRunner,
     showPrivate,
     localNamespaceSearch,
     parsedSearch,
@@ -150,21 +164,37 @@ export const useDocumentationFilters = (
     }
   };
 
+  const handleShowRunnerChange = (value: boolean) => {
+    setShowRunner(value);
+    try {
+      localStorage.setItem(
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
+        value ? "1" : "0"
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
+
   const resetFilters = () => {
     setLocalNamespaceSearch("");
-    handleShowSystemChange(true);
-    handleShowPrivateChange(true);
+    handleShowSystemChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_SYSTEM);
+    handleShowRunnerChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER);
+    handleShowPrivateChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_PRIVATE);
   };
 
   return {
     localNamespaceSearch,
     setLocalNamespaceSearch,
     showSystem,
+    showRunner,
     showPrivate,
     handleShowSystemChange,
+    handleShowRunnerChange,
     handleShowPrivateChange,
     resetFilters,
     isSystemElement,
+    isRunnerElement,
     applyFilters,
     ...filteredData,
   };

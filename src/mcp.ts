@@ -12,9 +12,6 @@ import { registerGraphQLMutation } from "./mcp/tools/graphql.mutation";
 import { registerGraphQLIntrospect } from "./mcp/tools/graphql.introspect";
 import { registerGraphQLSchemaSDL } from "./mcp/tools/graphql.schemaSdl";
 import { registerGraphQLPing } from "./mcp/tools/graphql.ping";
-import { registerHelpRead } from "./mcp/tools/help.read";
-import { registerHelpRunner } from "./mcp/tools/help.runner";
-import { registerHelpRunnerDev } from "./mcp/tools/help.runnerDev";
 import { ENDPOINT } from "./mcp/env";
 
 // Create an MCP server
@@ -25,12 +22,6 @@ const server = new McpServer({
 
 // Register tools
 registerGraphQLQuery(server);
-
-registerHelpRead(server);
-
-registerHelpRunner(server);
-
-registerHelpRunnerDev(server);
 
 registerGraphQLMutation(server);
 

@@ -12,6 +12,7 @@ import {
 import SchemaRenderer from "./SchemaRenderer";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
+import { TopologyActionButton } from "./TopologyActionButton";
 
 export interface MiddlewareCardProps {
   middleware: Middleware;
@@ -94,6 +95,13 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
       title={middleware.meta?.title || formatId(middleware.id)}
       id={middleware.id}
       description={descriptionContent}
+      actions={
+        <TopologyActionButton
+          focus={{ kind: "middleware", id: middleware.id }}
+          title="Open middleware topology"
+          className="btn--primary"
+        />
+      }
     >
       <div className="middleware-card__grid">
         <CardSection prefix="middleware-card" title="Overview">

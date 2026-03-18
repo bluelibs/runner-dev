@@ -1,7 +1,7 @@
 import React from "react";
 import { Introspector } from "../../../../../../resources/models/Introspector";
 import { Section } from "../../Documentation";
-import { getDocumentationIcon } from "../config/documentationIcons";
+import { getDocumentationIcon } from "../../config/documentationIcons";
 import "./Sidebar.scss";
 
 export interface SidebarProps {
@@ -28,6 +28,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: "overview" as Section,
       label: "Overview",
       icon: getDocumentationIcon("overview"),
+    },
+    {
+      id: "topology" as Section,
+      label: "Topology",
+      icon: getDocumentationIcon("topology"),
     },
     {
       id: "tasks" as Section,

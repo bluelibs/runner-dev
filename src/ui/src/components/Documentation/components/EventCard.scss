@@ -30,19 +30,28 @@
 }
 
 .event-card__header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
   gap: $spacing-md;
+  min-height: 140px;
+
+  .event-card__header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-md;
+  }
 
   .main {
     flex: 1;
+    min-width: 0;
   }
 
   .event-card__actions {
     display: flex;
     align-items: center;
     gap: $spacing-sm;
+    margin-left: auto;
+    flex-shrink: 0;
 
     button {
       border: none;
@@ -53,6 +62,20 @@
       cursor: pointer;
       font-size: 14px;
     }
+  }
+
+  .event-card__header-bottom {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    min-height: 28px;
+  }
+
+  .event-card__badges {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-left: auto;
   }
 }
 

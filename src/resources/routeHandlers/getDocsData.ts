@@ -9,7 +9,7 @@ import {
   readPackageDoc,
   RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
   RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS,
-} from "../../mcp/help";
+} from "../../docs/packageDocs";
 import { findDurableResourceIdFromStore } from "../models/durable.runtime";
 
 export interface DocsContentPayload {

@@ -17,6 +17,7 @@ export const createSections = (counts: {
   tags: number;
   errors: number;
   asyncContexts: number;
+  topologyConnections: number;
 }): SectionConfig[] => {
   const sections = [
     {
@@ -38,6 +39,13 @@ export const createSections = (counts: {
       label: "Overview",
       icon: getDocumentationIcon("overview"),
       count: null,
+      hasContent: true,
+    },
+    {
+      id: "topology",
+      label: "Topology",
+      icon: getDocumentationIcon("topology"),
+      count: counts.topologyConnections,
       hasContent: true,
     },
     {

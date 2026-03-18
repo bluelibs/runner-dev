@@ -15,7 +15,7 @@ export interface ElementCardProps {
   description?: React.ReactNode;
   actions?: React.ReactNode;
   meta?: React.ReactNode;
-  /** Displays a kind badge (e.g. "Resource", "Task") in the top-right corner */
+  /** Displays a kind badge (e.g. "Resource", "Task") in the bottom-right corner */
   kindLabel?: ElementKind;
   /** Shows a grey "SYSTEM" badge next to the kind badge for system elements */
   isSystem?: boolean;
@@ -52,15 +52,25 @@ export const ElementCard: React.FC<ElementCardProps> = ({
     <div id={`element-${elementId}`} className={joinClasses(prefix, className)}>
       <div className={joinClasses(`${prefix}__header`, headerClassName)}>
         <div className={`${prefix}__header-content`}>
-          <div className="main">
-            <h3 className={`${prefix}__title`}>{title}</h3>
-            {id && <div className={`${prefix}__id`}>{id}</div>}
-            {descriptionContent}
+          <div className={`${prefix}__header-top`}>
+            <div className="main">
+              <h3 className={`${prefix}__title`}>{title}</h3>
+              {id && <div className={`${prefix}__id`}>{id}</div>}
+              {descriptionContent}
+            </div>
+            {actions && <div className={`${prefix}__actions`}>{actions}</div>}
           </div>
-          {actions && <div className={`${prefix}__actions`}>{actions}</div>}
-          {meta && <div className="meta">{meta}</div>}
-          {isSystem && <SystemBadge />}
-          {kindLabel && <ElementKindBadge kind={kindLabel} />}
+          {(meta || isSystem || kindLabel) && (
+            <div className={`${prefix}__header-bottom`}>
+              {meta && <div className="meta">{meta}</div>}
+              {(isSystem || kindLabel) && (
+                <div className={`${prefix}__badges`}>
+                  {isSystem && <SystemBadge />}
+                  {kindLabel && <ElementKindBadge kind={kindLabel} />}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

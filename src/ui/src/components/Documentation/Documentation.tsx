@@ -14,11 +14,13 @@ import { createSections } from "./config/documentationSections";
 // [AI-CHAT-DISABLED] import { ChatSidebar } from "./components/chat/ChatSidebar";
 import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
 import { ModalStackProvider } from "./components/modals";
+import { getHashScrollTargetId } from "./utils/documentationHash";
 import { useRef } from "react";
 import { DocsContentPayload } from "../../../../resources/routeHandlers/getDocsData";
 
 export type Section =
   | "overview"
+  | "topology"
   | "tasks"
   | "resources"
   | "events"
@@ -177,6 +179,19 @@ export const Documentation: React.FC<DocumentationProps> = ({
     }
   );
 
+  const topologyConnections = React.useMemo(() => {
+    let count = 0;
+    for (const node of [
+      ...filterHook.tasks,
+      ...filterHook.hooks,
+      ...filterHook.resources,
+    ] as any[]) {
+      if (Array.isArray(node.dependsOn)) count += node.dependsOn.length;
+      if (Array.isArray(node.middleware)) count += node.middleware.length;
+    }
+    return count;
+  }, [filterHook.hooks, filterHook.resources, filterHook.tasks]);
+
   // Generate sections configuration
   const sections = createSections({
     tasks: filterHook.tasks.length,
@@ -187,6 +202,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
     errors: filterHook.errors.length,
     asyncContexts: filterHook.asyncContexts.length,
     tags: filterHook.tags.length,
+    topologyConnections,
   });
 
   const resolveSectionFromElementId = React.useCallback(
@@ -215,11 +231,10 @@ export const Documentation: React.FC<DocumentationProps> = ({
   useEffect(() => {
     const scrollToCurrentHash = () => {
       const hash = window.location.hash;
-      if (hash && hash.length > 1) {
-        const id = hash.slice(1);
-        const target = document.getElementById(id);
-        target?.scrollIntoView({ behavior: "instant", block: "start" });
-      }
+      const id = getHashScrollTargetId(hash);
+      if (!id) return;
+      const target = document.getElementById(id);
+      target?.scrollIntoView({ behavior: "instant", block: "start" });
     };
 
     const handleHashChange = () => {
@@ -309,6 +324,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
           treeType={viewModeHook.treeType}
           localNamespaceSearch={filterHook.localNamespaceSearch}
           showSystem={filterHook.showSystem}
+          showRunner={filterHook.showRunner}
           showPrivate={filterHook.showPrivate}
           treeNodes={treeHook.treeNodes}
           sections={sections}
@@ -316,6 +332,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
           onTreeTypeChange={viewModeHook.handleTreeTypeChange}
           onNamespaceSearchChange={filterHook.setLocalNamespaceSearch}
           onShowSystemChange={filterHook.handleShowSystemChange}
+          onShowRunnerChange={filterHook.handleShowRunnerChange}
           onShowPrivateChange={filterHook.handleShowPrivateChange}
           onTreeNodeClick={treeHook.handleTreeNodeClick}
           onToggleExpansion={treeHook.handleToggleExpansion}
@@ -330,7 +347,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
             sidebarHook.isResizing ? "docs-sidebar-resizer--active" : ""
           }`}
           style={{
-            left: `${sidebarHook.sidebarWidth + 40}px`,
+            left: `${sidebarHook.sidebarWidth}px`,
           }}
           onMouseDown={sidebarHook.handleMouseDown}
         />
@@ -355,6 +372,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
           asyncContexts={filterHook.asyncContexts}
           tags={filterHook.tags}
           docsContent={docsContent}
+          topologyConnections={topologyConnections}
           sections={sections}
         />
 

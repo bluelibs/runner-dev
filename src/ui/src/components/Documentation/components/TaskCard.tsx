@@ -22,6 +22,7 @@ import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { MermaidDiagram } from "./common/MermaidDiagram";
 import { isSystemElement } from "../utils/isSystemElement";
+import { TopologyActionButton } from "./TopologyActionButton";
 
 function normalizeDurableNodeLabel(node: any, index: number): string {
   const kind = String(node?.kind || "node");
@@ -340,14 +341,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       id={task.id}
       description={task.meta?.description}
       actions={
-        <button
-          type="button"
-          className="btn"
-          onClick={() => setIsExecuteOpen(true)}
-          title="Run Task"
-        >
-          Run
-        </button>
+        <>
+          <TopologyActionButton
+            focus={{ kind: "task", id: task.id }}
+            title="Open task blast radius"
+          />
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => setIsExecuteOpen(true)}
+            title="Run Task"
+          >
+            Run
+          </button>
+        </>
       }
     >
       <div className="task-card__grid">

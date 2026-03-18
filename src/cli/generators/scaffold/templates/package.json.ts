@@ -19,7 +19,7 @@ export function packageJson(projectName: string) {
     },
     devDependencies: {
       "@bluelibs/runner-dev": "^6.3.0",
-      "npm-skills": "^0.0.1",
+      "npm-skills": "^0.2.0",
       typescript: "^5.6.3",
       tsx: "^4.20.5",
       vitest: "^3.2.4",

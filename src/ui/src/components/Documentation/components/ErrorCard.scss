@@ -24,13 +24,34 @@
 }
 
 .error-card__header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
   gap: $spacing-md;
+  min-height: 140px;
+
+  .error-card__header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-md;
+  }
 
   .main {
     flex: 1;
+    min-width: 0;
+  }
+
+  .error-card__header-bottom {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    min-height: 28px;
+  }
+
+  .error-card__badges {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-left: auto;
   }
 }
 

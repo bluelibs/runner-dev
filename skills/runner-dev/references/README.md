@@ -22,7 +22,7 @@ npx @bluelibs/runner-dev
 ```
 
 For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
-Runner-Dev also publishes its own skill from `skills/runner-dev`. Refresh it locally with `npm run skills:prepare` when `README.md` changes; the compact runner-dev reference lives at `skills/runner-dev/references/COMPACT_GUIDE.md`.
+Runner-Dev also publishes its own skill from `skills/runner-dev`; keep `README.md`, `skills/runner-dev/SKILL.md`, and `skills/runner-dev/references/COMPACT_GUIDE.md` aligned when those docs change. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
 
 ```ts
 import { r } from "@bluelibs/runner";
@@ -107,7 +107,7 @@ const app = r
 - [CLI Tooling & Scaffolding](#cli-usage-direct)
 - [Live Telemetry & Correlation](#live-telemetry)
 - [Hot-Swapping Debugging System](#hot-swapping-debugging-system)
-- [GraphQL API Examples](#example-queries)
+- [GraphQL API Examples](#graphql-api-examples)
 - [API Reference](API_REFERENCE.md)
 - [Contributing & Local Dev](CONTRIBUTING.md)
 
@@ -232,10 +232,10 @@ Examples:
 
 ```bash
 # Create and auto-install dependencies, then run tests
-new my-awesome-app --install --run-tests
+runner-dev new my-awesome-app --install --run-tests
 
 # Create and start the dev server immediately (blocks)
-new my-awesome-app --install --run
+runner-dev new my-awesome-app --install --run
 ```
 
 Scaffold artifacts (resource | task | event | tag | taskMiddleware | resourceMiddleware):

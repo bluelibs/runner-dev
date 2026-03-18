@@ -11,7 +11,10 @@ function formatTaskIdentityGate(
     NonNullable<NonNullable<Resource["subtree"]>["tasks"]>["identity"]
   >[number]
 ): string {
-  const parts = ["tenant"];
+  const parts: string[] = [];
+  if (gate.tenant) {
+    parts.push("tenant");
+  }
   if (gate.user) {
     parts.push("user");
   }
@@ -26,7 +29,10 @@ function formatIdentityScope(
     NonNullable<NonNullable<Resource["subtree"]>["middleware"]>["identityScope"]
   >
 ): string {
-  const parts = ["tenant"];
+  const parts: string[] = [];
+  if (identityScope.tenant) {
+    parts.push("tenant");
+  }
   if (identityScope.user) {
     parts.push("user");
   }

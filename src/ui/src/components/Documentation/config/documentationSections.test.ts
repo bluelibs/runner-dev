@@ -11,6 +11,7 @@ describe("createSections", () => {
       tags: 1,
       errors: 0,
       asyncContexts: 0,
+      topologyConnections: 3,
     });
 
     const sectionIds = sections.map((section) => section.id);
@@ -18,6 +19,7 @@ describe("createSections", () => {
       "live",
       "diagnostics",
       "overview",
+      "topology",
       "tasks",
       "resources",
       "events",

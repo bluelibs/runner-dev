@@ -13,6 +13,7 @@ import SchemaRenderer from "./SchemaRenderer";
 import ExecuteModal from "./ExecuteModal";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
+import { TopologyActionButton } from "./TopologyActionButton";
 
 export interface EventCardProps {
   event: Event;
@@ -142,14 +143,20 @@ export const EventCard: React.FC<EventCardProps> = ({
       id={!isGlobalEvent ? event.id : undefined}
       description={event.meta?.description}
       actions={
-        <button
-          type="button"
-          className="btn"
-          onClick={() => setIsExecuteOpen(true)}
-          title="Invoke Event"
-        >
-          Emit
-        </button>
+        <>
+          <TopologyActionButton
+            focus={{ kind: "event", id: event.id }}
+            title="Open event topology"
+          />
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => setIsExecuteOpen(true)}
+            title="Invoke Event"
+          >
+            Emit
+          </button>
+        </>
       }
     >
       <div className="event-card__grid">

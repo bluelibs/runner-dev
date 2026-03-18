@@ -12,7 +12,7 @@ Use `./references/README.md` when the task needs installation, CLI, or user-faci
 
 Use this skill when the task involves:
 
-- docs UI behavior, `/docs/data`, or in-app documentation delivery
+- docs UI behavior, `/docs/data`, in-app documentation delivery, or the topology graph / blast-radius / mindmap views
 - MCP helpers, GraphQL tooling, introspection resources, or chat context wiring
 - live telemetry, hot-swapping, CLI surfaces, or other runner-dev tooling
 - agent-facing documentation that must stay aligned with `COMPACT_GUIDE.md` and `README.md`

@@ -1,7 +1,9 @@
 export const DOCUMENTATION_ICONS = {
   overview: "📋",
+  docs: "📚",
   live: "📡",
   diagnostics: "🔍",
+  topology: "🧭",
   task: "▶️",
   resource: "🧱",
   event: "📡",
@@ -18,10 +20,14 @@ export function getDocumentationIcon(kind: string): string {
   switch (kind) {
     case "overview":
       return DOCUMENTATION_ICONS.overview;
+    case "docs":
+      return DOCUMENTATION_ICONS.docs;
     case "live":
       return DOCUMENTATION_ICONS.live;
     case "diagnostics":
       return DOCUMENTATION_ICONS.diagnostics;
+    case "topology":
+      return DOCUMENTATION_ICONS.topology;
     case "task":
     case "tasks":
       return DOCUMENTATION_ICONS.task;

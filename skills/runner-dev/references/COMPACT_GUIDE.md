@@ -5,6 +5,7 @@ Runner-Dev is the developer-facing toolkit for inspecting, querying, and debuggi
 ## Use This When
 
 - The task touches `/docs/data`, docs UI, chat context, or agent-facing documentation.
+- The task touches `/docs/data`, docs UI, chat context, agent-facing documentation, or the topology graph / blast-radius / mindmap views.
 - You need GraphQL or MCP access to runtime topology, telemetry, schema, or diagnostics.
 - You are debugging telemetry, live events, durable metadata, hook targets, or lane surfaces.
 - You are changing runner-dev CLI, MCP tools, docs payload shaping, or introspection behavior.
@@ -16,7 +17,7 @@ Runner-Dev is the developer-facing toolkit for inspecting, querying, and debuggi
 3. If it is package work, locate the subsystem first:
    - docs payloads and docs UI
    - introspector/store serialization
-   - MCP/help tools
+   - MCP tools
    - live telemetry
    - swap/hot-reload
 4. Patch the smallest surface that explains the behavior.
@@ -171,11 +172,13 @@ When working inside `@bluelibs/runner-dev`, start here:
 - `src/mcp/tools/*` for MCP help/query behavior
 - `src/resources/live.resource.ts` and telemetry resources for live data
 - `src/ui/src/components/Documentation/*` for docs/chat UI behavior
+- `src/ui/src/components/Documentation/components/TopologyPanel.tsx` and `src/ui/src/components/Documentation/utils/topologyGraph.ts` for topology graph projections and rendering
 - `src/resources/swap.resource.ts` and `src/resources/swap.tools.ts` for hot-swapping surfaces
 
 ## Core Surfaces
 
 - Docs UI: the browser surface for architecture, live data, and AI assistance
+- Topology graph: a focused lens for blast-radius analysis and resource mindmaps
 - `/docs/data`: the JSON payload feeding docs UI and in-app AI context
 - GraphQL: the main runtime introspection surface
 - MCP: the fastest AI-native access path when the app is already running

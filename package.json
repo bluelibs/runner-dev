@@ -134,15 +134,6 @@
     "consume": {
       "only": [
         "@bluelibs/runner"
-      ],
-      "map": {
-        "@bluelibs/runner": ".agents/skills"
-      }
-    },
-    "publish": {
-      "source": "skills",
-      "export": [
-        "runner-dev"
       ]
     }
   },

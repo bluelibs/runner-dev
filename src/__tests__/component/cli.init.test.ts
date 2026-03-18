@@ -177,7 +177,7 @@ describe("CLI init", () => {
     expect(pkg.name).toBe(projectName);
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
-    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.2.0");
+    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --override"
     );

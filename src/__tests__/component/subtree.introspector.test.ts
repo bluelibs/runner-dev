@@ -142,6 +142,7 @@ describe("Subtree Introspection", () => {
       const subtreeMiddlewareId = runtime.store.findIdByDefinition(
         subtreeTaskMiddleware
       )!;
+      const identityCheckerId = "runner.middleware.task.identityChecker";
       const localMiddlewareId = runtime.store.findIdByDefinition(
         localIdentityScopedMiddleware
       )!;
@@ -151,10 +152,21 @@ describe("Subtree Introspection", () => {
       );
 
       expect(task?.middleware).toEqual([
+        identityCheckerId,
         subtreeMiddlewareId,
         localMiddlewareId,
       ]);
       expect(task?.middlewareDetailed).toEqual([
+        {
+          id: identityCheckerId,
+          config: JSON.stringify({
+            tenant: true,
+            user: true,
+            roles: ["ADMIN"],
+          }),
+          origin: "local",
+          subtreeOwnerId: null,
+        },
         {
           id: subtreeMiddlewareId,
           config: "{}",

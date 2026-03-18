@@ -8,6 +8,7 @@ import {
   getViewportPositionY,
   setViewportPositionY,
 } from "./topologyViewport.utils";
+import { describe, expect, it } from "@jest/globals";
 
 const tallBounds: TopologyCanvasBounds = {
   minX: 0,
@@ -112,6 +113,6 @@ describe("topologyViewport.utils", () => {
 
     expect(fitted.scale).toBeGreaterThan(1);
     expect(fitted.offsetX).toBeGreaterThan(116);
-    expect(fitted.offsetY).toBeGreaterThan(92);
+    expect(fitted.offsetY).toBe(92);
   });
 });

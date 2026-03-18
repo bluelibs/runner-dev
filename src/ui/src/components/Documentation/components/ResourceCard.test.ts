@@ -109,7 +109,7 @@ jest.mock("./common/ElementCard", () => ({
 }));
 
 describe("ResourceCard", () => {
-  it("adds root resource treatment and fallback ownership copy", () => {
+  it("adds root resource treatment and root ownership copy", () => {
     const resource: Resource = {
       id: "app",
       meta: { title: "Application Shell" },
@@ -152,7 +152,7 @@ describe("ResourceCard", () => {
 
     expect(screen.getByText("Application Root")).toBeTruthy();
     expect(screen.getByText("Root Resource")).toBeTruthy();
-    expect(screen.getByText("Application root")).toBeTruthy();
+    expect(screen.getByText("Root-level registration")).toBeTruthy();
     expect(screen.getByTestId("element-card").className).toContain(
       "resource-card--root"
     );

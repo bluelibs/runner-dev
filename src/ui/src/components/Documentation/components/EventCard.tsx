@@ -212,7 +212,9 @@ export const EventCard: React.FC<EventCardProps> = ({
 
           <RegisteredByInfoBlock
             prefix="event-card"
+            elementId={event.id}
             registeredBy={event.registeredBy}
+            introspector={introspector}
           />
 
           <InfoBlock

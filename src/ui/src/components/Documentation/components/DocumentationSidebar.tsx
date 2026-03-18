@@ -162,7 +162,14 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
               position="right"
               delay={200}
             >
-              <span className="docs-filter-help">?</span>
+              <button
+                type="button"
+                className="docs-filter-help"
+                aria-label="Filter syntax help"
+                onClick={(event) => event.preventDefault()}
+              >
+                ?
+              </button>
             </Tooltip>
           </label>
           <div className="docs-namespace-input__field">
@@ -206,7 +213,14 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
                 position="right"
                 delay={200}
               >
-                <span className="docs-filter-help">?</span>
+                <button
+                  type="button"
+                  className="docs-filter-help"
+                  aria-label="SYSTEM visibility help"
+                  onClick={(event) => event.preventDefault()}
+                >
+                  ?
+                </button>
               </Tooltip>
             </span>
             <span className="docs-switch-control">
@@ -238,7 +252,14 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
                 position="right"
                 delay={200}
               >
-                <span className="docs-filter-help">?</span>
+                <button
+                  type="button"
+                  className="docs-filter-help"
+                  aria-label="RUNNER visibility help"
+                  onClick={(event) => event.preventDefault()}
+                >
+                  ?
+                </button>
               </Tooltip>
             </span>
             <span className="docs-switch-control">
@@ -270,7 +291,14 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
                 position="right"
                 delay={200}
               >
-                <span className="docs-filter-help">?</span>
+                <button
+                  type="button"
+                  className="docs-filter-help"
+                  aria-label="PRIVATE visibility help"
+                  onClick={(event) => event.preventDefault()}
+                >
+                  ?
+                </button>
               </Tooltip>
             </span>
             <span className="docs-switch-control">

@@ -405,7 +405,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
           <RegisteredByInfoBlock
             prefix="task-card"
+            elementId={task.id}
             registeredBy={task.registeredBy}
+            introspector={introspector}
           />
 
           <InfoBlock prefix="task-card" label="Visibility:">

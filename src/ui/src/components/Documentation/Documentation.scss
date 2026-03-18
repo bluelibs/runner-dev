@@ -487,11 +487,14 @@ body {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
+  padding: 0;
   color: rgba(255, 255, 255, 0.82);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
   cursor: help;
+  appearance: none;
+  -webkit-appearance: none;
   transition:
     transform 0.18s ease,
     background 0.18s ease,
@@ -510,6 +513,16 @@ body {
     border-color: rgba(255, 255, 255, 0.28);
     color: rgba(255, 255, 255, 0.96);
     transform: scale(1.04);
+  }
+
+  &:focus-visible,
+  .docs-tooltip-trigger:focus-visible & {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.98);
+    transform: none;
   }
 }
 

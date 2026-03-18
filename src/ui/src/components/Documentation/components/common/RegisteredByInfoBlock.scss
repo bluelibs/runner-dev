@@ -1,6 +1,10 @@
 @use "../../../../styles/variables" as *;
 
 .registered-by-info__link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
   color: var(--docs-text-primary);
   text-decoration: none;
   font-family: $font-family-mono;

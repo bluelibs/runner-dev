@@ -339,28 +339,14 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     registeredBy: {
       description: "Id of the resource that registered this resource (if any)",
       type: GraphQLString,
-      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) => {
-        if (node.registeredBy) return node.registeredBy;
-        const allResources = ctx.introspector.getResources();
-        const found = allResources.find((r) =>
-          (r.registers || []).includes(node.id)
-        );
-        return found?.id ?? null;
-      },
+      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResourceId(node),
     },
     registeredByResolved: {
       description: "Resource that registered this resource (resolved, if any)",
       type: ResourceType,
-      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) => {
-        if (node.registeredBy) {
-          return ctx.introspector.getResource(node.registeredBy);
-        }
-        const allResources = ctx.introspector.getResources();
-        return (
-          allResources.find((r) => (r.registers || []).includes(node.id)) ||
-          null
-        );
-      },
+      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResource(node),
     },
     ...baseElementCommonFields(),
   }),

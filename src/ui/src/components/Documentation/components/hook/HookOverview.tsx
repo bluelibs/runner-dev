@@ -65,7 +65,9 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
 
         <RegisteredByInfoBlock
           prefix="hook-card"
+          elementId={hook.id}
           registeredBy={hook.registeredBy}
+          introspector={introspector}
         />
 
         <InfoBlock prefix="hook-card" label="Target Events:">

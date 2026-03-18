@@ -15,6 +15,10 @@ import {
   logMwTask,
   tagMw,
 } from "../dummy/dummyApp";
+import {
+  createEnhancedSuperApp,
+  enhancedSuperAppIds,
+} from "../dummy/enhanced";
 import { introspector } from "../../resources/introspector.resource";
 import { graphql } from "graphql";
 import { Introspector } from "../../resources/models/Introspector";
@@ -343,6 +347,73 @@ describe("GraphQL schema (integration)", () => {
     expect(data.interceptorOwners).toBeDefined();
     expect(Array.isArray(data.interceptorOwners.tasksById)).toBe(true);
     expect(data.interceptorOwners.middleware).toBeDefined();
+  });
+
+  test("registeredBy resolves nested registrations from canonical introspection ids", async () => {
+    let ctx: any;
+    let runtime: Awaited<ReturnType<typeof run>> | null = null;
+
+    const probe = defineResource({
+      id: "probe-graphql-registered-by",
+      dependencies: { introspector, store: resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    runtime = await run(createEnhancedSuperApp([introspector, probe]));
+
+    try {
+      const isolationBoundaryId = enhancedSuperAppIds.catalog.resource(
+        "isolation-boundary"
+      );
+      const publicCatalogId = `${isolationBoundaryId}.public-catalog`;
+      const catalogSearchTaskId = `${isolationBoundaryId}.tasks.catalog-search`;
+
+      const result = await graphql({
+        schema,
+        source: `
+          query RegisteredByGraph($taskId: ID!, $resourceId: ID!) {
+            task(id: $taskId) {
+              id
+              registeredBy
+              registeredByResolved { id }
+            }
+            resource(id: $resourceId) {
+              id
+              registeredBy
+              registeredByResolved { id }
+            }
+          }
+        `,
+        variableValues: {
+          taskId: catalogSearchTaskId,
+          resourceId: publicCatalogId,
+        },
+        contextValue: ctx,
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect((result.data as any)?.task?.registeredBy).toBe(
+        isolationBoundaryId
+      );
+      expect((result.data as any)?.task?.registeredByResolved?.id).toBe(
+        isolationBoundaryId
+      );
+      expect((result.data as any)?.resource?.registeredBy).toBe(
+        isolationBoundaryId
+      );
+      expect((result.data as any)?.resource?.registeredByResolved?.id).toBe(
+        isolationBoundaryId
+      );
+    } finally {
+      await runtime?.dispose();
+    }
   });
 
   test("removes Resource.tunnelInfo and exposes rpcLane on Task/Event", async () => {

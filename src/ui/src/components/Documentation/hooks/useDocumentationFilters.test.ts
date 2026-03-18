@@ -306,6 +306,61 @@ describe("useDocumentationFilters", () => {
     );
   });
 
+  it("treats bare RESOURCE and TASK filters as element-kind matches", () => {
+    const introspector = new Introspector({
+      data: {
+        tasks: [
+          {
+            id: "app.cleanup",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        hooks: [],
+        resources: [
+          {
+            id: "app.cache",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            overrides: [],
+            registers: [],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        events: [],
+        middlewares: [],
+        errors: [],
+        asyncContexts: [],
+        tags: [],
+      },
+    });
+
+    const { result } = renderHook(() => useDocumentationFilters(introspector));
+
+    act(() => {
+      result.current.setLocalNamespaceSearch("RESOURCE");
+    });
+
+    expect(result.current.resources.map((item) => item.id)).toEqual([
+      "app.cache",
+    ]);
+    expect(result.current.tasks).toEqual([]);
+
+    act(() => {
+      result.current.setLocalNamespaceSearch("task|resource");
+    });
+
+    expect(result.current.tasks.map((item) => item.id)).toEqual(["app.cleanup"]);
+    expect(result.current.resources.map((item) => item.id)).toEqual([
+      "app.cache",
+    ]);
+  });
+
   it("respects persisted PRIVATE preference from localStorage", () => {
     localStorage.setItem(
       DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE,

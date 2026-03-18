@@ -43,6 +43,58 @@ describe("RegisteredByInfoBlock", () => {
       })
     );
 
-    expect(screen.getByText("Direct / root-level")).toBeTruthy();
+    expect(screen.getByText("Registration source unavailable")).toBeTruthy();
+  });
+
+  it("links root-level registrations to the application root resource", () => {
+    render(
+      React.createElement(RegisteredByInfoBlock, {
+        prefix: "task-card",
+        registeredBy: "app",
+      })
+    );
+
+    const link = screen.getByRole("link", { name: "app" });
+    expect(link.getAttribute("href")).toBe("#element-app");
+  });
+
+  it("resolves the owner through the introspector when the serialized value is missing", () => {
+    render(
+      React.createElement(RegisteredByInfoBlock, {
+        prefix: "task-card",
+        elementId: "app.catalog.tasks.search",
+        registeredBy: null,
+        introspector: {
+          getRegisteredByResourceId: () => "app.catalog",
+        },
+      })
+    );
+
+    const link = screen.getByRole("link", { name: "app.catalog" });
+    expect(link.getAttribute("href")).toBe("#element-app.catalog");
+  });
+
+  it("renders a fancier non-link root state for the root resource itself", () => {
+    render(
+      React.createElement(RegisteredByInfoBlock, {
+        prefix: "resource-card",
+        registeredBy: null,
+        isCurrentRootResource: true,
+      })
+    );
+
+    expect(screen.queryByRole("link", { name: /Application Shell|app/ })).toBeNull();
+    expect(screen.getByText("Root-level registration")).toBeTruthy();
+  });
+
+  it("keeps the generic fallback when no registrar is available", () => {
+    render(
+      React.createElement(RegisteredByInfoBlock, {
+        prefix: "task-card",
+        registeredBy: null,
+      })
+    );
+
+    expect(screen.getByText("Registration source unavailable")).toBeTruthy();
   });
 });

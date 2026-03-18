@@ -180,10 +180,15 @@ function resolveTaskSubtreeMiddlewareEntry(
     };
 
     if (
-      typeof conditionalEntry.when === "function" &&
-      !conditionalEntry.when(task)
+      typeof conditionalEntry.when === "function"
     ) {
-      return null;
+      try {
+        if (!conditionalEntry.when(task)) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
     }
 
     return readSubtreeMiddlewareEntryId(conditionalEntry.use ?? null);
@@ -650,7 +655,13 @@ function buildEventLaneSummaryByEventId(
     if (typeof lane.applyTo === "function") {
       for (const event of registeredEvents) {
         if (laneByEventId.has(event.id)) continue;
-        if (!(lane.applyTo as (event: unknown) => boolean)(event)) continue;
+        let matchesEvent = false;
+        try {
+          matchesEvent = (lane.applyTo as (event: unknown) => boolean)(event);
+        } catch {
+          matchesEvent = false;
+        }
+        if (!matchesEvent) continue;
         laneByEventId.set(event.id, {
           laneId: lane.id,
           orderingKey: lane.orderingKey,
@@ -813,6 +824,27 @@ export function attachRegisteredBy(
   middlewares: Middleware[],
   events: Event[]
 ): void {
+  const matchesRegisteredElement = (candidateId: string, referenceId: string) =>
+    candidateId === referenceId ||
+    candidateId.endsWith(`.${referenceId}`) ||
+    referenceId.endsWith(`.${candidateId}`);
+
+  const resolveRegisteredElement = <T extends { id: string }>(
+    map: Map<string, T>,
+    referenceId: string
+  ): T | null => {
+    const direct = map.get(referenceId);
+    if (direct) return direct;
+
+    for (const element of map.values()) {
+      if (matchesRegisteredElement(element.id, referenceId)) {
+        return element;
+      }
+    }
+
+    return null;
+  };
+
   const taskMap = buildIdMap(tasks);
   const hookMap = buildIdMap(hooks);
   const resourceMap = buildIdMap(resources);
@@ -821,12 +853,34 @@ export function attachRegisteredBy(
 
   for (const r of resources) {
     for (const id of r.registers ?? []) {
-      if (taskMap.has(id)) taskMap.get(id)!.registeredBy = r.id;
-      else if (hookMap.has(id)) hookMap.get(id)!.registeredBy = r.id;
-      else if (resourceMap.has(id)) resourceMap.get(id)!.registeredBy = r.id;
-      else if (middlewareMap.has(id))
-        middlewareMap.get(id)!.registeredBy = r.id;
-      else if (eventMap.has(id)) eventMap.get(id)!.registeredBy = r.id;
+      const task = resolveRegisteredElement(taskMap, id);
+      if (task) {
+        task.registeredBy = r.id;
+        continue;
+      }
+
+      const hook = resolveRegisteredElement(hookMap, id);
+      if (hook) {
+        hook.registeredBy = r.id;
+        continue;
+      }
+
+      const resource = resolveRegisteredElement(resourceMap, id);
+      if (resource) {
+        resource.registeredBy = r.id;
+        continue;
+      }
+
+      const middleware = resolveRegisteredElement(middlewareMap, id);
+      if (middleware) {
+        middleware.registeredBy = r.id;
+        continue;
+      }
+
+      const event = resolveRegisteredElement(eventMap, id);
+      if (event) {
+        event.registeredBy = r.id;
+      }
     }
   }
 }

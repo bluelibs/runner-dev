@@ -77,7 +77,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
   const hasEventLanesSurface = isEventLanesResource(resource);
   const hasRpcLanesSurface = isRpcLanesResource(resource);
-  const isRootResource = introspector.getRoot().id === resource.id;
+  const rootResource = introspector.getRoot();
+  const isRootResource = rootResource.id === resource.id;
 
   const openIsolationWildcardModal = React.useCallback(
     (source: IsolationRuleSource, rule: string) => {
@@ -244,8 +245,10 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
           <RegisteredByInfoBlock
             prefix="resource-card"
+            elementId={resource.id}
             registeredBy={resource.registeredBy}
-            fallbackLabel={isRootResource ? "Application root" : undefined}
+            introspector={introspector}
+            isCurrentRootResource={isRootResource}
           />
 
           <InfoBlock prefix="resource-card" label="Visibility:">

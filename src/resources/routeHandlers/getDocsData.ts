@@ -66,7 +66,16 @@ async function readRunnerDevCompactGuide(): Promise<string> {
     __dirname,
     "../../../skills/runner-dev/references/COMPACT_GUIDE.md"
   );
-  const localFallback = await fs.readFile(localFallbackPath, "utf8");
+  let localFallback: string;
+  try {
+    localFallback = await fs.readFile(localFallbackPath, "utf8");
+  } catch (error) {
+    const reason =
+      error instanceof Error ? error.message : "Unknown filesystem error";
+    throw new Error(
+      `Runner-Dev compact guide could not be read at ${localFallbackPath}: ${reason}`
+    );
+  }
   if (!localFallback) {
     throw new Error(
       `Runner-Dev compact guide is empty at ${localFallbackPath}.`

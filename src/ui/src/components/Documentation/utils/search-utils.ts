@@ -4,6 +4,17 @@ export type SearchGroup = {
   include: string[];
   exclude: string[];
 }; // Include and exclude terms
+
+export type SearchElementKind =
+  | "task"
+  | "resource"
+  | "event"
+  | "hook"
+  | "middleware"
+  | "tag"
+  | "error"
+  | "async-context";
+
 export interface ParsedSearch {
   isTagSearch: boolean;
   groups: SearchGroup[]; // OR over groups; each group has include/exclude terms
@@ -11,6 +22,43 @@ export interface ParsedSearch {
 
 function normalize(str: string): string {
   return String(str || "").toLowerCase();
+}
+
+const KIND_ALIASES: Record<SearchElementKind, string[]> = {
+  task: ["task", "tasks"],
+  resource: ["resource", "resources"],
+  event: ["event", "events"],
+  hook: ["hook", "hooks"],
+  middleware: ["middleware", "middlewares"],
+  tag: ["tag", "tags"],
+  error: ["error", "errors"],
+  "async-context": [
+    "async-context",
+    "async-contexts",
+    "asynccontext",
+    "asynccontexts",
+    "async_context",
+    "async_contexts",
+  ],
+};
+
+function tokenMatchesElementKind(
+  token: string,
+  kind?: SearchElementKind
+): boolean {
+  if (!kind) return false;
+
+  return KIND_ALIASES[kind].includes(token);
+}
+
+function tokenMatchesId(
+  id: string,
+  token: string,
+  kind?: SearchElementKind
+): boolean {
+  return (
+    matchesWildcardPattern(id, token) || tokenMatchesElementKind(token, kind)
+  );
 }
 
 // Parse a raw query into OR groups. Commas represent AND within groups, "|" separates OR groups, "!" means exclude.
@@ -52,7 +100,7 @@ export function parseSearchQuery(raw: string): ParsedSearch {
 
 // Test if an element (id + optional tags) matches a parsed query
 export function elementMatchesParsed(
-  element: { id: string; tags?: string[] | null },
+  element: { id: string; tags?: string[] | null; kind?: SearchElementKind },
   parsed: ParsedSearch
 ): boolean {
   // Empty query matches everything
@@ -60,6 +108,7 @@ export function elementMatchesParsed(
 
   const id = normalize(element.id);
   const tags = Array.isArray(element.tags) ? element.tags.map(normalize) : [];
+  const kind = element.kind;
 
   const groupMatches = (group: SearchGroup): boolean => {
     if (group.include.length === 0 && group.exclude.length === 0) return true;
@@ -86,12 +135,12 @@ export function elementMatchesParsed(
       // Include terms: all must match (AND logic)
       const includeMatch =
         group.include.length === 0 ||
-        group.include.every((token) => matchesWildcardPattern(id, token));
+        group.include.every((token) => tokenMatchesId(id, token, kind));
 
       // Exclude terms: none must match
       const excludeMatch =
         group.exclude.length === 0 ||
-        !group.exclude.some((token) => matchesWildcardPattern(id, token));
+        !group.exclude.some((token) => tokenMatchesId(id, token, kind));
 
       return includeMatch && excludeMatch;
     }
@@ -106,6 +155,7 @@ export function treeNodeMatchesParsed(
   node: {
     label: string;
     elementId?: string;
+    type?: SearchElementKind | "folder";
     element?: { id: string; tags?: string[] | null } | any;
   },
   parsed: ParsedSearch
@@ -115,12 +165,17 @@ export function treeNodeMatchesParsed(
   const label = normalize(node.label);
   const elementId = normalize(node.elementId || "");
   const element = node.element as
-    | { id?: string; tags?: string[] | null }
+    | { id?: string; tags?: string[] | null; type?: SearchElementKind }
     | undefined;
+  const kind =
+    node.type && node.type !== "folder"
+      ? node.type
+      : (element?.type as SearchElementKind | undefined);
 
   const elementForMatch = {
     id: normalize(element?.id || elementId || label),
     tags: Array.isArray(element?.tags) ? (element!.tags as string[]) : [],
+    kind,
   };
 
   const groupMatches = (group: SearchGroup): boolean => {
@@ -152,8 +207,8 @@ export function treeNodeMatchesParsed(
         group.include.length === 0 ||
         group.include.every(
           (token) =>
-            matchesWildcardPattern(label, token) ||
-            matchesWildcardPattern(elementId, token)
+            tokenMatchesId(label, token) ||
+            tokenMatchesId(elementId, token, elementForMatch.kind)
         );
 
       // Exclude terms: none must match
@@ -161,8 +216,8 @@ export function treeNodeMatchesParsed(
         group.exclude.length === 0 ||
         !group.exclude.some(
           (token) =>
-            matchesWildcardPattern(label, token) ||
-            matchesWildcardPattern(elementId, token)
+            tokenMatchesId(label, token) ||
+            tokenMatchesId(elementId, token, elementForMatch.kind)
         );
 
       return includeMatch && excludeMatch;

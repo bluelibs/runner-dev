@@ -52,4 +52,42 @@ describe("search-utils wildcard matching", () => {
       )
     ).toBe(false);
   });
+
+  test("matches bare resource/task filters by element kind", () => {
+    const resourceParsed = parseSearchQuery("RESOURCE");
+    expect(
+      elementMatchesParsed(
+        { id: "app.cache", tags: [], kind: "resource" },
+        resourceParsed
+      )
+    ).toBe(true);
+    expect(
+      elementMatchesParsed(
+        { id: "app.cleanup", tags: [], kind: "task" },
+        resourceParsed
+      )
+    ).toBe(false);
+
+    const kindOrParsed = parseSearchQuery("task|resource");
+    expect(
+      treeNodeMatchesParsed(
+        {
+          label: "cache",
+          elementId: "app.cache",
+          type: "resource",
+        },
+        kindOrParsed
+      )
+    ).toBe(true);
+    expect(
+      treeNodeMatchesParsed(
+        {
+          label: "cleanup",
+          elementId: "app.cleanup",
+          type: "event",
+        },
+        kindOrParsed
+      )
+    ).toBe(false);
+  });
 });

@@ -101,9 +101,11 @@ describe("MCP tools (env/http/format/docs)", () => {
 
   describe("package docs", () => {
     it("readPackageDoc returns content or empty string gracefully", async () => {
-      // use a dependency likely present
-      const pkg = await readPackageDoc("graphql");
-      expect(typeof pkg.content).toBe("string");
+      const pkg = await readPackageDoc(
+        "@bluelibs/runner",
+        RUNNER_FRAMEWORK_COMPACT_DOC_PATHS[0]
+      );
+      expect(pkg.content.length).toBeGreaterThan(0);
     });
 
     it("runner docs prefer compact and full guides from readmes", async () => {
@@ -115,9 +117,11 @@ describe("MCP tools (env/http/format/docs)", () => {
       );
 
       const compact = await readFirstAvailablePackageDoc("@bluelibs/runner", [
+        "readmes/DOES_NOT_EXIST.md",
         ...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
       ]);
       const complete = await readFirstAvailablePackageDoc("@bluelibs/runner", [
+        "readmes/DOES_NOT_EXIST.md",
         ...RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS,
       ]);
 

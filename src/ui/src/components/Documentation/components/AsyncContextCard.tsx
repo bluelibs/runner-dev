@@ -129,7 +129,9 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
 
                 <RegisteredByInfoBlock
                   prefix="async-context-card"
+                  elementId={asyncContext.id}
                   registeredBy={asyncContext.registeredBy}
+                  introspector={introspector}
                 />
 
                 {asyncContext.tags && asyncContext.tags.length > 0 && (

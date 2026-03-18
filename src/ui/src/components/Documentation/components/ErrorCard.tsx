@@ -128,7 +128,9 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
 
                 <RegisteredByInfoBlock
                   prefix="error-card"
+                  elementId={error.id}
                   registeredBy={error.registeredBy}
+                  introspector={introspector}
                 />
 
                 {error.tags && error.tags.length > 0 && (

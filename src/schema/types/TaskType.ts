@@ -191,30 +191,14 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
       description:
         "Id of the resource that registered this task (if any). Useful to trace provenance.",
       type: GraphQLString,
-      resolve: (node: Task, _args, ctx: CustomGraphQLContext) => {
-        // TODO: Store it in the mapping phase?
-        if (node.registeredBy != null) return node.registeredBy;
-        const allResources = ctx.introspector.getResources();
-        const found = allResources.find((r) =>
-          (r.registers || []).includes(node.id)
-        );
-        return found?.id ?? null;
-      },
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResourceId(node),
     },
     registeredByResolved: {
       description: "Resource that registered this task (resolved, if any)",
       type: ResourceType,
-      resolve: (node: Task, _args, ctx: CustomGraphQLContext) => {
-        if (node.registeredBy != null) {
-          return ctx.introspector.getResource(node.registeredBy);
-        }
-        // Fallback for backward-compatibility
-        const allResources = ctx.introspector.getResources();
-        return (
-          allResources.find((r) => (r.registers || []).includes(node.id)) ||
-          null
-        );
-      },
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResource(node),
     },
 
     // Task-like explicit fields

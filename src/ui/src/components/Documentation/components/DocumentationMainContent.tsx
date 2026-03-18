@@ -600,7 +600,7 @@ export const DocumentationMainContent: React.FC<
             elements={events}
             resources={resources}
             title="Events Overview"
-            icon="📡"
+            icon={getDocumentationIcon("events")}
             id="events"
             enableActions="event"
             onAction={(el) => {
@@ -615,7 +615,9 @@ export const DocumentationMainContent: React.FC<
         )}
         {activeSection === "events" && events.length > 0 && (
           <section className="docs-section">
-            <h2>📡 Events ({events.length})</h2>
+            <h2>
+              {getDocumentationIcon("events")} Events ({events.length})
+            </h2>
             <div className="docs-component-grid">
               {events.map((event) => (
                 <EventCard
@@ -633,13 +635,13 @@ export const DocumentationMainContent: React.FC<
             elements={hooks}
             resources={resources}
             title="Hooks Overview"
-            icon="🪝"
+            icon={getDocumentationIcon("hooks")}
             id="hooks"
           />
         )}
         {activeSection === "hooks" && hooks.length > 0 && (
           <section className="docs-section">
-            <h2>🪝 Hooks ({hooks.length})</h2>
+            <h2>{getDocumentationIcon("hooks")} Hooks ({hooks.length})</h2>
             <div className="docs-component-grid">
               {hooks.map((hook) => (
                 <HookCard
@@ -683,13 +685,16 @@ export const DocumentationMainContent: React.FC<
             elements={asyncContexts}
             resources={resources}
             title="Async Contexts Overview"
-            icon="🔄"
+            icon={getDocumentationIcon("asyncContexts")}
             id="asyncContexts"
           />
         )}
         {activeSection === "asyncContexts" && asyncContexts.length > 0 && (
           <section className="docs-section">
-            <h2>🔄 Async Contexts ({asyncContexts.length})</h2>
+            <h2>
+              {getDocumentationIcon("asyncContexts")} Async Contexts (
+              {asyncContexts.length})
+            </h2>
             <div className="docs-component-grid">
               {asyncContexts.map((asyncContext) => (
                 <AsyncContextCard
@@ -707,13 +712,16 @@ export const DocumentationMainContent: React.FC<
             elements={middlewares}
             resources={resources}
             title="Middlewares Overview"
-            icon="🔗"
+            icon={getDocumentationIcon("middlewares")}
             id="middlewares"
           />
         )}
         {activeSection === "middlewares" && middlewares.length > 0 && (
           <section className="docs-section">
-            <h2>🔗 Middlewares ({middlewares.length})</h2>
+            <h2>
+              {getDocumentationIcon("middlewares")} Middlewares (
+              {middlewares.length})
+            </h2>
             <div className="docs-component-grid">
               {middlewares.map((middleware) => (
                 <MiddlewareCard
@@ -731,13 +739,13 @@ export const DocumentationMainContent: React.FC<
             elements={tags}
             resources={resources}
             title="Tags Overview"
-            icon="🏷️"
+            icon={getDocumentationIcon("tags")}
             id="tags"
           />
         )}
         {activeSection === "tags" && tags.length > 0 && (
           <section className="docs-section">
-            <h2>Tags ({tags.length})</h2>
+            <h2>{getDocumentationIcon("tags")} Tags ({tags.length})</h2>
             <div className="docs-tags-grid">
               {tags.map((tag) => (
                 <TagCard key={tag.id} tag={tag} introspector={introspector} />

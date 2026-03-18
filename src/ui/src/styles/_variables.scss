@@ -155,6 +155,7 @@ $dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
 
   // Interactive colors - bright colors for dark theme
   --docs-primary: #{$dark-primary-blue};
+  --primary-rgb: 96, 165, 250;
   --docs-success: #{$dark-success-green};
   --docs-warning: #{$dark-warning-orange};
   --docs-danger: #{$dark-danger-red};
@@ -210,6 +211,7 @@ $dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
   --docs-bg-secondary: #{$light-gray};
   --docs-bg-tertiary: #{$border-gray};
   --docs-bg-elevated: #{$white};
+  --primary-rgb: 0, 122, 204;
 
   // Text colors - light theme
   --docs-text-primary: #{$text-darker};

@@ -197,7 +197,9 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
 
           <RegisteredByInfoBlock
             prefix="tag-card"
+            elementId={tag.id}
             registeredBy={tag.registeredBy}
+            introspector={introspector}
           />
 
           <InfoBlock prefix="tag-card" label="Targets:">

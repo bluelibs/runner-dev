@@ -575,6 +575,7 @@ describe("TopologyCanvas", () => {
     });
 
     expect(rail.getAttribute("aria-disabled")).toBe("true");
+    expect(rail.getAttribute("tabindex")).toBe("-1");
     expect(rail.className).toContain("topology-panel__scroll-rail--disabled");
   });
 

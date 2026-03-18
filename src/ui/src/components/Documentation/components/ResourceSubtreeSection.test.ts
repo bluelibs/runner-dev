@@ -110,6 +110,6 @@ describe("ResourceSubtreeSection", () => {
     );
 
     expect(screen.getByText(/identity=none/)).toBeTruthy();
-    expect(screen.getByText(/^optional$/)).toBeTruthy();
+    expect(screen.getByText(/^none$/)).toBeTruthy();
   });
 });

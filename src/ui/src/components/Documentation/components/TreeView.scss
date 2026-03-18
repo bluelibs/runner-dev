@@ -194,8 +194,8 @@
     }
 
     .tree-node-count {
-      color: #d1d5db;
-      background-color: rgba(255, 255, 255, 0.1);
+      color: var(--tree-folder-accent);
+      background-color: rgba(var(--tree-folder-accent-rgb), 0.12);
     }
 
     .tree-children {

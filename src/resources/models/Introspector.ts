@@ -967,7 +967,12 @@ export class Introspector {
           id: tl.id,
           config: usage?.config ?? null,
           origin: usage?.origin ?? "local",
-          subtreeOwnerId: usage?.subtreeOwnerId ?? null,
+          subtreeOwnerId: usage?.subtreeOwnerId
+            ? this.resolveCanonicalId(
+                usage.subtreeOwnerId,
+                this.resources.map((entry) => entry.id)
+              )
+            : null,
           node: tl,
         });
       }
@@ -1427,6 +1432,31 @@ export class Introspector {
 
   hasTaskInterceptors(taskId: string): boolean {
     return this.getTaskInterceptorCount(taskId) > 0;
+  }
+
+  getRegisteredByResourceId(node: {
+    id: string;
+    registeredBy?: string | null;
+  }): string | null {
+    if (node.registeredBy != null) {
+      return node.registeredBy;
+    }
+
+    for (const resource of this.resources) {
+      if (this.idsContainLike(resource.registers, node.id)) {
+        return resource.id;
+      }
+    }
+
+    return null;
+  }
+
+  getRegisteredByResource(node: {
+    id: string;
+    registeredBy?: string | null;
+  }): Resource | null {
+    const ownerId = this.getRegisteredByResourceId(node);
+    return ownerId ? this.getResource(ownerId) : null;
   }
 
   getMiddlewareInterceptorOwnerIds(middlewareId: string): string[] {

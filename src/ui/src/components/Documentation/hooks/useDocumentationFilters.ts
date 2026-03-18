@@ -57,7 +57,15 @@ export const useDocumentationFilters = (
   const applyFilters = <
     T extends { id: string; tags?: string[] | null; isPrivate?: boolean }
   >(
-    items: T[]
+    items: T[],
+    kind?:
+      | "task"
+      | "resource"
+      | "event"
+      | "hook"
+      | "middleware"
+      | "error"
+      | "async-context"
   ): T[] => {
     let result = items;
     if (!showSystem) {
@@ -73,7 +81,7 @@ export const useDocumentationFilters = (
       // Elements: if tag-search, match by tag ids; otherwise match by id
       result = result.filter((item) =>
         elementMatchesParsed(
-          { id: item.id, tags: item.tags || [] },
+          { id: item.id, tags: item.tags || [], kind },
           parsedSearch
         )
       );
@@ -82,13 +90,16 @@ export const useDocumentationFilters = (
   };
 
   const filteredData = useMemo(() => {
-    const tasks = applyFilters(introspector.getTasks());
-    const resources = applyFilters(introspector.getResources());
-    const events = applyFilters(introspector.getEvents());
-    const hooks = applyFilters(introspector.getHooks());
-    const middlewares = applyFilters(introspector.getMiddlewares());
-    const errors = applyFilters(introspector.getErrors());
-    const asyncContexts = applyFilters(introspector.getAsyncContexts());
+    const tasks = applyFilters(introspector.getTasks(), "task");
+    const resources = applyFilters(introspector.getResources(), "resource");
+    const events = applyFilters(introspector.getEvents(), "event");
+    const hooks = applyFilters(introspector.getHooks(), "hook");
+    const middlewares = applyFilters(introspector.getMiddlewares(), "middleware");
+    const errors = applyFilters(introspector.getErrors(), "error");
+    const asyncContexts = applyFilters(
+      introspector.getAsyncContexts(),
+      "async-context"
+    );
 
     // Tags list: keep consistent behavior — always filter by id text
     let tags = introspector.getAllTags();

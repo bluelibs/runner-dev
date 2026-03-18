@@ -122,7 +122,9 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
 
           <RegisteredByInfoBlock
             prefix="middleware-card"
+            elementId={middleware.id}
             registeredBy={middleware.registeredBy}
+            introspector={introspector}
           />
 
           <InfoBlock prefix="middleware-card" label={`Used by ${usageLabel}:`}>

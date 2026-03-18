@@ -36,8 +36,11 @@ function formatIdentityScope(
   if (identityScope.user) {
     parts.push("user");
   }
+  if (parts.length === 0) {
+    return "none";
+  }
   parts.push(identityScope.required ? "required" : "optional");
-  return parts.length > 0 ? parts.join(", ") : "none";
+  return parts.join(", ");
 }
 
 export const ResourceSubtreeSection: React.FC<ResourceSubtreeSectionProps> = ({

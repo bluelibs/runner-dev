@@ -282,7 +282,12 @@ export function filterTree(nodes: TreeNode[], searchTerm: string): TreeNode[] {
 
   const filterNode = (node: TreeNode): TreeNode | null => {
     const matches = treeNodeMatchesParsed(
-      { label: node.label, elementId: node.elementId, element: node.element },
+      {
+        label: node.label,
+        elementId: node.elementId,
+        element: node.element,
+        type: node.type,
+      },
       parsed
     );
 

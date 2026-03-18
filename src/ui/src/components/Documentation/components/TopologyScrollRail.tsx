@@ -18,6 +18,25 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+function getThumbMetrics(
+  railHeight: number,
+  thumbRatioY: number,
+  positionY: number
+) {
+  const boundedRailHeight = Math.max(railHeight, 0);
+  const thumbHeight = Math.min(
+    boundedRailHeight,
+    Math.max(MIN_THUMB_HEIGHT, boundedRailHeight * thumbRatioY)
+  );
+  const maxTravel = Math.max(0, boundedRailHeight - thumbHeight);
+
+  return {
+    thumbHeight,
+    maxTravel,
+    thumbTop: maxTravel * clamp(positionY, 0, 1),
+  };
+}
+
 export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
   positionY,
   thumbRatioY,
@@ -26,26 +45,50 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
   onPositionChange,
 }) => {
   const railRef = React.useRef<HTMLDivElement>(null);
+  const [railHeight, setRailHeight] = React.useState(0);
   const pointerStateRef = React.useRef<{
     pointerId: number;
     dragOffsetY: number;
   } | null>(null);
 
+  React.useLayoutEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    const syncRailHeight = () => {
+      const nextHeight = rail.getBoundingClientRect().height;
+      setRailHeight((currentHeight) =>
+        currentHeight === nextHeight ? currentHeight : nextHeight
+      );
+    };
+
+    syncRailHeight();
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncRailHeight();
+    });
+
+    resizeObserver.observe(rail);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   const getRailMetrics = React.useCallback(() => {
     const rect = railRef.current?.getBoundingClientRect();
     if (!rect) return null;
-
-    const thumbHeight = Math.min(
+    const { thumbHeight, maxTravel, thumbTop } = getThumbMetrics(
       rect.height,
-      Math.max(MIN_THUMB_HEIGHT, rect.height * thumbRatioY)
+      thumbRatioY,
+      positionY
     );
-    const maxTravel = Math.max(0, rect.height - thumbHeight);
 
     return {
       rect,
       thumbHeight,
       maxTravel,
-      thumbTop: maxTravel * clamp(positionY, 0, 1),
+      thumbTop,
     };
   }, [positionY, thumbRatioY]);
 
@@ -75,6 +118,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
 
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!isEnabled) return;
       event.preventDefault();
       event.stopPropagation();
 
@@ -95,7 +139,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
       event.currentTarget.setPointerCapture(event.pointerId);
       commitPointerPosition(event.clientY, dragOffsetY);
     },
-    [commitPointerPosition, getRailMetrics]
+    [commitPointerPosition, getRailMetrics, isEnabled]
   );
 
   const handlePointerMove = React.useCallback(
@@ -148,9 +192,11 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
   );
 
   const normalizedPosition = clamp(positionY, 0, 1);
-  const thumbHeightPercent = Math.max(thumbRatioY * 100, 0);
-  const thumbHeightStyle = `${thumbHeightPercent}%`;
-  const thumbTopStyle = `calc((100% - ${thumbHeightStyle}) * ${normalizedPosition})`;
+  const { thumbHeight, thumbTop } = getThumbMetrics(
+    railHeight,
+    thumbRatioY,
+    normalizedPosition
+  );
 
   return (
     <div
@@ -169,7 +215,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
       aria-valuemax={100}
       aria-valuenow={Math.round(normalizedPosition * 100)}
       aria-disabled={!isEnabled}
-      tabIndex={0}
+      tabIndex={isEnabled ? 0 : -1}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -181,8 +227,8 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
           className="topology-panel__scroll-rail-thumb"
           data-topology-rail-thumb="true"
           style={{
-            height: thumbHeightStyle,
-            top: thumbTopStyle,
+            height: `${thumbHeight}px`,
+            top: `${thumbTop}px`,
           }}
         />
       </div>

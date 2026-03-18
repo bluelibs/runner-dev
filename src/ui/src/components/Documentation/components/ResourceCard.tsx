@@ -32,6 +32,7 @@ import {
   isRpcLanesResource,
 } from "../../../../../utils/lane-resources";
 import { TopologyActionButton } from "./TopologyActionButton";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -76,6 +77,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
   const hasEventLanesSurface = isEventLanesResource(resource);
   const hasRpcLanesSurface = isRpcLanesResource(resource);
+  const isRootResource = introspector.getRoot().id === resource.id;
 
   const openIsolationWildcardModal = React.useCallback(
     (source: IsolationRuleSource, rule: string) => {
@@ -154,9 +156,18 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       elementId={resource.id}
       kindLabel="resource"
       isSystem={isSystemElement(resource)}
+      className={isRootResource ? "resource-card--root" : undefined}
+      headerClassName={
+        isRootResource ? "resource-card__header--root" : undefined
+      }
       title={
         <>
-          {resource.meta?.title || formatId(resource.id)}
+          <span className="resource-card__title-shell">
+            {resource.meta?.title || formatId(resource.id)}
+            {isRootResource && (
+              <span className="resource-card__root-pill">Application Root</span>
+            )}
+          </span>
           {hasRpcLanesSurface && (
             <span
               className="resource-card__rpc-lanes-badge"
@@ -169,6 +180,19 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       }
       id={resource.id}
       description={resource.meta?.description}
+      meta={
+        isRootResource ? (
+          <div className="resource-card__root-meta">
+            <span className="resource-card__root-meta-badge">
+              Root Resource
+            </span>
+            <span className="resource-card__root-meta-copy">
+              Main registration spine for runtime startup, topology, and docs
+              discovery.
+            </span>
+          </div>
+        ) : undefined
+      }
       actions={
         <TopologyActionButton
           focus={{ kind: "resource", id: resource.id }}
@@ -218,16 +242,11 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             </InfoBlock>
           )}
 
-          {resource.registeredBy && (
-            <InfoBlock prefix="resource-card" label="Registered By:">
-              <a
-                href={`#element-${resource.registeredBy}`}
-                className="resource-card__registrar-link"
-              >
-                {resource.registeredBy}
-              </a>
-            </InfoBlock>
-          )}
+          <RegisteredByInfoBlock
+            prefix="resource-card"
+            registeredBy={resource.registeredBy}
+            fallbackLabel={isRootResource ? "Application root" : undefined}
+          />
 
           <InfoBlock prefix="resource-card" label="Visibility:">
             {resource.isPrivate ? "Private" : "Public"}

@@ -126,5 +126,15 @@ describe("MCP tools (env/http/format/docs)", () => {
       expect(complete.filePath).toMatch(/readmes\/FULL_GUIDE\.md$/);
       expect(complete.content.length).toBeGreaterThan(0);
     });
+
+    it("fails fast when none of the requested package docs exist", async () => {
+      await expect(
+        readFirstAvailablePackageDoc("@bluelibs/runner", [
+          "readmes/DOES_NOT_EXIST.md",
+        ])
+      ).rejects.toThrow(
+        "Required package docs for @bluelibs/runner were not found"
+      );
+    });
   });
 });

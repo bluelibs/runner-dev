@@ -23,6 +23,7 @@ import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { MermaidDiagram } from "./common/MermaidDiagram";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 
 function normalizeDurableNodeLabel(node: any, index: number): string {
   const kind = String(node?.kind || "node");
@@ -402,16 +403,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
             </InfoBlock>
           )}
 
-          {task.registeredBy && (
-            <InfoBlock prefix="task-card" label="Registered By:">
-              <a
-                href={`#element-${task.registeredBy}`}
-                className="task-card__registrar-link"
-              >
-                {task.registeredBy}
-              </a>
-            </InfoBlock>
-          )}
+          <RegisteredByInfoBlock
+            prefix="task-card"
+            registeredBy={task.registeredBy}
+          />
 
           <InfoBlock prefix="task-card" label="Visibility:">
             {task.isPrivate ? "Private" : "Public"}

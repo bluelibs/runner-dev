@@ -53,6 +53,7 @@ export function getDocumentationIcon(kind: string): string {
     case "asyncContexts":
     case "async-context":
       return DOCUMENTATION_ICONS.asyncContext;
+    case "mixed":
     case "folder":
       return DOCUMENTATION_ICONS.folder;
     default:

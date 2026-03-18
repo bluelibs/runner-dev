@@ -155,6 +155,31 @@ export interface TopologyGraphProjection {
   };
 }
 
+export function collectSearchTopologyVisibleIds(
+  nodes: TopologyGraphNode[],
+  selectedNodeId: string,
+  matchingIds: Set<string>
+): Set<string> {
+  if (matchingIds.size <= 1) {
+    return new Set([selectedNodeId]);
+  }
+
+  const nodesById = new Map(nodes.map((node) => [node.id, node] as const));
+  const visibleIds = new Set<string>([selectedNodeId]);
+
+  for (const matchId of matchingIds) {
+    let current = nodesById.get(matchId) ?? null;
+    while (current) {
+      visibleIds.add(current.id);
+      current = current.parentId
+        ? nodesById.get(current.parentId) ?? null
+        : null;
+    }
+  }
+
+  return visibleIds;
+}
+
 export interface TopologyResolvedNode extends BaseDescriptor {
   element:
     | Task
@@ -227,11 +252,6 @@ export function buildTopologyProjection(
       shouldIncludeRegisters
     );
 
-    if (!isVisible && descriptor.id !== focus.id) {
-      hiddenIds.add(descriptor.id);
-      continue;
-    }
-
     const node = nodeRecords.get(descriptor.id) ?? createNodeRecord(descriptor);
     if (!nodeRecords.has(descriptor.id)) {
       node.depth = current.depth;
@@ -254,7 +274,6 @@ export function buildTopologyProjection(
         ) {
           node.hiddenIds.add(target.id);
           hiddenIds.add(target.id);
-          continue;
         }
 
         const edgeId = `${descriptor.id}::${relation.kind}::${target.id}`;

@@ -149,8 +149,44 @@ describe("topologyNavigator", () => {
       "order"
     );
 
-    expect(
-      [...((matchingIds as Set<string>) ?? new Set<string>())].sort()
-    ).toEqual(["event.orders.created", "resource.root", "task.orders.create"]);
+    expect([...(matchingIds ?? new Set<string>())].sort()).toEqual([
+      "event.orders.created",
+      "resource.root",
+      "task.orders.create",
+    ]);
+  });
+
+  it("keeps blank queries from marking every node as a match", () => {
+    const nodes = [
+      createNode({
+        id: "resource.root",
+        kind: "resource",
+        label: "Root Resource",
+        incomingCount: 1,
+        outgoingCount: 3,
+      }),
+      createNode({
+        id: "task.orders.create",
+        kind: "task",
+        label: "Create Order",
+        incomingCount: 2,
+        outgoingCount: 1,
+      }),
+      createNode({
+        id: "event.orders.created",
+        kind: "event",
+        label: "Order Created",
+        incomingCount: 1,
+        outgoingCount: 0,
+      }),
+    ];
+
+    const entries = buildTopologyNavigatorEntries(nodes, "resource.root", " ");
+
+    expect(entries.map((entry) => [entry.node.id, entry.isMatch])).toEqual([
+      ["resource.root", true],
+      ["task.orders.create", false],
+      ["event.orders.created", false],
+    ]);
   });
 });

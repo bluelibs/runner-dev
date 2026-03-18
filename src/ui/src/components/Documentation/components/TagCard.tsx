@@ -18,6 +18,7 @@ import { SchemaRenderer } from "./SchemaRenderer";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 
 export interface TagCardProps {
   tag: Tag;
@@ -193,6 +194,11 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
               formatFilePath(tag.filePath)
             )}
           </InfoBlock>
+
+          <RegisteredByInfoBlock
+            prefix="tag-card"
+            registeredBy={tag.registeredBy}
+          />
 
           <InfoBlock prefix="tag-card" label="Targets:">
             {tag.targets && tag.targets.length > 0

@@ -8,6 +8,7 @@ import {
 } from "../../utils/graphqlClient";
 import { Introspector } from "../../../../../../resources/models/Introspector";
 import { CardSection, InfoBlock } from "../common/ElementCard";
+import { RegisteredByInfoBlock } from "../common/RegisteredByInfoBlock";
 
 export interface HookOverviewProps {
   hook: Hook;
@@ -62,16 +63,10 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
           <a onClick={openFileModal}>{formatFilePath(hook.filePath)}</a>
         </InfoBlock>
 
-        {hook.registeredBy && (
-          <InfoBlock prefix="hook-card" label="Registered By:">
-            <a
-              href={`#element-${hook.registeredBy}`}
-              className="hook-card__registrar-link"
-            >
-              {hook.registeredBy}
-            </a>
-          </InfoBlock>
-        )}
+        <RegisteredByInfoBlock
+          prefix="hook-card"
+          registeredBy={hook.registeredBy}
+        />
 
         <InfoBlock prefix="hook-card" label="Target Events:">
           {isGlobal ? (

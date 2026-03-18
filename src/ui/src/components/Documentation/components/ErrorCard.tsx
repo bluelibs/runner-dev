@@ -12,6 +12,7 @@ import "./ErrorCard.scss";
 import { SchemaRenderer } from "./SchemaRenderer";
 import { ElementKindBadge, SystemBadge } from "./common/ElementKindBadge";
 import { isSystemElement } from "../utils/isSystemElement";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 
 export interface ErrorCardProps {
   error: Error;
@@ -125,19 +126,10 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
                   </div>
                 </div>
 
-                {error.registeredBy && (
-                  <div className="error-card__info-block">
-                    <div className="label">Registered By:</div>
-                    <div className="value">
-                      <a
-                        href={`#element-${error.registeredBy}`}
-                        className="error-card__registrar-link"
-                      >
-                        {error.registeredBy}
-                      </a>
-                    </div>
-                  </div>
-                )}
+                <RegisteredByInfoBlock
+                  prefix="error-card"
+                  registeredBy={error.registeredBy}
+                />
 
                 {error.tags && error.tags.length > 0 && (
                   <div className="error-card__info-block">

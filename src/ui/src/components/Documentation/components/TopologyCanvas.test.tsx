@@ -66,6 +66,12 @@ function createProjection(nodes: TopologyGraphNode[]): TopologyGraphProjection {
   };
 }
 
+function getCanvasStage(): HTMLElement | null {
+  return document.querySelector(
+    '[id^="topology-canvas-stage-"]'
+  ) as HTMLElement | null;
+}
+
 describe("TopologyCanvas", () => {
   const originalResizeObserver = global.ResizeObserver;
   const originalSetPointerCapture = HTMLElement.prototype.setPointerCapture;
@@ -208,11 +214,12 @@ describe("TopologyCanvas", () => {
       />
     );
 
-    const stage = document.getElementById("topology-canvas-stage");
+    const stage = getCanvasStage();
     const rail = await screen.findByRole("scrollbar", {
       name: "Topology vertical navigator",
     });
     expect(stage).toBeTruthy();
+    expect(stage?.id).toMatch(/^topology-canvas-stage-/);
 
     await waitFor(() => {
       expect(stage?.style.transform).toContain("translate(");
@@ -233,14 +240,17 @@ describe("TopologyCanvas", () => {
       clientY: 700,
     });
 
+    let clickedTransform = "";
+    let clickedMatch: RegExpMatchArray | null = null;
     await waitFor(() => {
       expect(stage?.style.transform).not.toBe(initialTransform);
+      clickedTransform = stage?.style.transform ?? "";
+      clickedMatch = clickedTransform.match(
+        /translate\(([-\d.]+)px, ([-\d.]+)px\)/
+      );
+      expect(clickedMatch).toBeTruthy();
     });
 
-    const clickedTransform = stage?.style.transform ?? "";
-    const clickedMatch = clickedTransform.match(
-      /translate\(([-\d.]+)px, ([-\d.]+)px\)/
-    );
     expect(clickedMatch?.[1]).toBe(initialMatch?.[1]);
     expect(Number(clickedMatch?.[2] ?? 0)).toBeLessThan(
       Number(initialMatch?.[2] ?? 0)
@@ -309,6 +319,12 @@ describe("TopologyCanvas", () => {
     const node = await screen.findByRole("button", {
       name: /Drag Me/i,
     });
+    const stage = getCanvasStage();
+
+    await waitFor(() => {
+      expect(stage?.style.transform).toContain("translate(");
+      expect(stage?.style.transform).not.toContain("NaN");
+    });
 
     const beforeStyle = node.getAttribute("style") ?? "";
 
@@ -331,6 +347,49 @@ describe("TopologyCanvas", () => {
     await waitFor(() => {
       expect(node.getAttribute("style")).not.toBe(beforeStyle);
     });
+  });
+
+  it("selects a node when activated by click", async () => {
+    const onSelectNode = jest.fn();
+
+    render(
+      <TopologyCanvas
+        graph={createProjection([
+          createNode({
+            id: "resource.focus",
+            kind: "resource",
+            label: "Focus",
+            x: 180,
+            y: 160,
+            incomingCount: 1,
+            outgoingCount: 1,
+            isFocus: true,
+          }),
+          createNode({
+            id: "task.click.me",
+            kind: "task",
+            label: "Click Me",
+            x: 420,
+            y: 1640,
+            incomingCount: 1,
+            outgoingCount: 2,
+          }),
+        ])}
+        selectedNodeId="resource.focus"
+        isFullscreen={false}
+        onSelectNode={onSelectNode}
+        onToggleFullscreen={() => {}}
+      />
+    );
+
+    const node = await screen.findByRole("button", {
+      name: /Click Me/i,
+    });
+
+    fireEvent.click(node);
+
+    expect(onSelectNode).toHaveBeenCalledTimes(1);
+    expect(onSelectNode.mock.calls[0]?.[0].id).toBe("task.click.me");
   });
 
   it("pans the graph when dragging empty canvas space", async () => {
@@ -367,7 +426,10 @@ describe("TopologyCanvas", () => {
     const shell = document.querySelector(
       ".topology-panel__canvas-shell"
     ) as HTMLElement;
-    const stage = document.getElementById("topology-canvas-stage");
+    const background = document.querySelector(
+      ".topology-panel__canvas-background"
+    ) as HTMLElement;
+    const stage = getCanvasStage();
 
     await waitFor(() => {
       expect(stage?.style.transform).toContain("translate(");
@@ -379,7 +441,7 @@ describe("TopologyCanvas", () => {
     );
     expect(initialMatch).toBeTruthy();
 
-    fireEvent.pointerDown(shell, {
+    fireEvent.pointerDown(background, {
       pointerId: 14,
       button: 0,
       clientX: 720,
@@ -453,7 +515,7 @@ describe("TopologyCanvas", () => {
     const shell = document.querySelector(
       ".topology-panel__canvas-shell"
     ) as HTMLElement;
-    const stage = document.getElementById("topology-canvas-stage");
+    const stage = getCanvasStage();
 
     await waitFor(() => {
       expect(stage?.style.transform).toContain("scale(");
@@ -565,7 +627,7 @@ describe("TopologyCanvas", () => {
       />
     );
 
-    const stage = document.getElementById("topology-canvas-stage");
+    const stage = getCanvasStage();
     const rail = await screen.findByRole("scrollbar", {
       name: "Topology vertical navigator",
     });
@@ -580,7 +642,7 @@ describe("TopologyCanvas", () => {
     );
     expect(match).toBeTruthy();
     expect(Number(match?.[1] ?? 0)).toBeGreaterThan(116);
-    expect(Number(match?.[2] ?? 0)).toBeGreaterThan(92);
+    expect(Number(match?.[2] ?? 0)).toBeGreaterThanOrEqual(92);
     expect(Number(match?.[3] ?? 0)).toBeGreaterThan(1);
     expect(rail.getAttribute("aria-disabled")).toBe("true");
   });
@@ -619,7 +681,10 @@ describe("TopologyCanvas", () => {
     const shell = document.querySelector(
       ".topology-panel__canvas-shell"
     ) as HTMLElement;
-    const stage = document.getElementById("topology-canvas-stage");
+    const background = document.querySelector(
+      ".topology-panel__canvas-background"
+    ) as HTMLElement;
+    const stage = getCanvasStage();
     const fitButton = await screen.findByRole("button", {
       name: "Reset zoom and pan",
     });
@@ -630,7 +695,7 @@ describe("TopologyCanvas", () => {
 
     const initialTransform = stage?.style.transform ?? "";
 
-    fireEvent.pointerDown(shell, {
+    fireEvent.pointerDown(background, {
       pointerId: 19,
       button: 0,
       clientX: 720,

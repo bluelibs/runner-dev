@@ -35,7 +35,7 @@
     gap: $spacing-md;
   }
 
-  .main {
+  .async-context-card__header-main {
     flex: 1;
     min-width: 0;
   }
@@ -142,12 +142,35 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    a {
+    a,
+    .async-context-card__file-button {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       display: block;
     }
+  }
+}
+
+.async-context-card__file-button {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  width: 100%;
+  font: inherit;
+  color: var(--docs-link-color);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-link-color);
+    outline-offset: 2px;
+    border-radius: $border-radius-sm;
   }
 }
 

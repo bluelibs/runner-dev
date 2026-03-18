@@ -4,7 +4,6 @@ Runner-Dev is the developer-facing toolkit for inspecting, querying, and debuggi
 
 ## Use This When
 
-- The task touches `/docs/data`, docs UI, chat context, or agent-facing documentation.
 - The task touches `/docs/data`, docs UI, chat context, agent-facing documentation, or the topology graph / blast-radius / mindmap views.
 - You need GraphQL or MCP access to runtime topology, telemetry, schema, or diagnostics.
 - You are debugging telemetry, live events, durable metadata, hook targets, or lane surfaces.

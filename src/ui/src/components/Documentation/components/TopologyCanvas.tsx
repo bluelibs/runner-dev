@@ -86,6 +86,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
   onSelectNode,
   onToggleFullscreen,
 }) => {
+  const canvasInstanceId = React.useId().replace(/:/g, "");
   const shellRef = React.useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] =
     React.useState<TopologyCanvasSize>(DEFAULT_CANVAS_SIZE);
@@ -187,6 +188,8 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
       getViewportMetrics(bounds, viewport, canvasSize, TOPOLOGY_CANVAS_INSETS),
     [bounds, canvasSize, viewport]
   );
+  const stageId = `topology-canvas-stage-${canvasInstanceId}`;
+  const arrowId = `topology-arrow-${canvasInstanceId}`;
 
   const updateViewport = React.useCallback(
     (updater: (current: TopologyViewportState) => TopologyViewportState) => {
@@ -385,6 +388,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
             className="topology-panel__canvas-action topology-panel__canvas-action--wide"
             onClick={resetView}
             title="Reset zoom and pan"
+            aria-label="Reset zoom and pan"
           >
             Fit
           </button>
@@ -416,6 +420,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
       </div>
 
       <TopologyScrollRail
+        controlsId={stageId}
         positionY={viewportMetrics.positionY}
         thumbRatioY={viewportMetrics.thumbRatioY}
         isEnabled={viewportMetrics.isVerticallyScrollable}
@@ -423,7 +428,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
       />
 
       <div
-        id="topology-canvas-stage"
+        id={stageId}
         className="topology-panel__stage"
         style={{
           width: `${bounds.width}px`,
@@ -439,7 +444,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
         >
           <defs>
             <marker
-              id="topology-arrow"
+              id={arrowId}
               viewBox="0 0 10 10"
               refX="8"
               refY="5"
@@ -472,7 +477,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                markerEnd="url(#topology-arrow)"
+                markerEnd={`url(#${arrowId})`}
               />
             );
           })}
@@ -500,6 +505,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
             }}
             title={node.description || node.subtitle}
             onPointerDown={beginNodeDrag(node)}
+            onClick={() => onSelectNode(node)}
           >
             <div className="topology-panel__node-header">
               <span className="topology-panel__node-icon">{node.icon}</span>

@@ -929,31 +929,51 @@ export class Introspector {
       config: string | null;
       origin: "local" | "subtree";
       subtreeOwnerId: string | null;
-      node: Task;
+      node: Task | Hook;
     }> = [];
-    const addFrom = (arr: Array<Task>) => {
+    const addFrom = (
+      arr: Array<
+        | Task
+        | (Hook & {
+            middleware?: string[] | null;
+            middlewareDetailed?: Array<{
+              id: string;
+              config?: string | null;
+              origin?: "local" | "subtree" | null;
+              subtreeOwnerId?: string | null;
+            }> | null;
+          })
+      >
+    ) => {
       for (const tl of arr) {
-        if (this.idsContainLike(tl.middleware, middlewareId)) {
-          const usage = (tl.middlewareDetailed || []).find((m) =>
-            this.idsMatch(
-              this.resolveCanonicalId(
-                m.id,
-                this.middlewares.map((entry) => entry.id)
-              ),
-              middlewareId
-            )
-          );
-          result.push({
-            id: tl.id,
-            config: usage?.config ?? null,
-            origin: usage?.origin ?? "local",
-            subtreeOwnerId: usage?.subtreeOwnerId ?? null,
-            node: tl,
-          });
+        const middleware = "middleware" in tl ? tl.middleware ?? [] : [];
+        if (!this.idsContainLike(middleware, middlewareId)) {
+          continue;
         }
+
+        const detailed =
+          "middlewareDetailed" in tl ? tl.middlewareDetailed : [];
+        const usage = (detailed || []).find((m) =>
+          this.idsMatch(
+            this.resolveCanonicalId(
+              m.id,
+              this.middlewares.map((entry) => entry.id)
+            ),
+            middlewareId
+          )
+        );
+
+        result.push({
+          id: tl.id,
+          config: usage?.config ?? null,
+          origin: usage?.origin ?? "local",
+          subtreeOwnerId: usage?.subtreeOwnerId ?? null,
+          node: tl,
+        });
       }
     };
     addFrom(this.tasks);
+    addFrom(this.hooks as Array<Hook & { middleware?: string[] | null }>);
     return result;
   }
 

@@ -558,7 +558,12 @@ function buildEventLaneSummaryByEventId(
   const laneByEventId = new Map<string, NonNullable<Event["eventLane"]>>();
   const topologyLanesById = new Map<
     string,
-    { id: string; applyTo?: readonly unknown[] | ((event: unknown) => boolean) }
+    {
+      id: string;
+      applyTo?: readonly unknown[] | ((event: unknown) => boolean);
+      orderingKey: string | null;
+      metadata: string | null;
+    }
   >();
 
   for (const resourceEntry of store.resources.values()) {
@@ -577,12 +582,24 @@ function buildEventLaneSummaryByEventId(
     const topology = (resourceEntry as { config?: { topology?: unknown } })
       .config?.topology as
       | {
-          bindings?: Array<{ lane?: { id?: unknown; applyTo?: unknown } }>;
+          bindings?: Array<{
+            lane?: {
+              id?: unknown;
+              applyTo?: unknown;
+              orderingKey?: unknown;
+              metadata?: unknown;
+            };
+          }>;
           profiles?: Record<
             string,
             {
               consume?: Array<{
-                lane?: { id?: unknown; applyTo?: unknown };
+                lane?: {
+                  id?: unknown;
+                  applyTo?: unknown;
+                  orderingKey?: unknown;
+                  metadata?: unknown;
+                };
               }>;
             }
           >;
@@ -596,6 +613,11 @@ function buildEventLaneSummaryByEventId(
         topologyLanesById.set(laneId, {
           id: laneId,
           applyTo: normalizeEventLaneApplyTo(binding.lane.applyTo),
+          orderingKey:
+            typeof binding.lane.orderingKey === "string"
+              ? binding.lane.orderingKey
+              : null,
+          metadata: stringifyIfObject(binding.lane.metadata),
         });
       }
     }
@@ -609,6 +631,11 @@ function buildEventLaneSummaryByEventId(
           topologyLanesById.set(laneId, {
             id: laneId,
             applyTo: normalizeEventLaneApplyTo(entry.lane.applyTo),
+            orderingKey:
+              typeof entry.lane.orderingKey === "string"
+                ? entry.lane.orderingKey
+                : null,
+            metadata: stringifyIfObject(entry.lane.metadata),
           });
         }
       }
@@ -624,7 +651,11 @@ function buildEventLaneSummaryByEventId(
       for (const event of registeredEvents) {
         if (laneByEventId.has(event.id)) continue;
         if (!(lane.applyTo as (event: unknown) => boolean)(event)) continue;
-        laneByEventId.set(event.id, { laneId: lane.id });
+        laneByEventId.set(event.id, {
+          laneId: lane.id,
+          orderingKey: lane.orderingKey,
+          metadata: lane.metadata,
+        });
       }
       continue;
     }
@@ -642,7 +673,11 @@ function buildEventLaneSummaryByEventId(
 
       const event = store.events.get(targetId)?.event;
       if (!event || laneByEventId.has(event.id)) continue;
-      laneByEventId.set(event.id, { laneId: lane.id });
+      laneByEventId.set(event.id, {
+        laneId: lane.id,
+        orderingKey: lane.orderingKey,
+        metadata: lane.metadata,
+      });
     }
   }
 

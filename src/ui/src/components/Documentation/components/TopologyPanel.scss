@@ -1223,7 +1223,7 @@
     color: var(--docs-text-primary);
     font-family: $font-family-mono;
     font-size: $font-size-xs;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 }
 

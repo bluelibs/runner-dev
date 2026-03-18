@@ -104,7 +104,7 @@ describe("/docs/data durable enrichment", () => {
     }
   });
 
-  test("returns docsContent from installed Runner docs and degrades when a doc is missing", async () => {
+  test("fails when a required Runner guide is missing", async () => {
     const { app } = createDurableDocsFixtureApp();
     const runtime = await run(app);
     let readFirstAvailablePackageDocSpy: jest.SpyInstance | null = null;
@@ -126,26 +126,17 @@ describe("/docs/data durable enrichment", () => {
         .mockImplementation(async (packageName, docPaths) => {
           if (
             packageName === "@bluelibs/runner" &&
-            docPaths[0] === "readmes/FULL_GUIDE.md"
+            docPaths.includes("readmes/FULL_GUIDE.md")
           ) {
-            return {
-              packageName,
-              filePath:
-                "/mocked/node_modules/@bluelibs/runner/readmes/FULL_GUIDE.md",
-              content: "",
-            };
+            throw new Error("missing full guide");
           }
 
           return originalReadFirstAvailablePackageDoc(packageName, docPaths);
         });
 
       const { req, res, payloadRef } = createMockReqRes();
-      await handler(req, res);
-
-      expect(payloadRef.value?.docsContent?.minimalMd).toContain(
-        "BlueLibs Runner: Compact Guide"
-      );
-      expect(payloadRef.value?.docsContent?.completeMd).toBe("");
+      await expect(handler(req, res)).rejects.toThrow("missing full guide");
+      expect(payloadRef.value).toBeNull();
     } finally {
       readFirstAvailablePackageDocSpy?.mockRestore();
       await runtime.dispose();

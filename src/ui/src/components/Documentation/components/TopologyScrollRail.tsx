@@ -10,6 +10,7 @@ export interface TopologyScrollRailProps {
   positionY: number;
   thumbRatioY: number;
   isEnabled: boolean;
+  controlsId: string;
   onPositionChange: (positionY: number) => void;
 }
 
@@ -21,6 +22,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
   positionY,
   thumbRatioY,
   isEnabled,
+  controlsId,
   onPositionChange,
 }) => {
   const railRef = React.useRef<HTMLDivElement>(null);
@@ -161,7 +163,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
         .join(" ")}
       role="scrollbar"
       aria-label="Topology vertical navigator"
-      aria-controls="topology-canvas-stage"
+      aria-controls={controlsId}
       aria-orientation="vertical"
       aria-valuemin={0}
       aria-valuemax={100}

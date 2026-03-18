@@ -4,6 +4,7 @@ import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   buildTopologyHash,
   buildTopologyProjection,
+  collectSearchTopologyVisibleIds,
   parseTopologyHash,
 } from "./topologyGraph";
 
@@ -269,5 +270,38 @@ describe("topologyGraph", () => {
           edge.id === "event.play.logged::listened-to-by::hook.play.logged"
       )?.isCrossLink
     ).toBe(true);
+  });
+
+  it("keeps ancestor chains visible when filtering for a deeper match", () => {
+    const introspector = createIntrospector();
+    const baseGraph = buildTopologyProjection(introspector, {
+      focusId: "resource.root",
+      focusKind: "resource",
+      view: "mindmap",
+      radius: 3,
+    });
+    const visibleIds = collectSearchTopologyVisibleIds(
+      baseGraph.nodes,
+      "resource.root",
+      new Set(["resource.root", "event.shipped"])
+    );
+
+    expect([...visibleIds].sort()).toEqual([
+      "event.shipped",
+      "resource.root",
+      "task.build",
+    ]);
+
+    const filteredGraph = buildTopologyProjection(introspector, {
+      focusId: "resource.root",
+      focusKind: "resource",
+      view: "mindmap",
+      radius: 3,
+      visibleIds,
+    });
+
+    expect(filteredGraph.nodes.map((node) => node.id)).toEqual(
+      expect.arrayContaining(["resource.root", "task.build", "event.shipped"])
+    );
   });
 });

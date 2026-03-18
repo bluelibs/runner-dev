@@ -1,0 +1,26 @@
+@use "../../../../styles/variables" as *;
+
+.registered-by-info__link {
+  color: var(--docs-text-primary);
+  text-decoration: none;
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+  border-bottom: 1px dotted var(--docs-border-hover);
+  transition: color 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    color: var(--docs-link-color);
+    border-bottom-color: var(--docs-link-color);
+  }
+}
+
+.registered-by-info__fallback {
+  color: var(--docs-text-secondary);
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+  font-style: italic;
+}
+
+.registered-by-info__value--fallback {
+  white-space: normal;
+}

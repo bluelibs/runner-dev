@@ -30,4 +30,26 @@ describe("topologyPanelState", () => {
       isNavigatorOpen: false,
     });
   });
+
+  it("rejects malformed focus payloads", () => {
+    localStorage.setItem(
+      TOPOLOGY_PANEL_STORAGE_KEY,
+      JSON.stringify({
+        focus: { kind: "resource", id: 123 },
+        view: "blast",
+      })
+    );
+
+    expect(readStoredTopologyPanelState()).toBeNull();
+
+    localStorage.setItem(
+      TOPOLOGY_PANEL_STORAGE_KEY,
+      JSON.stringify({
+        focus: { kind: "not-a-real-kind", id: "resource.root" },
+        view: "blast",
+      })
+    );
+
+    expect(readStoredTopologyPanelState()).toBeNull();
+  });
 });

@@ -82,4 +82,34 @@ describe("ResourceSubtreeSection", () => {
     expect(screen.getByText(/identity=user/)).toBeTruthy();
     expect(screen.getByText(/^user, optional$/)).toBeTruthy();
   });
+
+  it("falls back to none when an identity gate has no visible parts", () => {
+    render(
+      React.createElement(ResourceSubtreeSection, {
+        subtree: {
+          tasks: {
+            middleware: [],
+            validatorCount: 0,
+            identity: [{ tenant: false, user: false, roles: [] }],
+          },
+          middleware: {
+            identityScope: {
+              tenant: false,
+              user: false,
+              required: false,
+            },
+          },
+          resources: null,
+          hooks: null,
+          taskMiddleware: null,
+          resourceMiddleware: null,
+          events: null,
+          tags: null,
+        },
+      })
+    );
+
+    expect(screen.getByText(/identity=none/)).toBeTruthy();
+    expect(screen.getByText(/^optional$/)).toBeTruthy();
+  });
 });

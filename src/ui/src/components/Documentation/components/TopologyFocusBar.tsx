@@ -35,9 +35,11 @@ export const TopologyFocusBar: React.FC<TopologyFocusBarProps> = ({
         <span className="topology-panel__focus-chip topology-panel__focus-chip--calm">
           {view === "mindmap" ? "Mindmap" : "Blast radius"}
         </span>
-        <span className="topology-panel__focus-chip">
-          {selectedNode.pills[0] ?? "neutral"}
-        </span>
+        {selectedNode.pills.length > 0 ? (
+          <span className="topology-panel__focus-chip">
+            {selectedNode.pills[0]}
+          </span>
+        ) : null}
       </div>
     </div>
   );

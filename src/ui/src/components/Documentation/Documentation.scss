@@ -732,8 +732,14 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.docs-switch-input:focus + .docs-switch-track {
-  outline: none;
+.docs-switch-input:focus-visible + .docs-switch-track,
+.docs-switch:focus-within .docs-switch-track {
+  outline: 2px solid rgba(var(--primary-rgb), 0.95);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px var(--docs-bg-primary),
+    0 0 0 4px rgba(var(--primary-rgb), 0.45),
+    inset 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .docs-switch-input:checked + .docs-switch-track {

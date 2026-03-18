@@ -7,6 +7,7 @@ import {
   type TopologyFocus,
   type TopologyViewMode,
 } from "../utils/topologyGraph.state";
+import type { TopologyFocusKind } from "../utils/topologyGraph";
 import type { Introspector } from "../../../../../resources/models/Introspector";
 export { MAX_TOPOLOGY_RADIUS } from "../utils/topologyGraph.state";
 
@@ -73,12 +74,23 @@ export function readStoredTopologyPanelState(): TopologyPanelState | null {
     if (typeof window === "undefined") return null;
     const raw = localStorage.getItem(TOPOLOGY_PANEL_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<TopologyPanelState>;
-    if (!parsed.focus?.id || !parsed.focus?.kind) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || !isRecord(parsed.focus)) return null;
+
+    const focusId = parsed.focus.id;
+    const focusKind = parsed.focus.kind;
+    if (typeof focusId !== "string" || !isTopologyFocusKind(focusKind)) {
+      return null;
+    }
+
     return {
-      focus: parsed.focus,
+      focus: { id: focusId, kind: focusKind },
       view: parsed.view === "mindmap" ? "mindmap" : "blast",
-      radius: normalizeTopologyRadius(parsed.radius ?? DEFAULT_TOPOLOGY_RADIUS),
+      radius: normalizeTopologyRadius(
+        typeof parsed.radius === "number"
+          ? parsed.radius
+          : DEFAULT_TOPOLOGY_RADIUS
+      ),
       autoOrder:
         typeof parsed.autoOrder === "boolean"
           ? parsed.autoOrder
@@ -90,6 +102,26 @@ export function readStoredTopologyPanelState(): TopologyPanelState | null {
     };
   } catch {
     return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isTopologyFocusKind(value: unknown): value is TopologyFocusKind {
+  switch (value) {
+    case "task":
+    case "resource":
+    case "hook":
+    case "event":
+    case "middleware":
+    case "error":
+    case "asyncContext":
+    case "tag":
+      return true;
+    default:
+      return false;
   }
 }
 

@@ -21,7 +21,7 @@ npm install -g @bluelibs/runner-dev
 npx @bluelibs/runner-dev
 ```
 
-For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
+For local `AGENTS.md`-style workflows, this repo extracts Runner skills from `@bluelibs/runner` into `.agents/skills` during `prepare`. The hook keeps `skills:extract` as the real command and skips it cleanly when npm installs with `--omit=dev`.
 Runner-Dev also publishes its own skill from `skills/runner-dev`; keep `README.md`, `skills/runner-dev/SKILL.md`, and `skills/runner-dev/references/COMPACT_GUIDE.md` aligned when those docs change. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
 
 ```ts
@@ -156,7 +156,7 @@ Add it as an Model Context Protocol Server (for AIs) via normal socket:
       "args": ["@bluelibs/runner-dev", "mcp"],
       "env": {
         "ENDPOINT": "http://localhost:1337/graphql",
-        "ALLOW_MUTATIONS": "true"
+        "ALLOW_MUTATIONS": "false"
       }
     }
   }
@@ -177,7 +177,7 @@ ENDPOINT=http://localhost:1337/graphql npx -y @bluelibs/runner-dev mcp
 
 Optional environment variables:
 
-- `ALLOW_MUTATIONS=true` to enable `graphql.mutation`
+- `ALLOW_MUTATIONS=true` to opt into `graphql.mutation`
 - `HEADERS='{"Authorization":"Bearer token"}'` to pass extra headers
 
 Available tools once connected:

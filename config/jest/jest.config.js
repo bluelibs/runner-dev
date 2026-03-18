@@ -46,6 +46,7 @@ module.exports = {
       testEnvironment: "jsdom",
       testMatch: [
         "<rootDir>/src/ui/src/components/Documentation/components/chat/**/*.test.ts",
+        "<rootDir>/src/ui/src/components/Documentation/components/ElementTable.test.tsx",
       ],
       // setupFiles: [path.join(rootDir, "config/jest/symbolMetadata.setup.js")],
       transform: {

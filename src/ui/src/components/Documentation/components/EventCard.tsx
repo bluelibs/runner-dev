@@ -14,6 +14,7 @@ import ExecuteModal from "./ExecuteModal";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 
 export interface EventCardProps {
   event: Event;
@@ -209,16 +210,10 @@ export const EventCard: React.FC<EventCardProps> = ({
             )}
           </InfoBlock>
 
-          {event.registeredBy && (
-            <InfoBlock prefix="event-card" label="Registered By:">
-              <a
-                href={`#element-${event.registeredBy}`}
-                className="event-card__registrar-link"
-              >
-                {event.registeredBy}
-              </a>
-            </InfoBlock>
-          )}
+          <RegisteredByInfoBlock
+            prefix="event-card"
+            registeredBy={event.registeredBy}
+          />
 
           <InfoBlock
             prefix="event-card"

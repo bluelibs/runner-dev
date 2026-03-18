@@ -106,7 +106,7 @@ function matchTopologyNode(
   query: string
 ): TopologyNodeMatch {
   if (!query) {
-    return { isMatch: true, isExact: false, rank: 0 };
+    return { isMatch: false, isExact: false, rank: 0 };
   }
 
   const haystack = [

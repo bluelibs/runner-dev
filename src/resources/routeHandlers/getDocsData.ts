@@ -35,7 +35,7 @@ export interface DocsRouteConfig {
   };
 }
 
-async function readDocsContent(): Promise<DocsContentPayload | undefined> {
+async function readDocsContent(): Promise<DocsContentPayload> {
   const [minimalDoc, completeDoc] = await Promise.all([
     readFirstAvailablePackageDoc("@bluelibs/runner", [
       ...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS,
@@ -45,19 +45,35 @@ async function readDocsContent(): Promise<DocsContentPayload | undefined> {
     ]),
   ]);
   const minimalMd = minimalDoc.content;
-  const completeMd =
-    completeDoc.content && completeDoc.content !== minimalMd
-      ? completeDoc.content
-      : "";
-
-  if (!minimalMd && !completeMd) {
-    return undefined;
-  }
+  const completeMd = completeDoc.content;
 
   return {
     minimalMd,
     completeMd,
   };
+}
+
+async function readRunnerDevCompactGuide(): Promise<string> {
+  const packageDoc = await readPackageDoc(
+    "@bluelibs/runner-dev",
+    "skills/runner-dev/references/COMPACT_GUIDE.md"
+  );
+  if (packageDoc.content) {
+    return packageDoc.content;
+  }
+
+  const localFallbackPath = path.resolve(
+    __dirname,
+    "../../../skills/runner-dev/references/COMPACT_GUIDE.md"
+  );
+  const localFallback = await fs.readFile(localFallbackPath, "utf8");
+  if (!localFallback) {
+    throw new Error(
+      `Runner-Dev compact guide is empty at ${localFallbackPath}.`
+    );
+  }
+
+  return localFallback;
 }
 
 // Serve JSON data for docs UI to fetch client-side
@@ -129,39 +145,9 @@ export function createDocsDataRouteHandler(config: DocsRouteConfig) {
       }
     }
 
-    // Try to read framework docs from the installed Runner skill first.
-    const runnerFrameworkDoc = await readFirstAvailablePackageDoc(
-      "@bluelibs/runner",
-      [...RUNNER_FRAMEWORK_COMPACT_DOC_PATHS]
-    ).catch(() => ({ content: "" } as any));
-    const runnerFrameworkMd = runnerFrameworkDoc.content || "";
-
-    // Runner-Dev compact guide (when this package is a dependency)
-    const runnerDevDoc = await readPackageDoc(
-      "@bluelibs/runner-dev",
-      "skills/runner-dev/references/COMPACT_GUIDE.md"
-    ).catch(() => ({ content: "" } as any));
-    let runnerDevCompactMd = runnerDevDoc.content || "";
-
-    // Fallback to package-relative compact guide (when developing this repo)
-    if (!runnerDevCompactMd) {
-      try {
-        const fallback = await fs.readFile(
-          path.resolve(
-            __dirname,
-            "../../../skills/runner-dev/references/COMPACT_GUIDE.md"
-          ),
-          "utf8"
-        );
-        runnerDevCompactMd = fallback || runnerDevCompactMd;
-      } catch {
-        /* best-effort fallback */
-      }
-    }
-
-    // Expose framework and dev docs separately
-    const runnerDevMd = runnerDevCompactMd || "";
     const docsContent = await readDocsContent();
+    const runnerFrameworkMd = docsContent.minimalMd;
+    const runnerDevMd = await readRunnerDevCompactGuide();
 
     // Obtain GraphQL SDL if available
     let graphqlSdl: string | undefined;

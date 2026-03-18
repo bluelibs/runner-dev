@@ -13,6 +13,7 @@ import SchemaRenderer from "./SchemaRenderer";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 
 export interface MiddlewareCardProps {
   middleware: Middleware;
@@ -119,16 +120,10 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             )}
           </InfoBlock>
 
-          {middleware.registeredBy && (
-            <InfoBlock prefix="middleware-card" label="Registered By:">
-              <a
-                href={`#element-${middleware.registeredBy}`}
-                className="middleware-card__registrar-link"
-              >
-                {middleware.registeredBy}
-              </a>
-            </InfoBlock>
-          )}
+          <RegisteredByInfoBlock
+            prefix="middleware-card"
+            registeredBy={middleware.registeredBy}
+          />
 
           <InfoBlock prefix="middleware-card" label={`Used by ${usageLabel}:`}>
             {usages.length}

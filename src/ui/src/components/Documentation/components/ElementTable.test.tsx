@@ -5,8 +5,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { ElementTable, type BaseElement } from "./ElementTable";
 
 jest.mock("../utils/markdownUtils", () => ({
-  MarkdownRenderer: ({ content }: { content: string }) =>
-    React.createElement("div", null, content),
+  MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
 }));
 jest.mock("./ElementTable.scss", () => ({}));
 
@@ -50,11 +49,11 @@ describe("ElementTable", () => {
 
   it("defaults to the original neutral up-down indicator and source order", () => {
     const { container } = render(
-      React.createElement(ElementTable, {
-        elements,
-        resources,
-        title: "Tasks Overview",
-      })
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
     );
 
     expect(getRenderedIds(container)).toEqual([
@@ -71,11 +70,11 @@ describe("ElementTable", () => {
 
   it("cycles id sorting through asc, desc, and back to neutral", () => {
     const { container } = render(
-      React.createElement(ElementTable, {
-        elements,
-        resources,
-        title: "Tasks Overview",
-      })
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
     );
 
     fireEvent.click(screen.getByRole("button", { name: /^id$/i }));
@@ -108,12 +107,18 @@ describe("ElementTable", () => {
 
   it("sorts by visibility when clicking the visibility column", () => {
     const { container } = render(
-      React.createElement(ElementTable, {
-        elements,
-        resources,
-        title: "Tasks Overview",
-      })
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
     );
+
+    expect(
+      screen
+        .getByRole("columnheader", { name: /visibility/i })
+        .getAttribute("aria-sort")
+    ).toBe("none");
 
     fireEvent.click(screen.getByRole("button", { name: /visibility/i }));
 
@@ -145,11 +150,11 @@ describe("ElementTable", () => {
 
   it("renders visibility as badge labels", () => {
     render(
-      React.createElement(ElementTable, {
-        elements,
-        resources,
-        title: "Tasks Overview",
-      })
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
     );
 
     expect(screen.getAllByText("Private")).toHaveLength(2);
@@ -158,11 +163,11 @@ describe("ElementTable", () => {
 
   it("keeps canonical ids in links and hover titles while rendering display ids", () => {
     render(
-      React.createElement(ElementTable, {
-        elements,
-        resources,
-        title: "Tasks Overview",
-      })
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
     );
 
     const firstLink = screen.getByRole("link", {
@@ -179,11 +184,11 @@ describe("ElementTable", () => {
 
   it("expands hidden ancestry when clicking the ellipsis control", () => {
     const { container } = render(
-      React.createElement(ElementTable, {
-        elements,
-        resources,
-        title: "Tasks Overview",
-      })
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
     );
 
     fireEvent.click(
@@ -195,7 +200,20 @@ describe("ElementTable", () => {
     expect(getRenderedIds(container)).toEqual([
       "enhanced-app > z-last",
       "...>features > alphaTen",
-      "enhanced-app > features > deep > alphaTwo",
+      "−enhanced-app > features > deep > alphaTwo",
+      "...>catalog > catalogOnEnabled",
+    ]);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /collapse full id for enhanced-app\.features\.hooks\.alphaTwo/i,
+      })
+    );
+
+    expect(getRenderedIds(container)).toEqual([
+      "enhanced-app > z-last",
+      "...>features > alphaTen",
+      "...>deep > alphaTwo",
       "...>catalog > catalogOnEnabled",
     ]);
   });

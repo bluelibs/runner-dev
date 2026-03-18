@@ -68,8 +68,18 @@
       --nav-folder-accent: #34d399;
     }
 
+    &--folder-error {
+      --nav-folder-accent-rgb: 239, 68, 68;
+      --nav-folder-accent: #ef4444;
+    }
+
+    &--folder-async-context {
+      --nav-folder-accent-rgb: 6, 182, 212;
+      --nav-folder-accent: #06b6d4;
+    }
+
     &--folder-task {
-      --nav-folder-accent-rgb: 59, 130, 246;
+      --nav-folder-accent-rgb: 96, 165, 250;
       --nav-folder-accent: #60a5fa;
     }
 
@@ -84,7 +94,7 @@
     }
 
     &--folder-middleware {
-      --nav-folder-accent-rgb: 168, 85, 247;
+      --nav-folder-accent-rgb: 192, 132, 252;
       --nav-folder-accent: #c084fc;
     }
 

@@ -424,7 +424,10 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                   />
                 </div>
               </th>
-              <th className="element-table__header element-table__header--visibility">
+              <th
+                className="element-table__header element-table__header--visibility"
+                aria-sort={getAriaSort("visibility")}
+              >
                 <div className="element-table__header-content">
                   <button
                     className="element-table__sort-btn"
@@ -466,7 +469,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                           isIdExpanded ? "element-table__id-code--expanded" : ""
                         }`}
                       >
-                        {displayId.hasHiddenAncestors && !isIdExpanded && (
+                        {displayId.hasHiddenAncestors && (
                           <>
                             <button
                               type="button"
@@ -476,14 +479,24 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                                 event.stopPropagation();
                                 toggleIdExpanded(element.id);
                               }}
-                              aria-label={`Expand full ID for ${element.id}`}
-                              title={`Expand full ID for ${element.id}`}
+                              aria-label={
+                                isIdExpanded
+                                  ? `Collapse full ID for ${element.id}`
+                                  : `Expand full ID for ${element.id}`
+                              }
+                              title={
+                                isIdExpanded
+                                  ? `Collapse full ID for ${element.id}`
+                                  : `Expand full ID for ${element.id}`
+                              }
                             >
-                              ...
+                              {isIdExpanded ? "−" : "..."}
                             </button>
-                            <span className="element-table__id-separator">
-                              &gt;
-                            </span>
+                            {!isIdExpanded && (
+                              <span className="element-table__id-separator">
+                                &gt;
+                              </span>
+                            )}
                           </>
                         )}
                         <a

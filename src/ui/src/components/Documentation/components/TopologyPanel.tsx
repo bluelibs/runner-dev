@@ -10,6 +10,7 @@ import {
 import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   buildTopologyProjection,
+  collectSearchTopologyVisibleIds,
   type TopologyGraphNode,
   type TopologyViewMode,
 } from "../utils/topologyGraph";
@@ -123,10 +124,10 @@ export const TopologyPanel: React.FC<TopologyPanelProps> = ({
     );
     if (!matchingIds) return visibleIds;
 
-    return new Set(
-      [...visibleIds].filter(
-        (id) => matchingIds.has(id) || id === state.focus.id
-      )
+    return collectSearchTopologyVisibleIds(
+      baseGraph.nodes,
+      state.focus.id,
+      matchingIds
     );
   }, [baseGraph.nodes, navigatorQuery, state.focus.id, visibleIds]);
 

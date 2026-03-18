@@ -21,7 +21,7 @@ function formatTaskIdentityGate(
   if (gate.roles.length > 0) {
     parts.push(`roles=${gate.roles.join(" | ")}`);
   }
-  return parts.join(", ");
+  return parts.length > 0 ? parts.join(", ") : "none";
 }
 
 function formatIdentityScope(
@@ -37,7 +37,7 @@ function formatIdentityScope(
     parts.push("user");
   }
   parts.push(identityScope.required ? "required" : "optional");
-  return parts.join(", ");
+  return parts.length > 0 ? parts.join(", ") : "none";
 }
 
 export const ResourceSubtreeSection: React.FC<ResourceSubtreeSectionProps> = ({

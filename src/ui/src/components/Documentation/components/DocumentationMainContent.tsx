@@ -641,7 +641,9 @@ export const DocumentationMainContent: React.FC<
         )}
         {activeSection === "hooks" && hooks.length > 0 && (
           <section className="docs-section">
-            <h2>{getDocumentationIcon("hooks")} Hooks ({hooks.length})</h2>
+            <h2>
+              {getDocumentationIcon("hooks")} Hooks ({hooks.length})
+            </h2>
             <div className="docs-component-grid">
               {hooks.map((hook) => (
                 <HookCard
@@ -745,7 +747,9 @@ export const DocumentationMainContent: React.FC<
         )}
         {activeSection === "tags" && tags.length > 0 && (
           <section className="docs-section">
-            <h2>{getDocumentationIcon("tags")} Tags ({tags.length})</h2>
+            <h2>
+              {getDocumentationIcon("tags")} Tags ({tags.length})
+            </h2>
             <div className="docs-tags-grid">
               {tags.map((tag) => (
                 <TagCard key={tag.id} tag={tag} introspector={introspector} />

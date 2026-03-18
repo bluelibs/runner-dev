@@ -179,9 +179,7 @@ function resolveTaskSubtreeMiddlewareEntry(
       when?: (definition: definitions.ITask) => boolean;
     };
 
-    if (
-      typeof conditionalEntry.when === "function"
-    ) {
+    if (typeof conditionalEntry.when === "function") {
       try {
         if (!conditionalEntry.when(task)) {
           return null;

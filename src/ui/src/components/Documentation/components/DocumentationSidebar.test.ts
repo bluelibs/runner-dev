@@ -83,9 +83,9 @@ describe("DocumentationSidebar visibility toggles", () => {
       })
     );
 
-    const systemToggle = screen.getByLabelText("SYSTEM");
-    const runnerToggle = screen.getByLabelText("RUNNER");
-    const privateToggle = screen.getByLabelText("PRIVATE");
+    const systemToggle = screen.getByRole("checkbox", { name: "SYSTEM" });
+    const runnerToggle = screen.getByRole("checkbox", { name: "RUNNER" });
+    const privateToggle = screen.getByRole("checkbox", { name: "PRIVATE" });
 
     fireEvent.click(systemToggle);
     fireEvent.click(runnerToggle);

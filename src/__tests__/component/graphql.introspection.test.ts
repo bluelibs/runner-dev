@@ -15,10 +15,7 @@ import {
   logMwTask,
   tagMw,
 } from "../dummy/dummyApp";
-import {
-  createEnhancedSuperApp,
-  enhancedSuperAppIds,
-} from "../dummy/enhanced";
+import { createEnhancedSuperApp, enhancedSuperAppIds } from "../dummy/enhanced";
 import { introspector } from "../../resources/introspector.resource";
 import { graphql } from "graphql";
 import { Introspector } from "../../resources/models/Introspector";
@@ -369,9 +366,8 @@ describe("GraphQL schema (integration)", () => {
     runtime = await run(createEnhancedSuperApp([introspector, probe]));
 
     try {
-      const isolationBoundaryId = enhancedSuperAppIds.catalog.resource(
-        "isolation-boundary"
-      );
+      const isolationBoundaryId =
+        enhancedSuperAppIds.catalog.resource("isolation-boundary");
       const publicCatalogId = `${isolationBoundaryId}.public-catalog`;
       const catalogSearchTaskId = `${isolationBoundaryId}.tasks.catalog-search`;
 

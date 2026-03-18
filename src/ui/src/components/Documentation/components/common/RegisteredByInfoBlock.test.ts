@@ -83,7 +83,9 @@ describe("RegisteredByInfoBlock", () => {
       })
     );
 
-    expect(screen.queryByRole("link", { name: /Application Shell|app/ })).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: /Application Shell|app/ })
+    ).toBeNull();
     expect(screen.getByText("Root-level registration")).toBeTruthy();
   });
 

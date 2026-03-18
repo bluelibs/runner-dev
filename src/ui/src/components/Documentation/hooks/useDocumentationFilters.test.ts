@@ -355,7 +355,9 @@ describe("useDocumentationFilters", () => {
       result.current.setLocalNamespaceSearch("task|resource");
     });
 
-    expect(result.current.tasks.map((item) => item.id)).toEqual(["app.cleanup"]);
+    expect(result.current.tasks.map((item) => item.id)).toEqual([
+      "app.cleanup",
+    ]);
     expect(result.current.resources.map((item) => item.id)).toEqual([
       "app.cache",
     ]);

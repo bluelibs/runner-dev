@@ -21,7 +21,7 @@ npm install -g @bluelibs/runner-dev
 npx @bluelibs/runner-dev
 ```
 
-For local `AGENTS.md`-style workflows, this repo extracts Runner skills from `@bluelibs/runner` into `.agents/skills` during `prepare`. The hook keeps `skills:extract` as the real command and skips it cleanly when npm installs with `--omit=dev`.
+For local `AGENTS.md`-style workflows, this repo extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`. The hook keeps `skills:extract` as the real command, and `--skip-production` keeps production installs clean.
 Runner-Dev also publishes its own skill from `skills/runner-dev`; keep `README.md`, `skills/runner-dev/SKILL.md`, and `skills/runner-dev/references/COMPACT_GUIDE.md` aligned when those docs change. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
 
 ```ts

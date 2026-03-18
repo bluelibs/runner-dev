@@ -179,11 +179,10 @@ describe("CLI init", () => {
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
     expect(pkg.scripts?.["skills:extract"]).toBe(
-      "npm-skills extract --override"
+      "npm-skills extract --skip-production --override"
     );
-    expect(pkg.scripts?.prepare).toBe(
-      "node -e \"process.exit((process.env.npm_config_omit||'').split(',').includes('dev') ? 0 : 1)\" || npm run skills:extract"
-    );
+    expect(pkg.scripts?.postinstall).toBe("npm run skills:extract");
+    expect(pkg.scripts?.prepare).toBeUndefined();
     expect(pkg.npmSkills).toBeUndefined();
 
     // Verify src directory exists with main.ts using runner-dev scaffold
@@ -266,10 +265,12 @@ describe("CLI init", () => {
     expect(pkg.name).toBe(projectName);
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
-    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.2.0");
-    expect(pkg.scripts?.prepare).toBe(
-      "node -e \"process.exit((process.env.npm_config_omit||'').split(',').includes('dev') ? 0 : 1)\" || npm run skills:extract"
+    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
+    expect(pkg.scripts?.["skills:extract"]).toBe(
+      "npm-skills extract --skip-production --override"
     );
+    expect(pkg.scripts?.postinstall).toBe("npm run skills:extract");
+    expect(pkg.scripts?.prepare).toBeUndefined();
   });
 
   test("scaffolds project and simulates --install and --run-tests", async () => {
@@ -317,9 +318,11 @@ describe("CLI init", () => {
     expect(pkg.name).toBe(projectName);
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
-    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.2.0");
-    expect(pkg.scripts?.prepare).toBe(
-      "node -e \"process.exit((process.env.npm_config_omit||'').split(',').includes('dev') ? 0 : 1)\" || npm run skills:extract"
+    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
+    expect(pkg.scripts?.["skills:extract"]).toBe(
+      "npm-skills extract --skip-production --override"
     );
+    expect(pkg.scripts?.postinstall).toBe("npm run skills:extract");
+    expect(pkg.scripts?.prepare).toBeUndefined();
   });
 });

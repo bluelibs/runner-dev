@@ -126,7 +126,9 @@ describe("/docs/data durable enrichment", () => {
         .mockImplementation(async (packageName, docPaths) => {
           if (
             packageName === "@bluelibs/runner" &&
-            docPaths.includes(packageDocs.RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS[0])
+            docPaths.includes(
+              packageDocs.RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS[0]
+            )
           ) {
             throw new Error("missing full guide");
           }

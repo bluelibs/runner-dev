@@ -1,8 +1,5 @@
 import { run } from "@bluelibs/runner";
-import {
-  createEnhancedSuperApp,
-  enhancedSuperAppIds,
-} from "../dummy/enhanced";
+import { createEnhancedSuperApp, enhancedSuperAppIds } from "../dummy/enhanced";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
 
@@ -14,9 +11,8 @@ describe("Registered By introspection", () => {
       const introspector = new Introspector({ store: runtime.store });
       initializeFromStore(introspector, runtime.store);
 
-      const isolationBoundaryId = enhancedSuperAppIds.catalog.resource(
-        "isolation-boundary"
-      );
+      const isolationBoundaryId =
+        enhancedSuperAppIds.catalog.resource("isolation-boundary");
       const publicCatalogId = `${isolationBoundaryId}.public-catalog`;
       const catalogSearchTaskId = `${isolationBoundaryId}.tasks.catalog-search`;
 

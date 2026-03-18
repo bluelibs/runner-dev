@@ -94,7 +94,10 @@ export const useDocumentationFilters = (
     const resources = applyFilters(introspector.getResources(), "resource");
     const events = applyFilters(introspector.getEvents(), "event");
     const hooks = applyFilters(introspector.getHooks(), "hook");
-    const middlewares = applyFilters(introspector.getMiddlewares(), "middleware");
+    const middlewares = applyFilters(
+      introspector.getMiddlewares(),
+      "middleware"
+    );
     const errors = applyFilters(introspector.getErrors(), "error");
     const asyncContexts = applyFilters(
       introspector.getAsyncContexts(),

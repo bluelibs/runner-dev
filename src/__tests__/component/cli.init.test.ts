@@ -196,6 +196,12 @@ describe("CLI init", () => {
     expect(mainTs).toContain(".build();");
     expect(mainTs).toContain("run(app)");
 
+    const gitignore = await fs.readFile(
+      path.join(projectDir, ".gitignore"),
+      "utf-8"
+    );
+    expect(gitignore).toBe("node_modules\n.env\ndist\n.agents/skills\n\n");
+
     // No manual install/test here; flags trigger those actions within the CLI
   });
 

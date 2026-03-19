@@ -38,7 +38,7 @@ export async function writeFile(
 }
 
 export async function writeGitignore(targetDir: string): Promise<void> {
-  const content = `node_modules\n.dist\ndist\n.env\n\n`;
+  const content = `node_modules\n.env\ndist\n.agents/skills\n\n`;
   await writeFile(path.join(targetDir, ".gitignore"), content);
 }
 

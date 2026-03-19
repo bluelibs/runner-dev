@@ -128,13 +128,13 @@ export interface MiddlewareUsage {
 }
 
 export interface IdentityRequirementSummary {
-  tenant: true;
+  tenant: boolean;
   user: boolean;
   roles: string[];
 }
 
 export interface IdentityScopeSummary {
-  tenant: true;
+  tenant: boolean;
   user: boolean;
   required: boolean;
 }

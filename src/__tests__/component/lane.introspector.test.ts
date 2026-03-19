@@ -159,6 +159,59 @@ describe("Lane Introspection", () => {
     }
   });
 
+  test("merges event lane bindings with profile consumers that only reference the lane id", async () => {
+    const appId = "test-app-lanes-merge";
+    const mergeEvent = r
+      .event("test-lanes-events-mergeProjectionUpdated")
+      .build();
+    const mergeLaneId = "test-lanes-event-merge-updates";
+    const mergeLaneDefinition = {
+      ...r.eventLane(mergeLaneId).applyTo([mergeEvent]).build(),
+      orderingKey: "tenantId",
+      metadata: { source: "binding" },
+    };
+    const mergeConfig: EventLanesResourceConfig = {
+      mode: "network",
+      profile: "catalog-events",
+      topology: {
+        bindings: [
+          {
+            lane: mergeLaneDefinition,
+            queue: eventLaneQueue,
+          },
+        ],
+        profiles: {
+          "catalog-events": {
+            consume: [{ lane: { id: mergeLaneId } }],
+          },
+        },
+      },
+    };
+
+    const app = r
+      .resource(appId)
+      .register([mergeEvent, eventLanesResource.with(mergeConfig)])
+      .build();
+
+    const runtime = await run(app, { debug: {} });
+    try {
+      const introspector = new Introspector({ store: runtime.store });
+      initializeFromStore(introspector, runtime.store);
+
+      const mergeEventNode = introspector.getEvent(
+        canonicalEventId(appId, mergeEvent.id)
+      );
+
+      expect(mergeEventNode?.eventLane).toEqual({
+        laneId: mergeLaneId,
+        orderingKey: "tenantId",
+        metadata: JSON.stringify({ source: "binding" }),
+      });
+    } finally {
+      await runtime.dispose();
+    }
+  });
+
   test("returns rpc lanes resources and rpc lane members by lane id", async () => {
     const appId = "test-app-lanes-2";
     const app = r

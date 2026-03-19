@@ -17,8 +17,16 @@ import {
 } from "../dummy/dummyApp";
 import { createEnhancedSuperApp, enhancedSuperAppIds } from "../dummy/enhanced";
 import { introspector } from "../../resources/introspector.resource";
-import { graphql } from "graphql";
+import {
+  graphql,
+  GraphQLObjectType,
+  GraphQLSchema,
+  GraphQLNonNull,
+} from "graphql";
 import { Introspector } from "../../resources/models/Introspector";
+import { MiddlewareTaskUsageType } from "../../schema/types/middleware/UsageTypes";
+import { HookType } from "../../schema/types/HookType";
+import { elementKindSymbol } from "../../schema/model";
 
 const visibilityAppIds = {
   resource(localId: string) {
@@ -344,6 +352,65 @@ describe("GraphQL schema (integration)", () => {
     expect(data.interceptorOwners).toBeDefined();
     expect(Array.isArray(data.interceptorOwners.tasksById)).toBe(true);
     expect(data.interceptorOwners.middleware).toBeDefined();
+  });
+
+  test("task middleware detailed usages can resolve hook nodes through GraphQL", async () => {
+    const usageSchema = new GraphQLSchema({
+      query: new GraphQLObjectType({
+        name: "Query",
+        fields: {
+          usage: {
+            type: new GraphQLNonNull(MiddlewareTaskUsageType),
+            resolve: () => ({
+              id: "hook-usage",
+              config: "{}",
+              origin: "local",
+              subtreeOwnerId: null,
+              node: {
+                [elementKindSymbol]: "HOOK",
+                id: "app.hooks.logger",
+                events: ["app.events.logged"],
+                emits: [],
+                dependsOn: [],
+                middleware: [],
+                isPrivate: false,
+                visibilityReason: null,
+                markdownDescription: "",
+                meta: null,
+                filePath: null,
+                tags: [],
+                tagsDetailed: [],
+              },
+            }),
+          },
+        },
+      }),
+      types: [HookType],
+    });
+
+    const result = await graphql({
+      schema: usageSchema,
+      source: `
+        query HookMiddlewareUsage {
+          usage {
+            node {
+              __typename
+              id
+            }
+          }
+        }
+      `,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      usage: {
+        node: {
+          __typename: "Hook",
+          id: "app.hooks.logger",
+        },
+      },
+    });
   });
 
   test("registeredBy resolves nested registrations from canonical introspection ids", async () => {

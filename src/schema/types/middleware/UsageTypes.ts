@@ -6,9 +6,9 @@ import {
   type GraphQLFieldConfigMap,
 } from "graphql";
 
+import { BaseElementInterface } from "../AllType";
 import { ResourceMiddlewareType } from "../MiddlewareType";
 import { ResourceType } from "../ResourceType";
-import { TaskType } from "../TaskType";
 
 export const MiddlewareTaskUsageType: GraphQLObjectType = new GraphQLObjectType(
   {
@@ -18,7 +18,7 @@ export const MiddlewareTaskUsageType: GraphQLObjectType = new GraphQLObjectType(
       config: { type: GraphQLString },
       origin: { type: GraphQLString },
       subtreeOwnerId: { type: GraphQLID },
-      node: { type: new GraphQLNonNull(TaskType) },
+      node: { type: new GraphQLNonNull(BaseElementInterface) },
     }),
   }
 );

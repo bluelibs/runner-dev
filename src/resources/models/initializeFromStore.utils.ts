@@ -564,15 +564,80 @@ function buildEventLaneSummaryByEventId(
   store: Store
 ): Map<string, NonNullable<Event["eventLane"]>> {
   const laneByEventId = new Map<string, NonNullable<Event["eventLane"]>>();
-  const topologyLanesById = new Map<
-    string,
-    {
-      id: string;
-      applyTo?: readonly unknown[] | ((event: unknown) => boolean);
-      orderingKey: string | null;
-      metadata: string | null;
+  type TopologyEventLaneEntry = {
+    id: string;
+    applyTo?: readonly unknown[] | ((event: unknown) => boolean);
+    orderingKey: string | null;
+    metadata: string | null;
+  };
+
+  const buildLaneApplyTargetKey = (target: unknown): string => {
+    if (typeof target === "string") {
+      return `id:${target}`;
     }
-  >();
+
+    const targetId = extractLaneId(target);
+    if (targetId) {
+      return `id:${targetId}`;
+    }
+
+    const serializedTarget = stringifyIfObject(target);
+    if (serializedTarget) {
+      return `json:${serializedTarget}`;
+    }
+
+    return `raw:${String(target)}`;
+  };
+
+  const mergeLaneApplyTo = (
+    existingApplyTo: TopologyEventLaneEntry["applyTo"],
+    incomingApplyTo: TopologyEventLaneEntry["applyTo"]
+  ): TopologyEventLaneEntry["applyTo"] => {
+    if (incomingApplyTo === undefined) {
+      return existingApplyTo;
+    }
+
+    if (existingApplyTo === undefined) {
+      return incomingApplyTo;
+    }
+
+    if (Array.isArray(existingApplyTo) && Array.isArray(incomingApplyTo)) {
+      const mergedTargets = new Map<string, unknown>();
+
+      for (const target of [...existingApplyTo, ...incomingApplyTo]) {
+        mergedTargets.set(buildLaneApplyTargetKey(target), target);
+      }
+
+      return Array.from(mergedTargets.values());
+    }
+
+    return incomingApplyTo;
+  };
+
+  const mergeTopologyLaneEntry = (
+    existingEntry: TopologyEventLaneEntry | undefined,
+    incomingEntry: TopologyEventLaneEntry
+  ): TopologyEventLaneEntry => {
+    if (!existingEntry) {
+      return incomingEntry;
+    }
+
+    return {
+      id: incomingEntry.id,
+      applyTo: mergeLaneApplyTo(existingEntry.applyTo, incomingEntry.applyTo),
+      orderingKey: incomingEntry.orderingKey ?? existingEntry.orderingKey,
+      metadata: incomingEntry.metadata ?? existingEntry.metadata,
+    };
+  };
+
+  const upsertTopologyLaneEntry = (entry: TopologyEventLaneEntry) => {
+    topologyLanesById.set(
+      entry.id,
+      mergeTopologyLaneEntry(topologyLanesById.get(entry.id), entry)
+    );
+  };
+
+  const topologyLanesById = new Map<string, TopologyEventLaneEntry>();
 
   for (const resourceEntry of store.resources.values()) {
     const resource = resourceEntry.resource;
@@ -618,7 +683,7 @@ function buildEventLaneSummaryByEventId(
       for (const binding of topology.bindings) {
         const laneId = extractLaneId(binding?.lane);
         if (!laneId || !binding?.lane) continue;
-        topologyLanesById.set(laneId, {
+        upsertTopologyLaneEntry({
           id: laneId,
           applyTo: normalizeEventLaneApplyTo(binding.lane.applyTo),
           orderingKey:
@@ -636,7 +701,7 @@ function buildEventLaneSummaryByEventId(
         for (const entry of profile.consume) {
           const laneId = extractLaneId(entry?.lane);
           if (!laneId || !entry?.lane) continue;
-          topologyLanesById.set(laneId, {
+          upsertTopologyLaneEntry({
             id: laneId,
             applyTo: normalizeEventLaneApplyTo(entry.lane.applyTo),
             orderingKey:

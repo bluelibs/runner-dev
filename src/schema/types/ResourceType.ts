@@ -16,7 +16,7 @@ import { ResourceMiddlewareType } from "./MiddlewareType";
 import { TaskType } from "./TaskType";
 import { EventType } from "./EventType";
 import { CustomGraphQLContext } from "../context";
-import { MiddlewareResourceUsageType } from "./middleware/UsageTypes";
+import { ResourceMiddlewareUsageType } from "./middleware/UsageTypes";
 import { Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
@@ -235,7 +235,7 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     middlewareResolvedDetailed: {
       description: "Middlewares applied to this resource with per-usage config",
       type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(MiddlewareResourceUsageType))
+        new GraphQLList(new GraphQLNonNull(ResourceMiddlewareUsageType))
       ),
       resolve: (node, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getMiddlewareUsagesForResource(node.id),

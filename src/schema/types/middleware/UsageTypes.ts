@@ -6,6 +6,7 @@ import {
   type GraphQLFieldConfigMap,
 } from "graphql";
 
+import { ResourceMiddlewareType } from "../MiddlewareType";
 import { ResourceType } from "../ResourceType";
 import { TaskType } from "../TaskType";
 
@@ -29,5 +30,15 @@ export const MiddlewareResourceUsageType: GraphQLObjectType =
       id: { type: new GraphQLNonNull(GraphQLID) },
       config: { type: GraphQLString },
       node: { type: new GraphQLNonNull(ResourceType) },
+    }),
+  });
+
+export const ResourceMiddlewareUsageType: GraphQLObjectType =
+  new GraphQLObjectType({
+    name: "ResourceMiddlewareUsage",
+    fields: (): GraphQLFieldConfigMap<any, any> => ({
+      id: { type: new GraphQLNonNull(GraphQLID) },
+      config: { type: GraphQLString },
+      node: { type: new GraphQLNonNull(ResourceMiddlewareType) },
     }),
   });

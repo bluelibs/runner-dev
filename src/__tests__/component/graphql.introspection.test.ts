@@ -412,6 +412,64 @@ describe("GraphQL schema (integration)", () => {
     }
   });
 
+  test("resource middlewareResolvedDetailed exposes middleware nodes", async () => {
+    let ctx: any;
+    let runtime: Awaited<ReturnType<typeof run>> | null = null;
+
+    const probe = defineResource({
+      id: "probe-graphql-resource-middleware-detailed",
+      dependencies: { introspector, store: resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    runtime = await run(createDummyApp([introspector, probe]));
+
+    try {
+      const result = await graphql({
+        schema,
+        source: `
+          query ResourceMiddlewareDetailed($resourceId: ID!) {
+            resource(id: $resourceId) {
+              id
+              middlewareResolvedDetailed {
+                id
+                config
+                node { id }
+              }
+            }
+          }
+        `,
+        variableValues: {
+          resourceId: dummyAppIds.resource("res-db"),
+        },
+        contextValue: ctx,
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(
+        (result.data as any)?.resource?.middlewareResolvedDetailed
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: dummyAppIds.resourceMiddleware(logMw.id),
+            node: expect.objectContaining({
+              id: dummyAppIds.resourceMiddleware(logMw.id),
+            }),
+          }),
+        ])
+      );
+    } finally {
+      await runtime?.dispose();
+    }
+  });
+
   test("removes Resource.tunnelInfo and exposes rpcLane on Task/Event", async () => {
     let ctx: any;
 

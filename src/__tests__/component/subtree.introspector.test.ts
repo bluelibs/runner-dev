@@ -1,6 +1,7 @@
 import { defineTaskMiddleware, r, run, tags } from "@bluelibs/runner";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
+import { mapStoreResourceToResourceModel } from "../../resources/models/initializeFromStore.utils";
 
 describe("Subtree Introspection", () => {
   test("merges subtree policy arrays into a single summary", async () => {
@@ -207,5 +208,57 @@ describe("Subtree Introspection", () => {
     } finally {
       await runtime.dispose();
     }
+  });
+
+  test("normalizes singular subtree identity objects and preserves tenant false flags", () => {
+    const resource = mapStoreResourceToResourceModel({
+      id: "test-subtree-singular",
+      register: [],
+      overrides: [],
+      middleware: [],
+      subtree: {
+        tasks: {
+          identity: {
+            tenant: false,
+            user: true,
+            roles: ["ADMIN"],
+          },
+        },
+        middleware: {
+          identityScope: {
+            tenant: false,
+            user: true,
+            required: false,
+          },
+        },
+      },
+    } as any);
+
+    expect(resource.subtree).toEqual({
+      tasks: {
+        middleware: [],
+        validatorCount: 0,
+        identity: [
+          {
+            tenant: false,
+            user: true,
+            roles: ["ADMIN"],
+          },
+        ],
+      },
+      middleware: {
+        identityScope: {
+          tenant: false,
+          user: true,
+          required: false,
+        },
+      },
+      resources: null,
+      hooks: null,
+      taskMiddleware: null,
+      resourceMiddleware: null,
+      events: null,
+      tags: null,
+    });
   });
 });

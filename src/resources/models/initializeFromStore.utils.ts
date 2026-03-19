@@ -113,7 +113,7 @@ function normalizeIdentityRequirementSummary(
   if (!value || typeof value !== "object") return null;
   const config = value as IdentityRequirementConfig;
   return {
-    tenant: true,
+    tenant: config.tenant ?? true,
     user: config.user === true,
     roles: Array.isArray(config.roles)
       ? config.roles.map((role) => String(role))
@@ -124,8 +124,13 @@ function normalizeIdentityRequirementSummary(
 function normalizeIdentityRequirementSummaries(
   value: unknown
 ): IdentityRequirementSummary[] {
-  if (!Array.isArray(value)) return [];
-  return value
+  const entries = Array.isArray(value)
+    ? value
+    : value && typeof value === "object"
+    ? [value]
+    : [];
+
+  return entries
     .map((entry) => normalizeIdentityRequirementSummary(entry))
     .filter((entry): entry is IdentityRequirementSummary => Boolean(entry));
 }
@@ -136,7 +141,7 @@ function normalizeIdentityScopeSummary(
   if (!value || typeof value !== "object") return null;
   const config = value as IdentityScopeConfig;
   return {
-    tenant: true,
+    tenant: config.tenant ?? true,
     user: config.user === true,
     required: config.required ?? true,
   };

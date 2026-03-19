@@ -19,8 +19,8 @@
 
 <specifics>
 - Prefer Runner docs from extracted skills under `.agents/skills` when they are available.
-- For runner-dev-specific context, use `skills/runner-dev/references/COMPACT_GUIDE.md`.
-- Runner-Dev publishes its own skill from `skills/runner-dev`; keep `README.md`, `skills/runner-dev/SKILL.md`, and `skills/runner-dev/references/COMPACT_GUIDE.md` aligned when those docs change.
+- For runner-dev-specific context, use `skills/runner-dev/references/readmes/COMPACT_GUIDE.md`.
+- Runner-Dev publishes its own skill from `skills/runner-dev`; keep `README.md`, `skills/runner-dev/SKILL.md`, and `skills/runner-dev/references/readmes/COMPACT_GUIDE.md` aligned when those docs change.
 </specifics>
 
 <new_feature>

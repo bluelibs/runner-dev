@@ -11,6 +11,8 @@
     "build": "tsc -p config/ts/tsconfig.json && npm run build:ui",
     "watch": "tsc -p config/ts/tsconfig.json -w",
     "clean": "rm -rf dist",
+    "skills:pack:materialize": "node ./scripts/pack-npm-skills.mjs materialize",
+    "skills:pack:restore": "node ./scripts/pack-npm-skills.mjs restore",
     "cli": "ts-node --project config/ts/tsconfig.json src/cli.ts",
     "cli:local": "ts-node --project config/ts/tsconfig.json src/cli.ts",
     "start": "node dist/main.js",
@@ -40,7 +42,9 @@
     "demo:ping": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js ping",
     "demo:query": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js query 'query { tasks { id } }' --format pretty",
     "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5",
-    "postinstall": "npm-skills extract --skip-production --override"
+    "postinstall": "npm-skills extract --skip-production --override",
+    "prepack": "npm run skills:pack:materialize",
+    "postpack": "npm run skills:pack:restore"
   },
   "bin": {
     "runner-dev": "dist/cli.js"

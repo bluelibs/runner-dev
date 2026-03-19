@@ -82,6 +82,214 @@ exit /b %errorlevel%
   await fs.writeFile(npmCmdPath, cmd, { mode: 0o755 });
 }
 
+async function ensureSymlinkDir(
+  targetPath: string,
+  linkPath: string
+): Promise<void> {
+  await fs.mkdir(path.dirname(linkPath), { recursive: true });
+  try {
+    await fs.symlink(targetPath, linkPath, "junction");
+  } catch (error: any) {
+    if (error?.code !== "EEXIST") {
+      throw error;
+    }
+  }
+}
+
+async function writeVitestShim(projectDir: string): Promise<void> {
+  const vitestDir = path.join(projectDir, "node_modules", "vitest");
+  const vitestBinDir = path.join(projectDir, "node_modules", ".bin");
+
+  await fs.mkdir(vitestDir, { recursive: true });
+  await fs.mkdir(vitestBinDir, { recursive: true });
+
+  await fs.writeFile(
+    path.join(vitestDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "vitest",
+        version: "0.0.0-test-shim",
+        private: true,
+        main: "index.cjs",
+        bin: {
+          vitest: "bin/vitest.cjs",
+        },
+      },
+      null,
+      2
+    ) + "\n",
+    "utf8"
+  );
+
+  await fs.writeFile(
+    path.join(vitestDir, "index.cjs"),
+    `
+const state = {
+  tests: [],
+  afterEachFns: [],
+};
+
+function describe(_name, fn) {
+  fn();
+}
+
+function it(name, fn) {
+  state.tests.push({ name, fn });
+}
+
+function afterEach(fn) {
+  state.afterEachFns.push(fn);
+}
+
+function expect(received) {
+  return {
+    toBe(expected) {
+      if (!Object.is(received, expected)) {
+        throw new Error(\`Expected \${JSON.stringify(received)} to be \${JSON.stringify(expected)}\`);
+      }
+    },
+    toBeDefined() {
+      if (received === undefined) {
+        throw new Error("Expected value to be defined");
+      }
+    },
+  };
+}
+
+async function runRegisteredTests() {
+  let passed = 0;
+
+  for (const test of state.tests) {
+    try {
+      await test.fn();
+      passed += 1;
+    } finally {
+      for (const hook of state.afterEachFns) {
+        await hook();
+      }
+    }
+  }
+
+  return passed;
+}
+
+function reset() {
+  state.tests = [];
+  state.afterEachFns = [];
+}
+
+module.exports = {
+  afterEach,
+  describe,
+  expect,
+  it,
+  __runRegisteredTests: runRegisteredTests,
+  __reset: reset,
+};
+`.trimStart(),
+    { encoding: "utf8" }
+  );
+
+  await fs.mkdir(path.join(vitestDir, "bin"), { recursive: true });
+  await fs.writeFile(
+    path.join(vitestDir, "bin", "vitest.cjs"),
+    `#!/usr/bin/env node
+const fs = require("fs");
+const path = require("path");
+const { register } = require("tsx/cjs/api");
+const vitest = require("../index.cjs");
+
+register();
+
+function collectTests(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectTests(fullPath));
+      continue;
+    }
+    if (entry.name.endsWith(".test.ts")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+async function main() {
+  const srcDir = path.join(process.cwd(), "src");
+  const testFiles = collectTests(srcDir);
+  let passed = 0;
+
+  for (const filePath of testFiles) {
+    vitest.__reset();
+    require(filePath);
+    passed += await vitest.__runRegisteredTests();
+  }
+
+  console.log(\`Test Files  \${testFiles.length} passed\`);
+  console.log(\`Tests       \${passed} passed\`);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+`,
+    { encoding: "utf8", mode: 0o755 }
+  );
+
+  await fs.writeFile(
+    path.join(vitestBinDir, "vitest"),
+    `#!/bin/sh
+exec node "$PWD/node_modules/vitest/bin/vitest.cjs" "$@"
+`,
+    { encoding: "utf8", mode: 0o755 }
+  );
+}
+
+async function linkGeneratedProjectDependencies(
+  projectDir: string
+): Promise<void> {
+  const repoRoot = process.cwd();
+  const repoNodeModules = path.join(repoRoot, "node_modules");
+  const projectNodeModules = path.join(projectDir, "node_modules");
+
+  await fs.mkdir(projectNodeModules, { recursive: true });
+  await ensureSymlinkDir(
+    path.join(repoNodeModules, "@types"),
+    path.join(projectNodeModules, "@types")
+  );
+  await ensureSymlinkDir(
+    path.join(repoNodeModules, "typescript"),
+    path.join(projectNodeModules, "typescript")
+  );
+  await ensureSymlinkDir(
+    path.join(repoNodeModules, "tsx"),
+    path.join(projectNodeModules, "tsx")
+  );
+  await ensureSymlinkDir(
+    path.join(repoNodeModules, "npm-skills"),
+    path.join(projectNodeModules, "npm-skills")
+  );
+  await ensureSymlinkDir(
+    path.join(repoNodeModules, "@bluelibs", "runner"),
+    path.join(projectNodeModules, "@bluelibs", "runner")
+  );
+  await ensureSymlinkDir(
+    path.join(repoNodeModules, "@bluelibs", "smart"),
+    path.join(projectNodeModules, "@bluelibs", "smart")
+  );
+  await ensureSymlinkDir(
+    repoRoot,
+    path.join(projectNodeModules, "@bluelibs", "runner-dev")
+  );
+  await writeVitestShim(projectDir);
+}
+
 function runCli(
   args: string[],
   cwd: string,
@@ -177,7 +385,9 @@ describe("CLI init", () => {
     expect(pkg.name).toBe(projectName);
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
+    expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
     );
@@ -185,16 +395,28 @@ describe("CLI init", () => {
     expect(pkg.scripts?.prepare).toBeUndefined();
     expect(pkg.npmSkills).toBeUndefined();
 
-    // Verify src directory exists with main.ts using runner-dev scaffold
+    const appTs = await fs.readFile(
+      path.join(projectDir, "src", "app.ts"),
+      "utf-8"
+    );
+    expect(appTs).toContain("import { r } from '@bluelibs/runner';");
+    expect(appTs).toContain("import { dev } from '@bluelibs/runner-dev';");
+    expect(appTs).toContain("export const app = r.resource(");
+
     const mainTs = await fs.readFile(
       path.join(projectDir, "src", "main.ts"),
       "utf-8"
     );
-    expect(mainTs).toContain("@bluelibs/runner-dev");
-    expect(mainTs).toContain("import { r, run } from '@bluelibs/runner';");
-    expect(mainTs).toContain("const app = r.resource(");
-    expect(mainTs).toContain(".build();");
+    expect(mainTs).toContain("import { run } from '@bluelibs/runner';");
+    expect(mainTs).toContain("import { app } from './app';");
     expect(mainTs).toContain("run(app)");
+
+    const appTestTs = await fs.readFile(
+      path.join(projectDir, "src", "app.test.ts"),
+      "utf-8"
+    );
+    expect(appTestTs).toContain("import { app } from './app';");
+    expect(appTestTs).toContain("boots the runtime");
 
     const gitignore = await fs.readFile(
       path.join(projectDir, ".gitignore"),
@@ -271,7 +493,9 @@ describe("CLI init", () => {
     expect(pkg.name).toBe(projectName);
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
+    expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
     );
@@ -324,11 +548,32 @@ describe("CLI init", () => {
     expect(pkg.name).toBe(projectName);
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
+    expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
     );
     expect(pkg.scripts?.postinstall).toBe("npm run skills:extract");
     expect(pkg.scripts?.prepare).toBeUndefined();
+  });
+
+  test("scaffolds project that passes the generated qa script", async () => {
+    const projectName = "qa-project";
+    const projectDir = path.join(testProjectDir, projectName);
+
+    const res = await runCli(["new", "project", projectName], testProjectDir);
+    expect(res.code).toBe(0);
+
+    await linkGeneratedProjectDependencies(projectDir);
+
+    const qa = await _runCmd("npm", ["run", "qa"], projectDir, {
+      CI: "true",
+    });
+
+    expect(qa.code).toBe(0);
+    expect(qa.stdout).toContain("npm run build");
+    expect(qa.stdout).toContain("npm run test");
+    expect(qa.stdout).toContain("Tests       1 passed");
   });
 });

@@ -10,6 +10,7 @@ export function packageJson(projectName: string) {
       build: "tsc -p tsconfig.json",
       test: "vitest run",
       "test:watch": "vitest",
+      qa: "npm run build && npm run test",
       "schema:sdl": "runner-dev schema sdl",
       "skills:extract": "npm-skills extract --skip-production --override",
       postinstall: "npm run skills:extract",
@@ -20,6 +21,7 @@ export function packageJson(projectName: string) {
     },
     devDependencies: {
       "@bluelibs/runner-dev": "^6.3.0",
+      "@types/node": "^20.0.0",
       typescript: "^5.6.3",
       tsx: "^4.20.5",
       vitest: "^3.2.4",

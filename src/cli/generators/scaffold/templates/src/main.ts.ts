@@ -1,13 +1,6 @@
 export function mainTs(projectName: string) {
-  return `import { r, run } from '@bluelibs/runner';
-import { dev } from '@bluelibs/runner-dev';
-
-// Minimal Runner app using a root resource and runner-dev's dev resource
-const app = r.resource('${projectName}')
-  .register([
-    dev.with({ port: 1337 }),
-  ])
-  .build();
+  return `import { run } from '@bluelibs/runner';
+import { app } from './app';
 
 run(app)
   .then(({ logger }) => {

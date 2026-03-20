@@ -56,7 +56,7 @@ async function readDocsContent(): Promise<DocsContentPayload> {
 async function readRunnerDevCompactGuide(): Promise<string> {
   const packageDoc = await readPackageDoc(
     "@bluelibs/runner-dev",
-    "skills/runner-dev/references/readmes/COMPACT_GUIDE.md"
+    "skills/core/references/readmes/COMPACT_GUIDE.md"
   );
   if (packageDoc.content) {
     return packageDoc.content;
@@ -64,7 +64,7 @@ async function readRunnerDevCompactGuide(): Promise<string> {
 
   const localFallbackPath = path.resolve(
     __dirname,
-    "../../../skills/runner-dev/references/readmes/COMPACT_GUIDE.md"
+    "../../../skills/core/references/readmes/COMPACT_GUIDE.md"
   );
   let localFallback: string;
   try {

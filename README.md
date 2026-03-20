@@ -22,7 +22,7 @@ npx @bluelibs/runner-dev
 ```
 
 For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
-Runner-Dev also publishes its own skill from `skills/runner-dev`; keep `README.md`, `skills/runner-dev/SKILL.md`, and `skills/runner-dev/references/readmes/COMPACT_GUIDE.md` aligned when those docs change. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
+Runner-Dev also publishes its own skill from `skills/core`; keep `README.md`, `skills/core/SKILL.md`, and `skills/core/references/readmes/COMPACT_GUIDE.md` aligned when those docs change. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
 
 ```ts
 import { r } from "@bluelibs/runner";

@@ -159,6 +159,7 @@ function getSubtreePolicies(resource: any): SubtreePolicyInput[] {
 }
 
 function readSubtreeMiddlewareEntryId(entry: unknown): string | null {
+  if (typeof entry === "string") return entry;
   if (!entry || typeof entry !== "object") return null;
   if ("use" in (entry as Record<string, unknown>)) {
     return readSubtreeMiddlewareEntryId(
@@ -174,6 +175,9 @@ function resolveTaskSubtreeMiddlewareEntry(
   entry: unknown,
   task: definitions.ITask
 ): string | null {
+  if (typeof entry === "string") {
+    return entry;
+  }
   if (!entry || typeof entry !== "object") {
     return null;
   }

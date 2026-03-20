@@ -1,7 +1,10 @@
 import { defineTaskMiddleware, r, run, tags } from "@bluelibs/runner";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
-import { mapStoreResourceToResourceModel } from "../../resources/models/initializeFromStore.utils";
+import {
+  mapStoreResourceToResourceModel,
+  mapStoreTaskToTaskModel,
+} from "../../resources/models/initializeFromStore.utils";
 
 describe("Subtree Introspection", () => {
   test("merges subtree policy arrays into a single summary", async () => {
@@ -208,6 +211,100 @@ describe("Subtree Introspection", () => {
     } finally {
       await runtime.dispose();
     }
+  });
+
+  test("tracks subtree provenance for string middleware refs", () => {
+    const resourceId = "test-subtree-string-ref-module";
+    const subtreeMiddlewareShortId = "test-subtree-string-ref-audit";
+    const subtreeMiddlewareId = `${resourceId}.middleware.task.${subtreeMiddlewareShortId}`;
+    const localMiddlewareId = `${resourceId}.middleware.task.test-subtree-string-ref-local`;
+    const taskId = `${resourceId}.task.test-subtree-string-ref-child-task`;
+
+    const resource = mapStoreResourceToResourceModel({
+      id: resourceId,
+      register: [],
+      overrides: [],
+      middleware: [],
+      subtree: {
+        tasks: {
+          middleware: [subtreeMiddlewareShortId],
+        },
+      },
+    } as any);
+
+    const task = mapStoreTaskToTaskModel(
+      {
+        id: taskId,
+        meta: {},
+        tags: [],
+        dependencies: [],
+        middleware: [
+          { id: subtreeMiddlewareId, config: {} },
+          { id: localMiddlewareId, config: {} },
+        ],
+      } as any,
+      {
+        getOwnerResourceId(id: string) {
+          return id === taskId ? resourceId : null;
+        },
+        resources: new Map([
+          [
+            resourceId,
+            {
+              resource: {
+                id: resourceId,
+                subtree: {
+                  tasks: {
+                    middleware: [subtreeMiddlewareShortId],
+                  },
+                },
+              },
+            },
+          ],
+        ]),
+        getMiddlewareManager() {
+          return {
+            middlewareResolver: {
+              getApplicableTaskMiddlewares() {
+                return [
+                  { id: subtreeMiddlewareId, config: {} },
+                  { id: localMiddlewareId, config: {} },
+                ];
+              },
+            },
+          };
+        },
+      } as any
+    );
+
+    expect(resource.subtree).toEqual({
+      tasks: {
+        middleware: [subtreeMiddlewareShortId],
+        validatorCount: 0,
+      },
+      middleware: null,
+      resources: null,
+      hooks: null,
+      taskMiddleware: null,
+      resourceMiddleware: null,
+      events: null,
+      tags: null,
+    });
+    expect(task.middleware).toEqual([subtreeMiddlewareId, localMiddlewareId]);
+    expect(task.middlewareDetailed).toEqual([
+      {
+        id: subtreeMiddlewareId,
+        config: "{}",
+        origin: "subtree",
+        subtreeOwnerId: resourceId,
+      },
+      {
+        id: localMiddlewareId,
+        config: "{}",
+        origin: "local",
+        subtreeOwnerId: null,
+      },
+    ]);
   });
 
   test("normalizes singular subtree identity objects and preserves tenant false flags", () => {

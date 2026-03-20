@@ -15,7 +15,7 @@ const syncPairs = [
     destinationPath: path.join(
       projectRoot,
       "skills",
-      "runner-dev",
+      "core",
       "references",
       "readmes",
     ),

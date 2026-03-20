@@ -33,6 +33,8 @@ export type {
 } from "./resources/swap.resource";
 export {
   Introspector,
+  type InterceptorOwnersSnapshot,
+  type MiddlewareInterceptorOwnerSnapshot,
   type SerializedIntrospector,
 } from "./resources/models/Introspector";
 export * from "./schema/model";

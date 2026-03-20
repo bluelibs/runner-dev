@@ -6,7 +6,7 @@ import type {
 } from "../utils/topologyGraph";
 import { TopologyCanvas } from "./TopologyCanvas";
 import { TopologyFocusBar } from "./TopologyFocusBar";
-import { TopologySidebar } from "./TopologySidebar";
+import { TopologyDetailPanels, TopologySidebar } from "./TopologySidebar";
 import { TopologyToolbar } from "./TopologyToolbar";
 
 export interface TopologyPanelViewProps {
@@ -122,8 +122,6 @@ export const TopologyPanelView: React.FC<TopologyPanelViewProps> = ({
 
         {isNavigatorOpen ? (
           <TopologySidebar
-            edges={graph.edges}
-            nodesById={nodeMap}
             selectedNode={selectedNode}
             nodes={graph.nodes}
             navigatorQuery={navigatorQuery}
@@ -144,6 +142,13 @@ export const TopologyPanelView: React.FC<TopologyPanelViewProps> = ({
           </button>
         )}
       </div>
+
+      <TopologyDetailPanels
+        edges={graph.edges}
+        nodesById={nodeMap}
+        selectedNode={selectedNode}
+        onSelect={onSelectNode}
+      />
     </>
   );
 };

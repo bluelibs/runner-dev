@@ -11,8 +11,6 @@ import {
 } from "./topologyPanel.utils";
 
 export interface TopologySidebarProps {
-  edges: TopologyGraphEdge[];
-  nodesById: Map<string, TopologyGraphNode>;
   selectedNode: TopologyGraphNode;
   nodes: TopologyGraphNode[];
   navigatorQuery: string;
@@ -22,13 +20,38 @@ export interface TopologySidebarProps {
 }
 
 export const TopologySidebar: React.FC<TopologySidebarProps> = ({
-  edges,
-  nodesById,
   selectedNode,
   nodes,
   navigatorQuery,
   onNavigatorQueryChange,
   onCollapseNavigator,
+  onSelect,
+}) => {
+  return (
+    <aside className="topology-panel__detail">
+      <TopologyNavigator
+        nodes={nodes}
+        selectedNodeId={selectedNode.id}
+        query={navigatorQuery}
+        onQueryChange={onNavigatorQueryChange}
+        onCollapse={onCollapseNavigator}
+        onSelect={onSelect}
+      />
+    </aside>
+  );
+};
+
+export interface TopologyDetailPanelsProps {
+  edges: TopologyGraphEdge[];
+  nodesById: Map<string, TopologyGraphNode>;
+  selectedNode: TopologyGraphNode;
+  onSelect: (node: TopologyGraphNode) => void;
+}
+
+export const TopologyDetailPanels: React.FC<TopologyDetailPanelsProps> = ({
+  edges,
+  nodesById,
+  selectedNode,
   onSelect,
 }) => {
   const outgoingGroups = React.useMemo(
@@ -53,16 +76,7 @@ export const TopologySidebar: React.FC<TopologySidebarProps> = ({
   );
 
   return (
-    <aside className="topology-panel__detail">
-      <TopologyNavigator
-        nodes={nodes}
-        selectedNodeId={selectedNode.id}
-        query={navigatorQuery}
-        onQueryChange={onNavigatorQueryChange}
-        onCollapse={onCollapseNavigator}
-        onSelect={onSelect}
-      />
-
+    <section className="topology-panel__details">
       <div className="topology-panel__detail-card">
         <div className="topology-panel__detail-header">
           <div>
@@ -119,23 +133,25 @@ export const TopologySidebar: React.FC<TopologySidebarProps> = ({
         )}
       </div>
 
-      <TopologyRelationPanel
-        title="Outgoing"
-        groups={outgoingGroups}
-        onSelect={onSelect}
-      />
+      <div className="topology-panel__details-grid">
+        <TopologyRelationPanel
+          title="Outgoing"
+          groups={outgoingGroups}
+          onSelect={onSelect}
+        />
 
-      <TopologyRelationPanel
-        title="Incoming"
-        groups={incomingGroups}
-        onSelect={onSelect}
-      />
+        <TopologyRelationPanel
+          title="Incoming"
+          groups={incomingGroups}
+          onSelect={onSelect}
+        />
 
-      <div className="topology-panel__detail-card topology-panel__detail-card--ghost">
-        <div className="topology-panel__detail-kicker">Legend</div>
-        <TopologyLegend />
+        <div className="topology-panel__detail-card topology-panel__detail-card--ghost">
+          <div className="topology-panel__detail-kicker">Legend</div>
+          <TopologyLegend />
+        </div>
       </div>
-    </aside>
+    </section>
   );
 };
 

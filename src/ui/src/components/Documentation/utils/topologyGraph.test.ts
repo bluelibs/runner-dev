@@ -166,8 +166,15 @@ describe("topologyGraph", () => {
       view: "blast",
       radius: 2,
     });
+    const selectedFromNodes = graph.nodes.find(
+      (node) => node.id === "task.build"
+    );
 
     expect(graph.selectedNode.id).toBe("task.build");
+    expect(graph.selectedNode).toEqual(selectedFromNodes);
+    expect(
+      graph.selectedNode.incomingCount + graph.selectedNode.outgoingCount
+    ).toBeGreaterThan(0);
     expect(graph.nodes.map((node) => node.id)).toEqual(
       expect.arrayContaining([
         "task.build",

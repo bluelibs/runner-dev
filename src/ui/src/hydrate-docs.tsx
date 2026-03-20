@@ -136,11 +136,15 @@ function ensureVisibilityForHash(introspector: Introspector): void {
   const showSystem = getShowSystemFromStorage();
   const showRunner = getShowRunnerFromStorage();
   const showPrivate = getShowPrivateFromStorage();
-  const nextVisibility = getVisibilityStateForHashTarget(introspector, targetId, {
-    showSystem,
-    showRunner,
-    showPrivate,
-  });
+  const nextVisibility = getVisibilityStateForHashTarget(
+    introspector,
+    targetId,
+    {
+      showSystem,
+      showRunner,
+      showPrivate,
+    }
+  );
 
   if (!showSystem && nextVisibility.showSystem) {
     setShowSystemInStorage(true);

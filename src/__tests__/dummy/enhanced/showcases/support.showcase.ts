@@ -9,9 +9,9 @@ import {
 export const supportRequestContext = r
   .asyncContext<{ requestId: string }>("request-context")
   .meta({
-    title: "Request Context",
+    title: "Request Context Scope",
     description:
-      "Carries a request id through task execution.\n\n- Minimal async context\n- Useful for showing `provided-by`, `required-by`, and `used-by` edges",
+      "Carries request-scoped metadata across the platform support flow.\n\n- Exposes a stable `requestId` for downstream tasks\n- Useful for showing `provided-by`, `required-by`, and `used-by` edges in docs",
   })
   .parse((raw) => JSON.parse(raw) as { requestId: string })
   .serialize((data) => JSON.stringify(data))

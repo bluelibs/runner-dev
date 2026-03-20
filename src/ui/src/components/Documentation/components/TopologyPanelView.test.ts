@@ -9,6 +9,7 @@ import type {
 import { TopologyPanelView } from "./TopologyPanelView";
 
 const mockSidebar = jest.fn(() => "sidebar");
+const mockDetailPanels = jest.fn(() => "detail-panels");
 
 jest.mock("./TopologyCanvas", () => ({
   TopologyCanvas: () => "canvas",
@@ -24,6 +25,7 @@ jest.mock("./TopologyToolbar", () => ({
 
 jest.mock("./TopologySidebar", () => ({
   TopologySidebar: (props: unknown) => mockSidebar(props),
+  TopologyDetailPanels: (props: unknown) => mockDetailPanels(props),
 }));
 
 function createNode(
@@ -77,6 +79,7 @@ function createProjection(nodes: TopologyGraphNode[]): TopologyGraphProjection {
 describe("TopologyPanelView", () => {
   beforeEach(() => {
     mockSidebar.mockClear();
+    mockDetailPanels.mockClear();
   });
 
   it("keeps a floating reopen handle visible when the navigator is collapsed", () => {
@@ -116,10 +119,12 @@ describe("TopologyPanelView", () => {
     );
 
     expect(mockSidebar).not.toHaveBeenCalled();
+    expect(mockDetailPanels).toHaveBeenCalled();
     expect(
       container.querySelector(".topology-panel__layout")?.className
     ).toContain("topology-panel__layout--navigator-closed");
     expect(screen.queryByText("sidebar")).toBeNull();
+    expect(container.textContent).toContain("detail-panels");
     expect(
       screen.getByRole("button", { name: "Expand navigator drawer" })
     ).toBeTruthy();
@@ -162,9 +167,11 @@ describe("TopologyPanelView", () => {
     );
 
     expect(mockSidebar).toHaveBeenCalled();
+    expect(mockDetailPanels).toHaveBeenCalled();
     expect(
       container.querySelector(".topology-panel__layout")?.className
     ).toContain("topology-panel__layout--navigator-open");
+    expect(container.textContent).toContain("detail-panels");
     expect(
       screen.queryByRole("button", { name: "Expand navigator drawer" })
     ).toBeNull();

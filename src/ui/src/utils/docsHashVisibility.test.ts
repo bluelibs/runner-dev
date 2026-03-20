@@ -85,11 +85,15 @@ describe("docsHashVisibility", () => {
     const introspector = createIntrospector();
 
     expect(
-      getVisibilityStateForHashTarget(introspector, "runner.tasks.healthcheck", {
-        showSystem: false,
-        showRunner: false,
-        showPrivate: false,
-      })
+      getVisibilityStateForHashTarget(
+        introspector,
+        "runner.tasks.healthcheck",
+        {
+          showSystem: false,
+          showRunner: false,
+          showPrivate: false,
+        }
+      )
     ).toEqual({
       showSystem: false,
       showRunner: true,

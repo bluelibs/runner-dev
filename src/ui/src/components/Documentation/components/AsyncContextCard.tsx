@@ -84,7 +84,14 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
           <div className="async-context-card__header-top">
             <div className="async-context-card__header-main">
               <h3 className="async-context-card__title">
-                {asyncContext.meta?.title || formatId(asyncContext.id)}
+                <a
+                  href={`#element-${asyncContext.id}`}
+                  className="async-context-card__title-link"
+                  title={`Canonical link: #element-${asyncContext.id}`}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  {asyncContext.meta?.title || formatId(asyncContext.id)}
+                </a>
               </h3>
               <div className="async-context-card__id">{asyncContext.id}</div>
               {asyncContext.meta?.description && (

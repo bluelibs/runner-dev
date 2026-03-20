@@ -49,8 +49,10 @@ export function getTopologyCanvasBounds(
     maxY = Math.max(maxY, position.y);
   }
 
-  const paddedMinX = Math.min(minX - BOUNDS_PADDING, 0);
-  const paddedMinY = Math.min(minY - BOUNDS_PADDING, 0);
+  // Auto-fit should follow the visible graph footprint instead of dragging
+  // the stage back to the origin with empty space.
+  const paddedMinX = minX - BOUNDS_PADDING;
+  const paddedMinY = minY - BOUNDS_PADDING;
   const paddedMaxX = Math.max(
     maxX + BOUNDS_PADDING,
     paddedMinX + MIN_STAGE_SPAN

@@ -14,6 +14,7 @@ import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 
 export interface MiddlewareCardProps {
   middleware: Middleware;
@@ -230,7 +231,10 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
                     {usage.config && (
                       <div className="middleware-card__usage-item__config">
                         <div className="config-title">Configuration:</div>
-                        <pre className="config-code">{usage.config}</pre>
+                        <StructuredConfigBlock
+                          value={usage.config}
+                          className="config-code"
+                        />
                       </div>
                     )}
                   </a>

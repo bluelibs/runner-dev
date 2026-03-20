@@ -33,6 +33,7 @@ import {
 } from "../../../../../utils/lane-resources";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -329,9 +330,10 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         >
           <div className="resource-card__config__subsection">
             <h5>Current Configuration</h5>
-            <pre className="resource-card__config__block">
-              {formatConfig(resource.config)}
-            </pre>
+            <StructuredConfigBlock
+              value={resource.config}
+              className="resource-card__config__block"
+            />
           </div>
 
           <CardSection
@@ -419,7 +421,10 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                 {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>
-                    <pre className="config-block">{usage.config}</pre>
+                    <StructuredConfigBlock
+                      value={usage.config}
+                      className="config-block"
+                    />
                   </div>
                 )}
               </a>

@@ -5,7 +5,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { Introspector } from "../../../../../resources/models/Introspector";
 import { RecentLogs } from "./live/RecentLogs";
 
-jest.mock("./JsonViewer", () => () => React.createElement("div", null, "json-viewer"));
+jest.mock(
+  "./JsonViewer",
+  () => () => React.createElement("div", null, "json-viewer")
+);
 jest.mock("./modals", () => ({
   BaseModal: ({
     children,

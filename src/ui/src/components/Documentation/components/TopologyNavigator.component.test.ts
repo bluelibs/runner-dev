@@ -42,6 +42,47 @@ function createNode(
 }
 
 describe("TopologyNavigator component", () => {
+  it("keeps long navigator rows inside a dedicated content column", () => {
+    const { container } = render(
+      React.createElement(TopologyNavigator, {
+        nodes: [
+          createNode({
+            id: "enhanced-superapp.dev.server.http.extremely.long.identifier",
+            kind: "resource",
+            label: "HTTP Server With A Remarkably Long Title",
+            incomingCount: 8,
+            outgoingCount: 9,
+            hiddenNeighborCount: 2,
+          }),
+        ],
+        selectedNodeId:
+          "enhanced-superapp.dev.server.http.extremely.long.identifier",
+        query: "",
+        onQueryChange: () => {},
+        onCollapse: () => {},
+        onSelect: () => {},
+      })
+    );
+
+    const item = container.querySelector(".topology-panel__navigator-item");
+    const icon = container.querySelector(
+      ".topology-panel__navigator-item-icon"
+    );
+    const content = container.querySelector(
+      ".topology-panel__navigator-item-content"
+    );
+    const subtitle = container.querySelector(
+      ".topology-panel__navigator-item-subtitle"
+    );
+
+    expect(item).toBeTruthy();
+    expect(icon).toBeTruthy();
+    expect(content).toBeTruthy();
+    expect(subtitle?.textContent).toContain("enhanced-superapp");
+    expect(subtitle?.textContent).toContain("extremely");
+    expect(subtitle?.textContent).toContain("identifier");
+  });
+
   it("renders description toggles only for nodes with descriptions", () => {
     render(
       React.createElement(TopologyNavigator, {

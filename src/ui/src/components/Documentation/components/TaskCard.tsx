@@ -24,6 +24,7 @@ import { MermaidDiagram } from "./common/MermaidDiagram";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 
 function normalizeDurableNodeLabel(node: any, index: number): string {
   const kind = String(node?.kind || "node");
@@ -721,7 +722,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>
-                    <pre className="config-block">{usage.config}</pre>
+                    <StructuredConfigBlock
+                      value={usage.config}
+                      className="config-block"
+                    />
                   </div>
                 )}
               </div>

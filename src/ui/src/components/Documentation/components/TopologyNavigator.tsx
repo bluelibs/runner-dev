@@ -66,30 +66,25 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
 
   return (
     <div className="topology-panel__detail-card topology-panel__detail-card--navigator">
-      <div className="topology-panel__navigator-topbar">
-        <div className="topology-panel__detail-kicker">Navigator</div>
-        <button
-          type="button"
-          className="topology-panel__navigator-collapse"
-          onClick={onCollapse}
-          aria-label="Collapse navigator drawer"
-          title="Collapse navigator"
-        >
-          &gt;&gt;
-        </button>
-      </div>
       <div className="topology-panel__navigator">
         <div className="topology-panel__navigator-header">
-          <div>
-            <div className="topology-panel__navigator-title">Find a node</div>
-            <div className="topology-panel__navigator-hint">
-              Search titles, ids, kinds, pills, and file paths when the mindmap
-              gets crowded.
-            </div>
+          <div className="topology-panel__detail-kicker topology-panel__detail-kicker--inline">
+            Navigator
           </div>
-          <span className="topology-panel__navigator-count">
-            {summaryLabel}
-          </span>
+          <div className="topology-panel__navigator-header-actions">
+            <span className="topology-panel__navigator-count">
+              {summaryLabel}
+            </span>
+            <button
+              type="button"
+              className="topology-panel__navigator-collapse"
+              onClick={onCollapse}
+              aria-label="Collapse navigator drawer"
+              title="Collapse navigator"
+            >
+              Collapse
+            </button>
+          </div>
         </div>
 
         <div className="topology-panel__navigator-search">
@@ -160,7 +155,7 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
                   onClick={() => onSelect(node)}
                   onKeyDown={handleItemKeyDown(node)}
                 >
-                  <div className="topology-panel__navigator-item-top">
+                  <div className="topology-panel__navigator-item-icon">
                     <span
                       className={[
                         "topology-panel__kind",
@@ -169,64 +164,68 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
                     >
                       {node.icon}
                     </span>
-                    <div className="topology-panel__navigator-item-title">
-                      {node.label}
+                  </div>
+                  <div className="topology-panel__navigator-item-content">
+                    <div className="topology-panel__navigator-item-top">
+                      <div className="topology-panel__navigator-item-title">
+                        {node.label}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="topology-panel__navigator-item-subtitle">
-                    {formatId(node.id)}
-                  </div>
+                    <div className="topology-panel__navigator-item-subtitle">
+                      {formatId(node.id)}
+                    </div>
 
-                  <div className="topology-panel__navigator-item-meta">
-                    <span>{node.kind}</span>
-                    <span>{node.isVisible ? "Visible" : "Hidden"}</span>
-                    <span>{connections} links</span>
-                    {node.hiddenNeighborCount > 0 && (
-                      <span>+{node.hiddenNeighborCount} hidden</span>
+                    <div className="topology-panel__navigator-item-meta">
+                      <span>{node.kind}</span>
+                      <span>{node.isVisible ? "Visible" : "Hidden"}</span>
+                      <span>{connections} links</span>
+                      {node.hiddenNeighborCount > 0 && (
+                        <span>+{node.hiddenNeighborCount} hidden</span>
+                      )}
+                    </div>
+
+                    {(hasDescription || isSelected || isHidden) && (
+                      <div className="topology-panel__navigator-item-actions">
+                        {hasDescription && (
+                          <button
+                            type="button"
+                            className="topology-panel__navigator-item-description-toggle"
+                            aria-expanded={isDescriptionExpanded}
+                            aria-label={`${node.label} description`}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              toggleDescription(node.id);
+                            }}
+                          >
+                            {isDescriptionExpanded
+                              ? "Hide description"
+                              : "Show description"}
+                          </button>
+                        )}
+                        {isSelected && (
+                          <span className="topology-panel__navigator-item-badge">
+                            Selected
+                          </span>
+                        )}
+                        {isHidden && (
+                          <span className="topology-panel__navigator-item-badge topology-panel__navigator-item-badge--hidden">
+                            Hidden
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {hasDescription && isDescriptionExpanded && (
+                      <div className="topology-panel__navigator-item-description">
+                        <MarkdownRenderer
+                          content={node.description ?? ""}
+                          className="topology-panel__navigator-item-description-markdown"
+                        />
+                      </div>
                     )}
                   </div>
-
-                  {(hasDescription || isSelected || isHidden) && (
-                    <div className="topology-panel__navigator-item-actions">
-                      {hasDescription && (
-                        <button
-                          type="button"
-                          className="topology-panel__navigator-item-description-toggle"
-                          aria-expanded={isDescriptionExpanded}
-                          aria-label={`${node.label} description`}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            toggleDescription(node.id);
-                          }}
-                        >
-                          {isDescriptionExpanded
-                            ? "Hide description"
-                            : "Show description"}
-                        </button>
-                      )}
-                      {isSelected && (
-                        <span className="topology-panel__navigator-item-badge">
-                          Selected
-                        </span>
-                      )}
-                      {isHidden && (
-                        <span className="topology-panel__navigator-item-badge topology-panel__navigator-item-badge--hidden">
-                          Hidden
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {hasDescription && isDescriptionExpanded && (
-                    <div className="topology-panel__navigator-item-description">
-                      <MarkdownRenderer
-                        content={node.description ?? ""}
-                        className="topology-panel__navigator-item-description-markdown"
-                      />
-                    </div>
-                  )}
                 </div>
               );
             })}

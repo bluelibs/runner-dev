@@ -9,6 +9,7 @@ import {
 } from "./common/FormControls";
 import { formatSchema } from "../utils/formatting";
 import { copyToClipboard } from "./chat/ChatUtils";
+import JsonViewer from "./JsonViewer";
 import "./SchemaRenderer.scss";
 // [AI-CHAT-DISABLED] import {
 //   hasOpenAIKey,
@@ -318,6 +319,14 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     }
   }, [formData]);
 
+  const jsonPreviewData = React.useMemo(() => {
+    if (formData && typeof formData === "object") {
+      return formData;
+    }
+
+    return { value: formData ?? null };
+  }, [formData]);
+
   // Emit live JSON (minified) and the data object when the form changes
   React.useEffect(() => {
     if (!onJsonChange) return;
@@ -414,9 +423,13 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
       </div>
 
       {!hidePrint && activeTab === "print" && (
-        <pre className="schema-renderer__code-block">
-          {formatSchema(schemaString)}
-        </pre>
+        schema ? (
+          <JsonViewer className="schema-renderer__code-block" data={schema} />
+        ) : (
+          <pre className="schema-renderer__code-block">
+            {formatSchema(schemaString)}
+          </pre>
+        )
       )}
 
       {activeTab === "form" && (
@@ -435,7 +448,10 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
               title={copied ? "Copied!" : "Copy to clipboard"}
               aria-label={copied ? "Copied" : "Copy code"}
             />
-            <pre className="schema-renderer__code-block">{jsonString}</pre>
+            <JsonViewer
+              className="schema-renderer__code-block"
+              data={jsonPreviewData}
+            />
           </div>
         </div>
       )}
@@ -451,7 +467,10 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
             title={copied ? "Copied!" : "Copy to clipboard"}
             aria-label={copied ? "Copied" : "Copy code"}
           />
-          <pre className="schema-renderer__code-block">{jsonString}</pre>
+          <JsonViewer
+            className="schema-renderer__code-block"
+            data={jsonPreviewData}
+          />
         </div>
       )}
     </div>

@@ -7,6 +7,7 @@ export function createDocsServeHandler(uiDir: string, logger: Logger) {
   return async (_req: Request, res: Response) => {
     let moduleScriptHref: string | undefined;
     let stylesheetHrefs: string[] = [];
+    const faviconHref = "/docs/favicon.ico";
     try {
       let manifestRaw: string | undefined;
       const manifestPathVite = path.resolve(uiDir, ".vite/manifest.json");
@@ -40,7 +41,7 @@ export function createDocsServeHandler(uiDir: string, logger: Logger) {
     const scripts = moduleScriptHref
       ? `<script type="module" src="${moduleScriptHref}"></script>`
       : "";
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Runner Dev Docs</title>${styles}</head><body><div id="root"></div>${scripts}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Runner Dev Docs</title><link rel="icon" href="${faviconHref}" type="image/x-icon"/>${styles}</head><body><div id="root"></div>${scripts}</body></html>`;
     res.setHeader("Content-Type", "text/html");
     res.send(html);
   };

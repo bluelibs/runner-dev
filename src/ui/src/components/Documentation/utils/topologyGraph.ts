@@ -347,38 +347,42 @@ export function buildTopologyProjection(
     layoutBlast(nodeList, focus.id, state.autoOrder);
   }
 
+  const normalizedNodes = nodeList
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((node) => ({
+      id: node.id,
+      kind: node.kind,
+      label: node.title,
+      subtitle: node.subtitle,
+      description: node.description,
+      filePath: node.filePath,
+      icon: node.icon,
+      x: node.x,
+      y: node.y,
+      depth: node.depth,
+      order: node.order,
+      parentId: node.parentId,
+      parentRelationKind: node.parentRelationKind,
+      isFocus: node.isFocus,
+      isVisible: node.isVisible,
+      hiddenNeighborCount: node.hiddenIds.size,
+      incomingCount: node.incomingIds.size,
+      outgoingCount: node.outgoingIds.size,
+      visibility: node.visibility,
+      pills: node.pills,
+    }));
+
   const selectedNode =
-    nodeRecords.get(focus.id) ?? nodeList[0] ?? createFallbackNode(focus);
+    normalizedNodes.find((node) => node.id === focus.id) ??
+    normalizedNodes[0] ??
+    createFallbackNode(focus);
 
   return {
     focus,
     view: state.view,
     radius: state.radius,
-    nodes: nodeList
-      .slice()
-      .sort((a, b) => a.order - b.order)
-      .map((node) => ({
-        id: node.id,
-        kind: node.kind,
-        label: node.title,
-        subtitle: node.subtitle,
-        description: node.description,
-        filePath: node.filePath,
-        icon: node.icon,
-        x: node.x,
-        y: node.y,
-        depth: node.depth,
-        order: node.order,
-        parentId: node.parentId,
-        parentRelationKind: node.parentRelationKind,
-        isFocus: node.isFocus,
-        isVisible: node.isVisible,
-        hiddenNeighborCount: node.hiddenIds.size,
-        incomingCount: node.incomingIds.size,
-        outgoingCount: node.outgoingIds.size,
-        visibility: node.visibility,
-        pills: node.pills,
-      })),
+    nodes: normalizedNodes,
     edges: [...edges.values()].sort((a, b) => a.id.localeCompare(b.id)),
     selectedNode,
     hiddenNodeCount: hiddenIds.size,

@@ -2,6 +2,7 @@
 // MIDDLEWARE CARD COMPONENT STYLES
 // =============================================================================
 @use "../../../styles/variables" as *;
+@use "../../../styles/mixins" as *;
 
 // -----------------------------------------------------------------------------
 // Middleware Card Base
@@ -505,14 +506,10 @@
     }
 
     .config-code {
+      @include docs-code-block($padding: $spacing-md, $max-height: 240px);
       background: var(--docs-bg-primary);
-      padding: $spacing-md;
       border-radius: $border-radius-md;
-      font-size: $font-size-xs;
-      margin: 0;
-      border: 1px solid var(--docs-border-primary);
       line-height: 1.4;
-      font-family: $font-family-mono;
     }
   }
 }

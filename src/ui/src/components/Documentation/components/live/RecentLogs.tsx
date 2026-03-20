@@ -233,7 +233,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     const target = document.getElementById(targetId);
     if (target) {
       target.scrollIntoView({ behavior: "instant", block: "start" });
-      target.classList.add(DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET);
+      target.classList.add(
+        DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
+      );
       window.setTimeout(() => {
         target.classList.remove(
           DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
@@ -320,7 +322,12 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
         </span>
       );
     },
-    [expandedSourceIds, getSourceLinkMeta, handleSourceNavigate, toggleSourceExpanded]
+    [
+      expandedSourceIds,
+      getSourceLinkMeta,
+      handleSourceNavigate,
+      toggleSourceExpanded,
+    ]
   );
 
   useEffect(() => {
@@ -436,9 +443,8 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                   {shortCorrelationId(log.correlationId)}
                 </span>
               )}
-              {log.sourceId && (
-                renderSourceLink(log.sourceId, "recent-logs__source")
-              )}
+              {log.sourceId &&
+                renderSourceLink(log.sourceId, "recent-logs__source")}
               <button
                 type="button"
                 className="recent-logs__action"
@@ -567,9 +573,8 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                     {shortCorrelationId(log.correlationId)}
                   </span>
                 )}
-                {log.sourceId && (
-                  renderSourceLink(log.sourceId, "recent-logs-fs__source")
-                )}
+                {log.sourceId &&
+                  renderSourceLink(log.sourceId, "recent-logs-fs__source")}
                 <button
                   className="recent-logs-fs__action"
                   onClick={(e) => {

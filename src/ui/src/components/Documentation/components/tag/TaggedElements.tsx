@@ -2,6 +2,7 @@ import React from "react";
 import { Tag } from "../../../../../../schema/model";
 import { Introspector } from "../../../../../../resources/models/Introspector";
 import { formatId } from "../../utils/formatting";
+import { StructuredConfigBlock } from "../common/StructuredConfigBlock";
 
 export interface TaggedElementsProps {
   tag: Tag;
@@ -142,7 +143,10 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({
                         {config && (
                           <div className="tag-card__relation-config">
                             <div className="config-title">Configuration:</div>
-                            <pre className="config-block">{config}</pre>
+                            <StructuredConfigBlock
+                              value={config}
+                              className="config-block"
+                            />
                           </div>
                         )}
                       </div>
@@ -177,7 +181,10 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({
                         {config && (
                           <div className="tag-card__relation-config">
                             <div className="config-title">Configuration:</div>
-                            <pre className="config-block">{config}</pre>
+                            <StructuredConfigBlock
+                              value={config}
+                              className="config-block"
+                            />
                           </div>
                         )}
                       </div>
@@ -212,7 +219,10 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({
                         {config && (
                           <div className="tag-card__relation-config">
                             <div className="config-title">Configuration:</div>
-                            <pre className="config-block">{config}</pre>
+                            <StructuredConfigBlock
+                              value={config}
+                              className="config-block"
+                            />
                           </div>
                         )}
                       </div>
@@ -247,7 +257,10 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({
                         {config && (
                           <div className="tag-card__relation-config">
                             <div className="config-title">Configuration:</div>
-                            <pre className="config-block">{config}</pre>
+                            <StructuredConfigBlock
+                              value={config}
+                              className="config-block"
+                            />
                           </div>
                         )}
                       </div>
@@ -282,7 +295,10 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({
                         {config && (
                           <div className="tag-card__relation-config">
                             <div className="config-title">Configuration:</div>
-                            <pre className="config-block">{config}</pre>
+                            <StructuredConfigBlock
+                              value={config}
+                              className="config-block"
+                            />
                           </div>
                         )}
                       </div>
@@ -317,7 +333,10 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({
                         {config && (
                           <div className="tag-card__relation-config">
                             <div className="config-title">Configuration:</div>
-                            <pre className="config-block">{config}</pre>
+                            <StructuredConfigBlock
+                              value={config}
+                              className="config-block"
+                            />
                           </div>
                         )}
                       </div>
@@ -352,7 +371,10 @@ export const TaggedElements: React.FC<TaggedElementsProps> = ({
                         {config && (
                           <div className="tag-card__relation-config">
                             <div className="config-title">Configuration:</div>
-                            <pre className="config-block">{config}</pre>
+                            <StructuredConfigBlock
+                              value={config}
+                              className="config-block"
+                            />
                           </div>
                         )}
                       </div>

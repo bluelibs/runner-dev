@@ -2,6 +2,7 @@
 // RESOURCE CARD COMPONENT STYLES
 // =============================================================================
 @use "../../../styles/variables" as *;
+@use "../../../styles/mixins" as *;
 
 // -----------------------------------------------------------------------------
 // Resource Card Base
@@ -387,15 +388,7 @@
   }
 
   &__block {
-    background: var(--docs-bg-secondary);
-    padding: $spacing-md;
-    border-radius: $border-radius-lg;
-    font-size: $font-size-xs;
-    line-height: 1.6;
-    overflow: auto;
-    border: 1px solid var(--docs-border-primary);
-    margin: 0;
-    font-family: $font-family-mono;
+    @include docs-code-block($padding: $spacing-md, $max-height: 320px);
   }
 }
 
@@ -559,14 +552,10 @@
     }
 
     .config-block {
+      @include docs-code-block($padding: $spacing-md, $max-height: 240px);
       background: var(--docs-bg-primary);
-      padding: $spacing-md;
       border-radius: $border-radius-md;
-      font-size: $font-size-xs;
-      margin: 0;
-      border: 1px solid var(--docs-border-primary);
       line-height: 1.4;
-      font-family: $font-family-mono;
     }
   }
 }
@@ -575,11 +564,29 @@
 // RPC Lanes Badge
 // -----------------------------------------------------------------------------
 .resource-card__rpc-lanes-badge {
+  display: inline-flex;
+  align-items: center;
   margin-left: $spacing-sm;
   font-size: $font-size-xs;
   opacity: 0.9;
   letter-spacing: 0.04em;
   font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    border-bottom-color: currentColor;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.82);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
 .resource-card__isolation-modal {

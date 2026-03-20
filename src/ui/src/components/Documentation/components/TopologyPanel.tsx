@@ -330,6 +330,7 @@ export const TopologyPanel: React.FC<TopologyPanelProps> = ({
         title={fullscreenTitle}
         subtitle={fullscreenSubtitle}
         size="fullscreen"
+        className="topology-panel__modal"
         ariaLabel="Topology fullscreen view"
       >
         <div className="topology-panel topology-panel--fullscreen">

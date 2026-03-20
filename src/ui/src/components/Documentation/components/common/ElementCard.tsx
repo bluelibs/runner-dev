@@ -54,7 +54,16 @@ export const ElementCard: React.FC<ElementCardProps> = ({
         <div className={`${prefix}__header-content`}>
           <div className={`${prefix}__header-top`}>
             <div className="main">
-              <h3 className={`${prefix}__title`}>{title}</h3>
+              <h3 className={`${prefix}__title`}>
+                <a
+                  href={`#element-${elementId}`}
+                  className={`${prefix}__title-link`}
+                  title={`Canonical link: #element-${elementId}`}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  {title}
+                </a>
+              </h3>
               {id && <div className={`${prefix}__id`}>{id}</div>}
               {descriptionContent}
             </div>
@@ -97,10 +106,14 @@ export const CardSection: React.FC<CardSectionProps> = ({
   contentClassName,
 }) => {
   return (
-    <div className={joinClasses(`${prefix}__section`, className)}>
+    <div
+      className={joinClasses(`${prefix}__section`, className)}
+      style={{ minWidth: 0 }}
+    >
       <h4 className={`${prefix}__section__title`}>{title}</h4>
       <div
         className={joinClasses(`${prefix}__section__content`, contentClassName)}
+        style={{ minWidth: 0 }}
       >
         {children}
       </div>

@@ -1,6 +1,11 @@
 import React from "react";
 import { MAX_TOPOLOGY_RADIUS } from "./topologyPanelState";
 import type { TopologyViewMode } from "../utils/topologyGraph";
+import { TopologyDescriptionTooltip } from "./TopologyDescriptionTooltip";
+import {
+  getTopologyLensDescription,
+  getTopologyLensLabel,
+} from "./topologyLensHelp";
 
 export interface TopologyToolbarProps {
   view: TopologyViewMode;
@@ -29,28 +34,47 @@ export const TopologyToolbar: React.FC<TopologyToolbarProps> = ({
   onToggleAutoOrder,
   onToggleNavigator,
 }) => {
+  const blastLabel = getTopologyLensLabel("blast");
+  const mindmapLabel = getTopologyLensLabel("mindmap");
+
   return (
     <div className="topology-panel__toolbar">
       <div className="topology-panel__toolbar-group">
         <span className="topology-panel__toolbar-label">Lens</span>
-        <button
-          type="button"
-          className={`topology-panel__pill ${
-            view === "blast" ? "topology-panel__pill--active" : ""
-          }`}
-          onClick={() => onViewChange("blast")}
-        >
-          Blast Radius
-        </button>
-        <button
-          type="button"
-          className={`topology-panel__pill ${
-            view === "mindmap" ? "topology-panel__pill--active" : ""
-          }`}
-          onClick={() => onViewChange("mindmap")}
-        >
-          Mindmap
-        </button>
+        <div className="topology-panel__toolbar-lens-option">
+          <button
+            type="button"
+            className={`topology-panel__pill ${
+              view === "blast" ? "topology-panel__pill--active" : ""
+            }`}
+            onClick={() => onViewChange("blast")}
+          >
+            {blastLabel}
+          </button>
+          <TopologyDescriptionTooltip
+            description={getTopologyLensDescription("blast")}
+            label={blastLabel}
+            className="topology-panel__toolbar-help"
+            position="bottom"
+          />
+        </div>
+        <div className="topology-panel__toolbar-lens-option">
+          <button
+            type="button"
+            className={`topology-panel__pill ${
+              view === "mindmap" ? "topology-panel__pill--active" : ""
+            }`}
+            onClick={() => onViewChange("mindmap")}
+          >
+            {mindmapLabel}
+          </button>
+          <TopologyDescriptionTooltip
+            description={getTopologyLensDescription("mindmap")}
+            label={mindmapLabel}
+            className="topology-panel__toolbar-help"
+            position="bottom"
+          />
+        </div>
       </div>
 
       <div className="topology-panel__toolbar-group">

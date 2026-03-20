@@ -84,7 +84,14 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
           <div className="error-card__header-top">
             <div className="main">
               <h3 className="error-card__title">
-                {error.meta?.title || formatId(error.id)}
+                <a
+                  href={`#element-${error.id}`}
+                  className="error-card__title-link"
+                  title={`Canonical link: #element-${error.id}`}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  {error.meta?.title || formatId(error.id)}
+                </a>
               </h3>
               <div className="error-card__id">{error.id}</div>
               {error.meta?.description && (

@@ -397,35 +397,14 @@ export class Introspector {
     taskMiddlewares: Middleware[];
     resourceMiddlewares: Middleware[];
   } {
-    const taskMiddlewares: Middleware[] = [];
-    const resourceMiddlewares: Middleware[] = [];
-
-    for (const middleware of middlewares) {
-      if (middleware.type === "task") {
-        taskMiddlewares.push(middleware);
-        continue;
-      }
-
-      if (middleware.type === "resource") {
-        resourceMiddlewares.push(middleware);
-        continue;
-      }
-
-      const usedByTasksLength = Array.isArray(middleware.usedByTasks)
-        ? middleware.usedByTasks.length
-        : 0;
-      const usedByResourcesLength = Array.isArray(middleware.usedByResources)
-        ? middleware.usedByResources.length
-        : 0;
-
-      if (usedByTasksLength > 0 || usedByResourcesLength === 0) {
-        taskMiddlewares.push(middleware);
-      } else {
-        resourceMiddlewares.push(middleware);
-      }
-    }
-
-    return { taskMiddlewares, resourceMiddlewares };
+    return {
+      taskMiddlewares: middlewares.filter(
+        (middleware) => middleware.type === "task"
+      ),
+      resourceMiddlewares: middlewares.filter(
+        (middleware) => middleware.type === "resource"
+      ),
+    };
   }
 
   // Helper function for building runs options

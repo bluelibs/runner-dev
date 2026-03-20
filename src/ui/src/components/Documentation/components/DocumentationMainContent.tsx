@@ -277,7 +277,7 @@ export const DocumentationMainContent: React.FC<
                 <div className="count">{events.length}</div>
               </a>
               <a href="#middlewares" className="card card--middlewares">
-                <h3>Middlewares</h3>
+                <h3>Middleware</h3>
                 <div className="count">{middlewares.length}</div>
               </a>
               <a href="#hooks" className="card card--hooks">
@@ -726,15 +726,16 @@ export const DocumentationMainContent: React.FC<
           <ElementTable
             elements={middlewares}
             resources={resources}
-            title="Middlewares Overview"
+            title="Middleware Overview"
             icon={getDocumentationIcon("middlewares")}
             id="middlewares"
+            middlewareTypeFilters
           />
         )}
         {activeSection === "middlewares" && middlewares.length > 0 && (
           <section className="docs-section">
             <h2>
-              {getDocumentationIcon("middlewares")} Middlewares (
+              {getDocumentationIcon("middlewares")} Middleware (
               {middlewares.length})
             </h2>
             <div className="docs-component-grid">

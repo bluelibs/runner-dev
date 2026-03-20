@@ -60,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: "middlewares" as Section,
-      label: "Middlewares",
+      label: "Middleware",
       icon: getDocumentationIcon("middlewares"),
       count: introspector.getMiddlewares().length,
     },

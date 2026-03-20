@@ -151,6 +151,26 @@ export interface Middleware extends BaseElement {
   configSchema?: string | null;
 }
 
+export function resolveMiddlewareGraphqlTypeName(
+  value: unknown
+): "TaskMiddleware" | "ResourceMiddleware" | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const middlewareLike = value as Partial<Middleware>;
+
+  if (middlewareLike.type === "task") {
+    return "TaskMiddleware";
+  }
+
+  if (middlewareLike.type === "resource") {
+    return "ResourceMiddleware";
+  }
+
+  return undefined;
+}
+
 export interface Task extends BaseElement {
   id: string;
   meta?: Meta | null;

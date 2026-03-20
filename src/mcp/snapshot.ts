@@ -21,6 +21,7 @@ import type {
 } from "../resources/live.resource";
 import { Introspector } from "../resources/models/Introspector";
 import { isSystemEventId } from "../resources/models/introspector.tools";
+import { resolveMiddlewareGraphqlTypeName } from "../schema/model";
 import type { ISwapManager } from "../resources/swap.resource";
 import { convertJsonSchemaToReadable } from "../utils/schemaFormat";
 import { isSystemNamespaceId } from "../utils/system-namespace";
@@ -206,18 +207,7 @@ function inferSnapshotTypeName(source: unknown): string {
     Array.isArray(value.usedByTasks) ||
     Array.isArray(value.usedByResources)
   ) {
-    const usedByTasks = Array.isArray(value.usedByTasks)
-      ? value.usedByTasks
-      : [];
-    const usedByResources = Array.isArray(value.usedByResources)
-      ? value.usedByResources
-      : [];
-
-    if (usedByTasks.length > 0 || usedByResources.length === 0) {
-      return "TaskMiddleware";
-    }
-
-    return "ResourceMiddleware";
+    return resolveMiddlewareGraphqlTypeName(value) ?? "All";
   }
 
   if (Array.isArray(value.listenedToBy)) {

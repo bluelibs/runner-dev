@@ -9,7 +9,11 @@ import {
   type GraphQLFieldConfigMap,
   GraphQLList,
 } from "graphql";
-import { elementKindSymbol, ElementKind } from "../model";
+import {
+  elementKindSymbol,
+  ElementKind,
+  resolveMiddlewareGraphqlTypeName,
+} from "../model";
 import { sanitizePath } from "../../utils/path";
 import { MetaType } from "./MetaType";
 import { baseElementCommonFields } from "./BaseElementCommon";
@@ -87,17 +91,7 @@ export const BaseElementInterface: GraphQLInterfaceType =
         case "RESOURCE":
           return "Resource";
         case "MIDDLEWARE": {
-          // Decide specific middleware type based on usage shape
-          const usedByTasks = Array.isArray((value as any)?.usedByTasks)
-            ? ((value as any)?.usedByTasks as unknown[])
-            : [];
-          const usedByResources = Array.isArray((value as any)?.usedByResources)
-            ? ((value as any)?.usedByResources as unknown[])
-            : [];
-          if (usedByTasks.length > 0 || usedByResources.length === 0) {
-            return "TaskMiddleware";
-          }
-          return "ResourceMiddleware";
+          return resolveMiddlewareGraphqlTypeName(value) ?? "All";
         }
         case "EVENT":
           return "Event";
@@ -114,16 +108,7 @@ export const BaseElementInterface: GraphQLInterfaceType =
         Array.isArray(value?.usedByTasks) ||
         Array.isArray(value?.usedByResources)
       ) {
-        const usedByTasks = Array.isArray((value as any)?.usedByTasks)
-          ? ((value as any)?.usedByTasks as unknown[])
-          : [];
-        const usedByResources = Array.isArray((value as any)?.usedByResources)
-          ? ((value as any)?.usedByResources as unknown[])
-          : [];
-        if (usedByTasks.length > 0 || usedByResources.length === 0) {
-          return "TaskMiddleware";
-        }
-        return "ResourceMiddleware";
+        return resolveMiddlewareGraphqlTypeName(value) ?? "All";
       }
       if (Array.isArray(value?.listenedToBy)) {
         return "Event";

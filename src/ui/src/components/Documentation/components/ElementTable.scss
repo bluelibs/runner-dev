@@ -2,7 +2,6 @@
 
 .element-table {
   margin-bottom: $spacing-xxxl;
-  background: var(--docs-bg-primary);
   border-radius: $border-radius-lg;
   // border: 1px solid var(--docs-border-primary);
   // padding: $spacing-md $spacing-lg;
@@ -20,6 +19,73 @@
 
   &__icon {
     font-size: $font-size-xl;
+  }
+
+  &__scope-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+    padding-left: 5px;
+  }
+
+  &__scope-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: $border-radius-pill;
+    border: 1px solid var(--docs-border-secondary);
+    background: var(--docs-bg-primary);
+    color: var(--docs-text-muted);
+    font-size: $font-size-sm;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--docs-bg-secondary);
+      color: var(--docs-text-primary);
+      border-color: var(--docs-border-primary);
+    }
+
+    &:active {
+      background: var(--docs-bg-primary);
+      color: var(--docs-text-muted);
+      border-color: var(--docs-border-secondary);
+    }
+
+    &:focus {
+      outline: 2px solid var(--docs-focus-ring);
+      outline-offset: 2px;
+    }
+
+    &--active {
+      background: color-mix(
+        in srgb,
+        var(--docs-primary) 12%,
+        var(--docs-bg-secondary)
+      );
+      border-color: color-mix(
+        in srgb,
+        var(--docs-primary) 28%,
+        var(--docs-border-secondary)
+      );
+      color: var(--docs-text-primary);
+
+      &:active {
+        background: color-mix(
+          in srgb,
+          var(--docs-primary) 12%,
+          var(--docs-bg-secondary)
+        );
+        border-color: color-mix(
+          in srgb,
+          var(--docs-primary) 28%,
+          var(--docs-border-secondary)
+        );
+        color: var(--docs-text-primary);
+      }
+    }
   }
 
   &__container {
@@ -361,12 +427,56 @@
     text-decoration: none;
     display: block;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 
     &:hover {
+      text-decoration: none;
+    }
+
+    &:hover .element-table__title-text,
+    &:focus-visible .element-table__title-text {
       text-decoration: underline;
     }
+  }
+
+  &__title-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__title-text {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__scope-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: $border-radius-pill;
+    background: color-mix(
+      in srgb,
+      var(--docs-primary) 12%,
+      var(--docs-bg-secondary)
+    );
+    border: 1px solid
+      color-mix(
+        in srgb,
+        var(--docs-primary) 24%,
+        var(--docs-border-secondary)
+      );
+    color: var(--docs-text-primary);
+    font-size: $font-size-xs;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-decoration: none;
   }
 
   &__action-btn {
@@ -551,6 +661,15 @@
 
     &__title {
       font-size: $font-size-base;
+    }
+
+    &__scope-toggles {
+      gap: $spacing-xs;
+    }
+
+    &__scope-toggle {
+      width: 100%;
+      justify-content: center;
     }
 
     &__table {

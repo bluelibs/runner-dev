@@ -10,6 +10,7 @@ type ColumnFilters = Record<ColumnFilterKey, string>;
 
 export interface BaseElement {
   id: string;
+  type?: string;
   registeredBy?: string | null;
   isPrivate?: boolean;
   meta?: {
@@ -45,6 +46,7 @@ export interface ElementTableProps {
   enableActions?: "task" | "event";
   // Callback to notify parent to handle execution in the respective Card
   onAction?: (element: BaseElement) => void;
+  middlewareTypeFilters?: boolean;
 }
 
 export const ElementTable: React.FC<ElementTableProps> = ({
@@ -55,6 +57,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   id,
   enableActions,
   onAction,
+  middlewareTypeFilters = false,
 }) => {
   const [sortState, setSortState] = React.useState<{
     key: SortKey;
@@ -75,6 +78,9 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   const [clampedMap, setClampedMap] = React.useState<Record<string, boolean>>(
     {}
   );
+  const [showTaskMiddlewares, setShowTaskMiddlewares] = React.useState(true);
+  const [showResourceMiddlewares, setShowResourceMiddlewares] =
+    React.useState(true);
   const descriptionRefs = React.useRef<Record<string, HTMLElement | null>>({});
 
   const getUsedByCount = React.useCallback((element: BaseElement): number => {
@@ -133,11 +139,19 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     const descriptionFilter = columnFilters.description.trim().toLowerCase();
     const usedByFilter = columnFilters.usedBy.trim().toLowerCase();
 
+    const middlewareScopedElements = middlewareTypeFilters
+      ? elements.filter((element) => {
+          if (element.type === "task") return showTaskMiddlewares;
+          if (element.type === "resource") return showResourceMiddlewares;
+          return true;
+        })
+      : elements;
+
     if (!idFilter && !titleFilter && !descriptionFilter && !usedByFilter) {
-      return elements;
+      return middlewareScopedElements;
     }
 
-    return elements.filter((element) => {
+    return middlewareScopedElements.filter((element) => {
       const idValue = element.id.toLowerCase();
       const titleValue = (element.meta?.title ?? "").toLowerCase();
       const descriptionValue = (element.meta?.description ?? "").toLowerCase();
@@ -150,7 +164,14 @@ export const ElementTable: React.FC<ElementTableProps> = ({
         (!usedByFilter || usedByValue.includes(usedByFilter))
       );
     });
-  }, [columnFilters, elements, getUsedByCount]);
+  }, [
+    columnFilters,
+    elements,
+    getUsedByCount,
+    middlewareTypeFilters,
+    showResourceMiddlewares,
+    showTaskMiddlewares,
+  ]);
 
   const sortedElements = React.useMemo(() => {
     if (!sortState) return filteredElements;
@@ -286,12 +307,55 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     onAction?.(element);
   };
 
+  const getElementTitle = (element: BaseElement): string | undefined => {
+    return element.meta?.title;
+  };
+
+  const getMiddlewareScopeLabel = (element: BaseElement): string | null => {
+    if (!middlewareTypeFilters) return null;
+    if (element.type === "task") return "T";
+    if (element.type === "resource") return "R";
+    return null;
+  };
+
   return (
     <div className="element-table" id={id}>
       <h2 className="element-table__title">
         {icon && <span className="element-table__icon">{icon}</span>}
         {title} ({elements.length})
       </h2>
+      {middlewareTypeFilters && (
+        <div
+          className="element-table__scope-toggles"
+          role="group"
+          aria-label="Middleware overview filters"
+        >
+          <button
+            type="button"
+            className={`element-table__scope-toggle ${
+              showTaskMiddlewares
+                ? "element-table__scope-toggle--active"
+                : ""
+            }`}
+            onClick={() => setShowTaskMiddlewares((value) => !value)}
+            aria-pressed={showTaskMiddlewares}
+          >
+            For Tasks
+          </button>
+          <button
+            type="button"
+            className={`element-table__scope-toggle ${
+              showResourceMiddlewares
+                ? "element-table__scope-toggle--active"
+                : ""
+            }`}
+            onClick={() => setShowResourceMiddlewares((value) => !value)}
+            aria-pressed={showResourceMiddlewares}
+          >
+            For Resources
+          </button>
+        </div>
+      )}
       <div className="element-table__container">
         <table className="element-table__table">
           <thead>
@@ -516,11 +580,22 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                     <a
                       href={`#element-${element.id}`}
                       className="element-table__title-link"
-                      title={element.meta?.title || element.id}
+                      title={getElementTitle(element) || element.id}
                     >
-                      {element.meta?.title || (
-                        <span className="element-table__empty">Untitled</span>
-                      )}
+                      <span className="element-table__title-content">
+                        <span className="element-table__title-text">
+                          {getElementTitle(element) || (
+                            <span className="element-table__empty">
+                              Untitled
+                            </span>
+                          )}
+                        </span>
+                        {getMiddlewareScopeLabel(element) && (
+                          <span className="element-table__scope-badge">
+                            {getMiddlewareScopeLabel(element)}
+                          </span>
+                        )}
+                      </span>
                     </a>
                     {enableActions && (
                       <button

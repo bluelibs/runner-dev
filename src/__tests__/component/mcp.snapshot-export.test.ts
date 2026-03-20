@@ -5,6 +5,7 @@ import {
   Match,
   defineEvent,
   defineResource,
+  defineResourceMiddleware,
   defineTask,
 } from "@bluelibs/runner";
 import { callGraphQL } from "../../mcp/http";
@@ -14,6 +15,13 @@ import * as packageDocs from "../../docs/packageDocs";
 import * as docsUiAssets from "../../resources/docsUiAssets";
 
 function createApp() {
+  const unusedResourceMiddleware = defineResourceMiddleware({
+    id: "unused-resource-middleware",
+    async run({ next }) {
+      return next();
+    },
+  });
+
   const settingsResource = defineResource({
     id: "settings",
     meta: {
@@ -52,7 +60,12 @@ function createApp() {
 
   return defineResource({
     id: "tests-mcp-export-app",
-    register: [configuredSettingsResource, pingedEvent, pingTask],
+    register: [
+      unusedResourceMiddleware,
+      configuredSettingsResource,
+      pingedEvent,
+      pingTask,
+    ],
   });
 }
 
@@ -121,6 +134,13 @@ describe("snapshot-backed MCP from exportDocs()", () => {
             __typename
             id
           }
+          unusedResourceMiddleware: all(idIncludes: "unused-resource-middleware") {
+            __typename
+            id
+            ... on ResourceMiddleware {
+              usedBy { id }
+            }
+          }
           tasks(idIncludes: "ping") {
             id
             inputSchemaReadable
@@ -160,6 +180,13 @@ describe("snapshot-backed MCP from exportDocs()", () => {
         }),
       ])
     );
+    expect(result.data.unusedResourceMiddleware).toEqual([
+      {
+        __typename: "ResourceMiddleware",
+        id: "tests-mcp-export-app.middleware.resource.unused-resource-middleware",
+        usedBy: [],
+      },
+    ]);
     expect(result.data.tasks).toHaveLength(1);
     expect(result.data.resources).toHaveLength(1);
     expect(result.data.events).toHaveLength(1);

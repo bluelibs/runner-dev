@@ -83,7 +83,7 @@ export const createSections = (counts: {
     },
     {
       id: "middlewares",
-      label: "Middlewares",
+      label: "Middleware",
       icon: getDocumentationIcon("middlewares"),
       count: counts.middlewares,
       hasContent: counts.middlewares > 0,

@@ -85,6 +85,7 @@ describe("exportDocs", () => {
     expect(snapshot.graphqlSdl).toContain("type Query");
     expect(indexHtml).toContain("window.__DOCS_PROPS__=");
     expect(indexHtml).toContain("console.log(1);");
+    expect(indexHtml).toContain('<script type="module">console.log(1);</script>');
     expect(indexHtml).toContain("<style>body{}</style>");
     expect(indexHtml).toContain('href="data:image/x-icon;base64,');
     expect(indexHtml).not.toContain("__API_URL__");

@@ -96,7 +96,16 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
       elementId={middleware.id}
       kindLabel={isTaskMiddleware ? "task-middleware" : "resource-middleware"}
       isSystem={isSystemElement(middleware)}
-      title={middleware.meta?.title || formatId(middleware.id)}
+      title={
+        <span className="middleware-card__title-content">
+          <span className="middleware-card__title-text">
+            {middleware.meta?.title || formatId(middleware.id)}
+          </span>
+          <span className="middleware-card__scope-badge">
+            {isTaskMiddleware ? "T" : "R"}
+          </span>
+        </span>
+      }
       id={middleware.id}
       description={descriptionContent}
       actions={

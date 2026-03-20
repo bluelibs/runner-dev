@@ -4,6 +4,7 @@ import {
   resources,
   defineEvent,
   defineTask,
+  defineResourceMiddleware,
 } from "@bluelibs/runner";
 import { schema } from "../../schema";
 import {
@@ -1017,6 +1018,54 @@ describe("GraphQL schema (integration)", () => {
     expect(data.eventsHello.map((e: any) => e.id)).toEqual(
       expect.arrayContaining([dummyAppIds.event(evtHello.id)])
     );
+  });
+
+  test("all() keeps unused resource middleware typed as ResourceMiddleware", async () => {
+    let ctx: any;
+
+    const unusedResourceMiddleware = defineResourceMiddleware({
+      id: "mw-unused-resource",
+      async run({ next }) {
+        return next();
+      },
+    });
+
+    const probe = defineResource({
+      id: "probe-graphql-unused-resource-middleware",
+      dependencies: { introspector, store: resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    const app = createDummyApp([introspector, unusedResourceMiddleware, probe]);
+    await run(app);
+
+    const query = `
+      query UnusedResourceMiddlewareType {
+        all(idIncludes: "mw-unused-resource") {
+          id
+          __typename
+          ... on ResourceMiddleware { usedBy { id } }
+          ... on TaskMiddleware { usedBy { id } }
+        }
+      }
+    `;
+
+    const result = await graphql({ schema, source: query, contextValue: ctx });
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.all).toEqual([
+      {
+        id: dummyAppIds.resourceMiddleware("mw-unused-resource"),
+        __typename: "ResourceMiddleware",
+        usedBy: [],
+      },
+    ]);
   });
 
   test("hideSystem hides only system namespace events", async () => {

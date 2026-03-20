@@ -123,7 +123,7 @@ export async function renderStandaloneDocsHtml(
     ? `<link rel="icon" href="${faviconHref}" type="image/x-icon"/>`
     : "";
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${title}</title>${faviconTag}<style>${css}</style></head><body><div id="root"></div><script>window.__DOCS_PROPS__=${payloadJson};</script><script>${js}</script></body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${title}</title>${faviconTag}<style>${css}</style></head><body><div id="root"></div><script>window.__DOCS_PROPS__=${payloadJson};</script><script type="module">${js}</script></body></html>`;
 }
 
 export async function copyDocsUiAssetsForExport(

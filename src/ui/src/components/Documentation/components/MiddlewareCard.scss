@@ -76,6 +76,43 @@
   font-weight: 700;
 }
 
+.middleware-card__title-content {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.middleware-card__title-text {
+  display: block;
+}
+
+.middleware-card__scope-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: $border-radius-pill;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.96);
+  font-size: $font-size-xs;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.middleware-card__title-link:hover,
+.middleware-card__title-link:focus-visible {
+  text-decoration: none;
+}
+
+.middleware-card__title-link:hover .middleware-card__title-text,
+.middleware-card__title-link:focus-visible .middleware-card__title-text {
+  text-decoration: underline;
+}
+
 .middleware-card__id {
   font-size: $font-size-base;
   opacity: 0.9;

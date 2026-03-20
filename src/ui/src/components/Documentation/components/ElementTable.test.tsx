@@ -217,4 +217,81 @@ describe("ElementTable", () => {
       "...>catalog > catalogOnEnabled",
     ]);
   });
+
+  it("shows both middleware scopes by default when middleware filters are enabled", () => {
+    const middlewareElements: BaseElement[] = [
+      {
+        id: "enhanced-app.middlewares.task.audit",
+        type: "task",
+        meta: { title: "Task Audit" },
+      },
+      {
+        id: "enhanced-app.middlewares.resource.metrics",
+        type: "resource",
+        meta: { title: "Resource Metrics" },
+      },
+    ];
+
+    render(
+      <ElementTable
+        elements={middlewareElements}
+        resources={resources}
+        title="Middleware Overview"
+        middlewareTypeFilters
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: "For Tasks" })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "For Resources" })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Task Audit")).toBeInTheDocument();
+    expect(screen.getByText("Resource Metrics")).toBeInTheDocument();
+    expect(screen.getByText("T")).toBeInTheDocument();
+    expect(screen.getByText("R")).toBeInTheDocument();
+  });
+
+  it("filters middleware overview rows by task and resource toggles", () => {
+    const middlewareElements: BaseElement[] = [
+      {
+        id: "enhanced-app.middlewares.task.audit",
+        type: "task",
+        meta: { title: "Task Audit" },
+      },
+      {
+        id: "enhanced-app.middlewares.resource.metrics",
+        type: "resource",
+        meta: { title: "Resource Metrics" },
+      },
+    ];
+
+    render(
+      <ElementTable
+        elements={middlewareElements}
+        resources={resources}
+        title="Middleware Overview"
+        middlewareTypeFilters
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "For Resources" }));
+    expect(screen.getByText("Task Audit")).toBeInTheDocument();
+    expect(screen.queryByText("Resource Metrics")).not.toBeInTheDocument();
+    expect(screen.getByText("T")).toBeInTheDocument();
+    expect(screen.queryByText("R")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "For Tasks" }));
+    expect(screen.queryByText("Task Audit")).not.toBeInTheDocument();
+    expect(screen.queryByText("Resource Metrics")).not.toBeInTheDocument();
+    expect(screen.queryByText("T")).not.toBeInTheDocument();
+    expect(screen.queryByText("R")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "For Resources" }));
+    expect(screen.getByText("Resource Metrics")).toBeInTheDocument();
+    expect(screen.queryByText("Task Audit")).not.toBeInTheDocument();
+    expect(screen.getByText("R")).toBeInTheDocument();
+    expect(screen.queryByText("T")).not.toBeInTheDocument();
+  });
 });

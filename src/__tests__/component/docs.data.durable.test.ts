@@ -78,7 +78,6 @@ describe("/docs/data durable enrichment", () => {
       const store = await runtime.getResourceValue(resources.store);
       const introspector = new Introspector({ store });
       const handler = createDocsDataRouteHandler({
-        uiDir: ".",
         store,
         introspector,
         logger: { info: () => undefined },
@@ -113,7 +112,6 @@ describe("/docs/data durable enrichment", () => {
       const store = await runtime.getResourceValue(resources.store);
       const introspector = new Introspector({ store });
       const handler = createDocsDataRouteHandler({
-        uiDir: ".",
         store,
         introspector,
         logger: { info: () => undefined },

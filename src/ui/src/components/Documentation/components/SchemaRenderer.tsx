@@ -11,6 +11,16 @@ import { formatSchema } from "../utils/formatting";
 import { copyToClipboard } from "./chat/ChatUtils";
 import JsonViewer from "./JsonViewer";
 import "./SchemaRenderer.scss";
+import {
+  computeSchemaDefaultValue,
+  type JsonSchemaLike,
+} from "../utils/schemaDefaults";
+import {
+  getSchemaArrayEnumOptions,
+  getSchemaFieldHint,
+  getSchemaStringInputType,
+  parseCommaSeparatedArrayValue,
+} from "../utils/schemaForm";
 // [AI-CHAT-DISABLED] import {
 //   hasOpenAIKey,
 //   generateInstanceFromJsonSchema,
@@ -45,38 +55,9 @@ function parseSchema(schemaString?: string | null): JsonSchema | null {
   }
 }
 
-function computeSimpleDefault(schema: JsonSchema | undefined): any {
-  if (!schema) return undefined;
-  if (schema.default !== undefined) return schema.default;
-  if (schema.enum && schema.enum.length > 0) return schema.enum[0];
-  switch (schema.type) {
-    case "string":
-      return "";
-    case "number":
-    case "integer":
-      return 0;
-    case "boolean":
-      return false;
-    case "array":
-      // Keep empty by default to avoid overengineering
-      return [];
-    case "object": {
-      const result: Record<string, any> = {};
-      if (schema.properties) {
-        for (const [key, child] of Object.entries(schema.properties)) {
-          result[key] = computeSimpleDefault(child);
-        }
-      }
-      return result;
-    }
-    default:
-      return undefined;
-  }
-}
-
 function computeDefaults(schema: JsonSchema | null): any {
   if (!schema) return undefined;
-  return computeSimpleDefault(schema);
+  return computeSchemaDefaultValue(schema as JsonSchemaLike);
 }
 
 function decodePointerSegment(segment: string): string {
@@ -186,8 +167,13 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     switch (effective.type) {
       case "string":
         return (
-          <FormGroup key={fullName} label={`${label}${isRequired ? " *" : ""}`}>
+          <FormGroup
+            key={fullName}
+            label={`${label}${isRequired ? " *" : ""}`}
+            hint={getSchemaFieldHint(effective)}
+          >
             <TextInput
+              type={getSchemaStringInputType(effective)}
               value={getPathValue(formData, fullName) ?? ""}
               onChange={(e) =>
                 setValue(fullName as any, e.target.value, {
@@ -202,7 +188,11 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
       case "number":
       case "integer":
         return (
-          <FormGroup key={fullName} label={`${label}${isRequired ? " *" : ""}`}>
+          <FormGroup
+            key={fullName}
+            label={`${label}${isRequired ? " *" : ""}`}
+            hint={getSchemaFieldHint(effective)}
+          >
             <TextInput
               type="number"
               step={effective.type === "integer" ? 1 : "any"}
@@ -235,20 +225,64 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
       case "array": {
         // Simple arrays displayed as a comma-separated string for now
         const itemsResolved = derefLocal(effective.items, schema);
-        const itemsType = itemsResolved?.type || "string";
+        const enumOptions = getSchemaArrayEnumOptions({
+          ...effective,
+          items: itemsResolved,
+        });
+
+        if (enumOptions) {
+          return (
+            <FormGroup
+              key={fullName}
+              label={`${label}${isRequired ? " *" : ""}`}
+              hint="Select one or more options."
+            >
+              <Select
+                multiple
+                size={Math.min(Math.max(enumOptions.length, 3), 6)}
+                value={
+                  Array.isArray(getPathValue(formData, fullName))
+                    ? getPathValue(formData, fullName)
+                    : []
+                }
+                onChange={(e) => {
+                  const selectedValues = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value
+                  );
+
+                  setValue(fullName as any, selectedValues, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                  });
+                }}
+              >
+                {enumOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </Select>
+            </FormGroup>
+          );
+        }
+
         return (
           <FormGroup
             key={fullName}
             label={`${label}${isRequired ? " *" : ""}`}
-            hint={`Array of ${itemsType}. Comma-separated.`}
+            hint={getSchemaFieldHint({
+              ...effective,
+              items: itemsResolved,
+            })}
           >
             <TextInput
               value={(getPathValue(formData, fullName) || []).join(", ")}
               onChange={(e) => {
-                const parts = e.target.value
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean);
+                const parts = parseCommaSeparatedArrayValue(
+                  e.target.value,
+                  itemsResolved
+                );
                 setValue(fullName as any, parts, {
                   shouldDirty: true,
                   shouldTouch: true,
@@ -399,11 +433,8 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
             activeTab === "form" ? "is-active" : ""
           }`}
           onClick={() => {
-            if (!didPrefill && schema) {
-              const funny = generateFunnySample(schema);
-              if (funny && typeof funny === "object") {
-                reset(funny);
-              }
+            if (!didPrefill && defaultValues !== undefined) {
+              reset(defaultValues);
               setDidPrefill(true);
             }
             setActiveTab("form");
@@ -422,15 +453,15 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
         </button>
       </div>
 
-      {!hidePrint && activeTab === "print" && (
-        schema ? (
+      {!hidePrint &&
+        activeTab === "print" &&
+        (schema ? (
           <JsonViewer className="schema-renderer__code-block" data={schema} />
         ) : (
           <pre className="schema-renderer__code-block">
             {formatSchema(schemaString)}
           </pre>
-        )
-      )}
+        ))}
 
       {activeTab === "form" && (
         <div className="schema-renderer__form-wrapper">
@@ -478,51 +509,3 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
 };
 
 export default SchemaRenderer;
-
-// ----------------------------------------------------------------------------
-// Funny data generator compatible with JSON Schema structure
-// ----------------------------------------------------------------------------
-function generateFunnySample(schema: JsonSchema | null | undefined): any {
-  if (!schema) return undefined;
-
-  if (schema.enum && schema.enum.length > 0) {
-    return schema.enum[0];
-  }
-
-  switch (schema.type) {
-    case "string":
-      return pickFunnyString();
-    case "number":
-      return 42;
-    case "integer":
-      return 7;
-    case "boolean":
-      return true;
-    case "array": {
-      const itemSchema = schema.items || { type: "string" };
-      return [generateFunnySample(itemSchema)];
-    }
-    case "object": {
-      const result: Record<string, any> = {};
-      const props = schema.properties || {};
-      for (const [key, child] of Object.entries(props)) {
-        result[key] = generateFunnySample(child);
-      }
-      return result;
-    }
-    default:
-      return undefined;
-  }
-}
-
-function pickFunnyString(): string {
-  const options = [
-    "✨ stardust",
-    "🧪 lab-magic",
-    "🚀 rocket-fuel",
-    "🍕 pizza-slice",
-    "🧩 puzzle-piece",
-    "🐙 octo-value",
-  ];
-  return options[Math.floor(Math.random() * options.length)];
-}

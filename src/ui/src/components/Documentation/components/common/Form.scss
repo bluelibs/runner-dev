@@ -44,6 +44,16 @@
   box-shadow: 0 0 0 3px var(--docs-focus-ring);
 }
 
+.form__select[multiple] {
+  min-height: 132px;
+  padding-block: $spacing-xs;
+}
+
+.form__select[multiple] option {
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-sm;
+}
+
 .form__hint {
   font-size: $font-size-xs;
   color: var(--docs-text-muted);

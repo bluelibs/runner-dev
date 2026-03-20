@@ -12,6 +12,7 @@ import "./AsyncContextCard.scss";
 import { ElementKindBadge, SystemBadge } from "./common/ElementKindBadge";
 import { isSystemElement } from "../utils/isSystemElement";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface AsyncContextCardProps {
   asyncContext: AsyncContext;
@@ -22,6 +23,7 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
   asyncContext,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const usedByTasks = introspector.getTasksUsingContext(asyncContext.id);
   const usedByResources = introspector.getResourcesUsingContext(
     asyncContext.id
@@ -119,7 +121,7 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
                 <div className="async-context-card__info-block">
                   <div className="label">File Path:</div>
                   <div className="value">
-                    {asyncContext.filePath ? (
+                    {asyncContext.filePath && !isCatalogMode ? (
                       <button
                         type="button"
                         className="async-context-card__file-button"

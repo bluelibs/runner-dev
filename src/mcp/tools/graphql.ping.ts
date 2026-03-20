@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { callGraphQL } from "../http";
-import { assertEndpoint } from "../env";
+import { assertGraphqlSourceDescription } from "../env";
 
 export function registerGraphQLPing(server: McpServer) {
   server.registerTool(
@@ -17,7 +17,7 @@ export function registerGraphQLPing(server: McpServer) {
           {
             type: "text",
             text: JSON.stringify(
-              { ok: true, result, endpoint: assertEndpoint() },
+              { ok: true, result, source: assertGraphqlSourceDescription() },
               null,
               2
             ),

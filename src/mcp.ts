@@ -12,7 +12,10 @@ import { registerGraphQLMutation } from "./mcp/tools/graphql.mutation";
 import { registerGraphQLIntrospect } from "./mcp/tools/graphql.introspect";
 import { registerGraphQLSchemaSDL } from "./mcp/tools/graphql.schemaSdl";
 import { registerGraphQLPing } from "./mcp/tools/graphql.ping";
-import { ENDPOINT } from "./mcp/env";
+import {
+  assertGraphqlSourceDescription,
+  getGraphqlSourceDescription,
+} from "./mcp/env";
 
 // Create an MCP server
 const server = new McpServer({
@@ -79,10 +82,15 @@ server.registerResource(
 
 // Start receiving messages on stdin and sending messages on stdout
 const transport = new StdioServerTransport();
-if (ENDPOINT) {
+const source = getGraphqlSourceDescription();
+if (source) {
   server.connect(transport).then(() => {
-    console.log(`Runner Dev MCP server started: ${ENDPOINT}`);
+    console.log(
+      `Runner Dev MCP server started: ${assertGraphqlSourceDescription()}`
+    );
   });
 } else {
-  console.error("Runner Dev MCP server: ENDPOINT is not set.");
+  console.error(
+    "Runner Dev MCP server: set ENDPOINT/GRAPHQL_ENDPOINT or SNAPSHOT_FILE."
+  );
 }

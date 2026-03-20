@@ -4,6 +4,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import type { Task } from "../../../../../schema/model";
 import { TaskCard } from "./TaskCard";
+import { DocumentationModeProvider } from "../context/DocumentationModeContext";
 
 jest.mock("./TaskCard.scss", () => ({}), { virtual: true });
 jest.mock("./common/DependenciesSection.scss", () => ({}), { virtual: true });
@@ -145,5 +146,50 @@ describe("TaskCard middleware rendering", () => {
     expect(screen.getByText(/Source:/)).toBeTruthy();
     expect(screen.getByText("app › features › catalog")).toBeTruthy();
     expect(screen.getByText(/identityScope/)).toBeTruthy();
+  });
+
+  it("hides catalog-only GraphQL affordances in catalog mode", () => {
+    const task: Task = {
+      id: "app.tasks.durable",
+      meta: { title: "Durable Task" },
+      emits: [],
+      dependsOn: [],
+      middleware: [],
+      middlewareDetailed: [],
+      filePath: "/tmp/durable.ts",
+      flowShape: { nodes: [{ kind: "step", stepId: "prepare" }] } as any,
+      isDurable: true as any,
+      coverage: { percentage: 88 } as any,
+    };
+
+    const introspector = {
+      getDependencies: () => ({
+        tasks: [],
+        hooks: [],
+        resources: [],
+        errors: [],
+      }),
+      getMiddlewareUsagesForTask: () => [],
+      getEmittedEvents: () => [],
+      getTagsByIds: () => [],
+      getEvent: () => null,
+    } as any;
+
+    render(
+      React.createElement(
+        DocumentationModeProvider,
+        { mode: "catalog" },
+        React.createElement(TaskCard, {
+          task,
+          introspector,
+          mode: "catalog",
+        })
+      )
+    );
+
+    expect(screen.queryByText("(View Coverage)")).toBeNull();
+    expect(screen.queryByText("Preview Graph")).toBeNull();
+    expect(screen.queryByTitle("View file contents")).toBeNull();
+    expect(screen.getByText("Flow Nodes:")).toBeTruthy();
   });
 });

@@ -105,10 +105,14 @@ export const RpcCatalogSyncResultSchema = Match.compile(
 export const LaneCatalogUpdatedPayloadSchema = Match.compile(
   Match.ObjectIncluding({
     supplierId: String,
+    changedSkus: Match.NonEmptyArray(String),
+    source: Match.OneOf("catalog-sync"),
     updatedAt: Date,
   })
 ) as CheckSchemaLike<{
   supplierId: string;
+  changedSkus: string[];
+  source: "catalog-sync";
   updatedAt: Date;
 }>;
 

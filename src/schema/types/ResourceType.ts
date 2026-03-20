@@ -20,7 +20,7 @@ import { ResourceMiddlewareUsageType } from "./middleware/UsageTypes";
 import { Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
-import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { CoverageInfoType } from "./CoverageType";
 
 const IsolationExportsModeType = new GraphQLEnumType({

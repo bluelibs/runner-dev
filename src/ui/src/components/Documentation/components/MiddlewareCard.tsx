@@ -15,6 +15,7 @@ import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface MiddlewareCardProps {
   middleware: Middleware;
@@ -25,6 +26,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
   middleware,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const isTaskMiddleware = middleware.type === "task";
 
   const usages = isTaskMiddleware
@@ -108,7 +110,7 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
       <div className="middleware-card__grid">
         <CardSection prefix="middleware-card" title="Overview">
           <InfoBlock prefix="middleware-card" label="File Path:">
-            {middleware.filePath ? (
+            {middleware.filePath && !isCatalogMode ? (
               <a
                 type="button"
                 onClick={openFileModal}

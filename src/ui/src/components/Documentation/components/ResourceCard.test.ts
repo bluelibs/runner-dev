@@ -4,6 +4,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import type { Resource } from "../../../../../schema/model";
 import { ResourceCard } from "./ResourceCard";
+import { DocumentationModeProvider } from "../context/DocumentationModeContext";
 
 jest.mock("./ResourceCard.scss", () => ({}), { virtual: true });
 jest.mock("./common/DependenciesSection.scss", () => ({}), { virtual: true });
@@ -159,5 +160,55 @@ describe("ResourceCard", () => {
     expect(screen.getByTestId("element-card-header").className).toContain(
       "resource-card__header--root"
     );
+  });
+
+  it("hides coverage drill-down in catalog mode", () => {
+    const resource: Resource = {
+      id: "app.resources.catalog",
+      meta: { title: "Catalog Resource" },
+      emits: [],
+      dependsOn: [],
+      config: null,
+      configSchema: null,
+      middleware: [],
+      overrides: [],
+      registers: [],
+      registeredBy: null,
+      filePath: "/tmp/catalog.ts",
+      coverage: { percentage: 92 } as any,
+    };
+
+    const introspector = {
+      getMiddlewareUsagesForResource: () => [],
+      getTasksUsingResource: () => [],
+      getDependencies: () => ({
+        tasks: [],
+        hooks: [],
+        resources: [],
+        errors: [],
+      }),
+      getTasksByIds: () => [],
+      getResourcesByIds: () => [],
+      getMiddlewaresByIds: () => [],
+      getEventsByIds: () => [],
+      getHooksByIds: () => [],
+      getResources: () => [resource],
+      getRoot: () => resource,
+      getTagsByIds: () => [],
+    } as any;
+
+    render(
+      React.createElement(
+        DocumentationModeProvider,
+        { mode: "catalog" },
+        React.createElement(ResourceCard, {
+          resource,
+          introspector,
+        })
+      )
+    );
+
+    expect(screen.queryByText("(View Coverage)")).toBeNull();
+    expect(screen.queryByTitle("View file contents")).toBeNull();
   });
 });

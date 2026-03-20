@@ -10,7 +10,7 @@ export function registerGraphQLMutation(server: McpServer) {
     {
       title: "GraphQL Mutation",
       description:
-        "Execute a GraphQL mutation against the configured ENDPOINT. Requires ALLOW_MUTATIONS=true",
+        "Execute a GraphQL mutation against the configured live source. Requires ALLOW_MUTATIONS=true and is not supported for snapshots.",
       inputSchema: {
         mutation: z.string(),
         variables: z.union([z.string(), z.record(z.unknown())]).optional(),
@@ -30,6 +30,11 @@ export function registerGraphQLMutation(server: McpServer) {
       maxItems,
       title,
     }) => {
+      if (process.env.SNAPSHOT_FILE) {
+        throw new Error(
+          "Mutations are not supported when SNAPSHOT_FILE is configured."
+        );
+      }
       if (!ALLOW_MUTATIONS) {
         throw new Error(
           "Mutations are disabled. Set ALLOW_MUTATIONS=true to enable."

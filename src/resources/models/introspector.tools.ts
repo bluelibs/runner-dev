@@ -35,13 +35,116 @@ export function readId(obj: any): string {
   return String(obj);
 }
 
+function hasHiddenObjectDetails(input: unknown): boolean {
+  if (typeof input !== "object" || input === null) {
+    return false;
+  }
+
+  return (
+    Object.getOwnPropertyNames(input).length > 0 ||
+    Object.getOwnPropertySymbols(input).length > 0 ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(input))
+  );
+}
+
+function normalizeForDisplay(
+  input: unknown,
+  seen = new WeakSet<object>()
+): unknown {
+  if (input === undefined) return "[undefined]";
+  if (typeof input === "function") {
+    return `[Function${input.name ? ` ${input.name}` : ""}]`;
+  }
+  if (typeof input === "symbol") {
+    return input.toString();
+  }
+  if (typeof input === "bigint") {
+    return `${input}n`;
+  }
+  if (
+    input == null ||
+    typeof input === "string" ||
+    typeof input === "number" ||
+    typeof input === "boolean"
+  ) {
+    return input;
+  }
+  if (input instanceof Date) {
+    return Number.isNaN(input.getTime()) ? String(input) : input.toISOString();
+  }
+  if (input instanceof RegExp) {
+    return input.toString();
+  }
+  if (typeof input !== "object") {
+    return String(input);
+  }
+  if (seen.has(input)) {
+    return "[Circular]";
+  }
+
+  seen.add(input);
+
+  if (Array.isArray(input)) {
+    return input.map((entry) => normalizeForDisplay(entry, seen));
+  }
+
+  const normalized: Record<string, unknown> = {};
+  const prototype = Object.getPrototypeOf(input);
+  const isPlainObject = prototype === Object.prototype || prototype === null;
+
+  if (!isPlainObject) {
+    normalized["[prototype]"] =
+      prototype?.constructor?.name || String(prototype);
+  }
+
+  for (const key of Object.getOwnPropertyNames(input)) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (!descriptor) continue;
+
+    if ("value" in descriptor) {
+      normalized[key] = normalizeForDisplay(descriptor.value, seen);
+      continue;
+    }
+
+    normalized[key] = descriptor.get
+      ? descriptor.set
+        ? "[Getter/Setter]"
+        : "[Getter]"
+      : "[Setter]";
+  }
+
+  for (const symbol of Object.getOwnPropertySymbols(input)) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, symbol);
+    const symbolKey = symbol.toString();
+    if (!descriptor) continue;
+
+    if ("value" in descriptor) {
+      normalized[symbolKey] = normalizeForDisplay(descriptor.value, seen);
+      continue;
+    }
+
+    normalized[symbolKey] = descriptor.get
+      ? descriptor.set
+        ? "[Getter/Setter]"
+        : "[Getter]"
+      : "[Setter]";
+  }
+
+  return normalized;
+}
+
 export function stringifyIfObject(input: any): string | null {
   if (input == null) return null;
   if (typeof input === "string") return input;
   try {
-    return JSON.stringify(input);
+    const stringified = JSON.stringify(input);
+    if (stringified === "{}" && hasHiddenObjectDetails(input)) {
+      return JSON.stringify(normalizeForDisplay(input));
+    }
+
+    return stringified;
   } catch {
-    return String(input);
+    return JSON.stringify(normalizeForDisplay(input));
   }
 }
 

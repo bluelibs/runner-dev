@@ -19,6 +19,7 @@ import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface TagCardProps {
   tag: Tag;
@@ -26,6 +27,7 @@ export interface TagCardProps {
 }
 
 export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const allTaggedElements = [
     ...tag.tasks,
     ...tag.resources,
@@ -182,7 +184,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
           </div>
 
           <InfoBlock prefix="tag-card" label="File Path:">
-            {tag.filePath ? (
+            {tag.filePath && !isCatalogMode ? (
               <a
                 type="button"
                 onClick={openTagFileModal}

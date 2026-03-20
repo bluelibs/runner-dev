@@ -1,5 +1,5 @@
 import React from "react";
-import { DocsContentPayload } from "../../../../../resources/routeHandlers/getDocsData";
+import type { DocsContentPayload } from "../../../../../resources/docsPayload";
 import { MarkdownRenderer } from "../utils/markdownUtils";
 
 export interface DocsSectionProps {

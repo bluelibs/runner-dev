@@ -6,6 +6,7 @@ import { swapManager } from "./resources/swap.resource";
 import { graphql } from "./resources/graphql-accumulator.resource";
 import { dev } from "./resources/dev.resource";
 import { coverage } from "./resources/coverage.resource";
+import { exportDocs } from "./exportDocs";
 
 export type { ServerConfig, ServerInstance } from "./resources/server.resource";
 export type { CustomGraphQLContext } from "./schema/context";
@@ -37,6 +38,7 @@ export {
   type MiddlewareInterceptorOwnerSnapshot,
   type SerializedIntrospector,
 } from "./resources/models/Introspector";
+export type { ExportDocsOptions, ExportDocsResult } from "./exportDocs";
 export * from "./schema/model";
 
 Error.stackTraceLimit = Infinity;
@@ -55,3 +57,4 @@ export const resources = {
 };
 
 export { dev };
+export { exportDocs };

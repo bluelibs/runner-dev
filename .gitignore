@@ -6,6 +6,9 @@ TODO.md
 /xx
 coverage
 dist
+/tmp-play-export
+/runner-dev-catalog
+/runner-dev-export
 node_modules
 npm-debug.log
 typings

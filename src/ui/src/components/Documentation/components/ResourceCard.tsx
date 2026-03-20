@@ -2,7 +2,6 @@ import React from "react";
 import { Resource } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import {
-  formatConfig,
   formatFilePath,
   formatId,
   shouldDisplayConfig,
@@ -34,6 +33,7 @@ import {
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -46,6 +46,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   resource,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const middlewareUsages = introspector.getMiddlewareUsagesForResource(
     resource.id
   );
@@ -206,7 +207,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       <div className="resource-card__grid">
         <CardSection prefix="resource-card" title="Overview">
           <InfoBlock prefix="resource-card" label="File Path:">
-            {resource.filePath ? (
+            {resource.filePath && !isCatalogMode ? (
               <a
                 type="button"
                 onClick={openFileModal}
@@ -233,14 +234,19 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                 }}
               >
                 {resource.coverage.percentage}%
-              </span>{" "}
-              <button
-                type="button"
-                onClick={openCoverageDetails}
-                title="View coverage details"
-              >
-                (View Coverage)
-              </button>
+              </span>
+              {!isCatalogMode && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={openCoverageDetails}
+                    title="View coverage details"
+                  >
+                    (View Coverage)
+                  </button>
+                </>
+              )}
             </InfoBlock>
           )}
 

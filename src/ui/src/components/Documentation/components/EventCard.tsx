@@ -15,10 +15,13 @@ import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import type { DocumentationMode } from "../../../../../resources/docsPayload";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface EventCardProps {
   event: Event;
   introspector: Introspector;
+  mode?: DocumentationMode;
 }
 
 type SystemEventDocs = {
@@ -67,7 +70,9 @@ const SYSTEM_EVENT_DOCS: Record<string, SystemEventDocs> = {
 export const EventCard: React.FC<EventCardProps> = ({
   event,
   introspector,
+  mode = "live",
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const emitters = introspector.getEmittersOfEvent(event.id);
   const hooks = introspector.getHooksOfEvent(event.id);
   const rpcLaneResource = event.rpcLane
@@ -114,6 +119,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   // Listen for execute requests from ElementTable
   React.useEffect(() => {
+    if (mode === "catalog") return;
     const handler = (e: any) => {
       const ce = e as CustomEvent<{ type: string; id: string }>;
       if (ce?.detail?.type === "event" && ce.detail.id === event.id) {
@@ -123,7 +129,7 @@ export const EventCard: React.FC<EventCardProps> = ({
     };
     window.addEventListener("docs:execute-element", handler);
     return () => window.removeEventListener("docs:execute-element", handler);
-  }, [event.id]);
+  }, [event.id, mode]);
 
   return (
     <ElementCard
@@ -149,14 +155,16 @@ export const EventCard: React.FC<EventCardProps> = ({
             focus={{ kind: "event", id: event.id }}
             title="Open event topology"
           />
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => setIsExecuteOpen(true)}
-            title="Invoke Event"
-          >
-            Emit
-          </button>
+          {mode !== "catalog" && (
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => setIsExecuteOpen(true)}
+              title="Invoke Event"
+            >
+              Emit
+            </button>
+          )}
         </>
       }
     >
@@ -197,7 +205,7 @@ export const EventCard: React.FC<EventCardProps> = ({
           )}
 
           <InfoBlock prefix="event-card" label="File Path:">
-            {event.filePath ? (
+            {event.filePath && !isCatalogMode ? (
               <a
                 type="button"
                 onClick={openFileModal}
@@ -488,46 +496,48 @@ export const EventCard: React.FC<EventCardProps> = ({
         saveOnFile={event.filePath || null}
       />
 
-      <ExecuteModal
-        isOpen={isExecuteOpen}
-        title={event.meta?.title || formatId(event.id)}
-        schemaString={event.payloadSchema}
-        onClose={() => setIsExecuteOpen(false)}
-        onInvoke={async ({ inputJson }) => {
-          const INVOKE_EVENT_MUTATION = `
-            mutation InvokeEvent($eventId: ID!, $inputJson: String, $evalInput: Boolean) {
-              invokeEvent(eventId: $eventId, inputJson: $inputJson, evalInput: $evalInput) {
-                success
-                error
-                invocationId
+      {mode !== "catalog" && (
+        <ExecuteModal
+          isOpen={isExecuteOpen}
+          title={event.meta?.title || formatId(event.id)}
+          schemaString={event.payloadSchema}
+          onClose={() => setIsExecuteOpen(false)}
+          onInvoke={async ({ inputJson }) => {
+            const INVOKE_EVENT_MUTATION = `
+              mutation InvokeEvent($eventId: ID!, $inputJson: String, $evalInput: Boolean) {
+                invokeEvent(eventId: $eventId, inputJson: $inputJson, evalInput: $evalInput) {
+                  success
+                  error
+                  invocationId
+                }
               }
-            }
-          `;
+            `;
 
-          try {
-            const res = await graphqlRequest<{
-              invokeEvent: {
-                success: boolean;
-                error?: string | null;
-                invocationId?: string | null;
+            try {
+              const res = await graphqlRequest<{
+                invokeEvent: {
+                  success: boolean;
+                  error?: string | null;
+                  invocationId?: string | null;
+                };
+              }>(INVOKE_EVENT_MUTATION, {
+                eventId: event.id,
+                inputJson: inputJson?.trim() || undefined,
+                evalInput: false,
+              });
+
+              return {
+                output: res.invokeEvent.success
+                  ? "Event invoked successfully"
+                  : res.invokeEvent.error ?? undefined,
+                error: res.invokeEvent.error ?? undefined,
               };
-            }>(INVOKE_EVENT_MUTATION, {
-              eventId: event.id,
-              inputJson: inputJson?.trim() || undefined,
-              evalInput: false,
-            });
-
-            return {
-              output: res.invokeEvent.success
-                ? "Event invoked successfully"
-                : res.invokeEvent.error ?? undefined,
-              error: res.invokeEvent.error ?? undefined,
-            };
-          } catch (e: any) {
-            return { error: e?.message ?? String(e) };
-          }
-        }}
-      />
+            } catch (e: any) {
+              return { error: e?.message ?? String(e) };
+            }
+          }}
+        />
+      )}
     </ElementCard>
   );
 };

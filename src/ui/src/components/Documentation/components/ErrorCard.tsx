@@ -13,6 +13,7 @@ import { SchemaRenderer } from "./SchemaRenderer";
 import { ElementKindBadge, SystemBadge } from "./common/ElementKindBadge";
 import { isSystemElement } from "../utils/isSystemElement";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface ErrorCardProps {
   error: Error;
@@ -43,6 +44,7 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
   error,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const thrownByTasks = introspector.getTasksUsingError(error.id);
   const thrownByResources = introspector.getResourcesUsingError(error.id);
   const thrownByHooks = introspector.getHooksUsingError(error.id);
@@ -119,7 +121,7 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
                 <div className="error-card__info-block">
                   <div className="label">File Path:</div>
                   <div className="value">
-                    {error.filePath ? (
+                    {error.filePath && !isCatalogMode ? (
                       <a
                         type="button"
                         onClick={openFileModal}

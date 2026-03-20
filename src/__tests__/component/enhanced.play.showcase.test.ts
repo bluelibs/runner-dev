@@ -293,6 +293,8 @@ describe("Enhanced play showcase app", () => {
       catalogIds.event(rpcLaneCatalogUpdatedEvent.id)
     );
     expect(laneEvent?.rpcLane?.laneId).toBe("rpc-catalog-updates");
+    expect(laneEvent?.payloadSchema).toContain("changedSkus");
+    expect(laneEvent?.payloadSchema).toContain("catalog-sync");
 
     const eventLaneEvent = contextValue.introspector.getEvent(
       catalogIds.event(eventLaneCatalogProjectionUpdatedEvent.id)

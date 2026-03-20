@@ -20,7 +20,8 @@
 <specifics>
 - Prefer Runner docs from extracted skills under `.agents/skills` when they are available.
 - For runner-dev-specific context, use `skills/core/references/readmes/COMPACT_GUIDE.md`.
-- Runner-Dev publishes its own skill from `skills/core`; keep `README.md`, `skills/core/SKILL.md`, and `skills/core/references/readmes/COMPACT_GUIDE.md` aligned when those docs change.
+- Runner-Dev publishes its own skill from `skills/core`; keep `README.md`, `skills/core/SKILL.md`, `skills/core/references/README.md`, and `skills/core/references/readmes/COMPACT_GUIDE.md` aligned when those docs change.
+- If you change runner-dev docs UX, export flows, MCP behavior, CLI guidance, or any agent-facing workflow, update the published runner-dev skill docs in the same pass instead of leaving them as a sequel.
 </specifics>
 
 <new_feature>
@@ -29,4 +30,5 @@
 - Must be implemented with care without affecting the system and not over-polute files.
 - Ensure README.md and any agent-facing project guidance stay properly updated
 - If `README.md` or `skills/core/SKILL.md` changes, update the published runner-dev skill files under `skills/core` as needed
+- For runner-dev docs/export/tooling changes, treat `README.md`, `skills/core/SKILL.md`, `skills/core/references/README.md`, and `skills/core/references/readmes/COMPACT_GUIDE.md` as one documentation unit.
   </new_feature>

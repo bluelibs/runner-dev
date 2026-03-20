@@ -44,6 +44,7 @@ const app = r
 ## What you get
 
 - Fully-featured UI with AI assistance to explore your app, call tasks, emit events, diagnostics, logs and more.
+- Static catalog export via `exportDocs(app, { output?, overwrite? })` for a standalone frozen docs site under `./runner-dev-catalog` by default.
 - Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters.
 - Overview tables now include `Visibility` (`Public`/`Private`) derived from Runner resource `isolate()` boundaries.
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
@@ -145,6 +146,87 @@ Inside the UI, you can:
 - Inspect live logs and event emissions in real-time.
 - View and edit files directly via the browser.
 
+### Static Catalog Export
+
+If you want the visual docs without running the project server, you can export a standalone static catalog directly from a built Runner app.
+
+The recommended setup is a tiny script plus an npm command.
+
+Create `scripts/export-docs.ts`:
+
+```ts
+// scripts/export-docs.ts
+import { exportDocs } from "@bluelibs/runner-dev";
+import { app } from "../src/app";
+
+await exportDocs(app);
+// Optional custom destination:
+await exportDocs(app, {
+  output: "./artifacts/runner-dev-catalog",
+  overwrite: true,
+});
+```
+
+Add a package script:
+
+```json
+{
+  "scripts": {
+    "docs:export": "tsx scripts/export-docs.ts"
+  }
+}
+```
+
+Then run:
+
+```bash
+npm run docs:export
+```
+
+What gets written:
+
+- `./runner-dev-catalog/index.html`
+- `./runner-dev-catalog/snapshot.json`
+- a standalone `index.html` with the docs payload, CSS, JS, and favicon embedded for direct opening
+
+Output behavior:
+
+- `exportDocs(app)` writes to `./runner-dev-catalog` by default
+- the default `./runner-dev-catalog` destination is treated as a dedicated export folder and can be regenerated safely
+- custom directories are protected by default; pass `overwrite: true` if you intentionally want to replace an existing non-empty directory
+- `index.html` is standalone and can be opened directly over `file://`
+- `snapshot.json` is still written as an auxiliary artifact for inspection, debugging, and snapshot-backed MCP, but the standalone HTML does not depend on it at runtime
+
+What the exported catalog includes:
+
+- overview
+- topology
+- tasks, resources, events, hooks, and middlewares
+- tags, errors, async contexts, diagnostics, and markdown docs
+
+What it intentionally does not include:
+
+- live telemetry
+- GraphQL server endpoints
+- task or event execution
+- swap or eval actions
+- file-saving mutations
+
+`exportDocs()` uses Runner's real dry-run path under the hood. In other words, it effectively does a `run(app, { dryRun: true })`, builds the in-memory docs snapshot from that composed Runner store, and emits a frozen catalog. It is not source-only static analysis, which is important both for accuracy and for understanding what code paths still participate during export.
+
+This also works well as a CI artifact:
+
+- generate the catalog during CI
+- upload `./runner-dev-catalog` or `./artifacts/runner-dev-catalog` as a build artifact
+- inspect the visual docs after the pipeline finishes without starting the app again
+
+For local package work inside this repository, `npm run play:export` is the same idea wired to the enhanced showcase app:
+
+```bash
+npm run play:export
+npm run play:export -- ./my-export-dir
+```
+
 Add it as an Model Context Protocol Server (for AIs) via normal socket:
 
 ```json
@@ -165,6 +247,23 @@ Add it as an Model Context Protocol Server (for AIs) via normal socket:
 
 Then start your app as usual. The Dev GraphQL server will be available at http://localhost:1337/graphql.
 
+For a frozen exported catalog, you can point MCP at the generated snapshot instead of a live endpoint:
+
+```json
+{
+  "mcpServers": {
+    "mcp-graphql": {
+      "description": "MCP Server for an exported Runner Dev snapshot",
+      "command": "npx",
+      "args": ["@bluelibs/runner-dev", "mcp"],
+      "env": {
+        "SNAPSHOT_FILE": "./runner-dev-catalog/snapshot.json"
+      }
+    }
+  }
+}
+```
+
 ### CLI usage (MCP server)
 
 After installing, you can start the MCP server from this package via stdio.
@@ -173,20 +272,22 @@ Using npx:
 
 ```bash
 ENDPOINT=http://localhost:1337/graphql npx -y @bluelibs/runner-dev mcp
+SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json npx -y @bluelibs/runner-dev mcp
 ```
 
 Optional environment variables:
 
+- `SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json` to serve MCP from an exported static snapshot instead of a live endpoint
 - `ALLOW_MUTATIONS=true` to enable `graphql.mutation`
 - `HEADERS='{"Authorization":"Bearer token"}'` to pass extra headers
 
 Available tools once connected:
 
-- `graphql.query` — run read-only queries
-- `graphql.mutation` — run mutations (requires `ALLOW_MUTATIONS=true`)
+- `graphql.query` — run read-only queries against the live endpoint or snapshot
+- `graphql.mutation` — run mutations (requires `ALLOW_MUTATIONS=true`, live endpoint only)
 - `graphql.introspect` — fetch schema
-- `graphql.ping` — reachability check
-- `project.overview` — dynamic Markdown overview aggregated from the API
+- `graphql.ping` — source check for the configured endpoint or snapshot
+- `project.overview` — dynamic Markdown overview aggregated from the configured source
 
 ### CLI usage (direct)
 
@@ -197,6 +298,14 @@ Prerequisites:
 - Ensure your app registers the Dev GraphQL server (`dev.with({ port: 1337 })`) or otherwise expose a compatible endpoint.
 - Alternatively, you can run queries in a new **dry‑run mode** with a TypeScript entry file (no server required).
 - Build this package (or install it) so the binary is available.
+
+Programmatic export is available even when you do not want a live server:
+
+```ts
+import { exportDocs } from "@bluelibs/runner-dev";
+
+await exportDocs(app);
+```
 
 Help:
 

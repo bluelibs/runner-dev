@@ -13,11 +13,15 @@ import { LivePanel } from "./LivePanel";
 import { ElementTable } from "./ElementTable";
 import { DocsSection } from "./DocsSection";
 import { TopologyPanel } from "./TopologyPanel";
-import { DocsContentPayload } from "../../../../../resources/routeHandlers/getDocsData";
+import type {
+  DocsContentPayload,
+  DocumentationMode,
+} from "../../../../../resources/docsPayload";
 import { getDocumentationIcon } from "../config/documentationIcons";
 
 export interface DocumentationMainContentProps {
   introspector: Introspector;
+  mode?: DocumentationMode;
   sidebarWidth: number;
   chatWidth?: number;
   isChatOpen?: boolean;
@@ -50,6 +54,7 @@ export const DocumentationMainContent: React.FC<
   DocumentationMainContentProps
 > = ({
   introspector,
+  mode = "live",
   sidebarWidth,
   chatWidth,
   isChatOpen,
@@ -225,7 +230,7 @@ export const DocumentationMainContent: React.FC<
           ))}
         </div>
 
-        {activeSection === "live" && (
+        {mode !== "catalog" && activeSection === "live" && (
           <section id="live" className="docs-section">
             <h2>📡 Live Telemetry</h2>
             <LivePanel detailed introspector={introspector} />
@@ -243,18 +248,20 @@ export const DocumentationMainContent: React.FC<
           <section id="overview" className="docs-section">
             <div className="overview-header">
               <h2>📋 Overview</h2>
-              <div>
-                <button
-                  type="button"
-                  onClick={openStats}
-                  aria-label="Open Performance Stats"
-                  title="Open Performance Stats"
-                  className="clean-button overview-header__stats-button"
-                >
-                  <span aria-hidden="true">📊</span>
-                  <span>Stats</span>
-                </button>
-              </div>
+              {mode !== "catalog" && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={openStats}
+                    aria-label="Open Performance Stats"
+                    title="Open Performance Stats"
+                    className="clean-button overview-header__stats-button"
+                  >
+                    <span aria-hidden="true">📊</span>
+                    <span>Stats</span>
+                  </button>
+                </div>
+              )}
             </div>
             <div className="overview-grid">
               <a href="#tasks" className="card card--tasks">
@@ -510,7 +517,7 @@ export const DocumentationMainContent: React.FC<
                         href="mailto:theodor@bluelibs.com"
                         className="overview-support-block__action overview-support-block__action--contact"
                       >
-                        Contact Creator
+                        Support
                       </a>
                     </>
                   }
@@ -543,8 +550,9 @@ export const DocumentationMainContent: React.FC<
             title="Tasks Overview"
             icon={getDocumentationIcon("tasks")}
             id="tasks"
-            enableActions="task"
+            enableActions={mode === "catalog" ? undefined : "task"}
             onAction={(el) => {
+              if (mode === "catalog") return;
               // Ask the TaskCard to open its Run modal via a custom event
               window.dispatchEvent(
                 new CustomEvent("docs:execute-element", {
@@ -565,6 +573,7 @@ export const DocumentationMainContent: React.FC<
                   key={task.id}
                   task={task}
                   introspector={introspector}
+                  mode={mode}
                 />
               ))}
             </div>
@@ -604,8 +613,9 @@ export const DocumentationMainContent: React.FC<
             title="Events Overview"
             icon={getDocumentationIcon("events")}
             id="events"
-            enableActions="event"
+            enableActions={mode === "catalog" ? undefined : "event"}
             onAction={(el) => {
+              if (mode === "catalog") return;
               // Ask the EventCard to open its Emit modal via a custom event
               window.dispatchEvent(
                 new CustomEvent("docs:execute-element", {
@@ -626,6 +636,7 @@ export const DocumentationMainContent: React.FC<
                   key={event.id}
                   event={event}
                   introspector={introspector}
+                  mode={mode}
                 />
               ))}
             </div>

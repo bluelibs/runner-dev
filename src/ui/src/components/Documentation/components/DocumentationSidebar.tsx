@@ -2,7 +2,6 @@ import React from "react";
 import { NavigationView } from "./NavigationView";
 import { TreeNode } from "../utils/tree-utils";
 import { ViewMode, TreeType } from "../hooks/useViewMode";
-import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { Tooltip } from "./Tooltip";
 
 export interface DocumentationSidebarProps {
@@ -96,27 +95,6 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       className="docs-sidebar"
       style={{ width: `${sidebarWidth}px`, left: `${leftOffset}px` }}
     >
-      <SidebarHeader
-        icon="📚"
-        title="Runner Dev"
-        className="sidebar-header--docs"
-        actions={
-          <div style={{ display: "flex", gap: "8px" }}>
-            {/* [AI-CHAT-DISABLED] AI chat toggle button
-            <button
-              className={`sidebar-header__action-btn ${
-                isChatOpen ? "active" : ""
-              }`}
-              title={isChatOpen ? "Hide Chat" : "Show Chat"}
-              onClick={onToggleChat}
-            >
-              AI
-            </button>
-            */}
-          </div>
-        }
-      />
-
       {/* Main Filters */}
       <div className="docs-main-filters">
         <div
@@ -395,6 +373,15 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
           <span className="docs-support-icon">📚</span>
           <span className="docs-support-text">Docs</span>
           <span className="docs-support-arrow">→</span>
+        </a>
+
+        <a
+          href="https://runner.bluelibs.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="docs-powered-by"
+        >
+          POWERED BY RUNNER
         </a>
       </div>
     </nav>

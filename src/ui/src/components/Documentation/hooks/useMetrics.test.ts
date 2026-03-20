@@ -15,6 +15,7 @@ const graphqlRequestMock = graphqlRequest as jest.MockedFunction<
 describe("useMetrics", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete (window as any).__DOCS_PROPS__;
   });
 
   it("aggregates throughput, latency, error counts, and activity heatmap from live data", async () => {
@@ -111,5 +112,22 @@ describe("useMetrics", () => {
     expect(result.current.latency).toEqual([]);
     expect(result.current.errorByTask).toEqual([]);
     expect(result.current.heatmap).toHaveLength(7);
+  });
+
+  it("stays inert in catalog mode", async () => {
+    (window as any).__DOCS_PROPS__ = {
+      mode: "catalog",
+    };
+
+    const { result } = renderHook(() => useMetrics());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(graphqlRequestMock).not.toHaveBeenCalled();
+    expect(result.current.throughput).toEqual([]);
+    expect(result.current.latency).toEqual([]);
+    expect(result.current.errorByTask).toEqual([]);
   });
 });

@@ -19,7 +19,7 @@ import {
   extractLaneId,
   isEventLanesResource,
 } from "../../utils/lane-resources";
-import { formatSchemaIfZod } from "../../utils/zod";
+import { formatSchemaIfZod } from "../../utils/schemaFormat";
 import { sanitizePath } from "../../utils/path";
 import {
   buildIdMap,

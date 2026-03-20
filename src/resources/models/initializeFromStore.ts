@@ -15,7 +15,7 @@ import {
 } from "./initializeFromStore.utils";
 import { Introspector } from "./Introspector";
 import { buildIdMap, ensureStringArray } from "./introspector.tools";
-import { formatSchemaIfZod } from "../../utils/zod";
+import { formatSchemaIfZod } from "../../utils/schemaFormat";
 import { sanitizePath } from "../../utils/path";
 
 const EXTERNAL_VISIBILITY_CONSUMER_ID = "runner-dev.visibility.external";

@@ -9,6 +9,7 @@ import {
 import { Introspector } from "../../../../../../resources/models/Introspector";
 import { CardSection, InfoBlock } from "../common/ElementCard";
 import { RegisteredByInfoBlock } from "../common/RegisteredByInfoBlock";
+import { useIsCatalogDocumentation } from "../../context/DocumentationModeContext";
 
 export interface HookOverviewProps {
   hook: Hook;
@@ -23,6 +24,7 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
   isGlobal,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const getHookOrderDisplay = () => {
     if (hook.hookOrder === null || hook.hookOrder === undefined)
       return "Default";
@@ -60,7 +62,11 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
         contentClassName="hook-card__section__content"
       >
         <InfoBlock prefix="hook-card" label="File Path:">
-          <a onClick={openFileModal}>{formatFilePath(hook.filePath)}</a>
+          {hook.filePath && !isCatalogMode ? (
+            <a onClick={openFileModal}>{formatFilePath(hook.filePath)}</a>
+          ) : (
+            formatFilePath(hook.filePath)
+          )}
         </InfoBlock>
 
         <RegisteredByInfoBlock

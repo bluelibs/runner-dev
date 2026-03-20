@@ -7,7 +7,7 @@ import {
   SerializedIntrospector,
 } from "../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "./components/Documentation/config/documentationConstants";
-import { DocsContentPayload } from "../../resources/routeHandlers/getDocsData";
+import { type DocsPagePayload } from "../../resources/docsPayload";
 import {
   getHashTargetElementId,
   getVisibilityStateForHashTarget,
@@ -16,15 +16,8 @@ import {
 // Expect SSR to inject window.__DOCS_PROPS__ with pre-fetched data
 declare global {
   interface Window {
-    __DOCS_PROPS__?: {
-      namespacePrefix?: string;
-      introspectorData: any;
-      runnerFrameworkMd?: string;
-      runnerDevMd?: string;
-      docsContent?: DocsContentPayload;
-      projectOverviewMd?: string;
-      graphqlSdl?: string;
-    };
+    __DOCS_PROPS__?: DocsPagePayload;
+    __DOCS_SNAPSHOT_PATH__?: string;
   }
 }
 
@@ -216,27 +209,43 @@ function DocsBootstrapScreen({
   );
 }
 
+function renderDocumentation(
+  rootTarget: ReturnType<typeof createRoot> | typeof hydrateRoot,
+  container: HTMLElement,
+  payload: DocsPagePayload,
+  hydrate = false
+) {
+  const introspector = createIntrospectorFromData(
+    payload.introspectorData as SerializedIntrospector
+  );
+  window.__DOCS_PROPS__ = payload;
+  ensureVisibilityForHash(introspector);
+
+  const element = React.createElement(Documentation as any, {
+    introspector,
+    mode: payload.mode,
+    namespacePrefix: payload.namespacePrefix,
+    runnerFrameworkMd: payload.runnerFrameworkMd,
+    runnerDevMd: payload.runnerDevMd,
+    docsContent: payload.docsContent,
+    projectOverviewMd: payload.projectOverviewMd,
+    graphqlSdl: payload.graphqlSdl,
+  });
+
+  if (hydrate) {
+    hydrateRoot(container, element);
+  } else {
+    (rootTarget as ReturnType<typeof createRoot>).render(element);
+  }
+
+  scrollToHashElement();
+}
+
 async function bootstrap() {
   const container = document.getElementById("root")!;
   const props = window.__DOCS_PROPS__;
   if (props && props.introspectorData) {
-    const introspector = createIntrospectorFromData(
-      props.introspectorData as SerializedIntrospector
-    );
-    ensureVisibilityForHash(introspector);
-    hydrateRoot(
-      container,
-      React.createElement(Documentation as any, {
-        introspector,
-        namespacePrefix: props.namespacePrefix,
-        runnerFrameworkMd: props.runnerFrameworkMd,
-        runnerDevMd: props.runnerDevMd,
-        docsContent: props.docsContent,
-        projectOverviewMd: props.projectOverviewMd,
-        graphqlSdl: props.graphqlSdl,
-      })
-    );
-    scrollToHashElement();
+    renderDocumentation(hydrateRoot as any, container, props, true);
     return;
   }
 
@@ -250,6 +259,16 @@ async function bootstrap() {
 
   const baseUrl = __API_URL__ || "";
   try {
+    if (window.__DOCS_SNAPSHOT_PATH__) {
+      const response = await fetch(window.__DOCS_SNAPSHOT_PATH__);
+      if (!response.ok) {
+        throw new Error(`Failed to load docs snapshot (${response.status})`);
+      }
+      const json = (await response.json()) as DocsPagePayload;
+      renderDocumentation(root, container, json);
+      return;
+    }
+
     const url = new URL("/docs/data", baseUrl || window.location.origin);
     const { signal, cleanup } = createTimedAbortSignal(
       DOCS_DATA_FETCH_TIMEOUT_MS
@@ -265,23 +284,8 @@ async function bootstrap() {
       throw new Error(`Failed to load docs data (${response.status})`);
     }
 
-    const json = await response.json();
-    const introspector = createIntrospectorFromData(
-      json.introspectorData as SerializedIntrospector
-    );
-    ensureVisibilityForHash(introspector);
-    root.render(
-      React.createElement(Documentation as any, {
-        introspector,
-        namespacePrefix: json.namespacePrefix,
-        runnerFrameworkMd: json.runnerFrameworkMd,
-        runnerDevMd: json.runnerDevMd,
-        docsContent: json.docsContent,
-        projectOverviewMd: json.projectOverviewMd,
-        graphqlSdl: json.graphqlSdl,
-      })
-    );
-    scrollToHashElement();
+    const json = (await response.json()) as DocsPagePayload;
+    renderDocumentation(root, container, json);
   } catch (error) {
     console.error("Failed to bootstrap docs UI:", error);
     root.render(

@@ -194,6 +194,8 @@ export const rpcLaneCatalogSyncTask = r
   .run(async (input, { emitCatalogUpdated }) => {
     await emitCatalogUpdated({
       supplierId: input.supplierId,
+      changedSkus: input.changedSkus,
+      source: "catalog-sync" as const,
       updatedAt: new Date(),
     });
 

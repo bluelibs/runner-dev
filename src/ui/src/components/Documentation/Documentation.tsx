@@ -16,7 +16,11 @@ import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
 import { ModalStackProvider } from "./components/modals";
 import { getHashScrollTargetId } from "./utils/documentationHash";
 import { useRef } from "react";
-import { DocsContentPayload } from "../../../../resources/routeHandlers/getDocsData";
+import {
+  type DocsContentPayload,
+  type DocumentationMode,
+} from "../../../../resources/docsPayload";
+import { DocumentationModeProvider } from "./context/DocumentationModeContext";
 
 export type Section =
   | "overview"
@@ -34,6 +38,7 @@ export type Section =
 
 export interface DocumentationProps {
   introspector: Introspector;
+  mode?: DocumentationMode;
   namespacePrefix?: string;
   runnerFrameworkMd?: string;
   runnerDevMd?: string;
@@ -44,6 +49,7 @@ export interface DocumentationProps {
 
 export const Documentation: React.FC<DocumentationProps> = ({
   introspector,
+  mode = "live",
   namespacePrefix,
   // [AI-CHAT-DISABLED] These props were used by ChatSidebar
   runnerFrameworkMd: _runnerFrameworkMd,
@@ -125,6 +131,10 @@ export const Documentation: React.FC<DocumentationProps> = ({
 
   // Hash-driven toggle for stats overlay; reacts to address bar changes
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(() => {
+    if (mode === "catalog") {
+      return false;
+    }
+
     try {
       return window.location.hash === "#overview-stats";
     } catch {
@@ -133,6 +143,14 @@ export const Documentation: React.FC<DocumentationProps> = ({
   });
 
   useEffect(() => {
+    if (mode === "catalog") {
+      setIsStatsOpen(false);
+      if (window.location.hash === "#overview-stats") {
+        window.location.hash = "#overview";
+      }
+      return;
+    }
+
     const handleHashChange = () => {
       try {
         setIsStatsOpen(window.location.hash === "#overview-stats");
@@ -143,11 +161,14 @@ export const Documentation: React.FC<DocumentationProps> = ({
     window.addEventListener("hashchange", handleHashChange);
     handleHashChange();
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  }, [mode]);
 
   // Removed global Cmd/Ctrl+S shortcut for opening stats per UX request
 
   const openStats = () => {
+    if (mode === "catalog") {
+      return;
+    }
     try {
       window.location.hash = "#overview-stats";
     } catch {
@@ -194,6 +215,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
 
   // Generate sections configuration
   const sections = createSections({
+    mode,
     tasks: filterHook.tasks.length,
     resources: filterHook.resources.length,
     events: filterHook.events.length,
@@ -309,80 +331,83 @@ export const Documentation: React.FC<DocumentationProps> = ({
     debouncedSidebarWidth !== sidebarHook.sidebarWidth;
 
   return (
-    <ModalStackProvider>
-      <div className="docs-app">
-        {/* Fixed Navigation Sidebar */}
-        <DocumentationSidebar
-          sidebarWidth={sidebarHook.sidebarWidth}
-          sidebarRef={sidebarHook.sidebarRef}
-          // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
-          // [AI-CHAT-DISABLED] onToggleChat={handleToggleChat}
-          leftOffset={0}
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={toggleDarkMode}
-          viewMode={viewModeHook.viewMode}
-          treeType={viewModeHook.treeType}
-          localNamespaceSearch={filterHook.localNamespaceSearch}
-          showSystem={filterHook.showSystem}
-          showRunner={filterHook.showRunner}
-          showPrivate={filterHook.showPrivate}
-          treeNodes={treeHook.treeNodes}
-          sections={sections}
-          onViewModeChange={viewModeHook.handleViewModeChange}
-          onTreeTypeChange={viewModeHook.handleTreeTypeChange}
-          onNamespaceSearchChange={filterHook.setLocalNamespaceSearch}
-          onShowSystemChange={filterHook.handleShowSystemChange}
-          onShowRunnerChange={filterHook.handleShowRunnerChange}
-          onShowPrivateChange={filterHook.handleShowPrivateChange}
-          onTreeNodeClick={treeHook.handleTreeNodeClick}
-          onToggleExpansion={treeHook.handleToggleExpansion}
-          onSectionClick={handleSectionClick}
-          resolveSectionFromElementId={resolveSectionFromElementId}
-        />
+    <DocumentationModeProvider mode={mode}>
+      <ModalStackProvider>
+        <div className="docs-app">
+          {/* Fixed Navigation Sidebar */}
+          <DocumentationSidebar
+            sidebarWidth={sidebarHook.sidebarWidth}
+            sidebarRef={sidebarHook.sidebarRef}
+            // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
+            // [AI-CHAT-DISABLED] onToggleChat={handleToggleChat}
+            leftOffset={0}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={toggleDarkMode}
+            viewMode={viewModeHook.viewMode}
+            treeType={viewModeHook.treeType}
+            localNamespaceSearch={filterHook.localNamespaceSearch}
+            showSystem={filterHook.showSystem}
+            showRunner={filterHook.showRunner}
+            showPrivate={filterHook.showPrivate}
+            treeNodes={treeHook.treeNodes}
+            sections={sections}
+            onViewModeChange={viewModeHook.handleViewModeChange}
+            onTreeTypeChange={viewModeHook.handleTreeTypeChange}
+            onNamespaceSearchChange={filterHook.setLocalNamespaceSearch}
+            onShowSystemChange={filterHook.handleShowSystemChange}
+            onShowRunnerChange={filterHook.handleShowRunnerChange}
+            onShowPrivateChange={filterHook.handleShowPrivateChange}
+            onTreeNodeClick={treeHook.handleTreeNodeClick}
+            onToggleExpansion={treeHook.handleToggleExpansion}
+            onSectionClick={handleSectionClick}
+            resolveSectionFromElementId={resolveSectionFromElementId}
+          />
 
-        {/* Sidebar Resizer */}
-        <div
-          ref={sidebarHook.resizerRef}
-          className={`docs-sidebar-resizer ${
-            sidebarHook.isResizing ? "docs-sidebar-resizer--active" : ""
-          }`}
-          style={{
-            left: `${sidebarHook.sidebarWidth}px`,
-          }}
-          onMouseDown={sidebarHook.handleMouseDown}
-        />
+          {/* Sidebar Resizer */}
+          <div
+            ref={sidebarHook.resizerRef}
+            className={`docs-sidebar-resizer ${
+              sidebarHook.isResizing ? "docs-sidebar-resizer--active" : ""
+            }`}
+            style={{
+              left: `${sidebarHook.sidebarWidth}px`,
+            }}
+            onMouseDown={sidebarHook.handleMouseDown}
+          />
 
-        {/* Main Content */}
-        <DocumentationMainContent
-          introspector={introspector}
-          sidebarWidth={debouncedSidebarWidth}
-          // [AI-CHAT-DISABLED] chatWidth={debouncedChatWidth}
-          // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
-          openStats={openStats}
-          isStatsOpen={isStatsOpen}
-          closeStats={closeStats}
-          // [AI-CHAT-DISABLED] chatPushesLeft
-          suspendRendering={isLayoutBusy}
-          tasks={filterHook.tasks}
-          resources={filterHook.resources}
-          events={filterHook.events}
-          hooks={filterHook.hooks}
-          middlewares={filterHook.middlewares}
-          errors={filterHook.errors}
-          asyncContexts={filterHook.asyncContexts}
-          tags={filterHook.tags}
-          docsContent={docsContent}
-          topologyConnections={topologyConnections}
-          sections={sections}
-        />
+          {/* Main Content */}
+          <DocumentationMainContent
+            introspector={introspector}
+            mode={mode}
+            sidebarWidth={debouncedSidebarWidth}
+            // [AI-CHAT-DISABLED] chatWidth={debouncedChatWidth}
+            // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
+            openStats={openStats}
+            isStatsOpen={isStatsOpen}
+            closeStats={closeStats}
+            // [AI-CHAT-DISABLED] chatPushesLeft
+            suspendRendering={isLayoutBusy}
+            tasks={filterHook.tasks}
+            resources={filterHook.resources}
+            events={filterHook.events}
+            hooks={filterHook.hooks}
+            middlewares={filterHook.middlewares}
+            errors={filterHook.errors}
+            asyncContexts={filterHook.asyncContexts}
+            tags={filterHook.tags}
+            docsContent={docsContent}
+            topologyConnections={topologyConnections}
+            sections={sections}
+          />
 
-        {/* "Open Stats" button moved next to the Overview header inside main content */}
+          {/* "Open Stats" button moved next to the Overview header inside main content */}
 
-        {/* [AI-CHAT-DISABLED] ChatSidebar and resizer removed — isChatOpen is always false */}
+          {/* [AI-CHAT-DISABLED] ChatSidebar and resizer removed — isChatOpen is always false */}
 
-        {/* Render overlayed stats panel when hash requests it */}
-        {isStatsOpen && <OverviewStatsPanel overlay onClose={closeStats} />}
-      </div>
-    </ModalStackProvider>
+          {/* Render overlayed stats panel when hash requests it */}
+          {isStatsOpen && <OverviewStatsPanel overlay onClose={closeStats} />}
+        </div>
+      </ModalStackProvider>
+    </DocumentationModeProvider>
   );
 };

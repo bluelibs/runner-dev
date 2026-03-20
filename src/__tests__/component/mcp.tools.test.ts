@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { toVariables } from "../../mcp/http";
 import {
   isRecord,
@@ -6,7 +9,12 @@ import {
   valuePreview,
   formatGraphQLResultAsMarkdown,
 } from "../../mcp/format";
-import { parseHeadersFromEnv, assertEndpoint } from "../../mcp/env";
+import {
+  parseHeadersFromEnv,
+  assertEndpoint,
+  assertGraphqlSourceDescription,
+} from "../../mcp/env";
+import { callGraphQL } from "../../mcp/http";
 import {
   readPackageDoc,
   readFirstAvailablePackageDoc,
@@ -16,10 +24,20 @@ import {
 
 describe("MCP tools (env/http/format/docs)", () => {
   const ORIGINAL_ENV = { ...process.env };
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "runner-dev-mcp-"));
+  });
 
   afterEach(() => {
     process.env = { ...ORIGINAL_ENV };
     jest.resetModules();
+    jest.restoreAllMocks();
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpRoot, { recursive: true, force: true });
   });
 
   describe("env", () => {
@@ -54,6 +72,13 @@ describe("MCP tools (env/http/format/docs)", () => {
       process.env.ENDPOINT = "http://localhost:1337/graphql";
       expect(assertEndpoint()).toBe("http://localhost:1337/graphql");
     });
+
+    it("assertGraphqlSourceDescription: supports snapshot files", () => {
+      process.env.SNAPSHOT_FILE = "./runner-dev-catalog/snapshot.json";
+      expect(assertGraphqlSourceDescription()).toBe(
+        "snapshot:./runner-dev-catalog/snapshot.json"
+      );
+    });
   });
 
   describe("http.toVariables", () => {
@@ -73,6 +98,191 @@ describe("MCP tools (env/http/format/docs)", () => {
       expect(() => toVariables("{" as any)).toThrow(
         /Failed to parse variables JSON/
       );
+    });
+  });
+
+  describe("http.callGraphQL", () => {
+    it("executes read-only queries from SNAPSHOT_FILE", async () => {
+      const snapshotPath = path.join(tmpRoot, "snapshot.json");
+      await fs.writeFile(
+        snapshotPath,
+        JSON.stringify(
+          {
+            mode: "catalog",
+            introspectorData: {
+              tasks: [
+                {
+                  id: "app.tasks.hello",
+                  meta: { title: "Hello Task", description: "Wave politely" },
+                  dependsOn: [],
+                  middleware: [],
+                  emits: [],
+                  tags: [],
+                },
+              ],
+              hooks: [],
+              resources: [
+                {
+                  id: "app",
+                  meta: { title: "App" },
+                  dependsOn: [],
+                  middleware: [],
+                  emits: [],
+                  tags: [],
+                  registers: [],
+                  overrides: [],
+                },
+              ],
+              events: [],
+              middlewares: [],
+              tags: [],
+              errors: [],
+              asyncContexts: [],
+              diagnostics: [],
+              rootId: "app",
+              runOptions: { rootId: "app", mode: "dev", debug: false },
+              interceptorOwners: {
+                tasksById: {},
+                middleware: {
+                  globalTaskInterceptorOwnerIds: [],
+                  globalResourceInterceptorOwnerIds: [],
+                  perTaskMiddlewareInterceptorOwnerIds: {},
+                  perResourceMiddlewareInterceptorOwnerIds: {},
+                },
+              },
+            },
+            runnerFrameworkMd: "",
+            runnerDevMd: "",
+            docsContent: {
+              minimalMd: "",
+              completeMd: "",
+            },
+            projectOverviewMd: "# Overview",
+            graphqlSdl: `
+              type Meta {
+                title: String
+                description: String
+              }
+
+              type Task {
+                id: ID!
+                meta: Meta
+              }
+
+              type Query {
+                tasks(idIncludes: ID): [Task!]!
+                task(id: ID!): Task
+              }
+            `,
+          },
+          null,
+          2
+        ),
+        "utf8"
+      );
+
+      process.env.SNAPSHOT_FILE = snapshotPath;
+      delete process.env.ENDPOINT;
+      delete process.env.GRAPHQL_ENDPOINT;
+
+      const result = (await callGraphQL({
+        query: `
+          query SnapshotTasks($idIncludes: ID) {
+            tasks(idIncludes: $idIncludes) {
+              id
+              meta {
+                title
+              }
+            }
+          }
+        `,
+        variables: { idIncludes: "hello" },
+      })) as any;
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data.tasks).toEqual([
+        {
+          id: "app.tasks.hello",
+          meta: { title: "Hello Task" },
+        },
+      ]);
+    });
+
+    it("reloads a snapshot file when it changes on disk", async () => {
+      const snapshotPath = path.join(tmpRoot, "snapshot.json");
+      const writeSnapshot = async (taskId: string) => {
+        await fs.writeFile(
+          snapshotPath,
+          JSON.stringify(
+            {
+              mode: "catalog",
+              introspectorData: {
+                tasks: [
+                  {
+                    id: taskId,
+                    meta: { title: taskId, description: null },
+                    dependsOn: [],
+                    middleware: [],
+                    emits: [],
+                    tags: [],
+                  },
+                ],
+                hooks: [],
+                resources: [],
+                events: [],
+                middlewares: [],
+                tags: [],
+                errors: [],
+                asyncContexts: [],
+                diagnostics: [],
+                rootId: "app",
+                runOptions: { rootId: "app", mode: "dev", debug: false },
+                interceptorOwners: {
+                  tasksById: {},
+                  middleware: {
+                    globalTaskInterceptorOwnerIds: [],
+                    globalResourceInterceptorOwnerIds: [],
+                    perTaskMiddlewareInterceptorOwnerIds: {},
+                    perResourceMiddlewareInterceptorOwnerIds: {},
+                  },
+                },
+              },
+              runnerFrameworkMd: "",
+              runnerDevMd: "",
+              docsContent: {
+                minimalMd: "",
+                completeMd: "",
+              },
+              projectOverviewMd: "# Overview",
+              graphqlSdl: "type Query { _: Boolean }",
+            },
+            null,
+            2
+          ),
+          "utf8"
+        );
+      };
+
+      await writeSnapshot("app.tasks.first");
+      process.env.SNAPSHOT_FILE = snapshotPath;
+      delete process.env.ENDPOINT;
+      delete process.env.GRAPHQL_ENDPOINT;
+
+      const first = (await callGraphQL({
+        query: "query { tasks { id } }",
+      })) as any;
+      expect(first.errors).toBeUndefined();
+      expect(first.data.tasks).toEqual([{ id: "app.tasks.first" }]);
+
+      await writeSnapshot("app.tasks.second");
+      const now = new Date(Date.now() + 1000);
+      await fs.utimes(snapshotPath, now, now);
+
+      const second = (await callGraphQL({
+        query: "query { tasks { id } }",
+      })) as any;
+      expect(second.errors).toBeUndefined();
+      expect(second.data.tasks).toEqual([{ id: "app.tasks.second" }]);
     });
   });
 

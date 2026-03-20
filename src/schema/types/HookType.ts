@@ -16,7 +16,7 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { TaskMiddlewareType } from "./MiddlewareType";
 import { TaskMiddlewareUsageType } from "./TaskType";
 import { sanitizePath } from "../../utils/path";
-import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
 
 export const HookType = new GraphQLObjectType({

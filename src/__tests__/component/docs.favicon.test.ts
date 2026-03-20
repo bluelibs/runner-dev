@@ -29,27 +29,29 @@ describe("docs favicon", () => {
     );
 
     const handler = createDocsServeHandler(tmpDir, logger);
-    const response = await new Promise<{ html: string; headers: Record<string, string> }>(
-      (resolve, reject) => {
-        const res = {
-          headers: {} as Record<string, string>,
-          setHeader(key: string, value: string) {
-            this.headers[key] = value;
-          },
-          send(html: string) {
-            resolve({ html, headers: this.headers });
-            return html;
-          },
-        } as any;
+    const response = await new Promise<{
+      html: string;
+      headers: Record<string, string>;
+    }>((resolve, reject) => {
+      const res = {
+        headers: {} as Record<string, string>,
+        setHeader(key: string, value: string) {
+          this.headers[key] = value;
+        },
+        send(html: string) {
+          resolve({ html, headers: this.headers });
+          return html;
+        },
+      } as any;
 
-        Promise.resolve(handler({} as any, res)).catch(reject);
-      }
-    );
+      Promise.resolve(handler({} as any, res)).catch(reject);
+    });
 
     expect(response.headers["Content-Type"]).toBe("text/html");
     expect(response.html).toContain('rel="icon" href="/docs/favicon.ico"');
     expect(response.html).toContain('href="/assets/docs.css"');
-    expect(response.html).toContain('src="/assets/docs.js"');
+    expect(response.html).toContain('"moduleScriptHref":"/assets/docs.js"');
+    expect(response.html).toContain("This page expects the Runner-Dev server");
   });
 
   test("serves the docs favicon as a static asset", async () => {

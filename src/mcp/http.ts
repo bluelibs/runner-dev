@@ -1,10 +1,26 @@
-import { assertEndpoint, parseHeadersFromEnv } from "./env";
+import {
+  assertEndpoint,
+  assertSnapshotFile,
+  getSnapshotFile,
+  parseHeadersFromEnv,
+} from "./env";
+import { callSnapshotGraphQL } from "./snapshot";
 
 export async function callGraphQL(params: {
   query: string;
   variables?: Record<string, unknown>;
   operationName?: string;
 }): Promise<unknown> {
+  const snapshotFile = getSnapshotFile();
+  if (snapshotFile) {
+    return callSnapshotGraphQL({
+      snapshotFile: assertSnapshotFile(),
+      query: params.query,
+      variables: params.variables,
+      operationName: params.operationName,
+    });
+  }
+
   const endpoint = assertEndpoint();
   const headers = {
     "content-type": "application/json",

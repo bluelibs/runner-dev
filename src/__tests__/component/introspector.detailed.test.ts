@@ -1,4 +1,9 @@
-import { defineResource, run } from "@bluelibs/runner";
+import {
+  defineResource,
+  defineTask,
+  defineTaskMiddleware,
+  run,
+} from "@bluelibs/runner";
 import { introspector } from "../../resources/introspector.resource";
 import {
   createDummyApp,
@@ -167,5 +172,77 @@ describe("introspector (detailed helpers)", () => {
 
     // meta.tagsDetailed exists and is an array (for root it may be empty by default)
     expect(Array.isArray(snapshot.tagsDetailed)).toBe(true);
+  });
+
+  test("middleware usage config preserves non-JSON details instead of collapsing to empty object", async () => {
+    let snapshot: any = {};
+
+    const formatterMiddleware = defineTaskMiddleware<{
+      formatter: () => string;
+    }>({
+      id: "mw-formatter",
+      async run({ next }) {
+        return next();
+      },
+    });
+
+    const formatterTask = defineTask({
+      id: "task-formatter",
+      middleware: [
+        formatterMiddleware.with({
+          formatter() {
+            return "visible";
+          },
+        }),
+      ],
+      async run() {
+        return "ok" as const;
+      },
+    });
+
+    const probe = defineResource({
+      id: "probe-introspector-detailed-formatter",
+      dependencies: { introspector },
+      async init(_, { introspector }) {
+        snapshot = {
+          usage: introspector.getMiddlewareUsagesForTask(
+            "dummy-app.tasks.task-formatter"
+          ),
+          usedByTasks: introspector.getTasksUsingMiddlewareDetailed(
+            "dummy-app.middleware.task.mw-formatter"
+          ),
+        };
+      },
+    });
+
+    const app = createDummyApp([
+      introspector,
+      probe,
+      formatterMiddleware,
+      formatterTask,
+    ]);
+    const runtime = await run(app);
+
+    try {
+      expect(snapshot.usage).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "dummy-app.middleware.task.mw-formatter",
+            config: expect.stringContaining("formatter"),
+          }),
+        ])
+      );
+
+      expect(snapshot.usedByTasks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "dummy-app.tasks.task-formatter",
+            config: expect.stringContaining("formatter"),
+          }),
+        ])
+      );
+    } finally {
+      await runtime.dispose();
+    }
   });
 });

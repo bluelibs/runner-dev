@@ -1,31 +1,20 @@
 import { createSections } from "./documentationSections";
 
 describe("createSections", () => {
-  it("keeps the primary sections list free of docs support entries", () => {
+  test("omits the Live section in catalog mode", () => {
     const sections = createSections({
+      mode: "catalog",
       tasks: 1,
       resources: 1,
       events: 1,
       hooks: 1,
       middlewares: 1,
       tags: 1,
-      errors: 0,
-      asyncContexts: 0,
-      topologyConnections: 3,
+      errors: 1,
+      asyncContexts: 1,
+      topologyConnections: 1,
     });
 
-    const sectionIds = sections.map((section) => section.id);
-    expect(sectionIds).toEqual([
-      "live",
-      "diagnostics",
-      "overview",
-      "topology",
-      "tasks",
-      "resources",
-      "events",
-      "hooks",
-      "middlewares",
-      "tags",
-    ]);
+    expect(sections.some((section) => section.id === "live")).toBe(false);
   });
 });

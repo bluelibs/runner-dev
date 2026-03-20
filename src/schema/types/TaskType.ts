@@ -20,7 +20,7 @@ import type { CustomGraphQLContext } from "../context";
 import { baseElementCommonFields } from "./BaseElementCommon";
 // Removed taskLikeCommonFields, fields are declared explicitly for clarity
 import { sanitizePath } from "../../utils/path";
-import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
 import { DurableFlowShapeType } from "./DurableFlowTypes";
 import { RpcLaneSummaryType } from "./LaneSummaryTypes";

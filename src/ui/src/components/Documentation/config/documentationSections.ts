@@ -9,6 +9,7 @@ export interface SectionConfig {
 }
 
 export const createSections = (counts: {
+  mode?: "live" | "catalog";
   tasks: number;
   resources: number;
   events: number;
@@ -20,13 +21,17 @@ export const createSections = (counts: {
   topologyConnections: number;
 }): SectionConfig[] => {
   const sections = [
-    {
-      id: "live",
-      label: "Live",
-      icon: getDocumentationIcon("live"),
-      count: null,
-      hasContent: true,
-    },
+    ...(counts.mode === "catalog"
+      ? []
+      : [
+          {
+            id: "live",
+            label: "Live",
+            icon: getDocumentationIcon("live"),
+            count: null,
+            hasContent: true,
+          },
+        ]),
     {
       id: "diagnostics",
       label: "Diagnostics",

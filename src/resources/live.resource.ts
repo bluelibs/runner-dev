@@ -257,7 +257,7 @@ const liveService = defineResource({
           level,
           message,
           data,
-          sourceId: sourceId,
+          sourceId: canonicalizeId(sourceId, nodeIds) ?? sourceId,
           correlationId: correlationId ?? getCorrelationId() ?? null,
         });
         trim(logs);

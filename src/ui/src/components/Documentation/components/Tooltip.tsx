@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import "./Tooltip.scss";
 
 export interface TooltipProps {
@@ -7,6 +8,8 @@ export interface TooltipProps {
   position?: "top" | "bottom" | "left" | "right";
   delay?: number;
   className?: string;
+  tooltipClassName?: string;
+  interactive?: boolean;
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({
@@ -15,17 +18,28 @@ export const Tooltip: React.FC<TooltipProps> = ({
   position = "top",
   delay = 300,
   className = "",
+  tooltipClassName = "",
+  interactive = false,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const targetRef = useRef<HTMLSpanElement>(null);
+
+  const clearHideTimeout = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+  };
 
   const showTooltip = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+    clearHideTimeout();
 
     timeoutRef.current = setTimeout(() => {
       if (targetRef.current) {
@@ -36,17 +50,31 @@ export const Tooltip: React.FC<TooltipProps> = ({
     }, delay);
   };
 
-  const hideTooltip = () => {
+  const hideTooltip = (immediate = false) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
-    setIsVisible(false);
+
+    clearHideTimeout();
+    if (immediate || !interactive) {
+      setIsVisible(false);
+      return;
+    }
+
+    hideTimeoutRef.current = setTimeout(() => {
+      setIsVisible(false);
+      hideTimeoutRef.current = null;
+    }, 100);
   };
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
       }
     };
   }, []);
@@ -95,28 +123,40 @@ export const Tooltip: React.FC<TooltipProps> = ({
     }
   }, [isVisible, coords, position]);
 
+  const tooltipContent =
+    isVisible && typeof document !== "undefined" ? (
+      <div
+        ref={tooltipRef}
+        className={[
+          "docs-tooltip",
+          `docs-tooltip--${position}`,
+          interactive ? "docs-tooltip--interactive" : "",
+          tooltipClassName,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        role="tooltip"
+        onMouseEnter={clearHideTimeout}
+        onMouseLeave={() => hideTooltip()}
+      >
+        {content}
+      </div>
+    ) : null;
+
   return (
     <>
       <span
         ref={targetRef}
         className={`docs-tooltip-trigger ${className}`}
         onMouseEnter={showTooltip}
-        onMouseLeave={hideTooltip}
+        onMouseLeave={() => hideTooltip()}
         onFocus={showTooltip}
-        onBlur={hideTooltip}
+        onBlur={() => hideTooltip()}
       >
         {children}
       </span>
 
-      {isVisible && (
-        <div
-          ref={tooltipRef}
-          className={`docs-tooltip docs-tooltip--${position}`}
-          role="tooltip"
-        >
-          {content}
-        </div>
-      )}
+      {tooltipContent ? createPortal(tooltipContent, document.body) : null}
     </>
   );
 };

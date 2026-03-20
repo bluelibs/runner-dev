@@ -245,12 +245,14 @@ export const DocumentationMainContent: React.FC<
               <h2>📋 Overview</h2>
               <div>
                 <button
+                  type="button"
                   onClick={openStats}
-                  aria-label="Open Stats"
-                  title="Open Stats"
-                  className="clean-button"
+                  aria-label="Open Performance Stats"
+                  title="Open Performance Stats"
+                  className="clean-button overview-header__stats-button"
                 >
-                  📊
+                  <span aria-hidden="true">📊</span>
+                  <span>Stats</span>
                 </button>
               </div>
             </div>

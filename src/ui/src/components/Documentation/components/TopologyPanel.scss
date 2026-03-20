@@ -251,11 +251,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: $spacing-lg;
-  margin-bottom: $spacing-lg;
-  padding: $spacing-md $spacing-xl;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+  padding: 10px $spacing-lg;
   border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 24px;
+  border-radius: 20px;
   background: rgba(15, 23, 42, 0.68);
   backdrop-filter: blur(16px);
 }
@@ -263,7 +263,7 @@
 .topology-panel__focus-meta {
   display: flex;
   align-items: center;
-  gap: $spacing-md;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -271,31 +271,39 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 12px;
   color: #fff;
-  font-size: 20px;
+  font-size: 16px;
+}
+
+.topology-panel__focus-copy {
+  min-width: 0;
 }
 
 .topology-panel__focus-title {
-  font-size: $font-size-lg;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  color: #f8fbff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  font-family: $font-family-mono;
+  letter-spacing: 0.01em;
+  word-break: break-word;
 }
 
 .topology-panel__focus-subtitle {
-  margin-top: 4px;
+  margin-top: 2px;
   color: var(--docs-text-muted);
-  font-size: $font-size-xs;
-  font-family: $font-family-mono;
-  word-break: break-all;
+  font-size: 11px;
+  line-height: 1.35;
+  text-transform: capitalize;
 }
 
 .topology-panel__focus-actions {
   display: inline-flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -304,12 +312,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: $border-radius-pill;
   border: 1px solid rgba(148, 163, 184, 0.14);
   background: rgba(15, 23, 42, 0.65);
   color: var(--docs-text-secondary);
-  font-size: $font-size-xs;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -825,16 +833,43 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-.topology-panel__node-drag {
+.topology-panel__help-trigger {
   display: inline-flex;
   align-items: center;
-  padding: 4px 7px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--docs-text-muted);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  background: rgba(15, 23, 42, 0.78);
+  color: #dbeafe;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: help;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(56, 189, 248, 0.44);
+    background: rgba(14, 165, 233, 0.16);
+    color: #f8fbff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(56, 189, 248, 0.48);
+    outline-offset: 2px;
+  }
+}
+
+.topology-panel__node-help {
+  flex: 0 0 auto;
 }
 
 .topology-panel__node-title {
@@ -1110,16 +1145,13 @@
 
 .topology-panel__navigator-item-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
 }
 
-.topology-panel__navigator-item-body {
+.topology-panel__navigator-item-title {
   min-width: 0;
   flex: 1;
-}
-
-.topology-panel__navigator-item-title {
   font-size: $font-size-sm;
   font-weight: 700;
   line-height: 1.25;
@@ -1127,11 +1159,48 @@
 }
 
 .topology-panel__navigator-item-subtitle {
-  margin-top: 3px;
+  padding-left: 54px;
   color: rgba(203, 213, 225, 0.82) !important;
-  font-size: 10px;
+  font-size: 11px;
   font-family: $font-family-mono;
-  word-break: break-all;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.topology-panel__navigator-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.topology-panel__navigator-item-description-toggle {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #dbeafe;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(56, 189, 248, 0.4);
+    background: rgba(14, 165, 233, 0.16);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(56, 189, 248, 0.42);
+    outline-offset: 2px;
+  }
 }
 
 .topology-panel__navigator-item-badge {
@@ -1163,6 +1232,40 @@
   letter-spacing: 0.04em;
 }
 
+.topology-panel__navigator-item-description {
+  padding: 10px 12px;
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.46);
+}
+
+.topology-panel__navigator-item-description-markdown {
+  color: #dbeafe;
+  font-size: 12px;
+  line-height: 1.55;
+
+  > div > :first-child {
+    margin-top: 0;
+  }
+
+  > div > :last-child {
+    margin-bottom: 0;
+  }
+
+  p,
+  ul,
+  ol,
+  pre {
+    margin: 0 0 10px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .topology-panel__navigator-item-actions {
+    justify-content: flex-start;
+  }
+}
+
 .topology-panel__detail-header {
   display: flex;
   align-items: flex-start;
@@ -1182,6 +1285,43 @@
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.topology-panel__help-tooltip {
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border-radius: 14px;
+  border-color: rgba(56, 189, 248, 0.14);
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.94));
+  box-shadow:
+    0 18px 40px rgba(2, 6, 23, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+.topology-panel__help-tooltip-markdown {
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.55;
+
+  > div > :first-child {
+    margin-top: 0;
+  }
+
+  > div > :last-child {
+    margin-bottom: 0;
+  }
+
+  p,
+  ul,
+  ol,
+  pre {
+    margin: 0 0 10px;
+  }
+
+  code {
+    font-size: 11px;
+  }
 }
 
 .topology-panel__detail-visibility {
@@ -1394,7 +1534,7 @@
   .topology-panel__hero,
   .topology-panel__toolbar,
   .topology-panel__focus-bar {
-    padding: $spacing-lg;
+    padding: 12px $spacing-lg;
   }
 
   .topology-panel__hero {
@@ -1465,6 +1605,7 @@
   .topology-panel__focus-bar {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
   }
 
   .topology-panel__focus-actions {

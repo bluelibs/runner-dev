@@ -334,10 +334,13 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             </pre>
           </div>
 
-          <div className="resource-card__config__subsection">
-            <h5>Configuration Schema</h5>
+          <CardSection
+            prefix="resource-card"
+            title="Configuration Schema"
+            className="resource-card__config__subsection"
+          >
             <SchemaRenderer schemaString={resource.configSchema} />
-          </div>
+          </CardSection>
         </CardSection>
       </div>
 

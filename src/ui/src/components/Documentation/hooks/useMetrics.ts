@@ -175,6 +175,8 @@ export function useMetrics(
         setLatency(lt);
         setErrorByTask(ebt);
         setHeatmap(grid);
+      } catch {
+        // Preserve the last successful snapshot when telemetry is temporarily unavailable.
       } finally {
         if (!cancelled) setIsLoading(false);
       }

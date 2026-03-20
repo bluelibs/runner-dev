@@ -21,6 +21,7 @@ import {
   TOPOLOGY_CANVAS_INSETS,
   type TopologyCanvasSize,
 } from "./topologyViewport.utils";
+import { TopologyDescriptionTooltip } from "./TopologyDescriptionTooltip";
 
 export interface TopologyCanvasProps {
   graph: TopologyGraphProjection;
@@ -86,6 +87,16 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
   onSelectNode,
   onToggleFullscreen,
 }) => {
+  const handleNodeKeyDown = React.useCallback(
+    (node: TopologyGraphNode) =>
+      (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onSelectNode(node);
+      },
+    [onSelectNode]
+  );
+
   const canvasInstanceId = React.useId().replace(/:/g, "");
   const shellRef = React.useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] =
@@ -484,9 +495,10 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
         </svg>
 
         {positionedNodes.map((node) => (
-          <button
+          <div
             key={node.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             className={[
               "topology-panel__node",
               `topology-panel__node--${node.kind}`,
@@ -503,13 +515,18 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
               left: `${node.x - bounds.minX}px`,
               top: `${node.y - bounds.minY}px`,
             }}
-            title={node.description || node.subtitle}
             onPointerDown={beginNodeDrag(node)}
             onClick={() => onSelectNode(node)}
+            onKeyDown={handleNodeKeyDown(node)}
           >
             <div className="topology-panel__node-header">
               <span className="topology-panel__node-icon">{node.icon}</span>
-              <span className="topology-panel__node-drag">drag</span>
+              <TopologyDescriptionTooltip
+                description={node.description}
+                label={node.label}
+                className="topology-panel__node-help"
+                position="right"
+              />
             </div>
             <div className="topology-panel__node-title">{node.label}</div>
             <div className="topology-panel__node-subtitle">
@@ -524,7 +541,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
                 </span>
               )}
             </div>
-          </button>
+          </div>
         ))}
       </div>
 

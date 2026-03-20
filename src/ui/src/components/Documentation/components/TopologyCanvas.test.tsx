@@ -303,6 +303,7 @@ describe("TopologyCanvas", () => {
             id: "task.drag.me",
             kind: "task",
             label: "Drag Me",
+            description: "Drag support stays intact.",
             x: 420,
             y: 1640,
             incomingCount: 1,
@@ -347,6 +348,69 @@ describe("TopologyCanvas", () => {
     await waitFor(() => {
       expect(node.getAttribute("style")).not.toBe(beforeStyle);
     });
+  });
+
+  it("shows a description help trigger only for nodes that have descriptions", async () => {
+    const onSelectNode = jest.fn();
+
+    render(
+      <TopologyCanvas
+        graph={createProjection([
+          createNode({
+            id: "resource.focus",
+            kind: "resource",
+            label: "Focus",
+            x: 180,
+            y: 160,
+            incomingCount: 1,
+            outgoingCount: 1,
+            isFocus: true,
+          }),
+          createNode({
+            id: "task.helpful",
+            kind: "task",
+            label: "Helpful Node",
+            description: "**Helpful** markdown description",
+            x: 420,
+            y: 640,
+            incomingCount: 1,
+            outgoingCount: 2,
+          }),
+          createNode({
+            id: "task.quiet",
+            kind: "task",
+            label: "Quiet Node",
+            x: 640,
+            y: 760,
+            incomingCount: 1,
+            outgoingCount: 1,
+          }),
+        ])}
+        selectedNodeId="resource.focus"
+        isFullscreen={false}
+        onSelectNode={onSelectNode}
+        onToggleFullscreen={() => {}}
+      />
+    );
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Helpful Node description",
+      })
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", {
+        name: "Quiet Node description",
+      })
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Helpful Node description",
+      })
+    );
+
+    expect(onSelectNode).not.toHaveBeenCalled();
   });
 
   it("selects a node when activated by click", async () => {

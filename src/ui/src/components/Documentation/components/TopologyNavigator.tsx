@@ -1,6 +1,7 @@
 import React from "react";
 import { formatId } from "../utils/formatting";
 import type { TopologyGraphNode } from "../utils/topologyGraph";
+import { MarkdownRenderer } from "../utils/markdownUtils";
 import { buildTopologyNavigatorEntries } from "./topologyNavigator.utils";
 
 export interface TopologyNavigatorProps {
@@ -22,6 +23,9 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
 }) => {
   const deferredQuery = React.useDeferredValue(query);
   const hasActiveQuery = deferredQuery.trim().length > 0;
+  const [expandedDescriptionIds, setExpandedDescriptionIds] = React.useState<
+    Set<string>
+  >(new Set());
 
   const allEntries = React.useMemo(
     () => buildTopologyNavigatorEntries(nodes, selectedNodeId, deferredQuery),
@@ -37,6 +41,28 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
   const summaryLabel = hasActiveQuery
     ? `${matchCount} match${matchCount === 1 ? "" : "es"}`
     : `${matchCount} node${matchCount === 1 ? "" : "s"}`;
+
+  const handleItemKeyDown = React.useCallback(
+    (node: TopologyGraphNode) =>
+      (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onSelect(node);
+      },
+    [onSelect]
+  );
+
+  const toggleDescription = React.useCallback((nodeId: string) => {
+    setExpandedDescriptionIds((current) => {
+      const next = new Set(current);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  }, []);
 
   return (
     <div className="topology-panel__detail-card topology-panel__detail-card--navigator">
@@ -111,11 +137,14 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
               // Keep filtered nodes discoverable in the navigator, but label
               // them explicitly so the sidebar stays honest about visibility.
               const isHidden = !node.isVisible;
+              const hasDescription = Boolean(node.description?.trim());
+              const isDescriptionExpanded = expandedDescriptionIds.has(node.id);
 
               return (
-                <button
+                <div
                   key={node.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   className={[
                     "topology-panel__navigator-item",
                     isSelected
@@ -129,7 +158,7 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
                     .filter(Boolean)
                     .join(" ")}
                   onClick={() => onSelect(node)}
-                  title={node.description || node.subtitle}
+                  onKeyDown={handleItemKeyDown(node)}
                 >
                   <div className="topology-panel__navigator-item-top">
                     <span
@@ -140,24 +169,13 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
                     >
                       {node.icon}
                     </span>
-                    <div className="topology-panel__navigator-item-body">
-                      <div className="topology-panel__navigator-item-title">
-                        {node.label}
-                      </div>
-                      <div className="topology-panel__navigator-item-subtitle">
-                        {formatId(node.id)}
-                      </div>
+                    <div className="topology-panel__navigator-item-title">
+                      {node.label}
                     </div>
-                    {isSelected && (
-                      <span className="topology-panel__navigator-item-badge">
-                        Selected
-                      </span>
-                    )}
-                    {isHidden && (
-                      <span className="topology-panel__navigator-item-badge topology-panel__navigator-item-badge--hidden">
-                        Hidden
-                      </span>
-                    )}
+                  </div>
+
+                  <div className="topology-panel__navigator-item-subtitle">
+                    {formatId(node.id)}
                   </div>
 
                   <div className="topology-panel__navigator-item-meta">
@@ -168,7 +186,48 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
                       <span>+{node.hiddenNeighborCount} hidden</span>
                     )}
                   </div>
-                </button>
+
+                  {(hasDescription || isSelected || isHidden) && (
+                    <div className="topology-panel__navigator-item-actions">
+                      {hasDescription && (
+                        <button
+                          type="button"
+                          className="topology-panel__navigator-item-description-toggle"
+                          aria-expanded={isDescriptionExpanded}
+                          aria-label={`${node.label} description`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleDescription(node.id);
+                          }}
+                        >
+                          {isDescriptionExpanded
+                            ? "Hide description"
+                            : "Show description"}
+                        </button>
+                      )}
+                      {isSelected && (
+                        <span className="topology-panel__navigator-item-badge">
+                          Selected
+                        </span>
+                      )}
+                      {isHidden && (
+                        <span className="topology-panel__navigator-item-badge topology-panel__navigator-item-badge--hidden">
+                          Hidden
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {hasDescription && isDescriptionExpanded && (
+                    <div className="topology-panel__navigator-item-description">
+                      <MarkdownRenderer
+                        content={node.description ?? ""}
+                        className="topology-panel__navigator-item-description-markdown"
+                      />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

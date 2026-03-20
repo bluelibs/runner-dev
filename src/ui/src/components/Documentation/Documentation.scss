@@ -1030,6 +1030,12 @@ body {
   justify-content: space-between;
 }
 
+.overview-header__stats-button {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
 .overview-support-block {
   margin-top: $spacing-xxl;
 }

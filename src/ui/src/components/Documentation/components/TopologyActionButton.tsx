@@ -5,7 +5,6 @@ import {
   type TopologyFocus,
   type TopologyViewMode,
 } from "../utils/topologyGraph.state";
-import { readStoredTopologyPanelState } from "./topologyPanelState";
 
 export interface TopologyActionButtonProps {
   focus: TopologyFocus;
@@ -22,9 +21,7 @@ export const TopologyActionButton: React.FC<TopologyActionButtonProps> = ({
   view,
   className,
 }) => {
-  const storedState = React.useMemo(() => readStoredTopologyPanelState(), []);
-  const resolvedView =
-    view ?? storedState?.view ?? defaultViewForKind(focus.kind);
+  const resolvedView = view ?? defaultViewForKind(focus.kind);
 
   return (
     <button

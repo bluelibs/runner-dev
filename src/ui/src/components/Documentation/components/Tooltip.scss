@@ -120,6 +120,10 @@
   }
 }
 
+.docs-tooltip--interactive {
+  pointer-events: auto;
+}
+
 // Ensure the tooltip is visible when mounted
 .docs-tooltip {
   opacity: 1;

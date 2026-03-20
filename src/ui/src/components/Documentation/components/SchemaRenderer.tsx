@@ -118,7 +118,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   hidePrint,
 }) => {
   const [activeTab, setActiveTab] = React.useState<"print" | "form" | "json">(
-    "print"
+    "json"
   );
   const [didPrefill, setDidPrefill] = React.useState(false);
   const [copied, setCopied] = React.useState(false);

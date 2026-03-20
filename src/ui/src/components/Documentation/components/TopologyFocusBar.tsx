@@ -14,6 +14,8 @@ export const TopologyFocusBar: React.FC<TopologyFocusBarProps> = ({
   selectedNode,
   view,
 }) => {
+  const formattedPath = formatId(selectedNode.id);
+
   return (
     <div className="topology-panel__focus-bar">
       <div className="topology-panel__focus-meta">
@@ -22,12 +24,10 @@ export const TopologyFocusBar: React.FC<TopologyFocusBarProps> = ({
         >
           {selectedNode.icon}
         </span>
-        <div>
-          <div className="topology-panel__focus-title">
-            {selectedNode.label}
-          </div>
+        <div className="topology-panel__focus-copy">
+          <div className="topology-panel__focus-title">{formattedPath}</div>
           <div className="topology-panel__focus-subtitle">
-            {formatId(selectedNode.id)}
+            {selectedNode.kind} · {selectedNode.label}
           </div>
         </div>
       </div>

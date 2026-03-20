@@ -156,6 +156,6 @@
     ]
   },
   "peerDependencies": {
-    "@bluelibs/runner": "^6.3.2"
+    "@bluelibs/runner": "^6.3.3"
   }
 }

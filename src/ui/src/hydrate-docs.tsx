@@ -8,7 +8,10 @@ import {
 } from "../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "./components/Documentation/config/documentationConstants";
 import { DocsContentPayload } from "../../resources/routeHandlers/getDocsData";
-import { isSystemNamespaceId } from "../../utils/system-namespace";
+import {
+  getHashTargetElementId,
+  getVisibilityStateForHashTarget,
+} from "./utils/docsHashVisibility";
 
 // Expect SSR to inject window.__DOCS_PROPS__ with pre-fetched data
 declare global {
@@ -61,17 +64,6 @@ function createIntrospectorFromData(data: SerializedIntrospector) {
   return Introspector.deserialize(data);
 }
 
-// If the URL hash targets a system element and system is hidden,
-// enable system visibility before rendering so the element is present.
-function getHashTargetElementId(): string | null {
-  const hash = window.location.hash;
-  if (!hash) return null;
-  const id = decodeURIComponent(hash.slice(1));
-  if (!id) return null;
-  if (id.startsWith("element-")) return id.slice("element-".length);
-  return id;
-}
-
 function getShowSystemFromStorage(): boolean {
   try {
     return (
@@ -94,15 +86,70 @@ function setShowSystemInStorage(value: boolean): void {
   }
 }
 
-function ensureSystemVisibilityForHash(introspector: Introspector): void {
-  const targetId = getHashTargetElementId();
-  if (!targetId) return;
+function getShowRunnerFromStorage(): boolean {
+  try {
+    return (
+      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER) ===
+      "1"
+    );
+  } catch {
+    return DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER;
+  }
+}
+
+function setShowRunnerInStorage(value: boolean): void {
+  try {
+    localStorage.setItem(
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
+      value ? "1" : "0"
+    );
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function getShowPrivateFromStorage(): boolean {
+  try {
+    return (
+      localStorage.getItem(
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE
+      ) === "1"
+    );
+  } catch {
+    return DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_PRIVATE;
+  }
+}
+
+function setShowPrivateInStorage(value: boolean): void {
+  try {
+    localStorage.setItem(
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE,
+      value ? "1" : "0"
+    );
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function ensureVisibilityForHash(introspector: Introspector): void {
+  const targetId = getHashTargetElementId(window.location.hash);
   const showSystem = getShowSystemFromStorage();
-  const targetExists = introspector
-    .getAll()
-    .some((entry: { id: string }) => entry.id === targetId);
-  if (!showSystem && targetExists && isSystemNamespaceId(targetId)) {
+  const showRunner = getShowRunnerFromStorage();
+  const showPrivate = getShowPrivateFromStorage();
+  const nextVisibility = getVisibilityStateForHashTarget(introspector, targetId, {
+    showSystem,
+    showRunner,
+    showPrivate,
+  });
+
+  if (!showSystem && nextVisibility.showSystem) {
     setShowSystemInStorage(true);
+  }
+  if (!showRunner && nextVisibility.showRunner) {
+    setShowRunnerInStorage(true);
+  }
+  if (!showPrivate && nextVisibility.showPrivate) {
+    setShowPrivateInStorage(true);
   }
 }
 
@@ -172,7 +219,7 @@ async function bootstrap() {
     const introspector = createIntrospectorFromData(
       props.introspectorData as SerializedIntrospector
     );
-    ensureSystemVisibilityForHash(introspector);
+    ensureVisibilityForHash(introspector);
     hydrateRoot(
       container,
       React.createElement(Documentation as any, {
@@ -218,7 +265,7 @@ async function bootstrap() {
     const introspector = createIntrospectorFromData(
       json.introspectorData as SerializedIntrospector
     );
-    ensureSystemVisibilityForHash(introspector);
+    ensureVisibilityForHash(introspector);
     root.render(
       React.createElement(Documentation as any, {
         introspector,

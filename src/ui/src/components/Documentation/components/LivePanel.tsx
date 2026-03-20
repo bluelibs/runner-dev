@@ -165,6 +165,7 @@ export const LivePanel: React.FC<LivePanelProps> = ({
         {/* Logs - Full Width */}
         <div className="live-logs-section">
           <RecentLogs
+            introspector={_introspector}
             logs={liveData.logs}
             onCorrelationIdClick={setTraceCorrelationId}
           />

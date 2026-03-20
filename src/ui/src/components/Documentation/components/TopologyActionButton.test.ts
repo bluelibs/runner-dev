@@ -10,7 +10,7 @@ describe("TopologyActionButton", () => {
     localStorage.clear();
   });
 
-  it("reuses the stored topology lens when no explicit view is provided", () => {
+  it("prefers the default lens for the focused kind over stored topology state", () => {
     localStorage.setItem(
       "docs-topology-state",
       JSON.stringify({
@@ -30,9 +30,7 @@ describe("TopologyActionButton", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open topology" }));
 
-    expect(window.location.hash).toBe(
-      "#topology/task/task.orders.create?view=mindmap"
-    );
+    expect(window.location.hash).toBe("#topology/task/task.orders.create");
   });
 
   it("keeps honoring an explicit view override", () => {

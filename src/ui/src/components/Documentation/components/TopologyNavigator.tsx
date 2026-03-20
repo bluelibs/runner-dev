@@ -108,6 +108,9 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
               const node = entry.node;
               const isSelected = node.id === selectedNodeId;
               const connections = node.incomingCount + node.outgoingCount;
+              // Keep filtered nodes discoverable in the navigator, but label
+              // them explicitly so the sidebar stays honest about visibility.
+              const isHidden = !node.isVisible;
 
               return (
                 <button
@@ -118,6 +121,7 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
                     isSelected
                       ? "topology-panel__navigator-item--selected"
                       : "",
+                    isHidden ? "topology-panel__navigator-item--hidden" : "",
                     entry.isMatch && hasActiveQuery
                       ? "topology-panel__navigator-item--match"
                       : "",
@@ -149,10 +153,16 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
                         Selected
                       </span>
                     )}
+                    {isHidden && (
+                      <span className="topology-panel__navigator-item-badge topology-panel__navigator-item-badge--hidden">
+                        Hidden
+                      </span>
+                    )}
                   </div>
 
                   <div className="topology-panel__navigator-item-meta">
                     <span>{node.kind}</span>
+                    <span>{node.isVisible ? "Visible" : "Hidden"}</span>
                     <span>{connections} links</span>
                     {node.hiddenNeighborCount > 0 && (
                       <span>+{node.hiddenNeighborCount} hidden</span>

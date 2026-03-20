@@ -11,6 +11,12 @@ export const RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS = [
 ] as const;
 
 const PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9_.-]+$/i;
+const PACKAGE_DOC_ROOTS_BY_PACKAGE: Record<string, string[]> = {
+  "@bluelibs/runner": [
+    ".agents/skills/bluelibs-runner-core/references",
+    "node_modules/@bluelibs/runner",
+  ],
+};
 
 export class PackageDocNotFoundError extends Error {
   constructor(
@@ -51,6 +57,22 @@ function normalizeDocPath(docPath: string): string {
   return normalized;
 }
 
+function getPackageDocCandidatePaths(
+  root: string,
+  packageName: string,
+  normalizedDocPath: string
+): string[] {
+  const configuredRoots = PACKAGE_DOC_ROOTS_BY_PACKAGE[packageName];
+  if (configuredRoots?.length) {
+    return configuredRoots.map((configuredRoot) =>
+      path.join(root, configuredRoot, normalizedDocPath)
+    );
+  }
+
+  const packageRoot = path.join(root, "node_modules", packageName);
+  return [path.join(packageRoot, normalizedDocPath)];
+}
+
 export async function readPackageDoc(
   packageName: string,
   docPath = "README.md"
@@ -65,27 +87,36 @@ export async function readPackageDoc(
 
   const root = process.cwd();
   const normalizedDocPath = normalizeDocPath(docPath);
-  const packageRoot = path.join(root, "node_modules", packageName);
-  const filePath = path.join(packageRoot, normalizedDocPath);
+  const candidatePaths = getPackageDocCandidatePaths(
+    root,
+    packageName,
+    normalizedDocPath
+  );
 
-  try {
-    const content = await fs.readFile(filePath, "utf8");
-    return {
-      packageName,
-      filePath: sanitizePath(filePath) ?? filePath,
-      content,
-    };
-  } catch (error) {
-    if (!isMissingFileError(error)) {
-      throw error;
+  let lastTriedPath = candidatePaths[0];
+
+  for (const candidatePath of candidatePaths) {
+    lastTriedPath = candidatePath;
+
+    try {
+      const content = await fs.readFile(candidatePath, "utf8");
+      return {
+        packageName,
+        filePath: sanitizePath(candidatePath) ?? candidatePath,
+        content,
+      };
+    } catch (error) {
+      if (!isMissingFileError(error)) {
+        throw error;
+      }
     }
-
-    return {
-      packageName,
-      filePath: sanitizePath(filePath) ?? filePath,
-      content: "",
-    };
   }
+
+  return {
+    packageName,
+    filePath: sanitizePath(lastTriedPath) ?? lastTriedPath,
+    content: "",
+  };
 }
 
 export async function readFirstAvailablePackageDoc(

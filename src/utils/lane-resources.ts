@@ -12,8 +12,68 @@ export type LaneResourceLike = {
   tags?: TagIds;
 };
 
+export type EventLaneApplyTargetLike = { id?: unknown } | string;
+export type EventLaneLike =
+  | {
+      id?: unknown;
+      applyTo?: readonly EventLaneApplyTargetLike[];
+      orderingKey?: unknown;
+      metadata?: unknown;
+    }
+  | string;
+export type EventLaneHookLike = { id?: unknown } | string;
+export type EventLaneQueueLike =
+  | { id?: unknown; resource?: { id?: unknown } }
+  | string;
+export type EventLaneConsumeEntryLike = {
+  lane?: EventLaneLike;
+  hooks?: {
+    only?: EventLaneHookLike[];
+  };
+};
 export type RpcLaneLike = { id?: unknown } | string;
 export type RpcCommunicatorLike = { id?: unknown } | string;
+
+export type EventLaneSummaryLike = {
+  laneId: string;
+  orderingKey: string | null;
+  metadata: string | null;
+};
+
+export type EventLaneBindingSummary = {
+  laneId: string;
+  queueId: string | null;
+  prefetch: string | null;
+  dlqQueueId: string | null;
+};
+
+export type EventLaneProfileSummary = {
+  profileId: string;
+  consume: Array<{
+    laneId: string;
+    hookAllowlistIds: string[];
+  }>;
+};
+
+export type EventLanesResourceConfigShape = {
+  mode?: string;
+  profile?: string;
+  topology?: {
+    relaySourcePrefix?: string;
+    bindings?: Array<{
+      lane?: EventLaneLike;
+      queue?: EventLaneQueueLike;
+      prefetch?: number;
+      dlq?: { queue?: EventLaneQueueLike };
+    }>;
+    profiles?: Record<
+      string,
+      {
+        consume?: EventLaneConsumeEntryLike[];
+      }
+    >;
+  };
+};
 
 export type RpcLanesResourceConfigShape = {
   mode?: string;
@@ -89,6 +149,17 @@ export function parseRpcLanesResourceConfig(
   }
 }
 
+export function parseEventLanesResourceConfig(
+  resourceConfig: string | null | undefined
+): EventLanesResourceConfigShape | null {
+  if (!resourceConfig) return null;
+  try {
+    return JSON.parse(resourceConfig) as EventLanesResourceConfigShape;
+  } catch {
+    return null;
+  }
+}
+
 export function extractLaneId(laneLike: unknown): string | null {
   if (typeof laneLike === "string") {
     const laneId = laneLike.trim();
@@ -101,6 +172,161 @@ export function extractLaneId(laneLike: unknown): string | null {
 
   const laneId = candidateId.trim();
   return laneId.length > 0 ? laneId : null;
+}
+
+export function extractHookId(hookLike: unknown): string | null {
+  if (typeof hookLike === "string") {
+    const hookId = hookLike.trim();
+    return hookId.length > 0 ? hookId : null;
+  }
+
+  if (!hookLike || typeof hookLike !== "object") return null;
+  const candidateId = (hookLike as { id?: unknown }).id;
+  if (typeof candidateId !== "string") return null;
+
+  const hookId = candidateId.trim();
+  return hookId.length > 0 ? hookId : null;
+}
+
+export function extractQueueId(queueLike: unknown): string | null {
+  if (typeof queueLike === "string") {
+    const queueId = queueLike.trim();
+    return queueId.length > 0 ? queueId : null;
+  }
+
+  if (!queueLike || typeof queueLike !== "object") return null;
+  const directId = (queueLike as { id?: unknown }).id;
+  if (typeof directId === "string" && directId.trim().length > 0) {
+    return directId.trim();
+  }
+
+  const resourceId = (queueLike as { resource?: { id?: unknown } }).resource
+    ?.id;
+  if (typeof resourceId !== "string") return null;
+
+  const queueId = resourceId.trim();
+  return queueId.length > 0 ? queueId : null;
+}
+
+function stringifyMetadata(metadata: unknown): string | null {
+  if (metadata == null) return null;
+  if (typeof metadata === "string") return metadata;
+
+  try {
+    return JSON.stringify(metadata);
+  } catch {
+    return String(metadata);
+  }
+}
+
+export function extractEventLaneSummary(
+  laneLike: unknown
+): EventLaneSummaryLike | null {
+  const laneId = extractLaneId(laneLike);
+  if (!laneId) return null;
+
+  const laneConfig =
+    laneLike && typeof laneLike === "object"
+      ? (laneLike as {
+          orderingKey?: unknown;
+          metadata?: unknown;
+        })
+      : null;
+
+  return {
+    laneId,
+    orderingKey:
+      laneConfig?.orderingKey != null ? String(laneConfig.orderingKey) : null,
+    metadata: stringifyMetadata(laneConfig?.metadata),
+  };
+}
+
+export function extractEventLaneApplyToIds(laneLike: unknown): string[] {
+  if (!laneLike || typeof laneLike !== "object") return [];
+  const applyTo = (laneLike as { applyTo?: readonly unknown[] }).applyTo;
+  if (!Array.isArray(applyTo)) return [];
+
+  const eventIds = new Set<string>();
+  for (const target of applyTo) {
+    const eventId = extractLaneId(target);
+    if (eventId) eventIds.add(eventId);
+  }
+
+  return Array.from(eventIds);
+}
+
+export function collectEventLaneSummaries(
+  config: EventLanesResourceConfigShape | null | undefined
+): Map<string, EventLaneSummaryLike> {
+  const eventLaneByEventId = new Map<string, EventLaneSummaryLike>();
+  if (!config) return eventLaneByEventId;
+
+  const collectFromLane = (laneLike: unknown) => {
+    const summary = extractEventLaneSummary(laneLike);
+    if (!summary) return;
+
+    for (const eventId of extractEventLaneApplyToIds(laneLike)) {
+      if (!eventLaneByEventId.has(eventId)) {
+        eventLaneByEventId.set(eventId, summary);
+      }
+    }
+  };
+
+  for (const binding of config.topology?.bindings ?? []) {
+    collectFromLane(binding?.lane);
+  }
+
+  for (const profile of Object.values(config.topology?.profiles ?? {})) {
+    for (const entry of profile?.consume ?? []) {
+      collectFromLane(entry?.lane);
+    }
+  }
+
+  return eventLaneByEventId;
+}
+
+export function collectEventLaneSummariesFromResourceConfig(
+  resourceConfig: string | null | undefined
+): Map<string, EventLaneSummaryLike> {
+  return collectEventLaneSummaries(
+    parseEventLanesResourceConfig(resourceConfig)
+  );
+}
+
+export function getEventLaneBindings(
+  config: EventLanesResourceConfigShape | null | undefined
+): EventLaneBindingSummary[] {
+  const bindings = config?.topology?.bindings;
+  if (!Array.isArray(bindings)) return [];
+
+  return bindings.map((binding) => ({
+    laneId: extractLaneId(binding?.lane) ?? "unknown",
+    queueId: extractQueueId(binding?.queue),
+    prefetch:
+      typeof binding?.prefetch === "number" ? String(binding.prefetch) : null,
+    dlqQueueId: binding?.dlq?.queue ? extractQueueId(binding.dlq.queue) : null,
+  }));
+}
+
+export function getEventLaneProfiles(
+  config: EventLanesResourceConfigShape | null | undefined
+): EventLaneProfileSummary[] {
+  const rawProfiles = config?.topology?.profiles;
+  if (!rawProfiles || typeof rawProfiles !== "object") return [];
+
+  return Object.entries(rawProfiles).map(([profileId, profile]) => ({
+    profileId,
+    consume: Array.isArray(profile?.consume)
+      ? profile.consume.map((entry) => ({
+          laneId: extractLaneId(entry?.lane) ?? "unknown",
+          hookAllowlistIds: Array.isArray(entry?.hooks?.only)
+            ? entry.hooks.only
+                .map((hook) => extractHookId(hook))
+                .filter((hookId): hookId is string => Boolean(hookId))
+            : [],
+        }))
+      : [],
+  }));
 }
 
 export function extractCommunicatorId(

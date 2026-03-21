@@ -4,8 +4,8 @@ import {
   memoryDurableResource,
 } from "@bluelibs/runner/node";
 import type { Request, Response } from "express";
-import fs from "node:fs/promises";
 import { createDocsDataRouteHandler } from "../../resources/routeHandlers/getDocsData";
+import * as packageDocs from "../../docs/packageDocs";
 import { Introspector } from "../../resources/models/Introspector";
 
 function createDurableDocsFixtureApp() {
@@ -78,7 +78,6 @@ describe("/docs/data durable enrichment", () => {
       const store = await runtime.getResourceValue(resources.store);
       const introspector = new Introspector({ store });
       const handler = createDocsDataRouteHandler({
-        uiDir: ".",
         store,
         introspector,
         logger: { info: () => undefined },
@@ -104,43 +103,42 @@ describe("/docs/data durable enrichment", () => {
     }
   });
 
-  test("returns docsContent from local readmes and degrades when a doc is missing", async () => {
+  test("fails when a required Runner guide is missing", async () => {
     const { app } = createDurableDocsFixtureApp();
     const runtime = await run(app);
-    let readFileSpy: jest.SpyInstance | null = null;
+    let readFirstAvailablePackageDocSpy: jest.SpyInstance | null = null;
 
     try {
       const store = await runtime.getResourceValue(resources.store);
       const introspector = new Introspector({ store });
       const handler = createDocsDataRouteHandler({
-        uiDir: ".",
         store,
         introspector,
         logger: { info: () => undefined },
       });
 
-      const originalReadFile = fs.readFile.bind(fs);
-      readFileSpy = jest
-        .spyOn(fs, "readFile")
-        .mockImplementation(async (filePath, options) => {
-          const normalizedPath = String(filePath);
-
-          if (normalizedPath.includes("runner-full-guide.md")) {
+      const originalReadFirstAvailablePackageDoc =
+        packageDocs.readFirstAvailablePackageDoc;
+      readFirstAvailablePackageDocSpy = jest
+        .spyOn(packageDocs, "readFirstAvailablePackageDoc")
+        .mockImplementation(async (packageName, docPaths) => {
+          if (
+            packageName === "@bluelibs/runner" &&
+            docPaths.includes(
+              packageDocs.RUNNER_FRAMEWORK_COMPLETE_DOC_PATHS[0]
+            )
+          ) {
             throw new Error("missing full guide");
           }
 
-          return originalReadFile(filePath as any, options as any);
+          return originalReadFirstAvailablePackageDoc(packageName, docPaths);
         });
 
       const { req, res, payloadRef } = createMockReqRes();
-      await handler(req, res);
-
-      expect(payloadRef.value?.docsContent?.minimalMd).toContain(
-        "BlueLibs Runner: AI Field Guide"
-      );
-      expect(payloadRef.value?.docsContent?.completeMd).toBe("");
+      await expect(handler(req, res)).rejects.toThrow("missing full guide");
+      expect(payloadRef.value).toBeNull();
     } finally {
-      readFileSpy?.mockRestore();
+      readFirstAvailablePackageDocSpy?.mockRestore();
       await runtime.dispose();
     }
   });

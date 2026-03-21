@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { formatSchemaIfZod, isZodSchema } from "../../utils/zod";
+import { formatSchemaIfZod, isZodSchema } from "../../utils/schemaFormat";
 import {
   mapStoreTaskToTaskModel,
   mapStoreResourceToResourceModel,
@@ -75,6 +75,99 @@ describe("Zod schema conversion", () => {
 
     const jsonStr = formatSchemaIfZod(asyncSchema);
     expect(jsonStr).toBe('{ "type": "object" }');
+  });
+
+  test("formatSchemaIfZod builds matcher schemas when toJSONSchema rejects Date", () => {
+    const matcherSchema = {
+      pattern: {
+        supplierId: String,
+        changedSkus: {
+          kind: "Match.NonEmptyArrayPattern",
+          pattern: String,
+        },
+        source: {
+          kind: "Match.OneOfPattern",
+          patterns: ["catalog-sync"],
+        },
+        updatedAt: Date,
+      },
+      toJSONSchema: () => {
+        throw new Error("Date constructor is not representable");
+      },
+    };
+
+    const jsonStr = formatSchemaIfZod(matcherSchema);
+    expect(typeof jsonStr).toBe("string");
+    const json = JSON.parse(String(jsonStr));
+    expect(json.type).toBe("object");
+    expect(json.properties.supplierId.type).toBe("string");
+    expect(json.properties.changedSkus.type).toBe("array");
+    expect(json.properties.changedSkus.minItems).toBe(1);
+    expect(json.properties.updatedAt.format).toBe("date-time");
+    expect(json.properties.source.anyOf).toEqual([{ const: "catalog-sync" }]);
+  });
+
+  test("formatSchemaIfZod preserves plain Match object strictness in fallback", () => {
+    const matcherSchema = {
+      pattern: {
+        id: String,
+        optionalNote: {
+          kind: "Match.OptionalPattern",
+          pattern: String,
+        },
+      },
+      toJSONSchema: () => {
+        throw new Error("fallback me");
+      },
+    };
+
+    const json = JSON.parse(String(formatSchemaIfZod(matcherSchema)));
+    expect(json.type).toBe("object");
+    expect(json.additionalProperties).toBe(false);
+    expect(json.required).toEqual(["id"]);
+    expect(json.properties.optionalNote.type).toBe("string");
+  });
+
+  test("formatSchemaIfZod supports lazy, map, regexp, and maybe Match wrappers in fallback", () => {
+    const matcherSchema = {
+      pattern: {
+        config: {
+          kind: "Match.LazyPattern",
+          resolver: () => ({
+            slug: {
+              kind: "Match.RegExpPattern",
+              expression: /^[a-z]+$/i,
+            },
+            metadata: {
+              kind: "Match.MapOfPattern",
+              pattern: Date,
+            },
+            alias: {
+              kind: "Match.MaybePattern",
+              pattern: String,
+            },
+          }),
+        },
+      },
+      toJSONSchema: () => {
+        throw new Error("fallback me");
+      },
+    };
+
+    const json = JSON.parse(String(formatSchemaIfZod(matcherSchema)));
+    const config = json.properties.config;
+
+    expect(config.type).toBe("object");
+    expect(config.additionalProperties).toBe(false);
+    expect(config.properties.slug.pattern).toBe("^[a-z]+$");
+    expect(config.properties.slug["x-runner-regexp-flags"]).toBe("i");
+    expect(config.properties.metadata.additionalProperties.format).toBe(
+      "date-time"
+    );
+    expect(config.properties.alias.anyOf).toEqual([
+      { type: "string" },
+      { type: "null" },
+    ]);
   });
 
   test("formatSchemaIfZod returns null for unrecognized schema formats", () => {

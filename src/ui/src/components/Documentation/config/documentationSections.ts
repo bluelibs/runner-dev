@@ -1,3 +1,5 @@
+import { getDocumentationIcon } from "./documentationIcons";
+
 export interface SectionConfig {
   id: string;
   label: string;
@@ -7,6 +9,7 @@ export interface SectionConfig {
 }
 
 export const createSections = (counts: {
+  mode?: "live" | "catalog";
   tasks: number;
   resources: number;
   events: number;
@@ -15,82 +18,94 @@ export const createSections = (counts: {
   tags: number;
   errors: number;
   asyncContexts: number;
+  topologyConnections: number;
 }): SectionConfig[] => {
   const sections = [
-    {
-      id: "live",
-      label: "Live",
-      icon: "📡",
-      count: null,
-      hasContent: true,
-    },
+    ...(counts.mode === "catalog"
+      ? []
+      : [
+          {
+            id: "live",
+            label: "Live",
+            icon: getDocumentationIcon("live"),
+            count: null,
+            hasContent: true,
+          },
+        ]),
     {
       id: "diagnostics",
       label: "Diagnostics",
-      icon: "🔍",
+      icon: getDocumentationIcon("diagnostics"),
       count: null,
       hasContent: true,
     },
     {
       id: "overview",
       label: "Overview",
-      icon: "📋",
+      icon: getDocumentationIcon("overview"),
       count: null,
+      hasContent: true,
+    },
+    {
+      id: "topology",
+      label: "Topology",
+      icon: getDocumentationIcon("topology"),
+      count: counts.topologyConnections,
       hasContent: true,
     },
     {
       id: "tasks",
       label: "Tasks",
-      icon: "⚙️",
+      icon: getDocumentationIcon("tasks"),
       count: counts.tasks,
       hasContent: counts.tasks > 0,
     },
     {
       id: "resources",
       label: "Resources",
-      icon: "🔧",
+      icon: getDocumentationIcon("resources"),
       count: counts.resources,
       hasContent: counts.resources > 0,
     },
     {
       id: "events",
       label: "Events",
-      icon: "📡",
+      icon: getDocumentationIcon("events"),
       count: counts.events,
       hasContent: counts.events > 0,
     },
     {
       id: "hooks",
       label: "Hooks",
-      icon: "🪝",
+      icon: getDocumentationIcon("hooks"),
       count: counts.hooks,
       hasContent: counts.hooks > 0,
     },
     {
       id: "middlewares",
-      label: "Middlewares",
-      icon: "🔗",
+      label: "Middleware",
+      icon: getDocumentationIcon("middlewares"),
       count: counts.middlewares,
       hasContent: counts.middlewares > 0,
     },
     {
       id: "errors",
       label: "Errors",
-      icon: "❌",
+      icon: getDocumentationIcon("errors"),
       count: counts.errors,
       hasContent: counts.errors > 0,
     },
     {
       id: "asyncContexts",
       label: "Async Contexts",
-      icon: "🔄",
+      icon: getDocumentationIcon("asyncContexts"),
       count: counts.asyncContexts,
       hasContent: counts.asyncContexts > 0,
     },
     {
       id: "tags",
       label: "Tags",
-      icon: "🏷️",
+      icon: getDocumentationIcon("tags"),
       count: counts.tags,
       hasContent: counts.tags > 0,
     },

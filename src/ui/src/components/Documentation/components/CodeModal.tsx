@@ -19,6 +19,7 @@ import {
 } from "./CoverageVisualization";
 import type { LineCoverage } from "../../../../../resources/coverage.resource";
 import { BaseModal } from "./modals";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface CodeModalProps {
   title: string;
@@ -144,6 +145,7 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   coverageData,
   showCoverage = false,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   // Track draft and last-saved baseline
   const [draft, setDraft] = useState<string>(code ?? "");
   const [baseline, setBaseline] = useState<string>(code ?? "");
@@ -159,7 +161,10 @@ export const CodeModal: React.FC<CodeModalProps> = ({
   }, [code, isOpen]);
 
   const canEdit =
-    enableEdit && typeof saveOnFile === "string" && saveOnFile.length > 0;
+    !isCatalogMode &&
+    enableEdit &&
+    typeof saveOnFile === "string" &&
+    saveOnFile.length > 0;
 
   // Prepare CodeMirror extensions based on coverage data
   const codeMirrorExtensions = React.useMemo(() => {

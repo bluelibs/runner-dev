@@ -7,7 +7,7 @@ import {
 
 import type { CustomGraphQLContext } from "../context";
 import type { Error as ErrorModel } from "../model";
-import { BaseElementInterface } from "./AllType";
+import { AllType, BaseElementInterface } from "./AllType";
 import { baseElementCommonFields } from "./BaseElementCommon";
 
 export const ErrorType = new GraphQLObjectType<
@@ -26,12 +26,7 @@ export const ErrorType = new GraphQLObjectType<
     },
     thrownBy: {
       description: "Tasks and resources that throw this error",
-      type: new GraphQLNonNull(
-        new GraphQLList(
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          new GraphQLNonNull(require("./AllType").AllType)
-        )
-      ),
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(AllType))),
       resolve: (error, _args, ctx: CustomGraphQLContext) => {
         const results: any[] = [];
 

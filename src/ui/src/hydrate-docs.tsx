@@ -7,20 +7,17 @@ import {
   SerializedIntrospector,
 } from "../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "./components/Documentation/config/documentationConstants";
-import { DocsContentPayload } from "../../resources/routeHandlers/getDocsData";
+import { type DocsPagePayload } from "../../resources/docsPayload";
+import {
+  getHashTargetElementId,
+  getVisibilityStateForHashTarget,
+} from "./utils/docsHashVisibility";
 
 // Expect SSR to inject window.__DOCS_PROPS__ with pre-fetched data
 declare global {
   interface Window {
-    __DOCS_PROPS__?: {
-      namespacePrefix?: string;
-      introspectorData: any;
-      runnerFrameworkMd?: string;
-      runnerDevMd?: string;
-      docsContent?: DocsContentPayload;
-      projectOverviewMd?: string;
-      graphqlSdl?: string;
-    };
+    __DOCS_PROPS__?: DocsPagePayload;
+    __DOCS_SNAPSHOT_PATH__?: string;
   }
 }
 
@@ -60,17 +57,6 @@ function createIntrospectorFromData(data: SerializedIntrospector) {
   return Introspector.deserialize(data);
 }
 
-// If the URL hash targets a system-tagged element and system is hidden,
-// enable system visibility before rendering so the element is present.
-function getHashTargetElementId(): string | null {
-  const hash = window.location.hash;
-  if (!hash) return null;
-  const id = decodeURIComponent(hash.slice(1));
-  if (!id) return null;
-  if (id.startsWith("element-")) return id.slice("element-".length);
-  return id;
-}
-
 function getShowSystemFromStorage(): boolean {
   try {
     return (
@@ -93,35 +79,74 @@ function setShowSystemInStorage(value: boolean): void {
   }
 }
 
-function isSystemElementById(
-  introspector: Introspector,
-  elementId: string
-): boolean {
-  const systemTagId = DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID;
-  if (elementId === systemTagId) return true;
-
-  const candidates: Array<any | null> = [
-    introspector.getTask(elementId),
-    introspector.getHook(elementId),
-    introspector.getResource(elementId),
-    introspector.getMiddleware(elementId),
-    introspector.getEvent(elementId),
-  ];
-
-  for (const el of candidates) {
-    if (el && Array.isArray((el as any).tags)) {
-      if ((el as any).tags.includes(systemTagId)) return true;
-    }
+function getShowRunnerFromStorage(): boolean {
+  try {
+    return (
+      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER) ===
+      "1"
+    );
+  } catch {
+    return DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER;
   }
-  return false;
 }
 
-function ensureSystemVisibilityForHash(introspector: Introspector): void {
-  const targetId = getHashTargetElementId();
-  if (!targetId) return;
+function setShowRunnerInStorage(value: boolean): void {
+  try {
+    localStorage.setItem(
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
+      value ? "1" : "0"
+    );
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function getShowPrivateFromStorage(): boolean {
+  try {
+    return (
+      localStorage.getItem(
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE
+      ) === "1"
+    );
+  } catch {
+    return DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_PRIVATE;
+  }
+}
+
+function setShowPrivateInStorage(value: boolean): void {
+  try {
+    localStorage.setItem(
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE,
+      value ? "1" : "0"
+    );
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function ensureVisibilityForHash(introspector: Introspector): void {
+  const targetId = getHashTargetElementId(window.location.hash);
   const showSystem = getShowSystemFromStorage();
-  if (!showSystem && isSystemElementById(introspector, targetId)) {
+  const showRunner = getShowRunnerFromStorage();
+  const showPrivate = getShowPrivateFromStorage();
+  const nextVisibility = getVisibilityStateForHashTarget(
+    introspector,
+    targetId,
+    {
+      showSystem,
+      showRunner,
+      showPrivate,
+    }
+  );
+
+  if (!showSystem && nextVisibility.showSystem) {
     setShowSystemInStorage(true);
+  }
+  if (!showRunner && nextVisibility.showRunner) {
+    setShowRunnerInStorage(true);
+  }
+  if (!showPrivate && nextVisibility.showPrivate) {
+    setShowPrivateInStorage(true);
   }
 }
 
@@ -184,27 +209,43 @@ function DocsBootstrapScreen({
   );
 }
 
+function renderDocumentation(
+  rootTarget: ReturnType<typeof createRoot> | typeof hydrateRoot,
+  container: HTMLElement,
+  payload: DocsPagePayload,
+  hydrate = false
+) {
+  const introspector = createIntrospectorFromData(
+    payload.introspectorData as SerializedIntrospector
+  );
+  window.__DOCS_PROPS__ = payload;
+  ensureVisibilityForHash(introspector);
+
+  const element = React.createElement(Documentation as any, {
+    introspector,
+    mode: payload.mode,
+    namespacePrefix: payload.namespacePrefix,
+    runnerFrameworkMd: payload.runnerFrameworkMd,
+    runnerDevMd: payload.runnerDevMd,
+    docsContent: payload.docsContent,
+    projectOverviewMd: payload.projectOverviewMd,
+    graphqlSdl: payload.graphqlSdl,
+  });
+
+  if (hydrate) {
+    hydrateRoot(container, element);
+  } else {
+    (rootTarget as ReturnType<typeof createRoot>).render(element);
+  }
+
+  scrollToHashElement();
+}
+
 async function bootstrap() {
   const container = document.getElementById("root")!;
   const props = window.__DOCS_PROPS__;
   if (props && props.introspectorData) {
-    const introspector = createIntrospectorFromData(
-      props.introspectorData as SerializedIntrospector
-    );
-    ensureSystemVisibilityForHash(introspector);
-    hydrateRoot(
-      container,
-      React.createElement(Documentation as any, {
-        introspector,
-        namespacePrefix: props.namespacePrefix,
-        runnerFrameworkMd: props.runnerFrameworkMd,
-        runnerDevMd: props.runnerDevMd,
-        docsContent: props.docsContent,
-        projectOverviewMd: props.projectOverviewMd,
-        graphqlSdl: props.graphqlSdl,
-      })
-    );
-    scrollToHashElement();
+    renderDocumentation(hydrateRoot as any, container, props, true);
     return;
   }
 
@@ -218,6 +259,16 @@ async function bootstrap() {
 
   const baseUrl = __API_URL__ || "";
   try {
+    if (window.__DOCS_SNAPSHOT_PATH__) {
+      const response = await fetch(window.__DOCS_SNAPSHOT_PATH__);
+      if (!response.ok) {
+        throw new Error(`Failed to load docs snapshot (${response.status})`);
+      }
+      const json = (await response.json()) as DocsPagePayload;
+      renderDocumentation(root, container, json);
+      return;
+    }
+
     const url = new URL("/docs/data", baseUrl || window.location.origin);
     const { signal, cleanup } = createTimedAbortSignal(
       DOCS_DATA_FETCH_TIMEOUT_MS
@@ -233,23 +284,8 @@ async function bootstrap() {
       throw new Error(`Failed to load docs data (${response.status})`);
     }
 
-    const json = await response.json();
-    const introspector = createIntrospectorFromData(
-      json.introspectorData as SerializedIntrospector
-    );
-    ensureSystemVisibilityForHash(introspector);
-    root.render(
-      React.createElement(Documentation as any, {
-        introspector,
-        namespacePrefix: json.namespacePrefix,
-        runnerFrameworkMd: json.runnerFrameworkMd,
-        runnerDevMd: json.runnerDevMd,
-        docsContent: json.docsContent,
-        projectOverviewMd: json.projectOverviewMd,
-        graphqlSdl: json.graphqlSdl,
-      })
-    );
-    scrollToHashElement();
+    const json = (await response.json()) as DocsPagePayload;
+    renderDocumentation(root, container, json);
   } catch (error) {
     console.error("Failed to bootstrap docs UI:", error);
     root.render(

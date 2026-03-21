@@ -3,11 +3,15 @@ import { Introspector } from "../../../../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "../config/documentationConstants";
 import { parseSearchQuery, elementMatchesParsed } from "../utils/search-utils";
 import { isSystemElement } from "../utils/isSystemElement";
+import { isRunnerElement } from "../utils/isRunnerElement";
 
 export const useDocumentationFilters = (
   introspector: Introspector,
   namespacePrefix?: string
 ) => {
+  const withType = <T extends { id: string }>(type: string, items: T[]) =>
+    items.map((item) => ({ ...item, type }));
+
   const readStoredBoolean = (key: string, fallback: boolean): boolean => {
     try {
       const raw = localStorage.getItem(key);
@@ -33,6 +37,12 @@ export const useDocumentationFilters = (
       DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_SYSTEM
     )
   );
+  const [showRunner, setShowRunner] = useState<boolean>(() =>
+    readStoredBoolean(
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
+      DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER
+    )
+  );
   const [showPrivate, setShowPrivate] = useState<boolean>(() =>
     readStoredBoolean(
       DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE,
@@ -47,11 +57,22 @@ export const useDocumentationFilters = (
   const applyFilters = <
     T extends { id: string; tags?: string[] | null; isPrivate?: boolean }
   >(
-    items: T[]
+    items: T[],
+    kind?:
+      | "task"
+      | "resource"
+      | "event"
+      | "hook"
+      | "middleware"
+      | "error"
+      | "async-context"
   ): T[] => {
     let result = items;
     if (!showSystem) {
       result = result.filter((item) => !isSystemElement(item));
+    }
+    if (!showRunner) {
+      result = result.filter((item) => !isRunnerElement(item));
     }
     if (!showPrivate) {
       result = result.filter((item) => item.isPrivate !== true);
@@ -60,7 +81,7 @@ export const useDocumentationFilters = (
       // Elements: if tag-search, match by tag ids; otherwise match by id
       result = result.filter((item) =>
         elementMatchesParsed(
-          { id: item.id, tags: item.tags || [] },
+          { id: item.id, tags: item.tags || [], kind },
           parsedSearch
         )
       );
@@ -69,18 +90,27 @@ export const useDocumentationFilters = (
   };
 
   const filteredData = useMemo(() => {
-    const tasks = applyFilters(introspector.getTasks());
-    const resources = applyFilters(introspector.getResources());
-    const events = applyFilters(introspector.getEvents());
-    const hooks = applyFilters(introspector.getHooks());
-    const middlewares = applyFilters(introspector.getMiddlewares());
-    const errors = applyFilters(introspector.getErrors());
-    const asyncContexts = applyFilters(introspector.getAsyncContexts());
+    const tasks = applyFilters(introspector.getTasks(), "task");
+    const resources = applyFilters(introspector.getResources(), "resource");
+    const events = applyFilters(introspector.getEvents(), "event");
+    const hooks = applyFilters(introspector.getHooks(), "hook");
+    const middlewares = applyFilters(
+      introspector.getMiddlewares(),
+      "middleware"
+    );
+    const errors = applyFilters(introspector.getErrors(), "error");
+    const asyncContexts = applyFilters(
+      introspector.getAsyncContexts(),
+      "async-context"
+    );
 
     // Tags list: keep consistent behavior — always filter by id text
     let tags = introspector.getAllTags();
     if (!showSystem) {
       tags = tags.filter((t) => !isSystemElement(t));
+    }
+    if (!showRunner) {
+      tags = tags.filter((t) => !isRunnerElement(t));
     }
     if (!showPrivate) {
       tags = tags.filter((t) => t.isPrivate !== true);
@@ -103,14 +133,14 @@ export const useDocumentationFilters = (
       middlewares,
       tags,
       allElements: [
-        ...tasks,
-        ...resources,
-        ...events,
-        ...hooks,
-        ...middlewares,
-        ...errors,
-        ...asyncContexts,
-        ...tags,
+        ...withType("task", tasks),
+        ...withType("resource", resources),
+        ...withType("event", events),
+        ...withType("hook", hooks),
+        ...withType("middleware", middlewares),
+        ...withType("error", errors),
+        ...withType("async-context", asyncContexts),
+        ...withType("tag", tags),
       ],
       errors,
       asyncContexts,
@@ -118,6 +148,7 @@ export const useDocumentationFilters = (
   }, [
     introspector,
     showSystem,
+    showRunner,
     showPrivate,
     localNamespaceSearch,
     parsedSearch,
@@ -147,21 +178,37 @@ export const useDocumentationFilters = (
     }
   };
 
+  const handleShowRunnerChange = (value: boolean) => {
+    setShowRunner(value);
+    try {
+      localStorage.setItem(
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
+        value ? "1" : "0"
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
+
   const resetFilters = () => {
     setLocalNamespaceSearch("");
-    handleShowSystemChange(true);
-    handleShowPrivateChange(true);
+    handleShowSystemChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_SYSTEM);
+    handleShowRunnerChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER);
+    handleShowPrivateChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_PRIVATE);
   };
 
   return {
     localNamespaceSearch,
     setLocalNamespaceSearch,
     showSystem,
+    showRunner,
     showPrivate,
     handleShowSystemChange,
+    handleShowRunnerChange,
     handleShowPrivateChange,
     resetFilters,
     isSystemElement,
+    isRunnerElement,
     applyFilters,
     ...filteredData,
   };

@@ -1,13 +1,17 @@
 @use "../../../styles/variables" as *;
+@use "../../../styles/mixins" as *;
 
 .json-viewer {
+  @include docs-scroll-surface(8px);
   font-family: monospace;
   font-size: $font-size-sm;
   background-color: var(--docs-bg-secondary);
   color: var(--docs-text-primary);
   padding: $spacing-md;
   border-radius: $border-radius-md;
-  overflow-x: auto;
+  border: 1px solid var(--docs-border-primary);
+  max-height: var(--json-viewer-max-height, 320px);
+
   .json-bracket {
     margin-left: 12px;
   }
@@ -44,6 +48,8 @@
 .json-key-value {
   display: flex;
   align-items: flex-start;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .json-key {
@@ -54,6 +60,9 @@
 }
 
 .json-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+
   &--string {
     color: #22c55e; // green - works well in both themes
   }

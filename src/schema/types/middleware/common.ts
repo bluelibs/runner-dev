@@ -15,7 +15,7 @@ import type { CustomGraphQLContext } from "../../context";
 import { ResourceType } from "../ResourceType";
 import { baseElementCommonFields } from "../BaseElementCommon";
 import { sanitizePath } from "../../../utils/path";
-import { convertJsonSchemaToReadable } from "../../../utils/zod";
+import { convertJsonSchemaToReadable } from "../../../utils/schemaFormat";
 import {
   MiddlewareResourceUsageType,
   MiddlewareTaskUsageType,

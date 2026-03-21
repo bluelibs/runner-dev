@@ -4,8 +4,9 @@ import { InterceptorInputSchema, InterceptorResultSchema } from "./schemas";
 export const interceptorBaseTask = r
   .task("interceptor-base")
   .meta({
-    title: "Interceptor Base Task",
-    description: "Task wrapped by a runtime interceptor during resource init.",
+    title: "Interceptor Base",
+    description:
+      "Base task used to expose runtime interceptor ownership.\n\n- Returns a small payload\n- Starts un-intercepted on purpose",
   })
   .inputSchema(InterceptorInputSchema)
   .resultSchema(InterceptorResultSchema)
@@ -18,9 +19,9 @@ export const interceptorBaseTask = r
 export const interceptorInstallerResource = r
   .resource("interceptor-installer")
   .meta({
-    title: "Interceptor Installer Resource",
+    title: "Interceptor Installer",
     description:
-      "Registers a runtime interceptor so introspection exposes owner ids and counts.",
+      "Attaches the runtime interceptor to the base task.\n\n- No business state\n- Exists so docs can show interceptor owner ids and counts",
   })
   .dependencies({ interceptorBaseTask })
   .init(async (_config, { interceptorBaseTask }) => {
@@ -40,9 +41,9 @@ export const interceptorInstallerResource = r
 export const interceptorConsumerTask = r
   .task("interceptor-consumer")
   .meta({
-    title: "Interceptor Consumer Task",
+    title: "Interceptor Consumer",
     description:
-      "Calls the intercepted task to show runtime interceptor behavior.",
+      "Calls the intercepted base task.\n\n- Tiny dependent task\n- Helps blast radius show task-to-task wiring",
   })
   .dependencies({ interceptorBaseTask })
   .resultSchema(InterceptorResultSchema)

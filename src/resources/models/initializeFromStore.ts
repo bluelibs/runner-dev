@@ -15,7 +15,7 @@ import {
 } from "./initializeFromStore.utils";
 import { Introspector } from "./Introspector";
 import { buildIdMap, ensureStringArray } from "./introspector.tools";
-import { formatSchemaIfZod } from "../../utils/zod";
+import { formatSchemaIfZod } from "../../utils/schemaFormat";
 import { sanitizePath } from "../../utils/path";
 
 const EXTERNAL_VISIBILITY_CONSUMER_ID = "runner-dev.visibility.external";
@@ -151,11 +151,11 @@ export function initializeFromStore(
 
   const s = store;
   for (const t of s.tasks.values()) {
-    introspector.tasks.push(mapStoreTaskToTaskModel(t.task, t));
+    introspector.tasks.push(mapStoreTaskToTaskModel(t.task, store, t));
   }
 
   for (const h of s.hooks.values()) {
-    introspector.hooks.push(mapStoreHookToHookModel(h));
+    introspector.hooks.push(mapStoreHookToHookModel(h, store));
   }
 
   const taskInterceptorOwnersById = buildTaskInterceptorOwnersSnapshot(store);

@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TreeNode, getElementType } from "../utils/tree-utils";
+import { TreeNode, getElementType, getNodeIcon } from "../utils/tree-utils";
+import { TreeType } from "../hooks/useViewMode";
+import { isSystemElement } from "../utils/isSystemElement";
 import "./NavigationView.scss";
 
 export type NavigationMode = "list" | "tree";
 
 export interface NavigationViewProps {
   mode: NavigationMode;
+  treeType?: TreeType;
   nodes?: TreeNode[];
   sections?: Array<{
     id: string;
@@ -24,6 +27,7 @@ export interface NavigationViewProps {
 
 export const NavigationView: React.FC<NavigationViewProps> = ({
   mode,
+  treeType = "namespace",
   nodes = [],
   sections = [],
   onNodeClick,
@@ -129,6 +133,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
       const currentIndex = allNodes.findIndex(
         (node) => node.id === focusedNodeId
       );
+      const currentNode = currentIndex >= 0 ? allNodes[currentIndex] : null;
 
       switch (e.key) {
         case "ArrowDown":
@@ -145,29 +150,38 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
           break;
         case "ArrowRight": {
           e.preventDefault();
-          const currentNode = allNodes[currentIndex];
           if (
-            currentNode.type === "folder" &&
+            currentNode &&
+            currentNode.children.length > 0 &&
             !currentNode.isExpanded &&
-            currentNode.children.length > 0
+            onToggleExpansion
           ) {
-            onToggleExpansion?.(currentNode.id, true);
+            onToggleExpansion(currentNode.id, true);
           }
           break;
         }
         case "ArrowLeft": {
           e.preventDefault();
-          const currentNodeLeft = allNodes[currentIndex];
-          if (currentNodeLeft.type === "folder" && currentNodeLeft.isExpanded) {
-            onToggleExpansion?.(currentNodeLeft.id, false);
+          if (
+            currentNode &&
+            currentNode.children.length > 0 &&
+            currentNode.isExpanded
+          ) {
+            onToggleExpansion?.(currentNode.id, false);
           }
           break;
         }
         case "Enter":
         case " ": {
           e.preventDefault();
-          const nodeToClick = allNodes[currentIndex];
-          if (nodeToClick.type === "folder") {
+          if (!currentNode) {
+            break;
+          }
+
+          const nodeToClick = currentNode;
+          if (nodeToClick.elementId && onNodeClick) {
+            onNodeClick(nodeToClick);
+          } else if (nodeToClick.children.length > 0) {
             onToggleExpansion?.(nodeToClick.id);
           } else if (onNodeClick) {
             onNodeClick(nodeToClick);
@@ -222,13 +236,16 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
     const renderNode = (node: TreeNode, depth: number = 0): React.ReactNode => {
       const hasChildren = node.children.length > 0;
       const isFolder = node.type === "folder";
+      const isNavigable = Boolean(node.elementId && onNodeClick);
       const isFocused = focusedNodeId === node.id;
 
       const handleNodeClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         setFocusedNodeId(node.id);
 
-        if (isFolder) {
+        if (isNavigable) {
+          onNodeClick?.(node);
+        } else if (hasChildren) {
           onToggleExpansion?.(node.id);
         } else if (onNodeClick) {
           onNodeClick(node);
@@ -243,18 +260,25 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
       return (
         <div key={node.id} className="nav-node-container">
           <div
-            className={`nav-node ${isFocused ? "nav-node--focused" : ""} ${
-              !isFolder ? "nav-node--leaf" : ""
-            }`}
+            className={[
+              "nav-node",
+              isFocused ? "nav-node--focused" : "",
+              !hasChildren ? "nav-node--leaf" : "",
+              isFolder && node.folderType
+                ? `nav-node--folder-${node.folderType}`
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={{ paddingLeft: `${depth * 10 + 8}px` }}
             onClick={handleNodeClick}
             tabIndex={0}
             role="treeitem"
-            aria-expanded={isFolder ? node.isExpanded : undefined}
+            aria-expanded={hasChildren ? node.isExpanded : undefined}
             aria-level={depth + 1}
             onFocus={() => setFocusedNodeId(node.id)}
           >
-            {isFolder && hasChildren && (
+            {hasChildren && (
               <button
                 className={`nav-expander ${
                   node.isExpanded ? "nav-expander--expanded" : ""
@@ -265,15 +289,19 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
                 <span className="nav-expander-icon">▶</span>
               </button>
             )}
-            {(!isFolder || !hasChildren) && (
+            {!hasChildren && (
               <span className="nav-expander nav-expander--placeholder" />
             )}
 
-            <span className="nav-node-icon">{node.icon}</span>
+            <span className="nav-node-icon">
+              {getNodeIcon(node, {
+                preferNamespaceFolderIcon: treeType === "namespace",
+              })}
+            </span>
 
             <span className="nav-node-label">
               {highlightSearchTerm(node.label, searchTerm)}
-              {node.element?.tags?.includes("system.tags.internal") && (
+              {isSystemElement(node.element) && (
                 <span className="system-label">SYS</span>
               )}
             </span>
@@ -283,7 +311,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             )}
           </div>
 
-          {isFolder && node.isExpanded && hasChildren && (
+          {node.isExpanded && hasChildren && (
             <div className="nav-children" role="group">
               {node.children.map((child) => renderNode(child, depth + 1))}
             </div>

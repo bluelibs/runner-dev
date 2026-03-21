@@ -1,6 +1,6 @@
 {
   "name": "@bluelibs/runner-dev",
-  "version": "6.2.0",
+  "version": "6.3.0",
   "description": "BlueLibs Runner DevTools",
   "main": "dist/index.js",
   "repository": {
@@ -11,6 +11,8 @@
     "build": "tsc -p config/ts/tsconfig.json && npm run build:ui",
     "watch": "tsc -p config/ts/tsconfig.json -w",
     "clean": "rm -rf dist",
+    "skills:pack:materialize": "node ./scripts/pack-npm-skills.mjs materialize",
+    "skills:pack:restore": "node ./scripts/pack-npm-skills.mjs restore",
     "cli": "ts-node --project config/ts/tsconfig.json src/cli.ts",
     "cli:local": "ts-node --project config/ts/tsconfig.json src/cli.ts",
     "start": "node dist/main.js",
@@ -21,6 +23,7 @@
     "build:ui:watch": "cd src/ui && vite build --watch --clearScreen=false",
     "play:server": "tsx watch --tsconfig config/ts/tsconfig.json src/__tests__/dummy/dummyServer.ts",
     "test": "jest --config config/jest/jest.config.js --verbose --runInBand",
+    "test:qa": "node ./scripts/run-jest-summary.mjs",
     "test:dev": "jest --config config/jest/jest.config.js --verbose --watch",
     "coverage": "jest --config config/jest/jest.config.js --verbose --coverage",
     "test:clean": "jest --config config/jest/jest.config.js --clearCache",
@@ -31,16 +34,19 @@
     "typedoc": "typedoc --options config/typedoc/typedoc.json",
     "lint": "eslint src --config config/eslint/eslint.config.mjs",
     "lint:fix": "eslint src --config config/eslint/eslint.config.mjs --fix",
-    "qa": "npm run lint:fix && npm run typecheck && npm run build && npm run test && npm run typedoc",
+    "qa": "npm run lint:fix && npm run typecheck && npm run build && npm run test:qa && npm run typedoc",
     "coverage:ai": "jest --config config/jest/jest.config.js --coverage --coverageReporters=text-summary",
     "codegen": "graphql-codegen --config config/codegen.ts",
     "prebuild": "ts-node --project config/ts/tsconfig.json scripts/sync-version.ts && npm run codegen",
     "play": "concurrently -k -n UI,SRV -c blue,green \"npm:build:ui:watch\" \"npm:play:server\"",
     "play:cli": "npm run play:server",
+    "play:export": "ts-node --project config/ts/tsconfig.json src/__tests__/dummy/exportPlayCatalog.ts",
     "demo:ping": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js ping",
     "demo:query": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js query 'query { tasks { id } }' --format pretty",
     "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5",
-    "sync:docs": "ts-node --project config/ts/tsconfig.json scripts/sync-docs.ts"
+    "postinstall": "npm-skills extract --skip-production --override",
+    "prepack": "npm run build && npm run skills:pack:materialize",
+    "postpack": "npm run skills:pack:restore"
   },
   "bin": {
     "runner-dev": "dist/cli.js"
@@ -106,7 +112,6 @@
     "@adobe/jsonschema2md": "^8.0.5",
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
-    "@bluelibs/runner": "^6.2.0",
     "@bluelibs/smart": "^2.2.1",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@types/prismjs": "^1.26.5",
@@ -118,7 +123,8 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "zod": "3.25.76",
-    "zod-to-json-schema": "^3.24.6"
+    "zod-to-json-schema": "^3.24.6",
+    "npm-skills": "^0.4.0"
   },
   "overrides": {
     "react": "18.3.1",
@@ -126,6 +132,13 @@
     "@mui/material": {
       "react": "18.3.1",
       "react-dom": "18.3.1"
+    }
+  },
+  "npmSkills": {
+    "consume": {
+      "only": [
+        "@bluelibs/runner"
+      ]
     }
   },
   "prettier": {
@@ -143,5 +156,8 @@
         }
       }
     ]
+  },
+  "peerDependencies": {
+    "@bluelibs/runner": "^6.3.3"
   }
 }

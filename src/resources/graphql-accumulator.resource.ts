@@ -22,6 +22,37 @@ import {
   InterceptorOwnersSnapshotType,
 } from "../schema/types";
 
+export function createRunnerDevGraphqlSchema(): GraphQLSchema {
+  const query = new GraphQLObjectType(QueryType.toConfig());
+  const mutation = new GraphQLObjectType(MutationType.toConfig());
+
+  const baseTypes = [
+    AllType,
+    BaseElementInterface,
+    EventType,
+    HookType,
+    MiddlewareAutoApplyType,
+    MiddlewareApplyScopeType,
+    MiddlewareType,
+    TaskMiddlewareType,
+    ResourceMiddlewareType,
+    MetaType,
+    ResourceType,
+    TaskType,
+    LiveType,
+    DiagnosticType,
+    SwapResultType,
+    SwappedTaskType,
+    InterceptorOwnersSnapshotType,
+  ];
+
+  return new GraphQLSchema({
+    query,
+    mutation,
+    types: [...baseTypes],
+  });
+}
+
 export const graphqlAccumulator = defineResource({
   id: "graphql",
   meta: {
@@ -31,34 +62,7 @@ export const graphqlAccumulator = defineResource({
   },
   async init(_config) {
     const getSchema = (): GraphQLSchema => {
-      const query = new GraphQLObjectType(QueryType.toConfig());
-      const mutation = new GraphQLObjectType(MutationType.toConfig());
-
-      const baseTypes = [
-        AllType,
-        BaseElementInterface,
-        EventType,
-        HookType,
-        MiddlewareAutoApplyType,
-        MiddlewareApplyScopeType,
-        MiddlewareType,
-        TaskMiddlewareType,
-        ResourceMiddlewareType,
-        MetaType,
-        ResourceType,
-        TaskType,
-        LiveType,
-        DiagnosticType,
-        SwapResultType,
-        SwappedTaskType,
-        InterceptorOwnersSnapshotType,
-      ];
-
-      return new GraphQLSchema({
-        query,
-        mutation,
-        types: [...baseTypes],
-      });
+      return createRunnerDevGraphqlSchema();
     };
 
     return { getSchema };

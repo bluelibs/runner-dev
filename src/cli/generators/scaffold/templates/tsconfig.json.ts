@@ -5,6 +5,7 @@ export function tsconfig() {
       module: "Node16",
       moduleResolution: "node16",
       strict: true,
+      types: ["node"],
       esModuleInterop: true,
       forceConsistentCasingInFileNames: true,
       declaration: true,
@@ -15,5 +16,6 @@ export function tsconfig() {
       lib: ["ESNext"],
     },
     include: ["src"],
+    exclude: ["src/**/*.test.ts"],
   } as const;
 }

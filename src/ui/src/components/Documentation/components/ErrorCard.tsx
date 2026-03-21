@@ -12,6 +12,8 @@ import "./ErrorCard.scss";
 import { SchemaRenderer } from "./SchemaRenderer";
 import { ElementKindBadge, SystemBadge } from "./common/ElementKindBadge";
 import { isSystemElement } from "../utils/isSystemElement";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface ErrorCardProps {
   error: Error;
@@ -42,6 +44,7 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
   error,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const thrownByTasks = introspector.getTasksUsingError(error.id);
   const thrownByResources = introspector.getResourcesUsingError(error.id);
   const thrownByHooks = introspector.getHooksUsingError(error.id);
@@ -80,19 +83,32 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
     <div id={`element-${error.id}`} className="error-card">
       <div className="error-card__header">
         <div className="error-card__header-content">
-          <div className="main">
-            <h3 className="error-card__title">
-              {error.meta?.title || formatId(error.id)}
-            </h3>
-            <div className="error-card__id">{error.id}</div>
-            {error.meta?.description && (
-              <p className="error-card__description">
-                {error.meta.description}
-              </p>
-            )}
+          <div className="error-card__header-top">
+            <div className="main">
+              <h3 className="error-card__title">
+                <a
+                  href={`#element-${error.id}`}
+                  className="error-card__title-link"
+                  title={`Canonical link: #element-${error.id}`}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  {error.meta?.title || formatId(error.id)}
+                </a>
+              </h3>
+              <div className="error-card__id">{error.id}</div>
+              {error.meta?.description && (
+                <p className="error-card__description">
+                  {error.meta.description}
+                </p>
+              )}
+            </div>
           </div>
-          {isSystemElement(error) && <SystemBadge />}
-          <ElementKindBadge kind="error" />
+          <div className="error-card__header-bottom">
+            <div className="error-card__badges">
+              {isSystemElement(error) && <SystemBadge />}
+              <ElementKindBadge kind="error" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -105,7 +121,7 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
                 <div className="error-card__info-block">
                   <div className="label">File Path:</div>
                   <div className="value">
-                    {error.filePath ? (
+                    {error.filePath && !isCatalogMode ? (
                       <a
                         type="button"
                         onClick={openFileModal}
@@ -119,19 +135,12 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
                   </div>
                 </div>
 
-                {error.registeredBy && (
-                  <div className="error-card__info-block">
-                    <div className="label">Registered By:</div>
-                    <div className="value">
-                      <a
-                        href={`#element-${error.registeredBy}`}
-                        className="error-card__registrar-link"
-                      >
-                        {error.registeredBy}
-                      </a>
-                    </div>
-                  </div>
-                )}
+                <RegisteredByInfoBlock
+                  prefix="error-card"
+                  elementId={error.id}
+                  registeredBy={error.registeredBy}
+                  introspector={introspector}
+                />
 
                 {error.tags && error.tags.length > 0 && (
                   <div className="error-card__info-block">

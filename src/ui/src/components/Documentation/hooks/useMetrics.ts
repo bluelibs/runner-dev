@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { graphqlRequest } from "../utils/graphqlClient";
 import { DEFAULT_POLL_INTERVAL_MS } from "./useLiveStream";
+import { isCatalogDocumentationMode } from "../utils/documentationMode";
 
 export interface ThroughputPoint {
   t: number;
@@ -42,6 +43,17 @@ export function useMetrics(
   );
 
   useEffect(() => {
+    if (isCatalogDocumentationMode()) {
+      setIsLoading(false);
+      setThroughput([]);
+      setLatency([]);
+      setErrorByTask([]);
+      setHeatmap(
+        Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0))
+      );
+      return;
+    }
+
     let cancelled = false;
 
     const LIVE_DATA_QUERY = `
@@ -175,6 +187,8 @@ export function useMetrics(
         setLatency(lt);
         setErrorByTask(ebt);
         setHeatmap(grid);
+      } catch {
+        // Preserve the last successful snapshot when telemetry is temporarily unavailable.
       } finally {
         if (!cancelled) setIsLoading(false);
       }

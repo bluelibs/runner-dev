@@ -4,6 +4,7 @@ import {
   resources,
   defineEvent,
   defineTask,
+  defineResourceMiddleware,
 } from "@bluelibs/runner";
 import { schema } from "../../schema";
 import {
@@ -15,8 +16,18 @@ import {
   logMwTask,
   tagMw,
 } from "../dummy/dummyApp";
+import { createEnhancedSuperApp, enhancedSuperAppIds } from "../dummy/enhanced";
 import { introspector } from "../../resources/introspector.resource";
-import { graphql } from "graphql";
+import {
+  graphql,
+  GraphQLObjectType,
+  GraphQLSchema,
+  GraphQLNonNull,
+} from "graphql";
+import { Introspector } from "../../resources/models/Introspector";
+import { MiddlewareTaskUsageType } from "../../schema/types/middleware/UsageTypes";
+import { HookType } from "../../schema/types/HookType";
+import { elementKindSymbol } from "../../schema/model";
 
 const visibilityAppIds = {
   resource(localId: string) {
@@ -342,6 +353,189 @@ describe("GraphQL schema (integration)", () => {
     expect(data.interceptorOwners).toBeDefined();
     expect(Array.isArray(data.interceptorOwners.tasksById)).toBe(true);
     expect(data.interceptorOwners.middleware).toBeDefined();
+  });
+
+  test("task middleware detailed usages can resolve hook nodes through GraphQL", async () => {
+    const usageSchema = new GraphQLSchema({
+      query: new GraphQLObjectType({
+        name: "Query",
+        fields: {
+          usage: {
+            type: new GraphQLNonNull(MiddlewareTaskUsageType),
+            resolve: () => ({
+              id: "hook-usage",
+              config: "{}",
+              origin: "local",
+              subtreeOwnerId: null,
+              node: {
+                [elementKindSymbol]: "HOOK",
+                id: "app.hooks.logger",
+                events: ["app.events.logged"],
+                emits: [],
+                dependsOn: [],
+                middleware: [],
+                isPrivate: false,
+                visibilityReason: null,
+                markdownDescription: "",
+                meta: null,
+                filePath: null,
+                tags: [],
+                tagsDetailed: [],
+              },
+            }),
+          },
+        },
+      }),
+      types: [HookType],
+    });
+
+    const result = await graphql({
+      schema: usageSchema,
+      source: `
+        query HookMiddlewareUsage {
+          usage {
+            node {
+              __typename
+              id
+            }
+          }
+        }
+      `,
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      usage: {
+        node: {
+          __typename: "Hook",
+          id: "app.hooks.logger",
+        },
+      },
+    });
+  });
+
+  test("registeredBy resolves nested registrations from canonical introspection ids", async () => {
+    let ctx: any;
+    let runtime: Awaited<ReturnType<typeof run>> | null = null;
+
+    const probe = defineResource({
+      id: "probe-graphql-registered-by",
+      dependencies: { introspector, store: resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    runtime = await run(createEnhancedSuperApp([introspector, probe]));
+
+    try {
+      const isolationBoundaryId =
+        enhancedSuperAppIds.catalog.resource("isolation-boundary");
+      const publicCatalogId = `${isolationBoundaryId}.public-catalog`;
+      const catalogSearchTaskId = `${isolationBoundaryId}.tasks.catalog-search`;
+
+      const result = await graphql({
+        schema,
+        source: `
+          query RegisteredByGraph($taskId: ID!, $resourceId: ID!) {
+            task(id: $taskId) {
+              id
+              registeredBy
+              registeredByResolved { id }
+            }
+            resource(id: $resourceId) {
+              id
+              registeredBy
+              registeredByResolved { id }
+            }
+          }
+        `,
+        variableValues: {
+          taskId: catalogSearchTaskId,
+          resourceId: publicCatalogId,
+        },
+        contextValue: ctx,
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect((result.data as any)?.task?.registeredBy).toBe(
+        isolationBoundaryId
+      );
+      expect((result.data as any)?.task?.registeredByResolved?.id).toBe(
+        isolationBoundaryId
+      );
+      expect((result.data as any)?.resource?.registeredBy).toBe(
+        isolationBoundaryId
+      );
+      expect((result.data as any)?.resource?.registeredByResolved?.id).toBe(
+        isolationBoundaryId
+      );
+    } finally {
+      await runtime?.dispose();
+    }
+  });
+
+  test("resource middlewareResolvedDetailed exposes middleware nodes", async () => {
+    let ctx: any;
+    let runtime: Awaited<ReturnType<typeof run>> | null = null;
+
+    const probe = defineResource({
+      id: "probe-graphql-resource-middleware-detailed",
+      dependencies: { introspector, store: resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    runtime = await run(createDummyApp([introspector, probe]));
+
+    try {
+      const result = await graphql({
+        schema,
+        source: `
+          query ResourceMiddlewareDetailed($resourceId: ID!) {
+            resource(id: $resourceId) {
+              id
+              middlewareResolvedDetailed {
+                id
+                config
+                node { id }
+              }
+            }
+          }
+        `,
+        variableValues: {
+          resourceId: dummyAppIds.resource("res-db"),
+        },
+        contextValue: ctx,
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(
+        (result.data as any)?.resource?.middlewareResolvedDetailed
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: dummyAppIds.resourceMiddleware(logMw.id),
+            node: expect.objectContaining({
+              id: dummyAppIds.resourceMiddleware(logMw.id),
+            }),
+          }),
+        ])
+      );
+    } finally {
+      await runtime?.dispose();
+    }
   });
 
   test("removes Resource.tunnelInfo and exposes rpcLane on Task/Event", async () => {
@@ -824,5 +1018,116 @@ describe("GraphQL schema (integration)", () => {
     expect(data.eventsHello.map((e: any) => e.id)).toEqual(
       expect.arrayContaining([dummyAppIds.event(evtHello.id)])
     );
+  });
+
+  test("all() keeps unused resource middleware typed as ResourceMiddleware", async () => {
+    let ctx: any;
+
+    const unusedResourceMiddleware = defineResourceMiddleware({
+      id: "mw-unused-resource",
+      async run({ next }) {
+        return next();
+      },
+    });
+
+    const probe = defineResource({
+      id: "probe-graphql-unused-resource-middleware",
+      dependencies: { introspector, store: resources.store },
+      async init(_config, { introspector, store }) {
+        ctx = {
+          store,
+          logger: console,
+          introspector,
+          live: { logs: [] },
+        };
+      },
+    });
+
+    const app = createDummyApp([introspector, unusedResourceMiddleware, probe]);
+    await run(app);
+
+    const query = `
+      query UnusedResourceMiddlewareType {
+        all(idIncludes: "mw-unused-resource") {
+          id
+          __typename
+          ... on ResourceMiddleware { usedBy { id } }
+          ... on TaskMiddleware { usedBy { id } }
+        }
+      }
+    `;
+
+    const result = await graphql({ schema, source: query, contextValue: ctx });
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.all).toEqual([
+      {
+        id: dummyAppIds.resourceMiddleware("mw-unused-resource"),
+        __typename: "ResourceMiddleware",
+        usedBy: [],
+      },
+    ]);
+  });
+
+  test("hideSystem hides only system namespace events", async () => {
+    const ctx = {
+      store: null,
+      logger: console,
+      introspector: new Introspector({
+        data: {
+          tasks: [],
+          hooks: [],
+          resources: [],
+          middlewares: [],
+          tags: [],
+          errors: [],
+          asyncContexts: [],
+          events: [
+            {
+              id: "system.events.ready",
+              listenedToBy: [],
+              transactional: false,
+              parallel: false,
+            },
+            {
+              id: "system.events.custom",
+              listenedToBy: [],
+              transactional: false,
+              parallel: false,
+            },
+            {
+              id: "runner.events.visible",
+              listenedToBy: [],
+              transactional: false,
+              parallel: false,
+            },
+            {
+              id: "app.events.visible",
+              listenedToBy: [],
+              transactional: false,
+              parallel: false,
+            },
+          ],
+        },
+      }),
+      live: { logs: [] },
+    };
+
+    const query = `
+      query HideSystemEvents {
+        visibleEvents: events(filter: { hideSystem: true }) { id }
+      }
+    `;
+
+    const result = await graphql({ schema, source: query, contextValue: ctx });
+    expect(result.errors).toBeUndefined();
+
+    const eventIds = (
+      (result.data?.visibleEvents ?? []) as Array<{ id: string }>
+    ).map((e) => e.id);
+
+    expect(eventIds).not.toContain("system.events.ready");
+    expect(eventIds).not.toContain("system.events.custom");
+    expect(eventIds).toContain("runner.events.visible");
+    expect(eventIds).toContain("app.events.visible");
   });
 });

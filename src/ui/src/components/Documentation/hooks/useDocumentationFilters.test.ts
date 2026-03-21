@@ -26,15 +26,23 @@ function createIntrospector() {
           tags: [],
         },
         {
-          id: "task.system",
+          id: "system.tasks.cleanup",
           emits: [],
           dependsOn: [],
           middleware: [],
           isPrivate: false,
-          tags: [DOCUMENTATION_CONSTANTS.SYSTEM_TAG_ID],
+          tags: [],
         },
       ],
       hooks: [
+        {
+          id: "system.hooks.audit",
+          events: [],
+          dependsOn: [],
+          emits: [],
+          isPrivate: false,
+          tags: [],
+        },
         {
           id: "hook.public",
           events: [],
@@ -53,6 +61,16 @@ function createIntrospector() {
         },
       ],
       resources: [
+        {
+          id: "system",
+          emits: [],
+          dependsOn: [],
+          middleware: [],
+          overrides: [],
+          registers: [],
+          isPrivate: false,
+          tags: [],
+        },
         {
           id: "resource.public",
           emits: [],
@@ -76,6 +94,12 @@ function createIntrospector() {
       ],
       events: [
         {
+          id: "system.events.ready",
+          listenedToBy: [],
+          isPrivate: false,
+          tags: [],
+        },
+        {
           id: "event.public",
           listenedToBy: [],
           isPrivate: false,
@@ -89,6 +113,14 @@ function createIntrospector() {
         },
       ],
       middlewares: [
+        {
+          id: "system.middlewares.guard",
+          type: "task",
+          usedByTasks: [],
+          usedByResources: [],
+          isPrivate: false,
+          tags: [],
+        },
         {
           id: "middleware.public",
           type: "task",
@@ -108,6 +140,12 @@ function createIntrospector() {
       ],
       errors: [
         {
+          id: "system.errors.runtime",
+          thrownBy: [],
+          isPrivate: false,
+          tags: [],
+        },
+        {
           id: "app.errors.public",
           thrownBy: [],
           isPrivate: false,
@@ -121,6 +159,14 @@ function createIntrospector() {
         },
       ],
       asyncContexts: [
+        {
+          id: "system.asyncContexts.session",
+          usedBy: [],
+          requiredBy: [],
+          providedBy: [],
+          isPrivate: false,
+          tags: [],
+        },
         {
           id: "app.asyncContexts.public",
           usedBy: [],
@@ -139,6 +185,18 @@ function createIntrospector() {
         },
       ],
       tags: [
+        {
+          id: "system.tags.internal",
+          tasks: [],
+          hooks: [],
+          resources: [],
+          taskMiddlewares: [],
+          resourceMiddlewares: [],
+          events: [],
+          errors: [],
+          isPrivate: false,
+          tags: [],
+        },
         {
           id: "tag.public",
           tasks: [],
@@ -173,13 +231,14 @@ describe("useDocumentationFilters", () => {
     localStorage.clear();
   });
 
-  it("defaults private visibility to ON and includes private non-system items", () => {
+  it("defaults private visibility to OFF and excludes private non-system items", () => {
     const introspector = createIntrospector();
     const { result } = renderHook(() => useDocumentationFilters(introspector));
 
     const taskIds = result.current.tasks.map((task) => task.id);
-    expect(taskIds).toEqual(["task.public", "task.private"]);
-    expect(taskIds).not.toContain("task.system");
+    expect(taskIds).toEqual(["task.public"]);
+    expect(taskIds).not.toContain("system.tasks.cleanup");
+    expect(taskIds).not.toContain("task.private");
   });
 
   it("filters private elements across all element types when PRIVATE is OFF", () => {
@@ -193,27 +252,36 @@ describe("useDocumentationFilters", () => {
 
     expect(result.current.tasks.map((item) => item.id)).toEqual([
       "task.public",
-      "task.system",
+      "system.tasks.cleanup",
     ]);
     expect(result.current.resources.map((item) => item.id)).toEqual([
+      "system",
       "resource.public",
     ]);
     expect(result.current.events.map((item) => item.id)).toEqual([
+      "system.events.ready",
       "event.public",
     ]);
     expect(result.current.hooks.map((item) => item.id)).toEqual([
+      "system.hooks.audit",
       "hook.public",
     ]);
     expect(result.current.middlewares.map((item) => item.id)).toEqual([
+      "system.middlewares.guard",
       "middleware.public",
     ]);
     expect(result.current.errors.map((item) => item.id)).toEqual([
+      "system.errors.runtime",
       "app.errors.public",
     ]);
     expect(result.current.asyncContexts.map((item) => item.id)).toEqual([
+      "system.asyncContexts.session",
       "app.asyncContexts.public",
     ]);
-    expect(result.current.tags.map((item) => item.id)).toEqual(["tag.public"]);
+    expect(result.current.tags.map((item) => item.id)).toEqual([
+      "system.tags.internal",
+      "tag.public",
+    ]);
   });
 
   it("matches errors and async contexts by suffix when searching with a global id fragment", () => {
@@ -238,6 +306,63 @@ describe("useDocumentationFilters", () => {
     );
   });
 
+  it("treats bare RESOURCE and TASK filters as element-kind matches", () => {
+    const introspector = new Introspector({
+      data: {
+        tasks: [
+          {
+            id: "app.cleanup",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        hooks: [],
+        resources: [
+          {
+            id: "app.cache",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            overrides: [],
+            registers: [],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        events: [],
+        middlewares: [],
+        errors: [],
+        asyncContexts: [],
+        tags: [],
+      },
+    });
+
+    const { result } = renderHook(() => useDocumentationFilters(introspector));
+
+    act(() => {
+      result.current.setLocalNamespaceSearch("RESOURCE");
+    });
+
+    expect(result.current.resources.map((item) => item.id)).toEqual([
+      "app.cache",
+    ]);
+    expect(result.current.tasks).toEqual([]);
+
+    act(() => {
+      result.current.setLocalNamespaceSearch("task|resource");
+    });
+
+    expect(result.current.tasks.map((item) => item.id)).toEqual([
+      "app.cleanup",
+    ]);
+    expect(result.current.resources.map((item) => item.id)).toEqual([
+      "app.cache",
+    ]);
+  });
+
   it("respects persisted PRIVATE preference from localStorage", () => {
     localStorage.setItem(
       DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE,
@@ -253,26 +378,138 @@ describe("useDocumentationFilters", () => {
     ]);
   });
 
-  it("persists toggle changes and reset restores PRIVATE to ON", () => {
+  it("treats only the system namespace as SYSTEM", () => {
+    const introspector = new Introspector({
+      data: {
+        tasks: [
+          {
+            id: "system.tasks.cleanup",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            isPrivate: false,
+            tags: [],
+          },
+          {
+            id: "app.system.tasks.cleanup",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        hooks: [],
+        resources: [],
+        events: [],
+        middlewares: [],
+        errors: [],
+        asyncContexts: [],
+        tags: [],
+      },
+    });
+
+    const { result } = renderHook(() => useDocumentationFilters(introspector));
+
+    expect(result.current.tasks.map((item) => item.id)).toEqual([
+      "app.system.tasks.cleanup",
+    ]);
+
+    act(() => {
+      result.current.handleShowSystemChange(true);
+    });
+
+    expect(result.current.tasks.map((item) => item.id)).toEqual([
+      "system.tasks.cleanup",
+      "app.system.tasks.cleanup",
+    ]);
+  });
+
+  it("treats only the runner namespace as RUNNER", () => {
+    const introspector = new Introspector({
+      data: {
+        tasks: [
+          {
+            id: "runner.tasks.health",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            isPrivate: false,
+            tags: [],
+          },
+          {
+            id: "app.runner.tasks.health",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        hooks: [],
+        resources: [],
+        events: [],
+        middlewares: [],
+        errors: [],
+        asyncContexts: [],
+        tags: [],
+      },
+    });
+
+    const { result } = renderHook(() => useDocumentationFilters(introspector));
+
+    expect(result.current.tasks.map((item) => item.id)).toEqual([
+      "runner.tasks.health",
+      "app.runner.tasks.health",
+    ]);
+
+    act(() => {
+      result.current.handleShowRunnerChange(false);
+    });
+
+    expect(result.current.tasks.map((item) => item.id)).toEqual([
+      "app.runner.tasks.health",
+    ]);
+  });
+
+  it("persists toggle changes and reset restores filter defaults", () => {
     const introspector = createIntrospector();
     const { result } = renderHook(() => useDocumentationFilters(introspector));
 
     act(() => {
+      result.current.handleShowSystemChange(true);
+      result.current.handleShowRunnerChange(false);
       result.current.handleShowPrivateChange(false);
     });
 
     expect(
+      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM)
+    ).toBe("1");
+    expect(
+      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER)
+    ).toBe("0");
+    expect(
       localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE)
     ).toBe("0");
+    expect(result.current.showSystem).toBe(true);
+    expect(result.current.showRunner).toBe(false);
     expect(result.current.showPrivate).toBe(false);
 
     act(() => {
       result.current.resetFilters();
     });
 
-    expect(result.current.showPrivate).toBe(true);
+    expect(result.current.showSystem).toBe(false);
+    expect(result.current.showRunner).toBe(true);
+    expect(result.current.showPrivate).toBe(false);
+    expect(
+      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM)
+    ).toBe("0");
+    expect(
+      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER)
+    ).toBe("1");
     expect(
       localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE)
-    ).toBe("1");
+    ).toBe("0");
   });
 });

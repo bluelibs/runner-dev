@@ -21,12 +21,16 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
 
   await ensureDir(path.join(targetDir, "src"));
   await writeFile(
+    path.join(targetDir, "src", "app.ts"),
+    templates.appTs(projectName)
+  );
+  await writeFile(
     path.join(targetDir, "src", "main.ts"),
     templates.mainTs(projectName)
   );
   await writeFile(
-    path.join(targetDir, "src", "main.test.ts"),
-    templates.mainTest()
+    path.join(targetDir, "src", "app.test.ts"),
+    templates.appTest()
   );
   await writeFile(
     path.join(targetDir, "README.md"),

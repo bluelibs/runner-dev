@@ -3,6 +3,11 @@ import { InfoBlock } from "./common/ElementCard";
 
 type EventLaneLike = { id?: string } | string;
 type EventLaneQueueLike = { id?: string; resource?: { id?: string } } | string;
+type HookLike = { id?: string } | string;
+type EventLaneConsumeEntryLike = {
+  lane?: EventLaneLike;
+  hooks?: { only?: HookLike[] };
+};
 type EventLanesResourceConfigShape = {
   mode?: string;
   profile?: string;
@@ -14,7 +19,7 @@ type EventLanesResourceConfigShape = {
       prefetch?: number;
       dlq?: { queue?: EventLaneQueueLike };
     }>;
-    profiles?: Record<string, { consume?: EventLaneLike[] }>;
+    profiles?: Record<string, { consume?: EventLaneConsumeEntryLike[] }>;
   };
 };
 
@@ -30,6 +35,12 @@ function toQueueId(queue: EventLaneQueueLike | undefined): string {
   if (typeof queue.id === "string") return queue.id;
   if (typeof queue.resource?.id === "string") return queue.resource.id;
   return "inline queue";
+}
+
+function toHookId(hook: HookLike | undefined): string {
+  if (!hook) return "unknown";
+  if (typeof hook === "string") return hook;
+  return typeof hook.id === "string" ? hook.id : "unknown";
 }
 
 export interface ResourceEventLanesSectionProps {
@@ -66,7 +77,14 @@ export const ResourceEventLanesSection: React.FC<
     return Object.entries(rawProfiles).map(([profileId, profile]) => ({
       profileId,
       consumeLaneIds: Array.isArray(profile?.consume)
-        ? profile.consume.map((lane) => toEventLaneId(lane))
+        ? profile.consume.map((entry) => toEventLaneId(entry?.lane))
+        : [],
+      hookAllowlists: Array.isArray(profile?.consume)
+        ? profile.consume.map((entry) =>
+            Array.isArray(entry?.hooks?.only)
+              ? entry.hooks.only.map((hook) => toHookId(hook))
+              : []
+          )
         : [],
     }));
   }, [eventLanesConfig]);
@@ -132,6 +150,23 @@ export const ResourceEventLanesSection: React.FC<
                       ? profile.consumeLaneIds.join(", ")
                       : "(none)"}
                   </span>
+                  {profile.hookAllowlists.some(
+                    (hookIds) => hookIds.length > 0
+                  ) && (
+                    <span>
+                      hooks.only:{" "}
+                      {profile.hookAllowlists
+                        .map((hookIds, index) =>
+                          hookIds.length > 0
+                            ? `${
+                                profile.consumeLaneIds[index] || "unknown"
+                              } -> ${hookIds.join(", ")}`
+                            : null
+                        )
+                        .filter(Boolean)
+                        .join(" | ")}
+                    </span>
+                  )}
                 </div>
               );
             })}

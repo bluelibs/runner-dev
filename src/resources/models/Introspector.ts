@@ -232,6 +232,15 @@ export class Introspector {
         task.middleware,
         middlewareIds
       );
+      task.middlewareDetailed = Array.isArray(task.middlewareDetailed)
+        ? task.middlewareDetailed.map((entry) => ({
+            ...entry,
+            id: this.resolveCanonicalId(entry.id, middlewareIds),
+            subtreeOwnerId: entry.subtreeOwnerId
+              ? this.resolveCanonicalId(entry.subtreeOwnerId, resourceIds)
+              : null,
+          }))
+        : task.middlewareDetailed;
       this.normalizeMetaTags(task, tagIds);
     }
 
@@ -267,6 +276,12 @@ export class Introspector {
         resource.middleware,
         middlewareIds
       );
+      resource.middlewareDetailed = Array.isArray(resource.middlewareDetailed)
+        ? resource.middlewareDetailed.map((entry) => ({
+            ...entry,
+            id: this.resolveCanonicalId(entry.id, middlewareIds),
+          }))
+        : resource.middlewareDetailed;
       resource.overrides = this.canonicalizeReferenceArray(
         resource.overrides,
         taskHookResourceMiddlewareIds
@@ -382,35 +397,14 @@ export class Introspector {
     taskMiddlewares: Middleware[];
     resourceMiddlewares: Middleware[];
   } {
-    const taskMiddlewares: Middleware[] = [];
-    const resourceMiddlewares: Middleware[] = [];
-
-    for (const middleware of middlewares) {
-      if (middleware.type === "task") {
-        taskMiddlewares.push(middleware);
-        continue;
-      }
-
-      if (middleware.type === "resource") {
-        resourceMiddlewares.push(middleware);
-        continue;
-      }
-
-      const usedByTasksLength = Array.isArray(middleware.usedByTasks)
-        ? middleware.usedByTasks.length
-        : 0;
-      const usedByResourcesLength = Array.isArray(middleware.usedByResources)
-        ? middleware.usedByResources.length
-        : 0;
-
-      if (usedByTasksLength > 0 || usedByResourcesLength === 0) {
-        taskMiddlewares.push(middleware);
-      } else {
-        resourceMiddlewares.push(middleware);
-      }
-    }
-
-    return { taskMiddlewares, resourceMiddlewares };
+    return {
+      taskMiddlewares: middlewares.filter(
+        (middleware) => middleware.type === "task"
+      ),
+      resourceMiddlewares: middlewares.filter(
+        (middleware) => middleware.type === "resource"
+      ),
+    };
   }
 
   // Helper function for building runs options
@@ -839,9 +833,13 @@ export class Introspector {
     return this.events.filter((e) => emittedIds.has(e.id));
   }
 
-  getMiddlewareUsagesForTask(
-    taskId: string
-  ): Array<{ id: string; config: string | null; node: Middleware }> {
+  getMiddlewareUsagesForTask(taskId: string): Array<{
+    id: string;
+    config: string | null;
+    origin: "local" | "subtree";
+    subtreeOwnerId: string | null;
+    node: Middleware;
+  }> {
     const task = this.taskMap.get(taskId);
     if (!task) {
       const resolvedTask = this.getTask(taskId);
@@ -855,12 +853,21 @@ export class Introspector {
         return {
           id: node?.id ?? d.id,
           config: d.config ?? null,
+          origin: d.origin ?? "local",
+          subtreeOwnerId: d.subtreeOwnerId ?? null,
           node,
         };
       })
       .filter(
-        (x): x is { id: string; config: string | null; node: Middleware } =>
-          Boolean(x.node)
+        (
+          x
+        ): x is {
+          id: string;
+          config: string | null;
+          origin: "local" | "subtree";
+          subtreeOwnerId: string | null;
+          node: Middleware;
+        } => Boolean(x.node)
       );
   }
 
@@ -889,32 +896,68 @@ export class Introspector {
       );
   }
 
-  getTasksUsingMiddlewareDetailed(
-    middlewareId: string
-  ): Array<{ id: string; config: string | null; node: Task | Hook }> {
+  getTasksUsingMiddlewareDetailed(middlewareId: string): Array<{
+    id: string;
+    config: string | null;
+    origin: "local" | "subtree";
+    subtreeOwnerId: string | null;
+    node: Task | Hook;
+  }> {
     const result: Array<{
       id: string;
       config: string | null;
-      node: Task;
+      origin: "local" | "subtree";
+      subtreeOwnerId: string | null;
+      node: Task | Hook;
     }> = [];
-    const addFrom = (arr: Array<Task>) => {
+    const addFrom = (
+      arr: Array<
+        | Task
+        | (Hook & {
+            middleware?: string[] | null;
+            middlewareDetailed?: Array<{
+              id: string;
+              config?: string | null;
+              origin?: "local" | "subtree" | null;
+              subtreeOwnerId?: string | null;
+            }> | null;
+          })
+      >
+    ) => {
       for (const tl of arr) {
-        if (this.idsContainLike(tl.middleware, middlewareId)) {
-          const conf =
-            (tl.middlewareDetailed || []).find((m) =>
-              this.idsMatch(
-                this.resolveCanonicalId(
-                  m.id,
-                  this.middlewares.map((entry) => entry.id)
-                ),
-                middlewareId
-              )
-            )?.config ?? null;
-          result.push({ id: tl.id, config: conf ?? null, node: tl });
+        const middleware = "middleware" in tl ? tl.middleware ?? [] : [];
+        if (!this.idsContainLike(middleware, middlewareId)) {
+          continue;
         }
+
+        const detailed =
+          "middlewareDetailed" in tl ? tl.middlewareDetailed : [];
+        const usage = (detailed || []).find((m) =>
+          this.idsMatch(
+            this.resolveCanonicalId(
+              m.id,
+              this.middlewares.map((entry) => entry.id)
+            ),
+            middlewareId
+          )
+        );
+
+        result.push({
+          id: tl.id,
+          config: usage?.config ?? null,
+          origin: usage?.origin ?? "local",
+          subtreeOwnerId: usage?.subtreeOwnerId
+            ? this.resolveCanonicalId(
+                usage.subtreeOwnerId,
+                this.resources.map((entry) => entry.id)
+              )
+            : null,
+          node: tl,
+        });
       }
     };
     addFrom(this.tasks);
+    addFrom(this.hooks as Array<Hook & { middleware?: string[] | null }>);
     return result;
   }
 
@@ -1368,6 +1411,31 @@ export class Introspector {
 
   hasTaskInterceptors(taskId: string): boolean {
     return this.getTaskInterceptorCount(taskId) > 0;
+  }
+
+  getRegisteredByResourceId(node: {
+    id: string;
+    registeredBy?: string | null;
+  }): string | null {
+    if (node.registeredBy != null) {
+      return node.registeredBy;
+    }
+
+    for (const resource of this.resources) {
+      if (this.idsContainLike(resource.registers, node.id)) {
+        return resource.id;
+      }
+    }
+
+    return null;
+  }
+
+  getRegisteredByResource(node: {
+    id: string;
+    registeredBy?: string | null;
+  }): Resource | null {
+    const ownerId = this.getRegisteredByResourceId(node);
+    return ownerId ? this.getResource(ownerId) : null;
   }
 
   getMiddlewareInterceptorOwnerIds(middlewareId: string): string[] {

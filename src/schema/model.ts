@@ -118,9 +118,25 @@ export interface MiddlewareAutoApply {
   hasPredicate: boolean;
 }
 
+export type MiddlewareUsageOrigin = "local" | "subtree";
+
 export interface MiddlewareUsage {
   id: string;
   config?: string | null;
+  origin?: MiddlewareUsageOrigin | null;
+  subtreeOwnerId?: string | null;
+}
+
+export interface IdentityRequirementSummary {
+  tenant: boolean;
+  user: boolean;
+  roles: string[];
+}
+
+export interface IdentityScopeSummary {
+  tenant: boolean;
+  user: boolean;
+  required: boolean;
 }
 
 export interface Middleware extends BaseElement {
@@ -133,6 +149,26 @@ export interface Middleware extends BaseElement {
   usedByResources: string[];
   // Prettified Zod schema for the middleware config if provided
   configSchema?: string | null;
+}
+
+export function resolveMiddlewareGraphqlTypeName(
+  value: unknown
+): "TaskMiddleware" | "ResourceMiddleware" | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const middlewareLike = value as Partial<Middleware>;
+
+  if (middlewareLike.type === "task") {
+    return "TaskMiddleware";
+  }
+
+  if (middlewareLike.type === "resource") {
+    return "ResourceMiddleware";
+  }
+
+  return undefined;
 }
 
 export interface Task extends BaseElement {
@@ -201,6 +237,10 @@ export interface Resource extends BaseElement {
     tasks?: {
       middleware: string[];
       validatorCount: number;
+      identity?: IdentityRequirementSummary[];
+    } | null;
+    middleware?: {
+      identityScope?: IdentityScopeSummary | null;
     } | null;
     resources?: {
       middleware: string[];

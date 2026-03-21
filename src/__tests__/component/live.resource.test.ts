@@ -195,4 +195,44 @@ describe("live resource (integration)", () => {
       await runtime.dispose();
     }
   });
+
+  test("canonicalizes log source ids to the actual element id", async () => {
+    const userServerTask = defineTask({
+      id: "server",
+      async run() {
+        return "ok" as const;
+      },
+    });
+
+    const loggerProbe = defineHook({
+      id: "probe-live-log-canonicalization",
+      on: events.ready,
+      order: 1,
+      dependencies: {
+        live,
+      },
+      async run(_event, { live }) {
+        live.recordLog("info", "server-ready", undefined, undefined, "server");
+      },
+    });
+
+    const probe = defineResource({
+      id: "probe-live-log-canonicalization-resource",
+      register: [userServerTask, loggerProbe],
+    });
+
+    const runtime = await run(createDummyApp([live, telemetry, probe]));
+
+    try {
+      const containerLive = await runtime.getResourceValue(live);
+      const matchingLog = containerLive
+        .getLogs()
+        .find((record) => record.message === "server-ready");
+
+      expect(matchingLog?.sourceId).not.toBe("server");
+      expect(matchingLog?.sourceId).toMatch(/\.tasks\.server$/);
+    } finally {
+      await runtime.dispose();
+    }
+  });
 });

@@ -136,7 +136,6 @@ export const serverResource = defineResource({
     app.get(
       "/docs/data",
       createDocsDataRouteHandler({
-        uiDir,
         store,
         introspector,
         logger,

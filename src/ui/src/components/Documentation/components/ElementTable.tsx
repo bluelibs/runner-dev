@@ -1,13 +1,17 @@
 import React from "react";
 import { MarkdownRenderer } from "../utils/markdownUtils";
+import { getOverviewDisplayId } from "../utils/overviewIds";
 import "./ElementTable.scss";
 
-type SortKey = "id" | "title" | "description" | "usedBy";
+type SortKey = "id" | "title" | "description" | "usedBy" | "visibility";
 type SortDirection = "asc" | "desc";
-type ColumnFilters = Record<SortKey, string>;
+type ColumnFilterKey = Exclude<SortKey, "visibility">;
+type ColumnFilters = Record<ColumnFilterKey, string>;
 
 export interface BaseElement {
   id: string;
+  type?: string;
+  registeredBy?: string | null;
   isPrivate?: boolean;
   meta?: {
     title?: string;
@@ -31,6 +35,7 @@ export interface BaseElement {
 
 export interface ElementTableProps {
   elements: BaseElement[];
+  resources?: Array<Pick<BaseElement, "id" | "registeredBy">>;
   title: string;
   icon?: string;
   // Html Id to use for component
@@ -41,15 +46,18 @@ export interface ElementTableProps {
   enableActions?: "task" | "event";
   // Callback to notify parent to handle execution in the respective Card
   onAction?: (element: BaseElement) => void;
+  middlewareTypeFilters?: boolean;
 }
 
 export const ElementTable: React.FC<ElementTableProps> = ({
   elements,
+  resources = [],
   title,
   icon,
   id,
   enableActions,
   onAction,
+  middlewareTypeFilters = false,
 }) => {
   const [sortState, setSortState] = React.useState<{
     key: SortKey;
@@ -64,9 +72,15 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   const [expandedMap, setExpandedMap] = React.useState<Record<string, boolean>>(
     {}
   );
+  const [expandedIdMap, setExpandedIdMap] = React.useState<
+    Record<string, boolean>
+  >({});
   const [clampedMap, setClampedMap] = React.useState<Record<string, boolean>>(
     {}
   );
+  const [showTaskMiddlewares, setShowTaskMiddlewares] = React.useState(true);
+  const [showResourceMiddlewares, setShowResourceMiddlewares] =
+    React.useState(true);
   const descriptionRefs = React.useRef<Record<string, HTMLElement | null>>({});
 
   const getUsedByCount = React.useCallback((element: BaseElement): number => {
@@ -125,11 +139,19 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     const descriptionFilter = columnFilters.description.trim().toLowerCase();
     const usedByFilter = columnFilters.usedBy.trim().toLowerCase();
 
+    const middlewareScopedElements = middlewareTypeFilters
+      ? elements.filter((element) => {
+          if (element.type === "task") return showTaskMiddlewares;
+          if (element.type === "resource") return showResourceMiddlewares;
+          return true;
+        })
+      : elements;
+
     if (!idFilter && !titleFilter && !descriptionFilter && !usedByFilter) {
-      return elements;
+      return middlewareScopedElements;
     }
 
-    return elements.filter((element) => {
+    return middlewareScopedElements.filter((element) => {
       const idValue = element.id.toLowerCase();
       const titleValue = (element.meta?.title ?? "").toLowerCase();
       const descriptionValue = (element.meta?.description ?? "").toLowerCase();
@@ -142,7 +164,14 @@ export const ElementTable: React.FC<ElementTableProps> = ({
         (!usedByFilter || usedByValue.includes(usedByFilter))
       );
     });
-  }, [columnFilters, elements, getUsedByCount]);
+  }, [
+    columnFilters,
+    elements,
+    getUsedByCount,
+    middlewareTypeFilters,
+    showResourceMiddlewares,
+    showTaskMiddlewares,
+  ]);
 
   const sortedElements = React.useMemo(() => {
     if (!sortState) return filteredElements;
@@ -160,6 +189,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
       if (key === "id") return element.id;
       if (key === "title") return element.meta?.title ?? "";
       if (key === "description") return element.meta?.description ?? "";
+      if (key === "visibility") return element.isPrivate ? 1 : 0;
       return getUsedByCount(element);
     };
 
@@ -180,9 +210,18 @@ export const ElementTable: React.FC<ElementTableProps> = ({
       .map(({ element }) => element);
   }, [filteredElements, getUsedByCount, sortState]);
 
+  const getSortIndicatorState = (
+    key: SortKey
+  ): "neutral" | "ascending" | "descending" => {
+    if (!sortState || sortState.key !== key) return "neutral";
+    return sortState.direction === "asc" ? "ascending" : "descending";
+  };
+
   const getSortIndicator = (key: SortKey): string => {
-    if (!sortState || sortState.key !== key) return "↑↓";
-    return sortState.direction === "asc" ? "↑" : "↓";
+    const indicatorState = getSortIndicatorState(key);
+    if (indicatorState === "ascending") return "↑";
+    if (indicatorState === "descending") return "↓";
+    return "↑↓";
   };
 
   const getAriaSort = (key: SortKey): "ascending" | "descending" | "none" => {
@@ -196,9 +235,13 @@ export const ElementTable: React.FC<ElementTableProps> = ({
         return { key, direction: "asc" };
       }
 
+      if (previousState.direction === "desc") {
+        return null;
+      }
+
       return {
         key,
-        direction: previousState.direction === "asc" ? "desc" : "asc",
+        direction: "desc",
       };
     });
   };
@@ -212,6 +255,10 @@ export const ElementTable: React.FC<ElementTableProps> = ({
 
   const toggleExpanded = (elementId: string) => {
     setExpandedMap((prev) => ({ ...prev, [elementId]: !prev[elementId] }));
+  };
+
+  const toggleIdExpanded = (elementId: string) => {
+    setExpandedIdMap((prev) => ({ ...prev, [elementId]: !prev[elementId] }));
   };
 
   React.useEffect(() => {
@@ -260,12 +307,55 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     onAction?.(element);
   };
 
+  const getElementTitle = (element: BaseElement): string | undefined => {
+    return element.meta?.title;
+  };
+
+  const getMiddlewareScopeLabel = (element: BaseElement): string | null => {
+    if (!middlewareTypeFilters) return null;
+    if (element.type === "task") return "T";
+    if (element.type === "resource") return "R";
+    return null;
+  };
+
   return (
     <div className="element-table" id={id}>
       <h2 className="element-table__title">
         {icon && <span className="element-table__icon">{icon}</span>}
         {title} ({elements.length})
       </h2>
+      {middlewareTypeFilters && (
+        <div
+          className="element-table__scope-toggles"
+          role="group"
+          aria-label="Middleware overview filters"
+        >
+          <button
+            type="button"
+            className={`element-table__scope-toggle ${
+              showTaskMiddlewares
+                ? "element-table__scope-toggle--active"
+                : ""
+            }`}
+            onClick={() => setShowTaskMiddlewares((value) => !value)}
+            aria-pressed={showTaskMiddlewares}
+          >
+            For Tasks
+          </button>
+          <button
+            type="button"
+            className={`element-table__scope-toggle ${
+              showResourceMiddlewares
+                ? "element-table__scope-toggle--active"
+                : ""
+            }`}
+            onClick={() => setShowResourceMiddlewares((value) => !value)}
+            aria-pressed={showResourceMiddlewares}
+          >
+            For Resources
+          </button>
+        </div>
+      )}
       <div className="element-table__container">
         <table className="element-table__table">
           <thead>
@@ -281,7 +371,12 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                     onClick={() => handleSort("id")}
                   >
                     <span>ID</span>
-                    <span className="element-table__sort-indicator" aria-hidden>
+                    <span
+                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
+                        "id"
+                      )}`}
+                      aria-hidden
+                    >
                       {getSortIndicator("id")}
                     </span>
                   </button>
@@ -308,7 +403,12 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                     onClick={() => handleSort("title")}
                   >
                     <span>Title</span>
-                    <span className="element-table__sort-indicator" aria-hidden>
+                    <span
+                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
+                        "title"
+                      )}`}
+                      aria-hidden
+                    >
                       {getSortIndicator("title")}
                     </span>
                   </button>
@@ -335,7 +435,12 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                     onClick={() => handleSort("description")}
                   >
                     <span>Description</span>
-                    <span className="element-table__sort-indicator" aria-hidden>
+                    <span
+                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
+                        "description"
+                      )}`}
+                      aria-hidden
+                    >
                       {getSortIndicator("description")}
                     </span>
                   </button>
@@ -362,7 +467,12 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                     onClick={() => handleSort("usedBy")}
                   >
                     <span>Used By</span>
-                    <span className="element-table__sort-indicator" aria-hidden>
+                    <span
+                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
+                        "usedBy"
+                      )}`}
+                      aria-hidden
+                    >
                       {getSortIndicator("usedBy")}
                     </span>
                   </button>
@@ -378,9 +488,26 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                   />
                 </div>
               </th>
-              <th className="element-table__header element-table__header--visibility">
+              <th
+                className="element-table__header element-table__header--visibility"
+                aria-sort={getAriaSort("visibility")}
+              >
                 <div className="element-table__header-content">
-                  <span>Visibility</span>
+                  <button
+                    className="element-table__sort-btn"
+                    type="button"
+                    onClick={() => handleSort("visibility")}
+                  >
+                    <span>Visibility</span>
+                    <span
+                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
+                        "visibility"
+                      )}`}
+                      aria-hidden
+                    >
+                      {getSortIndicator("visibility")}
+                    </span>
+                  </button>
                 </div>
               </th>
             </tr>
@@ -389,20 +516,63 @@ export const ElementTable: React.FC<ElementTableProps> = ({
             {sortedElements.map((element) => {
               const isExpanded = !!expandedMap[element.id];
               const usedByCount = getUsedByCount(element);
+              const isIdExpanded = !!expandedIdMap[element.id];
+              const displayId = getOverviewDisplayId(element, resources);
+              const visibleLabel = (
+                isIdExpanded
+                  ? displayId.fullSegments
+                  : displayId.collapsedSegments
+              ).join(" > ");
 
               return (
                 <tr key={element.id} className="element-table__row">
                   <td className="element-table__cell element-table__cell--id">
                     <div className="element-table__id-container">
-                      <a
-                        href={`#element-${element.id}`}
-                        className="element-table__id-link"
-                        title={element.id}
+                      <code
+                        className={`element-table__id-code ${
+                          isIdExpanded ? "element-table__id-code--expanded" : ""
+                        }`}
                       >
-                        <code className="element-table__id-code">
-                          {element.id}
-                        </code>
-                      </a>
+                        {displayId.hasHiddenAncestors && (
+                          <>
+                            <button
+                              type="button"
+                              className="element-table__id-expand"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                toggleIdExpanded(element.id);
+                              }}
+                              aria-label={
+                                isIdExpanded
+                                  ? `Collapse full ID for ${element.id}`
+                                  : `Expand full ID for ${element.id}`
+                              }
+                              title={
+                                isIdExpanded
+                                  ? `Collapse full ID for ${element.id}`
+                                  : `Expand full ID for ${element.id}`
+                              }
+                            >
+                              {isIdExpanded ? "−" : "..."}
+                            </button>
+                            {!isIdExpanded && (
+                              <span className="element-table__id-separator">
+                                &gt;
+                              </span>
+                            )}
+                          </>
+                        )}
+                        <a
+                          href={`#element-${element.id}`}
+                          className="element-table__id-link"
+                          title={element.id}
+                        >
+                          <span className="element-table__id-label">
+                            {visibleLabel}
+                          </span>
+                        </a>
+                      </code>
                     </div>
                   </td>
 
@@ -410,11 +580,22 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                     <a
                       href={`#element-${element.id}`}
                       className="element-table__title-link"
-                      title={element.meta?.title || element.id}
+                      title={getElementTitle(element) || element.id}
                     >
-                      {element.meta?.title || (
-                        <span className="element-table__empty">Untitled</span>
-                      )}
+                      <span className="element-table__title-content">
+                        <span className="element-table__title-text">
+                          {getElementTitle(element) || (
+                            <span className="element-table__empty">
+                              Untitled
+                            </span>
+                          )}
+                        </span>
+                        {getMiddlewareScopeLabel(element) && (
+                          <span className="element-table__scope-badge">
+                            {getMiddlewareScopeLabel(element)}
+                          </span>
+                        )}
+                      </span>
                     </a>
                     {enableActions && (
                       <button
@@ -476,7 +657,15 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                     {usedByCount}
                   </td>
                   <td className="element-table__cell element-table__cell--visibility">
-                    {element.isPrivate ? "Private" : "Public"}
+                    <span
+                      className={`element-table__visibility-badge ${
+                        element.isPrivate
+                          ? "element-table__visibility-badge--private"
+                          : "element-table__visibility-badge--public"
+                      }`}
+                    >
+                      {element.isPrivate ? "Private" : "Public"}
+                    </span>
                   </td>
                 </tr>
               );

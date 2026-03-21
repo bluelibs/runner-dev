@@ -28,6 +28,8 @@ export {
 export {
   rpcLaneCatalogUpdatedEvent,
   eventLaneCatalogProjectionUpdatedEvent,
+  catalogProjectionResource,
+  catalogProjectionHook,
   rpcLanePricingPreviewTask,
   rpcLaneCatalogSyncTask,
   rpcLanesShowcaseResource,
@@ -90,3 +92,21 @@ export const enhancedShowcaseRegistrations: RegisterableItems[] =
 
 export const enhancedShowcaseOverrides: OverridableElements[] =
   enhancedShowcaseModules.flatMap((module) => module.overrides ?? []);
+
+export const catalogShowcaseRegistrations: RegisterableItems[] = [
+  ...tagsIsolationShowcaseRegistrations,
+  ...interceptorShowcaseRegistrations,
+  ...lanesShowcaseRegistrations,
+];
+
+export const catalogShowcaseOverrides: OverridableElements[] = [
+  ...lanesShowcaseOverrides,
+];
+
+export const platformShowcaseRegistrations: RegisterableItems[] = [
+  ...supportShowcaseRegistrations,
+];
+
+export const ordersShowcaseRegistrations: RegisterableItems[] = [
+  ...durableShowcaseRegistrations,
+];

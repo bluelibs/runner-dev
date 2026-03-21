@@ -1,4 +1,5 @@
 /* Minimal GraphQL client for the docs UI */
+import { isCatalogDocumentationMode } from "./documentationMode";
 
 declare const __API_URL__: string;
 
@@ -22,6 +23,12 @@ export async function graphqlRequest<T>(
   query: string,
   variables?: Record<string, unknown>
 ): Promise<T> {
+  if (isCatalogDocumentationMode()) {
+    throw new Error(
+      "GraphQL is unavailable in the exported Runner-Dev catalog."
+    );
+  }
+
   const endpoint = new URL("/graphql", getBaseUrl()).toString();
   const res = await fetch(endpoint, {
     method: "POST",

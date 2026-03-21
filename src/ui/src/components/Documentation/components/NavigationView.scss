@@ -8,6 +8,18 @@
     border-radius: 2px;
     color: #333;
   }
+
+  .nav-node-icon,
+  .nav-content .icon {
+    font-variant-emoji: text;
+    filter: grayscale(1) saturate(0);
+  }
+
+  .nav-node--focused .nav-node-icon,
+  .nav-link--focused .icon {
+    font-variant-emoji: emoji;
+    filter: none;
+  }
 }
 
 // Tree mode styles
@@ -21,11 +33,14 @@
   }
 
   .nav-node {
+    --nav-folder-accent-rgb: 96, 165, 250;
+    --nav-folder-accent: #60a5fa;
+
     display: flex;
     align-items: center;
-    padding: 6px 8px;
+    padding: 4px 8px;
     margin: 1px 0;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
     transition: all 0.15s ease;
     border: 1px solid transparent;
@@ -47,6 +62,51 @@
         font-weight: 500;
       }
     }
+
+    &--folder-resource {
+      --nav-folder-accent-rgb: 52, 211, 153;
+      --nav-folder-accent: #34d399;
+    }
+
+    &--folder-error {
+      --nav-folder-accent-rgb: 239, 68, 68;
+      --nav-folder-accent: #ef4444;
+    }
+
+    &--folder-async-context {
+      --nav-folder-accent-rgb: 6, 182, 212;
+      --nav-folder-accent: #06b6d4;
+    }
+
+    &--folder-task {
+      --nav-folder-accent-rgb: 96, 165, 250;
+      --nav-folder-accent: #60a5fa;
+    }
+
+    &--folder-event {
+      --nav-folder-accent-rgb: 244, 114, 182;
+      --nav-folder-accent: #f472b6;
+    }
+
+    &--folder-hook {
+      --nav-folder-accent-rgb: 250, 204, 21;
+      --nav-folder-accent: #facc15;
+    }
+
+    &--folder-middleware {
+      --nav-folder-accent-rgb: 192, 132, 252;
+      --nav-folder-accent: #c084fc;
+    }
+
+    &--folder-tag {
+      --nav-folder-accent-rgb: 251, 146, 60;
+      --nav-folder-accent: #fb923c;
+    }
+
+    &--folder-mixed {
+      --nav-folder-accent-rgb: 148, 163, 184;
+      --nav-folder-accent: #94a3b8;
+    }
   }
 
   .nav-expander {
@@ -55,7 +115,7 @@
     justify-content: center;
     width: 16px;
     height: 16px;
-    margin-right: 6px;
+    margin-right: 4px;
     border: none;
     background: none;
     cursor: pointer;
@@ -85,9 +145,14 @@
   }
 
   .nav-node-icon {
-    margin-right: 8px;
+    margin-right: 6px;
     font-size: 14px;
     flex-shrink: 0;
+
+    .nav-node[class*="nav-node--folder-"] & {
+      color: var(--nav-folder-accent);
+      filter: saturate(1.15);
+    }
   }
 
   .nav-node-label {
@@ -97,7 +162,11 @@
     word-break: break-word;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+
+    .nav-node[class*="nav-node--folder-"] & {
+      color: var(--nav-folder-accent);
+    }
 
     .system-label {
       font-size: 10px;
@@ -112,10 +181,10 @@
   }
 
   .nav-node-count {
-    margin-left: 8px;
+    margin-left: 6px;
     padding: 2px 6px;
-    background-color: rgba(var(--primary-rgb), 0.1);
-    color: var(--primary);
+    background-color: rgba(var(--nav-folder-accent-rgb), 0.12);
+    color: var(--nav-folder-accent);
     border-radius: 10px;
     font-size: 11px;
     font-weight: 600;
@@ -140,11 +209,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    margin: 2px 0;
+    padding: 9px 12px;
+    margin: 1px 0;
     text-decoration: none;
     color: var(--text-primary);
-    border-radius: 8px;
+    border-radius: 6px;
     transition: all 0.15s ease;
     border: 1px solid transparent;
     outline: none;

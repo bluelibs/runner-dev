@@ -31,20 +31,28 @@
 }
 
 .task-card__header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
   gap: $spacing-md;
+  min-height: 140px;
+
+  .task-card__header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-md;
+  }
 
   .main {
     flex: 1;
+    min-width: 0;
   }
 
   .task-card__actions {
     display: flex;
     align-items: center;
     gap: $spacing-sm;
-    margin-left: $spacing-md;
+    margin-left: auto;
+    flex-shrink: 0;
 
     button {
       border: none;
@@ -55,6 +63,20 @@
       cursor: pointer;
       font-size: 14px;
     }
+  }
+
+  .task-card__header-bottom {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    min-height: 28px;
+  }
+
+  .task-card__badges {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-left: auto;
   }
 }
 
@@ -224,15 +246,7 @@
 // Code Block
 // -----------------------------------------------------------------------------
 .task-card__code-block {
-  background: var(--docs-bg-secondary);
-  padding: $spacing-lg;
-  border-radius: $border-radius-lg;
-  font-size: $font-size-xs;
-  line-height: 1.6;
-  overflow: auto;
-  border: 1px solid var(--docs-border-primary);
-  margin: 0;
-  font-family: $font-family-mono;
+  @include docs-code-block($padding: $spacing-lg, $max-height: 320px);
 }
 
 // -----------------------------------------------------------------------------
@@ -477,6 +491,20 @@
     border: 1px solid var(--docs-border-primary);
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
+    position: relative;
+
+    &-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: $spacing-md;
+    }
+
+    .task-card__middleware-link {
+      flex: 1;
+      min-width: 0;
+      text-decoration: none;
+    }
 
     .title {
       font-weight: 600;
@@ -502,14 +530,39 @@
     }
 
     .config-block {
+      @include docs-code-block($padding: $spacing-md, $max-height: 240px);
       background: var(--docs-bg-primary);
-      padding: $spacing-md;
       border-radius: $border-radius-md;
-      font-size: $font-size-xs;
-      margin: 0;
-      border: 1px solid var(--docs-border-primary);
       line-height: 1.4;
-      font-family: $font-family-mono;
+    }
+  }
+
+  &__badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    border-radius: $border-radius-pill;
+    padding: $spacing-xs $spacing-sm;
+    background: rgba(255, 184, 77, 0.18);
+    border: 1px solid rgba(255, 184, 77, 0.38);
+    color: var(--docs-warning, #ffb84d);
+    font-size: $font-size-xs;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  &__source {
+    margin-bottom: $spacing-md;
+    color: var(--docs-text-secondary);
+    font-size: $font-size-xs;
+    font-family: $font-family-mono;
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--docs-border-hover);
     }
   }
 }
@@ -518,11 +571,29 @@
 // Task Card RPC Lane Badge
 // -----------------------------------------------------------------------------
 .task-card__rpc-lane-badge {
+  display: inline-flex;
+  align-items: center;
   margin-left: $spacing-sm;
   font-size: $font-size-xs;
   opacity: 0.9;
   letter-spacing: 0.04em;
   font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    border-bottom-color: currentColor;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.82);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
 // -----------------------------------------------------------------------------

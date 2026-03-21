@@ -2,7 +2,9 @@
 # !src/**/*
 !dist/**/*
 !readmes/**/*
+!skills/**/*
 dist/**/__tests__/**/*
 !package.json
 !README.md
+!API_REFERENCE.md
 !AI.md

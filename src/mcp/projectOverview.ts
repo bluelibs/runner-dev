@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ENDPOINT } from "./env";
+import { assertGraphqlSourceDescription } from "./env";
 import { callGraphQL } from "./http";
 
 type Maybe<T> = T | null | undefined;
@@ -90,7 +90,7 @@ export function registerProjectOverview(server: McpServer) {
       },
     },
     async ({ details, includeLive, last }) => {
-      const endpoint = ENDPOINT ?? "<set ENDPOINT>";
+      const source = assertGraphqlSourceDescription();
       const sampleSize = typeof details === "number" ? details : 10;
       const liveLast = typeof last === "number" ? last : 20;
 
@@ -136,7 +136,7 @@ export function registerProjectOverview(server: McpServer) {
       const lines: string[] = [];
       lines.push(`# Runner Dev Project Overview`);
       lines.push("");
-      lines.push(`Endpoint: ${endpoint}`);
+      lines.push(`Source: ${source}`);
       lines.push("");
       const totalConnections = countConnections(tasks, hooks, resources);
 
@@ -177,7 +177,16 @@ export function registerProjectOverview(server: McpServer) {
         lines.push(`### Hooks`);
         for (const l of hooks.slice(0, sampleSize)) {
           const extra: string[] = [];
-          if (l.event) extra.push(`  - event: ${String(l.event)}`);
+          const eventIds = Array.isArray(l.events)
+            ? l.events.map((eventId: unknown) => String(eventId))
+            : l.event
+            ? [String(l.event)]
+            : [];
+          if (eventIds.length === 1) {
+            extra.push(`  - event: ${eventIds[0]}`);
+          } else if (eventIds.length > 1) {
+            extra.push(`  - events: ${eventIds.join(", ")}`);
+          }
           lines.push(
             formatItem({
               id: String(l.id),

@@ -10,6 +10,7 @@ import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
+import { TopologyActionButton } from "./TopologyActionButton";
 
 export interface HookCardProps {
   hook: Hook;
@@ -39,6 +40,13 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
       }
       id={hook.id}
       description={hook.meta?.description}
+      actions={
+        <TopologyActionButton
+          focus={{ kind: "hook", id: hook.id }}
+          title="Open hook topology"
+          className="btn--primary"
+        />
+      }
     >
       <div className="hook-card__content">
         <div className="hook-card__grid">

@@ -140,17 +140,16 @@
 
 // Documentation-specific styling
 .sidebar-header--docs {
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-md;
 
   .sidebar-header__content {
-    padding: 15px 0px;
+    padding: 10px 0;
   }
 
   .sidebar-header__title {
     font-size: $spacing-lg;
     color: #ecf0f1;
-    // border-bottom: 3px solid $primary-blue;
-    padding-bottom: $spacing-sm;
+    padding-bottom: 6px;
     font-weight: 700;
   }
 }

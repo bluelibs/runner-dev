@@ -16,7 +16,7 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { TaskMiddlewareType } from "./MiddlewareType";
 import { TaskMiddlewareUsageType } from "./TaskType";
 import { sanitizePath } from "../../utils/path";
-import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
 
 export const HookType = new GraphQLObjectType({
@@ -123,30 +123,14 @@ export const HookType = new GraphQLObjectType({
       description:
         "Id of the resource that registered this hook (if any). Useful to trace provenance.",
       type: GraphQLString,
-      resolve: (node: Hook, _args, ctx: CustomGraphQLContext) => {
-        if ((node as any).registeredBy != null)
-          return (node as any).registeredBy;
-        const allResources = ctx.introspector.getResources();
-        const found = allResources.find((r) =>
-          (r.registers || []).includes((node as any).id)
-        );
-        return found?.id ?? null;
-      },
+      resolve: (node: Hook, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResourceId(node),
     },
     registeredByResolved: {
       description: "Resource that registered this hook (resolved, if any)",
       type: ResourceType,
-      resolve: (node: Hook, _args, ctx: CustomGraphQLContext) => {
-        if ((node as any).registeredBy != null) {
-          return ctx.introspector.getResource((node as any).registeredBy);
-        }
-        const allResources = ctx.introspector.getResources();
-        return (
-          allResources.find((r) =>
-            (r.registers || []).includes((node as any).id)
-          ) || null
-        );
-      },
+      resolve: (node: Hook, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResource(node),
     },
     runs: {
       description: "Execution run records for this hook",

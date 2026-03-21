@@ -1,6 +1,10 @@
-import { defineTaskMiddleware, r, run } from "@bluelibs/runner";
+import { defineTaskMiddleware, r, run, tags } from "@bluelibs/runner";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
+import {
+  mapStoreResourceToResourceModel,
+  mapStoreTaskToTaskModel,
+} from "../../resources/models/initializeFromStore.utils";
 
 describe("Subtree Introspection", () => {
   test("merges subtree policy arrays into a single summary", async () => {
@@ -76,6 +80,7 @@ describe("Subtree Introspection", () => {
         hooks: {
           validatorCount: 1,
         },
+        middleware: null,
         taskMiddleware: null,
         resourceMiddleware: null,
         events: {
@@ -86,5 +91,271 @@ describe("Subtree Introspection", () => {
     } finally {
       await runtime.dispose();
     }
+  });
+
+  test("renders the effective task middleware stack with subtree provenance and identity scope", async () => {
+    const subtreeTaskMiddleware = defineTaskMiddleware({
+      id: "test-subtree-effective-audit",
+      async run({ next }) {
+        return next();
+      },
+    });
+    const localIdentityScopedMiddleware = defineTaskMiddleware({
+      id: "test-subtree-effective-local",
+      tags: [tags.identityScoped],
+      async run({ next }) {
+        return next();
+      },
+    });
+    const childTask = r
+      .task("test-subtree-effective-child-task")
+      .middleware([localIdentityScopedMiddleware])
+      .run(async () => "ok")
+      .build();
+
+    const moduleResource = r
+      .resource("test-subtree-effective-module")
+      .subtree({
+        tasks: {
+          middleware: [subtreeTaskMiddleware],
+          identity: { user: true, roles: ["ADMIN"] },
+        },
+        middleware: {
+          identityScope: { tenant: true, user: true },
+        },
+      })
+      .register([
+        subtreeTaskMiddleware,
+        localIdentityScopedMiddleware,
+        childTask,
+      ])
+      .build();
+
+    const app = r
+      .resource("test-subtree-effective-app")
+      .register([moduleResource])
+      .build();
+
+    const runtime = await run(app, { debug: {} });
+    try {
+      const introspector = new Introspector({ store: runtime.store });
+      initializeFromStore(introspector, runtime.store);
+
+      const taskId = runtime.store.findIdByDefinition(childTask)!;
+      const task = introspector.getTask(taskId);
+      const subtreeMiddlewareId = runtime.store.findIdByDefinition(
+        subtreeTaskMiddleware
+      )!;
+      const identityCheckerId = "runner.middleware.task.identityChecker";
+      const localMiddlewareId = runtime.store.findIdByDefinition(
+        localIdentityScopedMiddleware
+      )!;
+      const subtreeMiddleware = introspector.getMiddleware(subtreeMiddlewareId);
+      const resource = introspector.getResource(
+        runtime.store.findIdByDefinition(moduleResource)!
+      );
+
+      expect(task?.middleware).toEqual([
+        identityCheckerId,
+        subtreeMiddlewareId,
+        localMiddlewareId,
+      ]);
+      expect(task?.middlewareDetailed).toEqual([
+        {
+          id: identityCheckerId,
+          config: JSON.stringify({
+            tenant: true,
+            user: true,
+            roles: ["ADMIN"],
+          }),
+          origin: "local",
+          subtreeOwnerId: null,
+        },
+        {
+          id: subtreeMiddlewareId,
+          config: "{}",
+          origin: "subtree",
+          subtreeOwnerId: resource?.id ?? null,
+        },
+        {
+          id: localMiddlewareId,
+          config: JSON.stringify({
+            identityScope: { tenant: true, user: true },
+          }),
+          origin: "local",
+          subtreeOwnerId: null,
+        },
+      ]);
+
+      expect(subtreeMiddleware?.usedByTasks).toEqual([taskId]);
+      expect(resource?.subtree).toEqual({
+        tasks: {
+          middleware: [subtreeMiddlewareId],
+          validatorCount: 0,
+          identity: [{ tenant: true, user: true, roles: ["ADMIN"] }],
+        },
+        middleware: {
+          identityScope: {
+            tenant: true,
+            user: true,
+            required: true,
+          },
+        },
+        resources: null,
+        hooks: null,
+        taskMiddleware: null,
+        resourceMiddleware: null,
+        events: null,
+        tags: null,
+      });
+    } finally {
+      await runtime.dispose();
+    }
+  });
+
+  test("tracks subtree provenance for string middleware refs", () => {
+    const resourceId = "test-subtree-string-ref-module";
+    const subtreeMiddlewareShortId = "test-subtree-string-ref-audit";
+    const subtreeMiddlewareId = `${resourceId}.middleware.task.${subtreeMiddlewareShortId}`;
+    const localMiddlewareId = `${resourceId}.middleware.task.test-subtree-string-ref-local`;
+    const taskId = `${resourceId}.task.test-subtree-string-ref-child-task`;
+
+    const resource = mapStoreResourceToResourceModel({
+      id: resourceId,
+      register: [],
+      overrides: [],
+      middleware: [],
+      subtree: {
+        tasks: {
+          middleware: [subtreeMiddlewareShortId],
+        },
+      },
+    } as any);
+
+    const task = mapStoreTaskToTaskModel(
+      {
+        id: taskId,
+        meta: {},
+        tags: [],
+        dependencies: [],
+        middleware: [
+          { id: subtreeMiddlewareId, config: {} },
+          { id: localMiddlewareId, config: {} },
+        ],
+      } as any,
+      {
+        getOwnerResourceId(id: string) {
+          return id === taskId ? resourceId : null;
+        },
+        resources: new Map([
+          [
+            resourceId,
+            {
+              resource: {
+                id: resourceId,
+                subtree: {
+                  tasks: {
+                    middleware: [subtreeMiddlewareShortId],
+                  },
+                },
+              },
+            },
+          ],
+        ]),
+        getMiddlewareManager() {
+          return {
+            middlewareResolver: {
+              getApplicableTaskMiddlewares() {
+                return [
+                  { id: subtreeMiddlewareId, config: {} },
+                  { id: localMiddlewareId, config: {} },
+                ];
+              },
+            },
+          };
+        },
+      } as any
+    );
+
+    expect(resource.subtree).toEqual({
+      tasks: {
+        middleware: [subtreeMiddlewareShortId],
+        validatorCount: 0,
+      },
+      middleware: null,
+      resources: null,
+      hooks: null,
+      taskMiddleware: null,
+      resourceMiddleware: null,
+      events: null,
+      tags: null,
+    });
+    expect(task.middleware).toEqual([subtreeMiddlewareId, localMiddlewareId]);
+    expect(task.middlewareDetailed).toEqual([
+      {
+        id: subtreeMiddlewareId,
+        config: "{}",
+        origin: "subtree",
+        subtreeOwnerId: resourceId,
+      },
+      {
+        id: localMiddlewareId,
+        config: "{}",
+        origin: "local",
+        subtreeOwnerId: null,
+      },
+    ]);
+  });
+
+  test("normalizes singular subtree identity objects and preserves tenant false flags", () => {
+    const resource = mapStoreResourceToResourceModel({
+      id: "test-subtree-singular",
+      register: [],
+      overrides: [],
+      middleware: [],
+      subtree: {
+        tasks: {
+          identity: {
+            tenant: false,
+            user: true,
+            roles: ["ADMIN"],
+          },
+        },
+        middleware: {
+          identityScope: {
+            tenant: false,
+            user: true,
+            required: false,
+          },
+        },
+      },
+    } as any);
+
+    expect(resource.subtree).toEqual({
+      tasks: {
+        middleware: [],
+        validatorCount: 0,
+        identity: [
+          {
+            tenant: false,
+            user: true,
+            roles: ["ADMIN"],
+          },
+        ],
+      },
+      middleware: {
+        identityScope: {
+          tenant: false,
+          user: true,
+          required: false,
+        },
+      },
+      resources: null,
+      hooks: null,
+      taskMiddleware: null,
+      resourceMiddleware: null,
+      events: null,
+      tags: null,
+    });
   });
 });

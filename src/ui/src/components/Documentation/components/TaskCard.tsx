@@ -22,6 +22,11 @@ import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { MermaidDiagram } from "./common/MermaidDiagram";
 import { isSystemElement } from "../utils/isSystemElement";
+import { TopologyActionButton } from "./TopologyActionButton";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
+import type { DocumentationMode } from "../../../../../resources/docsPayload";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 function normalizeDurableNodeLabel(node: any, index: number): string {
   const kind = String(node?.kind || "node");
@@ -151,9 +156,15 @@ function normalizeDurableFlowNodes(rawNodes: any[] | null | undefined): any[] {
 export interface TaskCardProps {
   task: Task;
   introspector: Introspector;
+  mode?: DocumentationMode;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({
+  task,
+  introspector,
+  mode = "live",
+}) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const dependencies = introspector.getDependencies(task);
   const middlewareUsages = introspector.getMiddlewareUsagesForTask(task.id);
   const emittedEvents = introspector.getEmittedEvents(task);
@@ -236,6 +247,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
 
   // Listen for execute requests from ElementTable
   React.useEffect(() => {
+    if (mode === "catalog") return;
     const handler = (e: any) => {
       const ce = e as CustomEvent<{ type: string; id: string }>;
       if (ce?.detail?.type === "task" && ce.detail.id === task.id) {
@@ -245,7 +257,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
     };
     window.addEventListener("docs:execute-element", handler);
     return () => window.removeEventListener("docs:execute-element", handler);
-  }, [task.id]);
+  }, [mode, task.id]);
 
   async function openCoverageDetails() {
     if (!task?.id) return;
@@ -340,14 +352,22 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
       id={task.id}
       description={task.meta?.description}
       actions={
-        <button
-          type="button"
-          className="btn"
-          onClick={() => setIsExecuteOpen(true)}
-          title="Run Task"
-        >
-          Run
-        </button>
+        <>
+          <TopologyActionButton
+            focus={{ kind: "task", id: task.id }}
+            title="Open task blast radius"
+          />
+          {mode !== "catalog" && (
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => setIsExecuteOpen(true)}
+              title="Run Task"
+            >
+              Run
+            </button>
+          )}
+        </>
       }
     >
       <div className="task-card__grid">
@@ -357,7 +377,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           className="task-card__grid-section"
         >
           <InfoBlock prefix="task-card" label="File Path:">
-            {task.filePath ? (
+            {task.filePath && !isCatalogMode ? (
               <a
                 type="button"
                 onClick={openFileModal}
@@ -384,27 +404,28 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
                 }}
               >
                 {task.coverage.percentage}%
-              </span>{" "}
-              <button
-                type="button"
-                onClick={openCoverageDetails}
-                title="View coverage details"
-              >
-                (View Coverage)
-              </button>
+              </span>
+              {!isCatalogMode && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={openCoverageDetails}
+                    title="View coverage details"
+                  >
+                    (View Coverage)
+                  </button>
+                </>
+              )}
             </InfoBlock>
           )}
 
-          {task.registeredBy && (
-            <InfoBlock prefix="task-card" label="Registered By:">
-              <a
-                href={`#element-${task.registeredBy}`}
-                className="task-card__registrar-link"
-              >
-                {task.registeredBy}
-              </a>
-            </InfoBlock>
-          )}
+          <RegisteredByInfoBlock
+            prefix="task-card"
+            elementId={task.id}
+            registeredBy={task.registeredBy}
+            introspector={introspector}
+          />
 
           <InfoBlock prefix="task-card" label="Visibility:">
             {task.isPrivate ? "Private" : "Public"}
@@ -551,63 +572,72 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
             )}
 
             <InfoBlock prefix="task-card" label="Flow Nodes:">
-              {hasLoadedDurableFlow ? durableFlowNodes.length : "Not loaded"}
+              {isCatalogMode
+                ? durableFlowNodes.length || "Unavailable in export"
+                : hasLoadedDurableFlow
+                ? durableFlowNodes.length
+                : "Not loaded"}
             </InfoBlock>
 
-            <InfoBlock prefix="task-card" label="Flow Graph:">
-              <button
-                type="button"
-                className="task-card__durable-preview-btn"
-                onClick={toggleDurablePreview}
-              >
-                {isDurablePreviewOpen ? "Hide Graph" : "Preview Graph"}
-              </button>
-            </InfoBlock>
-
-            {isDurablePreviewOpen && isDurableFlowLoading ? (
-              <InfoBlock prefix="task-card" label="Mermaid Diagram:">
-                Loading flow preview...
-              </InfoBlock>
-            ) : null}
-
-            {isDurablePreviewOpen && durableFlowError ? (
-              <InfoBlock prefix="task-card" label="Mermaid Diagram:">
-                {durableFlowError}
-              </InfoBlock>
-            ) : null}
-
-            {isDurablePreviewOpen &&
-            !isDurableFlowLoading &&
-            !durableFlowError &&
-            durableFlowNodes.length > 0 ? (
+            {!isCatalogMode && (
               <>
-                <InfoBlock prefix="task-card" label="Flow Summary:">
-                  <div className="task-card__durable-steps">
-                    {durableFlowNodes.map((node: any, index: number) => (
-                      <div key={`${String(node?.kind || "node")}-${index}`}>
-                        {index + 1}. {normalizeDurableNodeLabel(node, index)}
+                <InfoBlock prefix="task-card" label="Flow Graph:">
+                  <button
+                    type="button"
+                    className="task-card__durable-preview-btn"
+                    onClick={toggleDurablePreview}
+                  >
+                    {isDurablePreviewOpen ? "Hide Graph" : "Preview Graph"}
+                  </button>
+                </InfoBlock>
+
+                {isDurablePreviewOpen && isDurableFlowLoading ? (
+                  <InfoBlock prefix="task-card" label="Mermaid Diagram:">
+                    Loading flow preview...
+                  </InfoBlock>
+                ) : null}
+
+                {isDurablePreviewOpen && durableFlowError ? (
+                  <InfoBlock prefix="task-card" label="Mermaid Diagram:">
+                    {durableFlowError}
+                  </InfoBlock>
+                ) : null}
+
+                {isDurablePreviewOpen &&
+                !isDurableFlowLoading &&
+                !durableFlowError &&
+                durableFlowNodes.length > 0 ? (
+                  <>
+                    <InfoBlock prefix="task-card" label="Flow Summary:">
+                      <div className="task-card__durable-steps">
+                        {durableFlowNodes.map((node: any, index: number) => (
+                          <div key={`${String(node?.kind || "node")}-${index}`}>
+                            {index + 1}.{" "}
+                            {normalizeDurableNodeLabel(node, index)}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </InfoBlock>
+                    </InfoBlock>
 
-                <InfoBlock prefix="task-card" label="Mermaid Diagram:">
-                  <MermaidDiagram
-                    chart={durableMermaid}
-                    className="task-card__durable-mermaid"
-                  />
-                </InfoBlock>
+                    <InfoBlock prefix="task-card" label="Mermaid Diagram:">
+                      <MermaidDiagram
+                        chart={durableMermaid}
+                        className="task-card__durable-mermaid"
+                      />
+                    </InfoBlock>
+                  </>
+                ) : null}
+
+                {isDurablePreviewOpen &&
+                !isDurableFlowLoading &&
+                !durableFlowError &&
+                durableFlowNodes.length === 0 ? (
+                  <InfoBlock prefix="task-card" label="Mermaid Diagram:">
+                    Flow shape is not available yet for this durable task.
+                  </InfoBlock>
+                ) : null}
               </>
-            ) : null}
-
-            {isDurablePreviewOpen &&
-            !isDurableFlowLoading &&
-            !durableFlowError &&
-            durableFlowNodes.length === 0 ? (
-              <InfoBlock prefix="task-card" label="Mermaid Diagram:">
-                Flow shape is not available yet for this durable task.
-              </InfoBlock>
-            ) : null}
+            )}
           </CardSection>
         )}
 
@@ -683,19 +713,44 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
           <div className="task-card__middleware__items">
             {middlewareUsages.map((usage) => (
               <div key={usage.id} className="task-card__middleware__item">
-                <a
-                  href={`#element-${usage.id}`}
-                  className="task-card__middleware-link"
-                >
-                  <div className="title">
-                    {usage.node.meta?.title || formatId(usage.id)}
+                <div className="task-card__middleware__item-header">
+                  <a
+                    href={`#element-${usage.id}`}
+                    className="task-card__middleware-link"
+                  >
+                    <div className="title">
+                      {usage.node.meta?.title || formatId(usage.id)}
+                    </div>
+                    <div className="id">{usage.id}</div>
+                  </a>
+                  {usage.origin === "subtree" && (
+                    <span
+                      className="task-card__middleware__badge"
+                      title={
+                        usage.subtreeOwnerId
+                          ? `Applied by subtree policy from ${usage.subtreeOwnerId}`
+                          : "Applied by subtree policy"
+                      }
+                    >
+                      Subtree Policy
+                    </span>
+                  )}
+                </div>
+                {usage.origin === "subtree" && usage.subtreeOwnerId && (
+                  <div className="task-card__middleware__source">
+                    Source:{" "}
+                    <a href={`#element-${usage.subtreeOwnerId}`}>
+                      {formatId(usage.subtreeOwnerId)}
+                    </a>
                   </div>
-                  <div className="id">{usage.id}</div>
-                </a>
+                )}
                 {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>
-                    <pre className="config-block">{usage.config}</pre>
+                    <StructuredConfigBlock
+                      value={usage.config}
+                      className="config-block"
+                    />
                   </div>
                 )}
               </div>
@@ -720,46 +775,48 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, introspector }) => {
         saveOnFile={task.filePath || null}
       />
 
-      <ExecuteModal
-        isOpen={isExecuteOpen}
-        title={task.meta?.title || formatId(task.id)}
-        schemaString={task.inputSchema}
-        onClose={() => setIsExecuteOpen(false)}
-        onInvoke={async ({ inputJson }) => {
-          const INVOKE_TASK_MUTATION = `
-            mutation InvokeTask($taskId: ID!, $inputJson: String, $evalInput: Boolean) {
-              invokeTask(taskId: $taskId, inputJson: $inputJson, evalInput: $evalInput) {
-                success
-                error
-                result
-                invocationId
+      {mode !== "catalog" && (
+        <ExecuteModal
+          isOpen={isExecuteOpen}
+          title={task.meta?.title || formatId(task.id)}
+          schemaString={task.inputSchema}
+          onClose={() => setIsExecuteOpen(false)}
+          onInvoke={async ({ inputJson }) => {
+            const INVOKE_TASK_MUTATION = `
+              mutation InvokeTask($taskId: ID!, $inputJson: String, $evalInput: Boolean) {
+                invokeTask(taskId: $taskId, inputJson: $inputJson, evalInput: $evalInput) {
+                  success
+                  error
+                  result
+                  invocationId
+                }
               }
-            }
-          `;
+            `;
 
-          try {
-            const res = await graphqlRequest<{
-              invokeTask: {
-                success: boolean;
-                error?: string | null;
-                result?: string | null;
-                invocationId?: string | null;
+            try {
+              const res = await graphqlRequest<{
+                invokeTask: {
+                  success: boolean;
+                  error?: string | null;
+                  result?: string | null;
+                  invocationId?: string | null;
+                };
+              }>(INVOKE_TASK_MUTATION, {
+                taskId: task.id,
+                inputJson: inputJson?.trim() || undefined,
+                evalInput: false,
+              });
+
+              return {
+                output: res.invokeTask.result ?? undefined,
+                error: res.invokeTask.error ?? undefined,
               };
-            }>(INVOKE_TASK_MUTATION, {
-              taskId: task.id,
-              inputJson: inputJson?.trim() || undefined,
-              evalInput: false,
-            });
-
-            return {
-              output: res.invokeTask.result ?? undefined,
-              error: res.invokeTask.error ?? undefined,
-            };
-          } catch (e: any) {
-            return { error: e?.message ?? String(e) };
-          }
-        }}
-      />
+            } catch (e: any) {
+              return { error: e?.message ?? String(e) };
+            }
+          }}
+        />
+      )}
 
       <CodeModal
         title={`${task.meta?.title || formatId(task.id)} - Coverage Details`}

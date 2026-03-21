@@ -1,6 +1,7 @@
 import React from "react";
 import { Introspector } from "../../../../../../resources/models/Introspector";
 import { Section } from "../../Documentation";
+import { getDocumentationIcon } from "../../config/documentationIcons";
 import "./Sidebar.scss";
 
 export interface SidebarProps {
@@ -23,44 +24,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onTagChange,
 }) => {
   const sections = [
-    { id: "overview" as Section, label: "Overview", icon: "📋" },
+    {
+      id: "overview" as Section,
+      label: "Overview",
+      icon: getDocumentationIcon("overview"),
+    },
+    {
+      id: "topology" as Section,
+      label: "Topology",
+      icon: getDocumentationIcon("topology"),
+    },
     {
       id: "tasks" as Section,
       label: "Tasks",
-      icon: "⚙️",
+      icon: getDocumentationIcon("tasks"),
       count: introspector.getTasks().length,
     },
     {
       id: "resources" as Section,
       label: "Resources",
-      icon: "🔧",
+      icon: getDocumentationIcon("resources"),
       count: introspector.getResources().length,
     },
     {
       id: "hooks" as Section,
       label: "Hooks",
-      icon: "🪝",
+      icon: getDocumentationIcon("hooks"),
       count: introspector.getHooks().length,
     },
     {
       id: "events" as Section,
       label: "Events",
-      icon: "📡",
+      icon: getDocumentationIcon("events"),
       count: introspector.getEvents().length,
     },
     {
       id: "middlewares" as Section,
-      label: "Middlewares",
-      icon: "🔗",
+      label: "Middleware",
+      icon: getDocumentationIcon("middlewares"),
       count: introspector.getMiddlewares().length,
     },
     {
       id: "tags" as Section,
       label: "Tags",
-      icon: "🏷️",
+      icon: getDocumentationIcon("tags"),
       count: introspector.getAllTags().length,
     },
-    { id: "diagnostics" as Section, label: "Diagnostics", icon: "🔍" },
+    {
+      id: "diagnostics" as Section,
+      label: "Diagnostics",
+      icon: getDocumentationIcon("diagnostics"),
+    },
   ];
 
   const diagnostics = introspector.getDiagnostics();

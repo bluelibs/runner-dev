@@ -17,6 +17,9 @@ import { TaggedElements } from "./tag/TaggedElements";
 import { SchemaRenderer } from "./SchemaRenderer";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
+import { TopologyActionButton } from "./TopologyActionButton";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface TagCardProps {
   tag: Tag;
@@ -24,6 +27,7 @@ export interface TagCardProps {
 }
 
 export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const allTaggedElements = [
     ...tag.tasks,
     ...tag.resources,
@@ -127,6 +131,13 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
       title={tag.meta?.title || formatId(tag.id)}
       id={tag.id}
       description={tag.meta?.description}
+      actions={
+        <TopologyActionButton
+          focus={{ kind: "tag", id: tag.id }}
+          title="Open tag topology"
+          className="btn--primary"
+        />
+      }
     >
       <div className="tag-card__grid">
         <CardSection prefix="tag-card" title="Overview">
@@ -173,7 +184,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
           </div>
 
           <InfoBlock prefix="tag-card" label="File Path:">
-            {tag.filePath ? (
+            {tag.filePath && !isCatalogMode ? (
               <a
                 type="button"
                 onClick={openTagFileModal}
@@ -185,6 +196,13 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, introspector }) => {
               formatFilePath(tag.filePath)
             )}
           </InfoBlock>
+
+          <RegisteredByInfoBlock
+            prefix="tag-card"
+            elementId={tag.id}
+            registeredBy={tag.registeredBy}
+            introspector={introspector}
+          />
 
           <InfoBlock prefix="tag-card" label="Targets:">
             {tag.targets && tag.targets.length > 0

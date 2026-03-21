@@ -9,9 +9,9 @@ import {
 export const supportRequestContext = r
   .asyncContext<{ requestId: string }>("request-context")
   .meta({
-    title: "Support Request Context",
+    title: "Request Context Scope",
     description:
-      "Minimal async context kept in play so the async context section stays visible.",
+      "Carries request-scoped metadata across the platform support flow.\n\n- Exposes a stable `requestId` for downstream tasks\n- Useful for showing `provided-by`, `required-by`, and `used-by` edges in docs",
   })
   .parse((raw) => JSON.parse(raw) as { requestId: string })
   .serialize((data) => JSON.stringify(data))
@@ -32,6 +32,11 @@ function readRequestIdFromInput(input: unknown): string | null {
 
 export const supportRequestContextMiddleware = r.middleware
   .task("request-context")
+  .meta({
+    title: "Request Context Middleware",
+    description:
+      "Provides `request-context` before the probe task runs.\n\n- Small cross-cutting example\n- Kept intentionally side-effect free",
+  })
   .dependencies({ supportRequestContext })
   .run(async ({ task, next }, { supportRequestContext }) => {
     const requestId =
@@ -47,17 +52,18 @@ export const invalidInputError = r
   .dataSchema(InvalidInputErrorDataSchema)
   .httpCode(400)
   .meta({
-    title: "Invalid Input Error",
-    description: "Minimal custom error helper kept for Error card visibility.",
+    title: "Invalid Input",
+    description:
+      "Typed support error used by the probe task.\n\n- Keeps the error surface visible in docs\n- Shows `thrown-by` relationships",
   })
   .build();
 
 export const supportContextAndErrorProbeTask = r
   .task("context-and-error-probe")
   .meta({
-    title: "Context and Error Probe Task",
+    title: "Context Probe",
     description:
-      "Small task that reads async context and can throw the support error.",
+      "Reads the request context and can throw `invalid-input`.\n\n- Minimal task with context + error coverage\n- Useful for topology and docs cards",
   })
   .dependencies({
     supportRequestContext,

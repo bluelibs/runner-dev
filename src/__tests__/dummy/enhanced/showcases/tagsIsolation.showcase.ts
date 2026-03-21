@@ -11,18 +11,18 @@ export const featuredTag = r
   .for(["tasks", "resources"])
   .configSchema(FeaturedTagConfigSchema)
   .meta({
-    title: "Featured Example Tag",
+    title: "Featured Tag",
     description:
-      "Used by the lean play demo to showcase tagged elements and tag handlers.",
+      "Marks the small set of featured catalog elements.\n\n- Powers tag-based docs views\n- Gives topology a simple tagging story",
   })
   .build();
 
 export const publicCatalogResource = r
   .resource("public-catalog")
   .meta({
-    title: "Public Catalog Resource",
+    title: "Public Catalog",
     description:
-      "Public resource matched by the isolation wildcard exports rule.",
+      "Catalog data exposed through the isolation boundary.\n\n- Exported from the subtree\n- Small public-facing resource",
   })
   .tags([featuredTag.with({ source: "catalog" })])
   .init(async () => ({
@@ -33,9 +33,9 @@ export const publicCatalogResource = r
 export const privateCacheResource = r
   .resource("private-cache")
   .meta({
-    title: "Private Cache Resource",
+    title: "Private Cache",
     description:
-      "Private resource matched by the isolation wildcard deny rule for UI exploration.",
+      "Internal cache kept behind the isolation boundary.\n\n- Denied from exports\n- Useful for subtree visibility checks",
   })
   .init(async () => ({
     entries: new Map<string, unknown>(),
@@ -45,8 +45,9 @@ export const privateCacheResource = r
 export const catalogSearchTask = r
   .task("catalog-search")
   .meta({
-    title: "Catalog Search Task",
-    description: "Tagged task exposed through the isolation boundary exports.",
+    title: "Catalog Search",
+    description:
+      "Search task exposed by the catalog boundary.\n\n- Tagged as featured\n- Exported together with the public catalog resource",
   })
   .tags([featuredTag.with({ source: "search" })])
   .inputSchema(CatalogSearchInputSchema)
@@ -63,9 +64,9 @@ export const catalogSearchTask = r
 export const featuredInspectorTask = r
   .task("featured-inspector")
   .meta({
-    title: "Featured Tag Inspector",
+    title: "Featured Inspector",
     description:
-      "Tag handler task that depends on the featured tag and summarizes tagged carriers.",
+      "Reads the featured tag and lists its carriers.\n\n- Minimal tag handler example\n- Helps blast radius show tag dependencies",
   })
   .dependencies({ featuredTag })
   .resultSchema(FeaturedInspectorResultSchema)
@@ -80,9 +81,9 @@ export const featuredInspectorTask = r
 export const isolationBoundaryResource = r
   .resource("isolation-boundary")
   .meta({
-    title: "Isolation Boundary Resource",
+    title: "Catalog Boundary",
     description:
-      "Boundary using wildcard exports/deny rules for ResourceCard wildcard inspection.",
+      "Owns the catalog subtree and controls what gets exported.\n\n- Exports public catalog pieces\n- Denies the private cache",
   })
   .register([publicCatalogResource, privateCacheResource, catalogSearchTask])
   .isolate({

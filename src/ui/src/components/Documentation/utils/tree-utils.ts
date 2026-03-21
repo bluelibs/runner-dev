@@ -8,9 +8,12 @@ export interface TreeNode {
     | "event"
     | "hook"
     | "middleware"
-    | "tag";
+    | "tag"
+    | "error"
+    | "async-context";
   icon: string;
   children: TreeNode[];
+  folderType?: FolderSemanticType;
   count?: number;
   elementId?: string; // Original element ID for navigation
   element?: any; // Original element data
@@ -22,6 +25,19 @@ export interface Element {
   [key: string]: any;
 }
 
+export type ElementType =
+  | "task"
+  | "resource"
+  | "event"
+  | "hook"
+  | "middleware"
+  | "tag"
+  | "error"
+  | "async-context";
+
+export type FolderSemanticType = ElementType | "mixed";
+
+import { getDocumentationIcon } from "../config/documentationIcons";
 import { parseSearchQuery, treeNodeMatchesParsed } from "./search-utils";
 
 /**
@@ -34,9 +50,9 @@ export function parseNamespace(id: string): string[] {
 /**
  * Get element type from ID or explicit type property
  */
-export function getElementType(
-  element: Element
-): "task" | "resource" | "event" | "hook" | "middleware" | "tag" {
+export function getElementType(element: Element): ElementType {
+  if (element.type) return element.type;
+
   // Try to infer from ID pattern first
   const parts = parseNamespace(element.id);
   if (parts.length >= 2) {
@@ -48,10 +64,13 @@ export function getElementType(
     if (["middlewares", "middleware"].includes(typeSegment))
       return "middleware";
     if (["tags", "tag"].includes(typeSegment)) return "tag";
+    if (["errors", "error"].includes(typeSegment)) return "error";
+    if (
+      ["asyncContexts", "asyncContext", "async-context"].includes(typeSegment)
+    ) {
+      return "async-context";
+    }
   }
-
-  // Fallback to explicit type if available
-  if (element.type) return element.type;
 
   // Default fallback
   return "task";
@@ -61,16 +80,33 @@ export function getElementType(
  * Get icon for element type
  */
 export function getTypeIcon(type: string): string {
-  const icons = {
-    folder: "📁",
-    task: "⚙️",
-    resource: "🔧",
-    event: "📡",
-    hook: "🪝",
-    middleware: "🔗",
-    tag: "🏷️",
-  };
-  return icons[type as keyof typeof icons] || "📄";
+  return getDocumentationIcon(type);
+}
+
+export function getNodeIcon(
+  node: TreeNode,
+  options?: { preferNamespaceFolderIcon?: boolean }
+): string {
+  if (
+    options?.preferNamespaceFolderIcon &&
+    node.type === "folder" &&
+    node.children.length > 0 &&
+    (!node.folderType ||
+      node.folderType === "mixed" ||
+      node.folderType === "resource")
+  ) {
+    return getTypeIcon("folder");
+  }
+
+  if (
+    node.type === "folder" &&
+    node.folderType &&
+    node.folderType !== "mixed"
+  ) {
+    return getTypeIcon(node.folderType);
+  }
+
+  return node.icon;
 }
 
 /**
@@ -118,6 +154,14 @@ export function buildNamespaceTree(elements: Element[]): TreeNode[] {
             !parent.children.find((child) => child.id === currentPath)
           ) {
             parent.children.push(node);
+
+            // A node can be both a concrete element id and a namespace parent
+            // (for example "runner" and "runner.logger"). In that case it
+            // must behave like a folder so the subtree stays visible.
+            if (parent.type !== "folder") {
+              parent.type = "folder";
+              parent.icon = getTypeIcon("folder");
+            }
           }
         }
       }
@@ -135,17 +179,21 @@ export function buildNamespaceTree(elements: Element[]): TreeNode[] {
   // Sort children recursively and add counts
   const sortAndCount = (nodes: TreeNode[]): TreeNode[] => {
     return nodes
-      .map((node) => ({
-        ...node,
-        children: sortAndCount(node.children),
-        count: node.type === "folder" ? countLeafNodes(node) : undefined,
-      }))
-      .sort((a, b) => {
-        // Folders first, then by name
-        if (a.type === "folder" && b.type !== "folder") return -1;
-        if (a.type !== "folder" && b.type === "folder") return 1;
-        return a.label.localeCompare(b.label);
-      });
+      .map((node) => {
+        const children = sortAndCount(node.children);
+        const nextNode: TreeNode = {
+          ...node,
+          children,
+          count: node.type === "folder" ? countLeafNodes(node) : undefined,
+        };
+
+        if (node.type === "folder") {
+          nextNode.folderType = getFolderSemanticType(nextNode);
+        }
+
+        return nextNode;
+      })
+      .sort(compareNamespaceTreeNodes);
   };
 
   return sortAndCount(rootNodes);
@@ -155,8 +203,12 @@ export function buildNamespaceTree(elements: Element[]): TreeNode[] {
  * Count leaf nodes (actual elements) in a tree
  */
 function countLeafNodes(node: TreeNode): number {
-  if (node.children.length === 0) return 1;
-  return node.children.reduce((sum, child) => sum + countLeafNodes(child), 0);
+  const selfCount = node.elementId ? 1 : 0;
+  if (node.children.length === 0) return selfCount;
+  return (
+    selfCount +
+    node.children.reduce((sum, child) => sum + countLeafNodes(child), 0)
+  );
 }
 
 /**
@@ -197,6 +249,7 @@ export function buildTypeFirstTree(elements: Element[]): TreeNode[] {
         label: capitalizeFirst(type + "s"),
         type: "folder",
         icon: getTypeIcon(type),
+        folderType: type as ElementType,
         children: prefixed(typeTree[0].children),
         count: typeElements.length,
         isExpanded: false,
@@ -207,6 +260,7 @@ export function buildTypeFirstTree(elements: Element[]): TreeNode[] {
         label: capitalizeFirst(type + "s"),
         type: "folder",
         icon: getTypeIcon(type),
+        folderType: type as ElementType,
         children: prefixed(typeTree),
         count: typeElements.length,
         isExpanded: false,
@@ -214,7 +268,7 @@ export function buildTypeFirstTree(elements: Element[]): TreeNode[] {
     }
   });
 
-  return typeNodes.sort((a, b) => a.label.localeCompare(b.label));
+  return typeNodes.sort(compareTypeTreeNodes);
 }
 
 /**
@@ -228,7 +282,12 @@ export function filterTree(nodes: TreeNode[], searchTerm: string): TreeNode[] {
 
   const filterNode = (node: TreeNode): TreeNode | null => {
     const matches = treeNodeMatchesParsed(
-      { label: node.label, elementId: node.elementId, element: node.element },
+      {
+        label: node.label,
+        elementId: node.elementId,
+        element: node.element,
+        type: node.type,
+      },
       parsed
     );
 
@@ -334,4 +393,98 @@ export function expandPathToNode(
 
 function capitalizeFirst(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function compareNamespaceTreeNodes(a: TreeNode, b: TreeNode): number {
+  const priorityDelta =
+    getNamespaceNodeSortPriority(a) - getNamespaceNodeSortPriority(b);
+  if (priorityDelta !== 0) return priorityDelta;
+  return a.label.localeCompare(b.label);
+}
+
+function compareTypeTreeNodes(a: TreeNode, b: TreeNode): number {
+  const semanticTypeA = getNodeSemanticType(a);
+  const semanticTypeB = getNodeSemanticType(b);
+  const priorityDelta =
+    getNodeSortPriority(semanticTypeA) - getNodeSortPriority(semanticTypeB);
+
+  if (priorityDelta !== 0) return priorityDelta;
+  return a.label.localeCompare(b.label);
+}
+
+function getNodeSemanticType(
+  node: TreeNode
+): FolderSemanticType | "folder" | undefined {
+  if (node.type === "folder") {
+    return node.folderType;
+  }
+
+  return node.type;
+}
+
+function getNodeSortPriority(type: FolderSemanticType | "folder" | undefined) {
+  if (type === "resource") return 0;
+  if (type === "folder" || type === "mixed") return 1;
+  return 2;
+}
+
+function getNamespaceNodeSortPriority(node: TreeNode): number {
+  const hasChildren = node.children.length > 0;
+
+  if (hasChildren) {
+    return node.folderType === "resource" ? 1 : 0;
+  }
+
+  if (node.type === "resource") return 2;
+
+  return 3;
+}
+
+function getFolderSemanticType(node: TreeNode): FolderSemanticType {
+  if (node.element) {
+    return getElementType(node.element);
+  }
+
+  const explicitType = getFolderTypeFromNamespace(node.id);
+  if (explicitType) return explicitType;
+
+  const descendantTypes = new Set<ElementType>();
+
+  for (const child of node.children) {
+    if (child.type === "folder") {
+      if (child.folderType && child.folderType !== "mixed") {
+        descendantTypes.add(child.folderType);
+      }
+      continue;
+    }
+
+    descendantTypes.add(child.type);
+  }
+
+  if (descendantTypes.size === 1) {
+    return Array.from(descendantTypes)[0];
+  }
+
+  return "mixed";
+}
+
+function getFolderTypeFromNamespace(nodeId: string): ElementType | undefined {
+  const parts = parseNamespace(nodeId);
+  const lastSegment = parts[parts.length - 1];
+  if (!lastSegment) return undefined;
+
+  if (["tasks", "task"].includes(lastSegment)) return "task";
+  if (["resources", "resource"].includes(lastSegment)) return "resource";
+  if (["events", "event"].includes(lastSegment)) return "event";
+  if (["hooks", "hook"].includes(lastSegment)) return "hook";
+  if (["middlewares", "middleware"].includes(lastSegment)) return "middleware";
+  if (["tags", "tag"].includes(lastSegment)) return "tag";
+  if (["errors", "error"].includes(lastSegment)) return "error";
+  if (
+    ["asyncContexts", "asyncContext", "async-context"].includes(lastSegment)
+  ) {
+    return "async-context";
+  }
+
+  return undefined;
 }

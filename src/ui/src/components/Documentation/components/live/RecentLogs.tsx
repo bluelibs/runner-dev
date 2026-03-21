@@ -5,6 +5,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+import type { Introspector } from "../../../../../../resources/models/Introspector";
+import { DOCUMENTATION_CONSTANTS } from "../../config/documentationConstants";
+import { getOverviewDisplayId } from "../../utils/overviewIds";
 import JsonViewer from "../JsonViewer";
 import { BaseModal } from "../modals";
 import "./RecentLogs.scss";
@@ -41,8 +44,17 @@ interface LogEntry {
 }
 
 interface RecentLogsProps {
+  introspector: Introspector;
   logs: LogEntry[];
   onCorrelationIdClick?: (correlationId: string) => void;
+}
+
+interface SourceLinkMeta {
+  href: string;
+  title: string;
+  collapsedLabel: string;
+  fullLabel: string;
+  hasHiddenAncestors: boolean;
 }
 
 const levelName = (
@@ -73,12 +85,16 @@ const isEmptyJsonLikeValue = (value: unknown): boolean => {
 const MAX_MESSAGE_PREVIEW = 200;
 
 export const RecentLogs: React.FC<RecentLogsProps> = ({
+  introspector,
   logs,
   onCorrelationIdClick,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedSourceIds, setExpandedSourceIds] = useState<
+    Record<string, boolean>
+  >({});
   const searchInputRef = useRef<HTMLInputElement>(null);
   const fsSearchInputRef = useRef<HTMLInputElement>(null);
 
@@ -107,6 +123,52 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     if (!searchQuery) return reversed;
     return reversed.filter((log) => fuzzyMatchLog(log, searchQuery));
   }, [logs, isFullscreen, searchQuery]);
+
+  const sourceLinkMetaById = useMemo(() => {
+    const resources = introspector.getResources();
+    const entries = logs
+      .map((log) => log.sourceId)
+      .filter((sourceId): sourceId is string => Boolean(sourceId))
+      .map((sourceId) => {
+        const source =
+          introspector.getTask(sourceId) ??
+          introspector.getHook(sourceId) ??
+          introspector.getResource(sourceId) ??
+          introspector.getEvent(sourceId) ??
+          introspector.getMiddleware(sourceId) ??
+          introspector.getError(sourceId) ??
+          introspector.getAsyncContext(sourceId) ??
+          introspector.getTag(sourceId);
+
+        if (!source) {
+          return [
+            sourceId,
+            {
+              href: `#element-${sourceId}`,
+              title: sourceId,
+              collapsedLabel: sourceId,
+              fullLabel: sourceId,
+              hasHiddenAncestors: false,
+            } satisfies SourceLinkMeta,
+          ] as const;
+        }
+
+        const displayId = getOverviewDisplayId(source, resources);
+
+        return [
+          sourceId,
+          {
+            href: `#element-${source.id}`,
+            title: source.id,
+            collapsedLabel: displayId.collapsedSegments.join(" > "),
+            fullLabel: displayId.fullSegments.join(" > "),
+            hasHiddenAncestors: displayId.hasHiddenAncestors,
+          } satisfies SourceLinkMeta,
+        ] as const;
+      });
+
+    return new Map(entries);
+  }, [introspector, logs]);
 
   const selectedLog = useMemo(() => {
     if (selectedLogIndex === null) return null;
@@ -154,6 +216,119 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
       parsed,
     };
   }, [selectedLog]);
+
+  const getSourceLinkMeta = useCallback(
+    (sourceId: string): SourceLinkMeta =>
+      sourceLinkMetaById.get(sourceId) ?? {
+        href: `#element-${sourceId}`,
+        title: sourceId,
+        collapsedLabel: sourceId,
+        fullLabel: sourceId,
+        hasHiddenAncestors: false,
+      },
+    [sourceLinkMetaById]
+  );
+
+  const revealHashTarget = useCallback((targetId: string, attempts = 10) => {
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.scrollIntoView({ behavior: "instant", block: "start" });
+      target.classList.add(
+        DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
+      );
+      window.setTimeout(() => {
+        target.classList.remove(
+          DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
+        );
+      }, DOCUMENTATION_CONSTANTS.CONSTRAINTS.HIGHLIGHT_DURATION);
+      return;
+    }
+
+    if (attempts <= 0) return;
+    window.setTimeout(() => revealHashTarget(targetId, attempts - 1), 80);
+  }, []);
+
+  const handleSourceNavigate = useCallback(
+    (
+      event: React.MouseEvent<HTMLAnchorElement>,
+      href: string,
+      targetId: string
+    ) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (window.location.hash === href) {
+        revealHashTarget(targetId);
+        return;
+      }
+
+      window.location.hash = href;
+      revealHashTarget(targetId);
+    },
+    [revealHashTarget]
+  );
+
+  const toggleSourceExpanded = useCallback((sourceId: string) => {
+    setExpandedSourceIds((current) => ({
+      ...current,
+      [sourceId]: !current[sourceId],
+    }));
+  }, []);
+
+  const renderSourceLink = useCallback(
+    (sourceId: string, className: string) => {
+      const sourceMeta = getSourceLinkMeta(sourceId);
+      const isExpanded = !!expandedSourceIds[sourceId];
+      const label = isExpanded
+        ? sourceMeta.fullLabel
+        : sourceMeta.collapsedLabel;
+      const targetId = sourceMeta.href.slice(1);
+
+      return (
+        <span className="recent-logs__source-shell">
+          {sourceMeta.hasHiddenAncestors && (
+            <button
+              type="button"
+              className="recent-logs__source-expand"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleSourceExpanded(sourceId);
+              }}
+              aria-label={
+                isExpanded
+                  ? `Collapse full source ID for ${sourceMeta.title}`
+                  : `Expand full source ID for ${sourceMeta.title}`
+              }
+              title={
+                isExpanded
+                  ? `Collapse full source ID for ${sourceMeta.title}`
+                  : `Expand full source ID for ${sourceMeta.title}`
+              }
+            >
+              {isExpanded ? "−" : "..."}
+            </button>
+          )}
+          <a
+            href={sourceMeta.href}
+            onClick={(event) =>
+              handleSourceNavigate(event, sourceMeta.href, targetId)
+            }
+            title={sourceMeta.title}
+            className={className}
+          >
+            {label}
+          </a>
+        </span>
+      );
+    },
+    [
+      expandedSourceIds,
+      getSourceLinkMeta,
+      handleSourceNavigate,
+      toggleSourceExpanded,
+    ]
+  );
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -268,16 +443,8 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                   {shortCorrelationId(log.correlationId)}
                 </span>
               )}
-              {log.sourceId && (
-                <a
-                  href={`#element-${log.sourceId}`}
-                  onClick={(e) => e.stopPropagation()}
-                  title={`Go to source #${log.sourceId}`}
-                  className="recent-logs__source"
-                >
-                  #{log.sourceId}
-                </a>
-              )}
+              {log.sourceId &&
+                renderSourceLink(log.sourceId, "recent-logs__source")}
               <button
                 type="button"
                 className="recent-logs__action"
@@ -406,16 +573,8 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                     {shortCorrelationId(log.correlationId)}
                   </span>
                 )}
-                {log.sourceId && (
-                  <a
-                    href={`#element-${log.sourceId}`}
-                    onClick={(e) => e.stopPropagation()}
-                    title={`Go to source #${log.sourceId}`}
-                    className="recent-logs-fs__source"
-                  >
-                    #{log.sourceId}
-                  </a>
-                )}
+                {log.sourceId &&
+                  renderSourceLink(log.sourceId, "recent-logs-fs__source")}
                 <button
                   className="recent-logs-fs__action"
                   onClick={(e) => {
@@ -481,12 +640,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                 {selectedLog.sourceId && (
                   <div className="recent-logs-modal__field">
                     <div className="recent-logs-modal__label">Source</div>
-                    <a
-                      href={`#element-${selectedLog.sourceId}`}
-                      className="recent-logs-modal__source"
-                    >
-                      #{selectedLog.sourceId}
-                    </a>
+                    {renderSourceLink(
+                      selectedLog.sourceId,
+                      "recent-logs-modal__source"
+                    )}
                   </div>
                 )}
               </div>

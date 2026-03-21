@@ -21,6 +21,9 @@ npm install -g @bluelibs/runner-dev
 npx @bluelibs/runner-dev
 ```
 
+For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
+Runner-Dev also publishes its own skill from `skills/core`; keep `README.md`, `skills/core/SKILL.md`, and `skills/core/references/readmes/COMPACT_GUIDE.md` aligned when those docs change. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
+
 ```ts
 import { r } from "@bluelibs/runner";
 import { dev } from "@bluelibs/runner-dev";
@@ -41,6 +44,7 @@ const app = r
 ## What you get
 
 - Fully-featured UI with AI assistance to explore your app, call tasks, emit events, diagnostics, logs and more.
+- Static catalog export via `exportDocs(app, { output?, overwrite? })` for a standalone frozen docs site under `./runner-dev-catalog` by default.
 - Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters.
 - Overview tables now include `Visibility` (`Public`/`Private`) derived from Runner resource `isolate()` boundaries.
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
@@ -49,7 +53,7 @@ const app = r
 - Resource introspection includes `subtree` governance summaries (middleware attachment counts and validator counts per branch).
 - Resource introspection indicates whether a resource exposes a `cooldown()` hook for shutdown lifecycle.
 - Isolation wildcard rules are clickable in the docs UI and open a modal showing matched resources with inline filtering when lists are large.
-- Event introspection includes `transactional`, `parallel`, optional `eventLane { laneId, orderingKey, metadata }`, and optional `rpcLane { laneId }`.
+- Event introspection includes `transactional`, `parallel`, optional `eventLane { laneId }`, and optional `rpcLane { laneId }`.
 - Task introspection includes optional `rpcLane { laneId }`.
 - Tag pages distinguish between directly tagged elements and tag handlers (elements that depend on the tag id).
 - Live: in-memory logs and event emissions
@@ -84,11 +88,18 @@ const app = r
 
 ## Runner 6.2 Migration Notes
 
-- Built-in async contexts now include `asyncContexts.tenant`, and `IAsyncContext` officially exposes safe probe helpers via `tryUse()` and `has()`.
-- Built-in task middleware such as `cache`, `concurrency`, and `rateLimit` can partition internal state per tenant via `tenantScope`.
+- Built-in async contexts in 6.2 use `asyncContexts.tenant`; in Runner 6.3 they were renamed to `asyncContexts.identity`.
+- Built-in task middleware such as `cache`, `concurrency`, and `rateLimit` can partition internal state via `tenantScope` in 6.2, and via `identityScope` from 6.3 onward.
 - Lazy resource initialization now fails fast once shutdown begins; runner-dev will surface the new typed shutdown errors through normal error introspection.
 - Subtree middleware conflicts now fail fast inside Runner instead of remaining a post-compose diagnostic concern.
 - The internal framework root is now described as the synthetic framework root, with clearer internal `runner` and `system` namespace resources.
+
+## Runner 6.3 Migration Notes
+
+- Built-in identity moved from `asyncContexts.tenant` to `asyncContexts.identity`, and identity-aware middleware now uses `identityScope`.
+- Hook introspection now resolves selector-based targets such as `subtreeOf(...)` and predicates through Runner's store API instead of relying on raw `hook.on` shapes.
+- Event Lane routing now comes from `r.eventLane(...).applyTo([...])` instead of `tags.eventLane`, and Event Lane topology profiles use `consume: [{ lane, hooks?: { only } }]`.
+- Runner now supports `run(app, { signal })`, `run(app, { identity })`, and `runtime.dispose({ force: true })`; runner-dev remains compatible with those lifecycle additions while avoiding deprecated lane-tag assumptions.
 
 ## Table of Contents
 
@@ -97,8 +108,8 @@ const app = r
 - [CLI Tooling & Scaffolding](#cli-usage-direct)
 - [Live Telemetry & Correlation](#live-telemetry)
 - [Hot-Swapping Debugging System](#hot-swapping-debugging-system)
-- [GraphQL API Examples](#example-queries)
-- [API Reference](API_REFERENCE.md)
+- [GraphQL API Examples](#graphql-api-examples)
+- [API Reference](readmes/API_REFERENCE.md)
 - [Contributing & Local Dev](CONTRIBUTING.md)
 
 ## Quickstart
@@ -135,6 +146,87 @@ Inside the UI, you can:
 - Inspect live logs and event emissions in real-time.
 - View and edit files directly via the browser.
 
+### Static Catalog Export
+
+If you want the visual docs without running the project server, you can export a standalone static catalog directly from a built Runner app.
+
+The recommended setup is a tiny script plus an npm command.
+
+Create `scripts/export-docs.ts`:
+
+```ts
+// scripts/export-docs.ts
+import { exportDocs } from "@bluelibs/runner-dev";
+import { app } from "../src/app";
+
+await exportDocs(app);
+// Optional custom destination:
+await exportDocs(app, {
+  output: "./artifacts/runner-dev-catalog",
+  overwrite: true,
+});
+```
+
+Add a package script:
+
+```json
+{
+  "scripts": {
+    "docs:export": "tsx scripts/export-docs.ts"
+  }
+}
+```
+
+Then run:
+
+```bash
+npm run docs:export
+```
+
+What gets written:
+
+- `./runner-dev-catalog/index.html`
+- `./runner-dev-catalog/snapshot.json`
+- a standalone `index.html` with the docs payload, CSS, JS, and favicon embedded for direct opening
+
+Output behavior:
+
+- `exportDocs(app)` writes to `./runner-dev-catalog` by default
+- the default `./runner-dev-catalog` destination is treated as a dedicated export folder and can be regenerated safely
+- custom directories are protected by default; pass `overwrite: true` if you intentionally want to replace an existing non-empty directory
+- `index.html` is standalone and can be opened directly over `file://`
+- `snapshot.json` is still written as an auxiliary artifact for inspection, debugging, and snapshot-backed MCP, but the standalone HTML does not depend on it at runtime
+
+What the exported catalog includes:
+
+- overview
+- topology
+- tasks, resources, events, hooks, and middlewares
+- tags, errors, async contexts, diagnostics, and markdown docs
+
+What it intentionally does not include:
+
+- live telemetry
+- GraphQL server endpoints
+- task or event execution
+- swap or eval actions
+- file-saving mutations
+
+`exportDocs()` uses Runner's real dry-run path under the hood. In other words, it effectively does a `run(app, { dryRun: true })`, builds the in-memory docs snapshot from that composed Runner store, and emits a frozen catalog. It is not source-only static analysis, which is important both for accuracy and for understanding what code paths still participate during export.
+
+This also works well as a CI artifact:
+
+- generate the catalog during CI
+- upload `./runner-dev-catalog` or `./artifacts/runner-dev-catalog` as a build artifact
+- inspect the visual docs after the pipeline finishes without starting the app again
+
+For local package work inside this repository, `npm run play:export` is the same idea wired to the enhanced showcase app:
+
+```bash
+npm run play:export
+npm run play:export -- ./my-export-dir
+```
+
 Add it as an Model Context Protocol Server (for AIs) via normal socket:
 
 ```json
@@ -155,6 +247,23 @@ Add it as an Model Context Protocol Server (for AIs) via normal socket:
 
 Then start your app as usual. The Dev GraphQL server will be available at http://localhost:1337/graphql.
 
+For a frozen exported catalog, you can point MCP at the generated snapshot instead of a live endpoint:
+
+```json
+{
+  "mcpServers": {
+    "mcp-graphql": {
+      "description": "MCP Server for an exported Runner Dev snapshot",
+      "command": "npx",
+      "args": ["@bluelibs/runner-dev", "mcp"],
+      "env": {
+        "SNAPSHOT_FILE": "./runner-dev-catalog/snapshot.json"
+      }
+    }
+  }
+}
+```
+
 ### CLI usage (MCP server)
 
 After installing, you can start the MCP server from this package via stdio.
@@ -163,20 +272,22 @@ Using npx:
 
 ```bash
 ENDPOINT=http://localhost:1337/graphql npx -y @bluelibs/runner-dev mcp
+SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json npx -y @bluelibs/runner-dev mcp
 ```
 
 Optional environment variables:
 
+- `SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json` to serve MCP from an exported static snapshot instead of a live endpoint
 - `ALLOW_MUTATIONS=true` to enable `graphql.mutation`
 - `HEADERS='{"Authorization":"Bearer token"}'` to pass extra headers
 
 Available tools once connected:
 
-- `graphql.query` — run read-only queries
-- `graphql.mutation` — run mutations (requires `ALLOW_MUTATIONS=true`)
+- `graphql.query` — run read-only queries against the live endpoint or snapshot
+- `graphql.mutation` — run mutations (requires `ALLOW_MUTATIONS=true`, live endpoint only)
 - `graphql.introspect` — fetch schema
-- `graphql.ping` — reachability check
-- `project.overview` — dynamic Markdown overview aggregated from the API
+- `graphql.ping` — source check for the configured endpoint or snapshot
+- `project.overview` — dynamic Markdown overview aggregated from the configured source
 
 ### CLI usage (direct)
 
@@ -187,6 +298,14 @@ Prerequisites:
 - Ensure your app registers the Dev GraphQL server (`dev.with({ port: 1337 })`) or otherwise expose a compatible endpoint.
 - Alternatively, you can run queries in a new **dry‑run mode** with a TypeScript entry file (no server required).
 - Build this package (or install it) so the binary is available.
+
+Programmatic export is available even when you do not want a live server:
+
+```ts
+import { exportDocs } from "@bluelibs/runner-dev";
+
+await exportDocs(app);
+```
 
 Help:
 
@@ -222,10 +341,10 @@ Examples:
 
 ```bash
 # Create and auto-install dependencies, then run tests
-new my-awesome-app --install --run-tests
+runner-dev new my-awesome-app --install --run-tests
 
 # Create and start the dev server immediately (blocks)
-new my-awesome-app --install --run
+runner-dev new my-awesome-app --install --run
 ```
 
 Scaffold artifacts (resource | task | event | tag | taskMiddleware | resourceMiddleware):
@@ -374,7 +493,7 @@ Precedence:
 
 ## GraphQL API Examples
 
-For a full list of types and fields, see the [API Reference](API_REFERENCE.md).
+For a full list of types and fields, see the [API Reference](readmes/API_REFERENCE.md).
 
 ### Explore tasks and dependencies deeply
 

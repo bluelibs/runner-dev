@@ -4,15 +4,22 @@ import type {
   Resource,
   Event,
   Middleware,
+  IdentityRequirementSummary,
+  IdentityScopeSummary,
 } from "../../schema/model";
 
-import { definitions, Store } from "@bluelibs/runner";
 import {
-  EVENT_LANE_TAG_ID,
+  definitions,
+  Store,
+  type IdentityRequirementConfig,
+  type IdentityScopeConfig,
+} from "@bluelibs/runner";
+import {
   RPC_LANE_TAG_ID,
   extractLaneId,
+  isEventLanesResource,
 } from "../../utils/lane-resources";
-import { formatSchemaIfZod } from "../../utils/zod";
+import { formatSchemaIfZod } from "../../utils/schemaFormat";
 import { sanitizePath } from "../../utils/path";
 import {
   buildIdMap,
@@ -69,9 +76,209 @@ export function findById(collection: any, id: string): any | undefined {
   return undefined;
 }
 
+const taskMiddlewareScopeMarker = ".middleware.task.";
+const resourceMiddlewareScopeMarker = ".middleware.resource.";
+
+function getMiddlewareDuplicateKey(id: string): string {
+  const taskScopeIndex = id.lastIndexOf(taskMiddlewareScopeMarker);
+  if (taskScopeIndex >= 0) {
+    return id.slice(taskScopeIndex + taskMiddlewareScopeMarker.length);
+  }
+
+  const resourceScopeIndex = id.lastIndexOf(resourceMiddlewareScopeMarker);
+  if (resourceScopeIndex >= 0) {
+    return id.slice(resourceScopeIndex + resourceMiddlewareScopeMarker.length);
+  }
+
+  return id;
+}
+
+function getTaskOwnerResourceChain(store: Store, taskId: string): string[] {
+  const chain: string[] = [];
+  const visited = new Set<string>();
+  let currentOwnerId = store.getOwnerResourceId(taskId);
+
+  while (currentOwnerId && !visited.has(currentOwnerId)) {
+    visited.add(currentOwnerId);
+    chain.push(currentOwnerId);
+    currentOwnerId = store.getOwnerResourceId(currentOwnerId);
+  }
+
+  return chain;
+}
+
+function normalizeIdentityRequirementSummary(
+  value: unknown
+): IdentityRequirementSummary | null {
+  if (!value || typeof value !== "object") return null;
+  const config = value as IdentityRequirementConfig;
+  return {
+    tenant: config.tenant ?? true,
+    user: config.user === true,
+    roles: Array.isArray(config.roles)
+      ? config.roles.map((role) => String(role))
+      : [],
+  };
+}
+
+function normalizeIdentityRequirementSummaries(
+  value: unknown
+): IdentityRequirementSummary[] {
+  const entries = Array.isArray(value)
+    ? value
+    : value && typeof value === "object"
+    ? [value]
+    : [];
+
+  return entries
+    .map((entry) => normalizeIdentityRequirementSummary(entry))
+    .filter((entry): entry is IdentityRequirementSummary => Boolean(entry));
+}
+
+function normalizeIdentityScopeSummary(
+  value: unknown
+): IdentityScopeSummary | null {
+  if (!value || typeof value !== "object") return null;
+  const config = value as IdentityScopeConfig;
+  return {
+    tenant: config.tenant ?? true,
+    user: config.user === true,
+    required: config.required ?? true,
+  };
+}
+
+function getSubtreePolicies(resource: any): SubtreePolicyInput[] {
+  const rawSubtree = resource?.subtree;
+  if (!rawSubtree || typeof rawSubtree !== "object") return [];
+  return Array.isArray(rawSubtree)
+    ? rawSubtree.filter(
+        (policy): policy is SubtreePolicyInput =>
+          Boolean(policy) && typeof policy === "object"
+      )
+    : [rawSubtree as SubtreePolicyInput];
+}
+
+function readSubtreeMiddlewareEntryId(entry: unknown): string | null {
+  if (typeof entry === "string") return entry;
+  if (!entry || typeof entry !== "object") return null;
+  if ("use" in (entry as Record<string, unknown>)) {
+    return readSubtreeMiddlewareEntryId(
+      (entry as { use?: unknown }).use ?? null
+    );
+  }
+
+  const id = readId(entry);
+  return id ? id : null;
+}
+
+function resolveTaskSubtreeMiddlewareEntry(
+  entry: unknown,
+  task: definitions.ITask
+): string | null {
+  if (typeof entry === "string") {
+    return entry;
+  }
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  if ("use" in (entry as Record<string, unknown>)) {
+    const conditionalEntry = entry as {
+      use?: unknown;
+      when?: (definition: definitions.ITask) => boolean;
+    };
+
+    if (typeof conditionalEntry.when === "function") {
+      try {
+        if (!conditionalEntry.when(task)) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+    }
+
+    return readSubtreeMiddlewareEntryId(conditionalEntry.use ?? null);
+  }
+
+  return readSubtreeMiddlewareEntryId(entry);
+}
+
+function collectSubtreeTaskMiddlewareOwnerIds(
+  store: Store,
+  task: definitions.ITask
+): Map<string, string> {
+  const ownerIds = new Map<string, string>();
+  const chainRootToNearest = [
+    ...getTaskOwnerResourceChain(store, task.id),
+  ].reverse();
+
+  for (const ownerResourceId of chainRootToNearest) {
+    const ownerResource = store.resources.get(ownerResourceId)?.resource;
+    if (!ownerResource) continue;
+
+    for (const policy of getSubtreePolicies(ownerResource)) {
+      const taskMiddlewares = Array.isArray(policy.tasks?.middleware)
+        ? policy.tasks.middleware
+        : [];
+
+      for (const entry of taskMiddlewares) {
+        const middlewareId = resolveTaskSubtreeMiddlewareEntry(entry, task);
+        if (!middlewareId) continue;
+
+        const duplicateKey = getMiddlewareDuplicateKey(middlewareId);
+        if (!ownerIds.has(duplicateKey)) {
+          ownerIds.set(duplicateKey, ownerResourceId);
+        }
+      }
+    }
+  }
+
+  return ownerIds;
+}
+
+function hasMiddlewareConfig(middleware: { config?: unknown }): boolean {
+  return (
+    Boolean((middleware as any)?.[definitions.symbolMiddlewareConfigured]) ||
+    middleware?.config !== undefined
+  );
+}
+
+function buildEffectiveTaskMiddlewareUsages(
+  store: Store,
+  task: definitions.ITask
+): NonNullable<Task["middlewareDetailed"]> {
+  const resolver = (store.getMiddlewareManager() as any)?.middlewareResolver as
+    | {
+        getApplicableTaskMiddlewares: (
+          taskDefinition: definitions.ITask
+        ) => definitions.ITaskMiddleware[];
+      }
+    | undefined;
+  const effectiveMiddlewares = resolver
+    ? resolver.getApplicableTaskMiddlewares(task)
+    : task.middleware;
+  const subtreeOwnersByKey = collectSubtreeTaskMiddlewareOwnerIds(store, task);
+
+  return effectiveMiddlewares.map((middleware: any) => {
+    const duplicateKey = getMiddlewareDuplicateKey(String(middleware.id));
+    const subtreeOwnerId = subtreeOwnersByKey.get(duplicateKey) ?? null;
+
+    return {
+      id: String(middleware.id),
+      config: hasMiddlewareConfig(middleware)
+        ? stringifyIfObject(middleware.config)
+        : null,
+      origin: subtreeOwnerId ? "subtree" : "local",
+      subtreeOwnerId,
+    };
+  });
+}
+
 // Mapping helpers
 export function mapStoreTaskToTaskModel(
   task: definitions.ITask,
+  store?: Store,
   taskStoreElement?: {
     interceptors?: Array<{ ownerResourceId?: string }>;
   }
@@ -82,15 +289,14 @@ export function mapStoreTaskToTaskModel(
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
   const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
-  const middlewareDetailed = (task.middleware || []).map((m: any) => ({
-    id: String(m.id),
-    // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
-    config:
-      (m && m[definitions.symbolMiddlewareConfigured]) ||
-      m?.config !== undefined
-        ? stringifyIfObject(m.config)
-        : null,
-  }));
+  const middlewareDetailed = store
+    ? buildEffectiveTaskMiddlewareUsages(store, task)
+    : (task.middleware || []).map((m: any) => ({
+        id: String(m.id),
+        config: hasMiddlewareConfig(m) ? stringifyIfObject(m.config) : null,
+        origin: "local" as const,
+        subtreeOwnerId: null,
+      }));
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
     (task as any)?.tags
   );
@@ -120,7 +326,7 @@ export function mapStoreTaskToTaskModel(
         ...errorIdsFromDeps,
         ...tagIdsFromDeps,
       ],
-      middleware: task.middleware.map((m) => m.id.toString()),
+      middleware: middlewareDetailed.map((m) => m.id),
       middlewareDetailed,
       registeredBy: null,
       kind: "TASK",
@@ -146,7 +352,8 @@ export function mapStoreTaskToHookModel(
 }
 
 export function mapStoreHookToHookModel(
-  hkStoreElement: definitions.HookStoreElementType
+  hkStoreElement: definitions.HookStoreElementType,
+  store?: Store
 ): Hook {
   const hk = hkStoreElement.hook;
   const depsObj = normalizeDependencies(hk?.dependencies);
@@ -157,9 +364,7 @@ export function mapStoreHookToHookModel(
   const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(hk.tags);
 
-  const eventIds = Array.isArray(hk.on)
-    ? hk.on.map((e) => String(e.id))
-    : [String(hk.on?.id ?? "*")];
+  const eventIds = resolveHookEventIds(hk, store);
 
   return stampElementKind(
     {
@@ -294,26 +499,28 @@ export function buildEvents(store: Store): Event[] {
     (e) => e.event
   );
   const allEventIds = eventsCollection.map((e) => e.id.toString());
-  const hooks = Array.from(store.hooks.values()).map((h) => h.hook);
+  const hookEntries = Array.from(store.hooks.values());
+  const hookTargetEventIdsByHookId = new Map<string, string[]>();
+  const eventLaneByEventId = buildEventLaneSummaryByEventId(store);
+
+  for (const hookEntry of hookEntries) {
+    hookTargetEventIdsByHookId.set(
+      hookEntry.hook.id,
+      resolveHookEventIds(hookEntry.hook, store)
+    );
+  }
 
   return allEventIds.map((eventId) => {
     const e = findById(eventsCollection, eventId) as Event;
     const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(e.tags);
-    // Keep wildcard hooks in listenedToBy per design, but match specific listeners robustly
-    const hooksListeningToEvent = hooks
-      .filter((h) => {
-        const on: any = h?.on;
-        if (on === "*") return true;
-        if (typeof on === "string") return on === eventId;
-        if (on && typeof on === "object" && !Array.isArray(on))
-          return String(on.id) === eventId;
-        if (Array.isArray(on))
-          return on.some((v: any) =>
-            typeof v === "string" ? v === eventId : String(v?.id) === eventId
-          );
-        return false;
+    const hooksListeningToEvent = hookEntries
+      .filter(({ hook }) => {
+        if (hook.on === "*") return true;
+        return (
+          hookTargetEventIdsByHookId.get(hook.id)?.includes(eventId) ?? false
+        );
       })
-      .map((h) => h.id);
+      .map(({ hook }) => hook.id);
 
     return stampElementKind(
       {
@@ -323,7 +530,7 @@ export function buildEvents(store: Store): Event[] {
         tagsDetailed,
         transactional: Boolean((e as any)?.transactional),
         parallel: Boolean((e as any)?.parallel),
-        eventLane: extractEventLaneSummary(tagsDetailed),
+        eventLane: eventLaneByEventId.get(eventId) ?? null,
         rpcLane: extractRpcLaneSummary(tagsDetailed),
         filePath: sanitizePath(
           (e && (e as any)[definitions.symbolFilePath]) ?? e?.filePath ?? null
@@ -337,6 +544,241 @@ export function buildEvents(store: Store): Event[] {
       "EVENT"
     );
   });
+}
+
+function resolveHookEventIds(hook: definitions.IHook, store?: Store): string[] {
+  if (hook.on === "*") {
+    return ["*"];
+  }
+
+  if (store && hook.on) {
+    return store.resolveHookTargets(hook).map((entry) => entry.event.id);
+  }
+
+  if (Array.isArray(hook.on)) {
+    return hook.on.map((entry) =>
+      typeof entry === "string" ? entry : String(entry?.id)
+    );
+  }
+
+  return [String(hook.on?.id ?? "*")];
+}
+
+function buildEventLaneSummaryByEventId(
+  store: Store
+): Map<string, NonNullable<Event["eventLane"]>> {
+  const laneByEventId = new Map<string, NonNullable<Event["eventLane"]>>();
+  type TopologyEventLaneEntry = {
+    id: string;
+    applyTo?: readonly unknown[] | ((event: unknown) => boolean);
+    orderingKey: string | null;
+    metadata: string | null;
+  };
+
+  const buildLaneApplyTargetKey = (target: unknown): string => {
+    if (typeof target === "string") {
+      return `id:${target}`;
+    }
+
+    const targetId = extractLaneId(target);
+    if (targetId) {
+      return `id:${targetId}`;
+    }
+
+    const serializedTarget = stringifyIfObject(target);
+    if (serializedTarget) {
+      return `json:${serializedTarget}`;
+    }
+
+    return `raw:${String(target)}`;
+  };
+
+  const mergeLaneApplyTo = (
+    existingApplyTo: TopologyEventLaneEntry["applyTo"],
+    incomingApplyTo: TopologyEventLaneEntry["applyTo"]
+  ): TopologyEventLaneEntry["applyTo"] => {
+    if (incomingApplyTo === undefined) {
+      return existingApplyTo;
+    }
+
+    if (existingApplyTo === undefined) {
+      return incomingApplyTo;
+    }
+
+    if (Array.isArray(existingApplyTo) && Array.isArray(incomingApplyTo)) {
+      const mergedTargets = new Map<string, unknown>();
+
+      for (const target of [...existingApplyTo, ...incomingApplyTo]) {
+        mergedTargets.set(buildLaneApplyTargetKey(target), target);
+      }
+
+      return Array.from(mergedTargets.values());
+    }
+
+    return incomingApplyTo;
+  };
+
+  const mergeTopologyLaneEntry = (
+    existingEntry: TopologyEventLaneEntry | undefined,
+    incomingEntry: TopologyEventLaneEntry
+  ): TopologyEventLaneEntry => {
+    if (!existingEntry) {
+      return incomingEntry;
+    }
+
+    return {
+      id: incomingEntry.id,
+      applyTo: mergeLaneApplyTo(existingEntry.applyTo, incomingEntry.applyTo),
+      orderingKey: incomingEntry.orderingKey ?? existingEntry.orderingKey,
+      metadata: incomingEntry.metadata ?? existingEntry.metadata,
+    };
+  };
+
+  const upsertTopologyLaneEntry = (entry: TopologyEventLaneEntry) => {
+    topologyLanesById.set(
+      entry.id,
+      mergeTopologyLaneEntry(topologyLanesById.get(entry.id), entry)
+    );
+  };
+
+  const topologyLanesById = new Map<string, TopologyEventLaneEntry>();
+
+  for (const resourceEntry of store.resources.values()) {
+    const resource = resourceEntry.resource;
+    const normalizedTags = normalizeTags((resource as any)?.tags).ids;
+
+    if (
+      !isEventLanesResource({
+        id: String(resource.id),
+        tags: normalizedTags,
+      })
+    ) {
+      continue;
+    }
+
+    const topology = (resourceEntry as { config?: { topology?: unknown } })
+      .config?.topology as
+      | {
+          bindings?: Array<{
+            lane?: {
+              id?: unknown;
+              applyTo?: unknown;
+              orderingKey?: unknown;
+              metadata?: unknown;
+            };
+          }>;
+          profiles?: Record<
+            string,
+            {
+              consume?: Array<{
+                lane?: {
+                  id?: unknown;
+                  applyTo?: unknown;
+                  orderingKey?: unknown;
+                  metadata?: unknown;
+                };
+              }>;
+            }
+          >;
+        }
+      | undefined;
+
+    if (Array.isArray(topology?.bindings)) {
+      for (const binding of topology.bindings) {
+        const laneId = extractLaneId(binding?.lane);
+        if (!laneId || !binding?.lane) continue;
+        upsertTopologyLaneEntry({
+          id: laneId,
+          applyTo: normalizeEventLaneApplyTo(binding.lane.applyTo),
+          orderingKey:
+            typeof binding.lane.orderingKey === "string"
+              ? binding.lane.orderingKey
+              : null,
+          metadata: stringifyIfObject(binding.lane.metadata),
+        });
+      }
+    }
+
+    if (topology?.profiles && typeof topology.profiles === "object") {
+      for (const profile of Object.values(topology.profiles)) {
+        if (!Array.isArray(profile?.consume)) continue;
+        for (const entry of profile.consume) {
+          const laneId = extractLaneId(entry?.lane);
+          if (!laneId || !entry?.lane) continue;
+          upsertTopologyLaneEntry({
+            id: laneId,
+            applyTo: normalizeEventLaneApplyTo(entry.lane.applyTo),
+            orderingKey:
+              typeof entry.lane.orderingKey === "string"
+                ? entry.lane.orderingKey
+                : null,
+            metadata: stringifyIfObject(entry.lane.metadata),
+          });
+        }
+      }
+    }
+  }
+
+  const registeredEvents = Array.from(store.events.values()).map(
+    (eventEntry) => eventEntry.event
+  );
+
+  for (const lane of topologyLanesById.values()) {
+    if (typeof lane.applyTo === "function") {
+      for (const event of registeredEvents) {
+        if (laneByEventId.has(event.id)) continue;
+        let matchesEvent = false;
+        try {
+          matchesEvent = (lane.applyTo as (event: unknown) => boolean)(event);
+        } catch {
+          matchesEvent = false;
+        }
+        if (!matchesEvent) continue;
+        laneByEventId.set(event.id, {
+          laneId: lane.id,
+          orderingKey: lane.orderingKey,
+          metadata: lane.metadata,
+        });
+      }
+      continue;
+    }
+
+    if (!Array.isArray(lane.applyTo)) {
+      continue;
+    }
+
+    for (const target of lane.applyTo) {
+      const targetId =
+        typeof target === "string"
+          ? target
+          : store.findIdByDefinition(target as never) ?? extractLaneId(target);
+      if (!targetId) continue;
+
+      const event = store.events.get(targetId)?.event;
+      if (!event || laneByEventId.has(event.id)) continue;
+      laneByEventId.set(event.id, {
+        laneId: lane.id,
+        orderingKey: lane.orderingKey,
+        metadata: lane.metadata,
+      });
+    }
+  }
+
+  return laneByEventId;
+}
+
+function normalizeEventLaneApplyTo(
+  applyTo: unknown
+): readonly unknown[] | ((event: unknown) => boolean) | undefined {
+  if (Array.isArray(applyTo)) {
+    return applyTo;
+  }
+
+  if (typeof applyTo === "function") {
+    return applyTo as (event: unknown) => boolean;
+  }
+
+  return undefined;
 }
 
 function buildMiddlewaresGeneric(
@@ -454,6 +896,27 @@ export function attachRegisteredBy(
   middlewares: Middleware[],
   events: Event[]
 ): void {
+  const matchesRegisteredElement = (candidateId: string, referenceId: string) =>
+    candidateId === referenceId ||
+    candidateId.endsWith(`.${referenceId}`) ||
+    referenceId.endsWith(`.${candidateId}`);
+
+  const resolveRegisteredElement = <T extends { id: string }>(
+    map: Map<string, T>,
+    referenceId: string
+  ): T | null => {
+    const direct = map.get(referenceId);
+    if (direct) return direct;
+
+    for (const element of map.values()) {
+      if (matchesRegisteredElement(element.id, referenceId)) {
+        return element;
+      }
+    }
+
+    return null;
+  };
+
   const taskMap = buildIdMap(tasks);
   const hookMap = buildIdMap(hooks);
   const resourceMap = buildIdMap(resources);
@@ -462,12 +925,34 @@ export function attachRegisteredBy(
 
   for (const r of resources) {
     for (const id of r.registers ?? []) {
-      if (taskMap.has(id)) taskMap.get(id)!.registeredBy = r.id;
-      else if (hookMap.has(id)) hookMap.get(id)!.registeredBy = r.id;
-      else if (resourceMap.has(id)) resourceMap.get(id)!.registeredBy = r.id;
-      else if (middlewareMap.has(id))
-        middlewareMap.get(id)!.registeredBy = r.id;
-      else if (eventMap.has(id)) eventMap.get(id)!.registeredBy = r.id;
+      const task = resolveRegisteredElement(taskMap, id);
+      if (task) {
+        task.registeredBy = r.id;
+        continue;
+      }
+
+      const hook = resolveRegisteredElement(hookMap, id);
+      if (hook) {
+        hook.registeredBy = r.id;
+        continue;
+      }
+
+      const resource = resolveRegisteredElement(resourceMap, id);
+      if (resource) {
+        resource.registeredBy = r.id;
+        continue;
+      }
+
+      const middleware = resolveRegisteredElement(middlewareMap, id);
+      if (middleware) {
+        middleware.registeredBy = r.id;
+        continue;
+      }
+
+      const event = resolveRegisteredElement(eventMap, id);
+      if (event) {
+        event.registeredBy = r.id;
+      }
     }
   }
 }
@@ -788,13 +1273,20 @@ function normalizeSubtreeValidatorCount(value: unknown): number {
 function toSubtreeMiddlewareIds(entries: unknown): string[] {
   if (!Array.isArray(entries)) return [];
   const ids = entries
-    .map((entry) => (typeof entry === "string" ? entry : readId(entry)))
-    .filter(Boolean);
+    .map((entry) =>
+      typeof entry === "string" ? entry : readSubtreeMiddlewareEntryId(entry)
+    )
+    .filter((id): id is string => Boolean(id));
   return Array.from(new Set(ids));
 }
 
 type SubtreePolicyInput = {
-  tasks?: { middleware?: unknown; validate?: unknown } | null;
+  tasks?: {
+    middleware?: unknown;
+    identity?: unknown;
+    validate?: unknown;
+  } | null;
+  middleware?: { identityScope?: unknown } | null;
   resources?: { middleware?: unknown; validate?: unknown } | null;
   hooks?: { validate?: unknown } | null;
   taskMiddleware?: { validate?: unknown } | null;
@@ -813,20 +1305,14 @@ function appendSubtreeMiddlewareIds(
 }
 
 function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
-  const rawSubtree = resource?.subtree;
-  if (!rawSubtree || typeof rawSubtree !== "object") return null;
-
-  const subtreePolicies = Array.isArray(rawSubtree)
-    ? rawSubtree.filter(
-        (policy): policy is SubtreePolicyInput =>
-          Boolean(policy) && typeof policy === "object"
-      )
-    : [rawSubtree as SubtreePolicyInput];
-
+  const subtreePolicies = getSubtreePolicies(resource);
   if (subtreePolicies.length === 0) return null;
 
   const taskMiddlewareIds = new Set<string>();
   const resourceMiddlewareIds = new Set<string>();
+  const taskIdentityRequirements: NonNullable<
+    NonNullable<NonNullable<Resource["subtree"]>["tasks"]>["identity"]
+  > = [];
   let tasksValidatorCount = 0;
   let resourcesValidatorCount = 0;
   let hooksValidatorCount = 0;
@@ -834,12 +1320,24 @@ function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
   let resourceMiddlewareValidatorCount = 0;
   let eventsValidatorCount = 0;
   let tagsValidatorCount = 0;
+  let subtreeMiddlewareIdentityScope: NonNullable<
+    NonNullable<Resource["subtree"]>["middleware"]
+  >["identityScope"] = null;
 
   for (const subtree of subtreePolicies) {
     if (subtree.tasks) {
       appendSubtreeMiddlewareIds(taskMiddlewareIds, subtree.tasks.middleware);
+      taskIdentityRequirements.push(
+        ...normalizeIdentityRequirementSummaries(subtree.tasks.identity)
+      );
       tasksValidatorCount += normalizeSubtreeValidatorCount(
         subtree.tasks.validate
+      );
+    }
+
+    if (subtree.middleware && "identityScope" in subtree.middleware) {
+      subtreeMiddlewareIdentityScope = normalizeIdentityScopeSummary(
+        subtree.middleware.identityScope
       );
     }
 
@@ -885,10 +1383,21 @@ function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
   }
 
   const tasks =
-    taskMiddlewareIds.size > 0 || tasksValidatorCount > 0
+    taskMiddlewareIds.size > 0 ||
+    tasksValidatorCount > 0 ||
+    taskIdentityRequirements.length > 0
       ? {
           middleware: Array.from(taskMiddlewareIds),
           validatorCount: tasksValidatorCount,
+          ...(taskIdentityRequirements.length > 0
+            ? { identity: taskIdentityRequirements }
+            : {}),
+        }
+      : null;
+  const middleware =
+    subtreeMiddlewareIdentityScope !== null
+      ? {
+          identityScope: subtreeMiddlewareIdentityScope,
         }
       : null;
   const resources =
@@ -931,6 +1440,7 @@ function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
 
   if (
     !tasks &&
+    !middleware &&
     !resources &&
     !hooks &&
     !taskMiddleware &&
@@ -943,6 +1453,7 @@ function normalizeSubtreePolicy(resource: any): Resource["subtree"] {
 
   return {
     tasks,
+    middleware,
     resources,
     hooks,
     taskMiddleware,
@@ -959,27 +1470,6 @@ function parseTagConfigJson(config: string | null | undefined): any | null {
   } catch {
     return null;
   }
-}
-
-function extractEventLaneSummary(
-  tagsDetailed: Array<{ id: string; config: string | null }>
-): Event["eventLane"] {
-  const laneTag = tagsDetailed.find((tag) =>
-    matchesTagId(tag.id, EVENT_LANE_TAG_ID)
-  );
-  if (!laneTag) return null;
-
-  const parsed = parseTagConfigJson(laneTag.config);
-  const laneId = extractLaneId(parsed?.lane);
-  if (!laneId) return null;
-
-  return {
-    laneId,
-    orderingKey:
-      parsed?.orderingKey != null ? String(parsed.orderingKey) : null,
-    metadata:
-      parsed?.metadata != null ? stringifyIfObject(parsed.metadata) : null,
-  };
 }
 
 function extractRpcLaneSummary(

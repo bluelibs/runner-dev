@@ -24,13 +24,34 @@
 }
 
 .async-context-card__header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
   gap: $spacing-md;
+  min-height: 140px;
 
-  .main {
+  .async-context-card__header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-md;
+  }
+
+  .async-context-card__header-main {
     flex: 1;
+    min-width: 0;
+  }
+
+  .async-context-card__header-bottom {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    min-height: 28px;
+  }
+
+  .async-context-card__badges {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-left: auto;
   }
 }
 
@@ -121,12 +142,35 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    a {
+    a,
+    .async-context-card__file-button {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       display: block;
     }
+  }
+}
+
+.async-context-card__file-button {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  width: 100%;
+  font: inherit;
+  color: var(--docs-link-color);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--docs-link-color);
+    outline-offset: 2px;
+    border-radius: $border-radius-sm;
   }
 }
 

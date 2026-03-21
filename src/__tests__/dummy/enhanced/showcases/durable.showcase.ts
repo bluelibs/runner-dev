@@ -1,5 +1,5 @@
 import type { IResource, IResourceWithConfig } from "@bluelibs/runner";
-import { RegisterableItems, r } from "@bluelibs/runner";
+import { defineResource, RegisterableItems, r } from "@bluelibs/runner";
 import {
   durableWorkflowTag,
   memoryDurableResource,
@@ -57,8 +57,29 @@ function normalizeDurableOrderApprovalInput(
 
 export const showcaseDurableResource: IResource<
   any,
-  Promise<DurableResource>
-> = memoryDurableResource.fork("durable-runtime");
+  Promise<DurableResource>,
+  any,
+  any,
+  { title: string; description: string }
+> = defineResource({
+  id: "durable-runtime",
+  tags: memoryDurableResource.tags,
+  configSchema: memoryDurableResource.configSchema,
+  resultSchema: memoryDurableResource.resultSchema,
+  dependencies: memoryDurableResource.dependencies,
+  context: memoryDurableResource.context,
+  init: memoryDurableResource.init,
+  middleware: memoryDurableResource.middleware,
+  dispose: memoryDurableResource.dispose,
+  ready: memoryDurableResource.ready,
+  cooldown: memoryDurableResource.cooldown,
+  health: memoryDurableResource.health,
+  meta: {
+    title: "Durable Runtime",
+    description:
+      "Hosts the order approval workflow state.\n\n- Uses the in-memory durable backend\n- Kept intentionally minimal for docs and topology",
+  },
+});
 
 export const showcaseDurableRegistration: IResourceWithConfig<
   any,
@@ -68,9 +89,9 @@ export const showcaseDurableRegistration: IResourceWithConfig<
 export const durableOrderApprovalTask = r
   .task("order-approval")
   .meta({
-    title: "Durable Order Approval Workflow",
+    title: "Order Approval",
     description:
-      "Durable flow with step/sleep/note so Runner-Dev can render workflow shape.",
+      "Minimal durable approval workflow.\n\n- Uses `step`, `sleep`, and `note`\n- Exists to render a believable workflow shape in docs",
   })
   .dependencies({ durable: showcaseDurableResource })
   .tags([durableWorkflowTag])
@@ -108,9 +129,9 @@ export const durableOrderApprovalTask = r
 export const runDurableOrderApprovalTask = r
   .task("run-order-approval")
   .meta({
-    title: "Run Durable Order Approval Workflow",
+    title: "Run Order Approval",
     description:
-      "Helper task to execute durable workflow via durable.startAndWait(...).",
+      "Runs the durable workflow and waits for completion.\n\n- Thin wrapper around `durable.startAndWait(...)`\n- Keeps execution entrypoints explicit in topology",
   })
   .dependencies({
     durable: showcaseDurableResource,
@@ -127,9 +148,9 @@ export const runDurableOrderApprovalTask = r
 export const startDurableOrderApprovalTask = r
   .task("start-order-approval")
   .meta({
-    title: "Start Durable Order Approval Workflow",
+    title: "Start Order Approval",
     description:
-      "Helper task to start the durable workflow and return execution id.",
+      "Starts the durable workflow and returns the execution id.\n\n- Thin wrapper around `durable.start(...)`\n- Useful to show alternate entrypoints into the same workflow",
   })
   .dependencies({
     durable: showcaseDurableResource,

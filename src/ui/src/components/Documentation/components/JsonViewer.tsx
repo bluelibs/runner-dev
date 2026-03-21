@@ -3,9 +3,10 @@ import "./JsonViewer.scss";
 
 interface JsonViewerProps {
   data: object;
+  className?: string;
 }
 
-const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {
+const JsonViewer: React.FC<JsonViewerProps> = ({ data, className }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>(() => {
     const keys: string[] = [];
     const collectKeys = (obj: any, path: string, depth: number) => {
@@ -110,11 +111,13 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {
     }
   };
 
-  if (!data || (typeof data === "object" && Object.keys(data).length === 0)) {
+  if (!data) {
     return null;
   }
 
-  return <div className="json-viewer">{renderValue(data, "root")}</div>;
+  const classes = ["json-viewer", className].filter(Boolean).join(" ");
+
+  return <div className={classes}>{renderValue(data, "root")}</div>;
 };
 
 export default JsonViewer;

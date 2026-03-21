@@ -2,7 +2,6 @@ import React from "react";
 import { Resource } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import {
-  formatConfig,
   formatFilePath,
   formatId,
   shouldDisplayConfig,
@@ -31,6 +30,10 @@ import {
   isEventLanesResource,
   isRpcLanesResource,
 } from "../../../../../utils/lane-resources";
+import { TopologyActionButton } from "./TopologyActionButton";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -43,6 +46,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   resource,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const middlewareUsages = introspector.getMiddlewareUsagesForResource(
     resource.id
   );
@@ -75,6 +79,8 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
   const hasEventLanesSurface = isEventLanesResource(resource);
   const hasRpcLanesSurface = isRpcLanesResource(resource);
+  const rootResource = introspector.getRoot();
+  const isRootResource = rootResource.id === resource.id;
 
   const openIsolationWildcardModal = React.useCallback(
     (source: IsolationRuleSource, rule: string) => {
@@ -153,9 +159,18 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       elementId={resource.id}
       kindLabel="resource"
       isSystem={isSystemElement(resource)}
+      className={isRootResource ? "resource-card--root" : undefined}
+      headerClassName={
+        isRootResource ? "resource-card__header--root" : undefined
+      }
       title={
         <>
-          {resource.meta?.title || formatId(resource.id)}
+          <span className="resource-card__title-shell">
+            {resource.meta?.title || formatId(resource.id)}
+            {isRootResource && (
+              <span className="resource-card__root-pill">Application Root</span>
+            )}
+          </span>
           {hasRpcLanesSurface && (
             <span
               className="resource-card__rpc-lanes-badge"
@@ -168,11 +183,31 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
       }
       id={resource.id}
       description={resource.meta?.description}
+      meta={
+        isRootResource ? (
+          <div className="resource-card__root-meta">
+            <span className="resource-card__root-meta-badge">
+              Root Resource
+            </span>
+            <span className="resource-card__root-meta-copy">
+              Main registration spine for runtime startup, topology, and docs
+              discovery.
+            </span>
+          </div>
+        ) : undefined
+      }
+      actions={
+        <TopologyActionButton
+          focus={{ kind: "resource", id: resource.id }}
+          title="Open resource mindmap"
+          className="btn--primary"
+        />
+      }
     >
       <div className="resource-card__grid">
         <CardSection prefix="resource-card" title="Overview">
           <InfoBlock prefix="resource-card" label="File Path:">
-            {resource.filePath ? (
+            {resource.filePath && !isCatalogMode ? (
               <a
                 type="button"
                 onClick={openFileModal}
@@ -199,27 +234,29 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                 }}
               >
                 {resource.coverage.percentage}%
-              </span>{" "}
-              <button
-                type="button"
-                onClick={openCoverageDetails}
-                title="View coverage details"
-              >
-                (View Coverage)
-              </button>
+              </span>
+              {!isCatalogMode && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={openCoverageDetails}
+                    title="View coverage details"
+                  >
+                    (View Coverage)
+                  </button>
+                </>
+              )}
             </InfoBlock>
           )}
 
-          {resource.registeredBy && (
-            <InfoBlock prefix="resource-card" label="Registered By:">
-              <a
-                href={`#element-${resource.registeredBy}`}
-                className="resource-card__registrar-link"
-              >
-                {resource.registeredBy}
-              </a>
-            </InfoBlock>
-          )}
+          <RegisteredByInfoBlock
+            prefix="resource-card"
+            elementId={resource.id}
+            registeredBy={resource.registeredBy}
+            introspector={introspector}
+            isCurrentRootResource={isRootResource}
+          />
 
           <InfoBlock prefix="resource-card" label="Visibility:">
             {resource.isPrivate ? "Private" : "Public"}
@@ -299,15 +336,19 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         >
           <div className="resource-card__config__subsection">
             <h5>Current Configuration</h5>
-            <pre className="resource-card__config__block">
-              {formatConfig(resource.config)}
-            </pre>
+            <StructuredConfigBlock
+              value={resource.config}
+              className="resource-card__config__block"
+            />
           </div>
 
-          <div className="resource-card__config__subsection">
-            <h5>Configuration Schema</h5>
+          <CardSection
+            prefix="resource-card"
+            title="Configuration Schema"
+            className="resource-card__config__subsection"
+          >
             <SchemaRenderer schemaString={resource.configSchema} />
-          </div>
+          </CardSection>
         </CardSection>
       </div>
 
@@ -386,7 +427,10 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
                 {shouldDisplayConfig(usage.config) && (
                   <div>
                     <div className="config-title">Configuration:</div>
-                    <pre className="config-block">{usage.config}</pre>
+                    <StructuredConfigBlock
+                      value={usage.config}
+                      className="config-block"
+                    />
                   </div>
                 )}
               </a>

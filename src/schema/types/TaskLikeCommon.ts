@@ -11,7 +11,7 @@ import type { CustomGraphQLContext } from "../context";
 import { TaskMiddlewareType } from "./MiddlewareType";
 import { EventType } from "./EventType";
 import { BaseElementInterface } from "./AllType";
-import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 
 export function taskLikeCommonFields(params: {
   ResourceType: GraphQLObjectType;

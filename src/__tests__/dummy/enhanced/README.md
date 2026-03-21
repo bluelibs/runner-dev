@@ -11,16 +11,25 @@ It is intentionally test-oriented and not a copy/paste template for production a
 
 ## Current Layout
 
-- `index.ts`: builds `enhanced.superapp` from showcase registrations.
-- `showcases/`: focused modules for each capability surface.
+- `index.ts`: builds `enhanced.superapp` from domain roots.
+- `domains.ts`: composes the fixture into `platform`, `catalog`, and `orders`.
+- `showcases/`: focused capability slices reused by the domain roots.
 
-## Showcase Coverage
+## Capability Coverage
 
 - `tagsIsolation.showcase.ts`: tag handlers and isolation rules.
 - `interceptors.showcase.ts`: interceptor ownership and middleware wiring.
 - `lanes.showcase.ts`: RPC lane + Event lane entities and lane resources.
 - `durable.showcase.ts`: durable workflow resource/task relationships.
 - `support.showcase.ts`: support context and error usage paths.
+
+## Topology Goal
+
+The fixture should look like a minimal real Runner app:
+
+- `platform`: async context, shared middleware, typed error
+- `catalog`: search, tags, interceptors, events, hooks, lanes
+- `orders`: durable workflow surface
 
 ## Maintenance Notes
 

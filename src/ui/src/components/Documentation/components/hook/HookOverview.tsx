@@ -8,6 +8,8 @@ import {
 } from "../../utils/graphqlClient";
 import { Introspector } from "../../../../../../resources/models/Introspector";
 import { CardSection, InfoBlock } from "../common/ElementCard";
+import { RegisteredByInfoBlock } from "../common/RegisteredByInfoBlock";
+import { useIsCatalogDocumentation } from "../../context/DocumentationModeContext";
 
 export interface HookOverviewProps {
   hook: Hook;
@@ -22,6 +24,7 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
   isGlobal,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const getHookOrderDisplay = () => {
     if (hook.hookOrder === null || hook.hookOrder === undefined)
       return "Default";
@@ -59,19 +62,19 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
         contentClassName="hook-card__section__content"
       >
         <InfoBlock prefix="hook-card" label="File Path:">
-          <a onClick={openFileModal}>{formatFilePath(hook.filePath)}</a>
+          {hook.filePath && !isCatalogMode ? (
+            <a onClick={openFileModal}>{formatFilePath(hook.filePath)}</a>
+          ) : (
+            formatFilePath(hook.filePath)
+          )}
         </InfoBlock>
 
-        {hook.registeredBy && (
-          <InfoBlock prefix="hook-card" label="Registered By:">
-            <a
-              href={`#element-${hook.registeredBy}`}
-              className="hook-card__registrar-link"
-            >
-              {hook.registeredBy}
-            </a>
-          </InfoBlock>
-        )}
+        <RegisteredByInfoBlock
+          prefix="hook-card"
+          elementId={hook.id}
+          registeredBy={hook.registeredBy}
+          introspector={introspector}
+        />
 
         <InfoBlock prefix="hook-card" label="Target Events:">
           {isGlobal ? (

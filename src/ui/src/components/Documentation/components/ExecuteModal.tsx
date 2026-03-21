@@ -6,6 +6,13 @@ import "./ExecuteModal.scss";
 // } from "./chat/ai.prefill";
 import { copyToClipboard } from "./chat/ChatUtils";
 import { BaseModal } from "./modals";
+import { computeSchemaDefaultValue } from "../utils/schemaDefaults";
+import {
+  getSchemaArrayEnumOptions,
+  getSchemaFieldHint,
+  getSchemaStringInputType,
+  parseCommaSeparatedArrayValue,
+} from "../utils/schemaForm";
 
 export interface ExecuteModalProps {
   isOpen: boolean;
@@ -145,27 +152,8 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
       const defaults: Record<string, any> = {};
       Object.entries(resolvedSchema.properties).forEach(
         ([key, prop]: [string, any]) => {
-          if (prop.default !== undefined) {
-            defaults[key] = prop.default;
-          } else {
-            switch (prop.type) {
-              case "string":
-                defaults[key] = "";
-                break;
-              case "number":
-              case "integer":
-                defaults[key] = 0;
-                break;
-              case "boolean":
-                defaults[key] = false;
-                break;
-              case "array":
-                defaults[key] = [];
-                break;
-              default:
-                defaults[key] = "";
-            }
-          }
+          defaults[key] =
+            computeSchemaDefaultValue(prop, { fieldName: key }) ?? "";
         }
       );
       setFormData(defaults);
@@ -266,7 +254,41 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
             />
           </div>
         );
-      default: // string
+      case "array":
+        if (getSchemaArrayEnumOptions(prop)) {
+          const enumOptions = getSchemaArrayEnumOptions(prop) ?? [];
+
+          return (
+            <div key={key} className="execute-modal__field">
+              <label className="execute-modal__label">
+                {prop.title || key}
+                {isRequired ? " *" : ""}
+              </label>
+              <select
+                multiple
+                size={Math.min(Math.max(enumOptions.length, 3), 6)}
+                className="execute-modal__select execute-modal__select--multiple"
+                value={Array.isArray(value) ? value : []}
+                onChange={(e) =>
+                  handleFormFieldChange(
+                    key,
+                    Array.from(
+                      e.target.selectedOptions,
+                      (option) => option.value
+                    )
+                  )
+                }
+              >
+                {enumOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          );
+        }
+
         return (
           <div key={key} className="execute-modal__field">
             <label className="execute-modal__label">
@@ -276,8 +298,32 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
             <input
               type="text"
               className="execute-modal__input"
+              value={Array.isArray(value) ? value.join(", ") : ""}
+              placeholder={getSchemaFieldHint({
+                ...prop,
+                items: prop.items,
+              })}
+              onChange={(e) =>
+                handleFormFieldChange(
+                  key,
+                  parseCommaSeparatedArrayValue(e.target.value, prop.items)
+                )
+              }
+            />
+          </div>
+        );
+      default: // string
+        return (
+          <div key={key} className="execute-modal__field">
+            <label className="execute-modal__label">
+              {prop.title || key}
+              {isRequired ? " *" : ""}
+            </label>
+            <input
+              type={getSchemaStringInputType(prop)}
+              className="execute-modal__input"
               value={value}
-              placeholder={prop.description}
+              placeholder={getSchemaFieldHint(prop)}
               onChange={(e) => handleFormFieldChange(key, e.target.value)}
             />
           </div>

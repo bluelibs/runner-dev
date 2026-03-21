@@ -11,6 +11,8 @@ import { TagsSection } from "./TagsSection";
 import "./AsyncContextCard.scss";
 import { ElementKindBadge, SystemBadge } from "./common/ElementKindBadge";
 import { isSystemElement } from "../utils/isSystemElement";
+import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface AsyncContextCardProps {
   asyncContext: AsyncContext;
@@ -21,6 +23,7 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
   asyncContext,
   introspector,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const usedByTasks = introspector.getTasksUsingContext(asyncContext.id);
   const usedByResources = introspector.getResourcesUsingContext(
     asyncContext.id
@@ -80,19 +83,32 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
     <div id={`element-${asyncContext.id}`} className="async-context-card">
       <div className="async-context-card__header">
         <div className="async-context-card__header-content">
-          <div className="main">
-            <h3 className="async-context-card__title">
-              {asyncContext.meta?.title || formatId(asyncContext.id)}
-            </h3>
-            <div className="async-context-card__id">{asyncContext.id}</div>
-            {asyncContext.meta?.description && (
-              <p className="async-context-card__description">
-                {asyncContext.meta.description}
-              </p>
-            )}
+          <div className="async-context-card__header-top">
+            <div className="async-context-card__header-main">
+              <h3 className="async-context-card__title">
+                <a
+                  href={`#element-${asyncContext.id}`}
+                  className="async-context-card__title-link"
+                  title={`Canonical link: #element-${asyncContext.id}`}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  {asyncContext.meta?.title || formatId(asyncContext.id)}
+                </a>
+              </h3>
+              <div className="async-context-card__id">{asyncContext.id}</div>
+              {asyncContext.meta?.description && (
+                <p className="async-context-card__description">
+                  {asyncContext.meta.description}
+                </p>
+              )}
+            </div>
           </div>
-          {isSystemElement(asyncContext) && <SystemBadge />}
-          <ElementKindBadge kind="async-context" />
+          <div className="async-context-card__header-bottom">
+            <div className="async-context-card__badges">
+              {isSystemElement(asyncContext) && <SystemBadge />}
+              <ElementKindBadge kind="async-context" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -105,33 +121,27 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
                 <div className="async-context-card__info-block">
                   <div className="label">File Path:</div>
                   <div className="value">
-                    {asyncContext.filePath ? (
-                      <a
+                    {asyncContext.filePath && !isCatalogMode ? (
+                      <button
                         type="button"
+                        className="async-context-card__file-button"
                         onClick={openFileModal}
                         title="View file contents"
                       >
                         {formatFilePath(asyncContext.filePath)}
-                      </a>
+                      </button>
                     ) : (
                       formatFilePath(asyncContext.filePath)
                     )}
                   </div>
                 </div>
 
-                {asyncContext.registeredBy && (
-                  <div className="async-context-card__info-block">
-                    <div className="label">Registered By:</div>
-                    <div className="value">
-                      <a
-                        href={`#element-${asyncContext.registeredBy}`}
-                        className="async-context-card__registrar-link"
-                      >
-                        {asyncContext.registeredBy}
-                      </a>
-                    </div>
-                  </div>
-                )}
+                <RegisteredByInfoBlock
+                  prefix="async-context-card"
+                  elementId={asyncContext.id}
+                  registeredBy={asyncContext.registeredBy}
+                  introspector={introspector}
+                />
 
                 {asyncContext.tags && asyncContext.tags.length > 0 && (
                   <div className="async-context-card__info-block">

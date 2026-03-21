@@ -8,7 +8,8 @@ export function registerGraphQLQuery(server: McpServer) {
     "graphql_query",
     {
       title: "GraphQL Query",
-      description: "Execute a GraphQL query against the configured ENDPOINT",
+      description:
+        "Execute a GraphQL query against the configured live endpoint or exported snapshot",
       inputSchema: {
         query: z.string(),
         variables: z.union([z.string(), z.record(z.unknown())]).optional(),

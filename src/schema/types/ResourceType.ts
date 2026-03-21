@@ -16,11 +16,11 @@ import { ResourceMiddlewareType } from "./MiddlewareType";
 import { TaskType } from "./TaskType";
 import { EventType } from "./EventType";
 import { CustomGraphQLContext } from "../context";
-import { TaskMiddlewareUsageType } from "./TaskType";
+import { ResourceMiddlewareUsageType } from "./middleware/UsageTypes";
 import { Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
-import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { CoverageInfoType } from "./CoverageType";
 
 const IsolationExportsModeType = new GraphQLEnumType({
@@ -88,15 +88,66 @@ const ResourceIsolationType = new GraphQLObjectType({
   },
 });
 
-const ResourceSubtreeBranchType = new GraphQLObjectType({
-  name: "ResourceSubtreeBranch",
+const ResourceSubtreeIdentityRequirementType = new GraphQLObjectType({
+  name: "ResourceSubtreeIdentityRequirement",
+  fields: {
+    tenant: { type: new GraphQLNonNull(GraphQLBoolean) },
+    user: { type: new GraphQLNonNull(GraphQLBoolean) },
+    roles: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+    },
+  },
+});
+
+const ResourceSubtreeIdentityScopeType = new GraphQLObjectType({
+  name: "ResourceSubtreeIdentityScope",
+  fields: {
+    tenant: { type: new GraphQLNonNull(GraphQLBoolean) },
+    user: { type: new GraphQLNonNull(GraphQLBoolean) },
+    required: { type: new GraphQLNonNull(GraphQLBoolean) },
+  },
+});
+
+const ResourceSubtreeTaskBranchType = new GraphQLObjectType({
+  name: "ResourceSubtreeTaskBranch",
   fields: {
     middleware: {
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(GraphQLString))
       ),
+      resolve: (node: any) => node?.middleware ?? [],
     },
     validatorCount: { type: new GraphQLNonNull(GraphQLInt) },
+    identity: {
+      type: new GraphQLNonNull(
+        new GraphQLList(
+          new GraphQLNonNull(ResourceSubtreeIdentityRequirementType)
+        )
+      ),
+      resolve: (node: any) => node?.identity ?? [],
+    },
+  },
+});
+
+const ResourceSubtreeResourceBranchType = new GraphQLObjectType({
+  name: "ResourceSubtreeResourceBranch",
+  fields: {
+    middleware: {
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(GraphQLString))
+      ),
+      resolve: (node: any) => node?.middleware ?? [],
+    },
+    validatorCount: { type: new GraphQLNonNull(GraphQLInt) },
+  },
+});
+
+const ResourceSubtreeMiddlewareScopeType = new GraphQLObjectType({
+  name: "ResourceSubtreeMiddlewareScope",
+  fields: {
+    identityScope: { type: ResourceSubtreeIdentityScopeType },
   },
 });
 
@@ -110,8 +161,9 @@ const ResourceSubtreeValidationBranchType = new GraphQLObjectType({
 const ResourceSubtreePolicyType = new GraphQLObjectType({
   name: "ResourceSubtreePolicy",
   fields: {
-    tasks: { type: ResourceSubtreeBranchType },
-    resources: { type: ResourceSubtreeBranchType },
+    tasks: { type: ResourceSubtreeTaskBranchType },
+    middleware: { type: ResourceSubtreeMiddlewareScopeType },
+    resources: { type: ResourceSubtreeResourceBranchType },
     hooks: { type: ResourceSubtreeValidationBranchType },
     taskMiddleware: { type: ResourceSubtreeValidationBranchType },
     resourceMiddleware: { type: ResourceSubtreeValidationBranchType },
@@ -183,7 +235,7 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     middlewareResolvedDetailed: {
       description: "Middlewares applied to this resource with per-usage config",
       type: new GraphQLNonNull(
-        new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
+        new GraphQLList(new GraphQLNonNull(ResourceMiddlewareUsageType))
       ),
       resolve: (node, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.getMiddlewareUsagesForResource(node.id),
@@ -287,28 +339,14 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
     registeredBy: {
       description: "Id of the resource that registered this resource (if any)",
       type: GraphQLString,
-      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) => {
-        if (node.registeredBy) return node.registeredBy;
-        const allResources = ctx.introspector.getResources();
-        const found = allResources.find((r) =>
-          (r.registers || []).includes(node.id)
-        );
-        return found?.id ?? null;
-      },
+      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResourceId(node),
     },
     registeredByResolved: {
       description: "Resource that registered this resource (resolved, if any)",
       type: ResourceType,
-      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) => {
-        if (node.registeredBy) {
-          return ctx.introspector.getResource(node.registeredBy);
-        }
-        const allResources = ctx.introspector.getResources();
-        return (
-          allResources.find((r) => (r.registers || []).includes(node.id)) ||
-          null
-        );
-      },
+      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResource(node),
     },
     ...baseElementCommonFields(),
   }),

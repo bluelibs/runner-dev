@@ -204,7 +204,7 @@ describe("durable.describe integration", () => {
       const store = await runtime.getResourceValue(resources.store);
       const shape = await describeDurableTaskFromStore(
         store,
-        enhancedSuperAppIds.task(durableOrderApprovalTask.id),
+        enhancedSuperAppIds.orders.task(durableOrderApprovalTask.id),
         { timeoutMs: 2000 }
       );
 

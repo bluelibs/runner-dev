@@ -1,6 +1,7 @@
 // =============================================================================
 // SCSS MIXINS - Reusable style patterns and utilities
 // =============================================================================
+@use "./variables" as *;
 
 // -----------------------------------------------------------------------------
 // Dark Mode Utilities
@@ -202,6 +203,43 @@
     &:hover {
       background: var(--docs-text-muted);
     }
+  }
+}
+
+@mixin docs-scroll-surface($size: 8px) {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+  scrollbar-color: var(--docs-border-secondary) var(--docs-border-subtle);
+
+  @include docs-scrollbar($size);
+}
+
+@mixin docs-code-block(
+  $padding: $spacing-md,
+  $max-height: none,
+  $size: 8px
+) {
+  @include docs-scroll-surface($size);
+
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-lg;
+  color: var(--docs-text-primary);
+  font-family: $font-family-mono;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  margin: 0;
+  padding: $padding;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+
+  @if $max-height != none {
+    max-height: $max-height;
   }
 }
 

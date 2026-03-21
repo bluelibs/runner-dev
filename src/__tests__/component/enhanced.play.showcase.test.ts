@@ -8,6 +8,7 @@ import {
   createEnhancedSuperApp,
   durableOrderApprovalTask,
   enhancedSuperAppIds,
+  eventLanesShowcaseResource,
   featuredInspectorTask,
   featuredTag,
   interceptorBaseTask,
@@ -31,14 +32,16 @@ type TestContextValue = {
   logger: Console;
 };
 
+const catalogIds = enhancedSuperAppIds.catalog;
+const ordersIds = enhancedSuperAppIds.orders;
+const platformIds = enhancedSuperAppIds.platform;
+
 const isolationBoundaryIds = {
   resource(localId: string) {
-    return `${enhancedSuperAppIds.resource(
-      isolationBoundaryResource.id
-    )}.${localId}`;
+    return `${catalogIds.resource(isolationBoundaryResource.id)}.${localId}`;
   },
   task(localId: string) {
-    return `${enhancedSuperAppIds.resource(
+    return `${catalogIds.resource(
       isolationBoundaryResource.id
     )}.tasks.${localId}`;
   },
@@ -84,17 +87,47 @@ describe("Enhanced play showcase app", () => {
     ).toBeTruthy();
     expect(
       contextValue.introspector.getResource(
-        enhancedSuperAppIds.resource(isolationBoundaryResource.id)
+        catalogIds.resource(isolationBoundaryResource.id)
       )
     ).toBeTruthy();
     expect(
       contextValue.introspector.getTask(
-        enhancedSuperAppIds.task(durableOrderApprovalTask.id)
+        ordersIds.task(durableOrderApprovalTask.id)
       )
     ).toBeTruthy();
     expect(
-      contextValue.introspector.getResource(rpcLanesShowcaseResource.id)
+      contextValue.introspector.getResource(
+        catalogIds.resource(rpcLanesShowcaseResource.id)
+      )
     ).toBeTruthy();
+    expect(
+      contextValue.introspector.getResource(
+        catalogIds.resource(eventLanesShowcaseResource.id)
+      )
+    ).toBeTruthy();
+  });
+
+  test("attaches meta to lane resources", () => {
+    const rpcLanesNode = contextValue.introspector.getResource(
+      catalogIds.resource(rpcLanesShowcaseResource.id)
+    );
+    const eventLanesNode = contextValue.introspector.getResource(
+      catalogIds.resource(eventLanesShowcaseResource.id)
+    );
+
+    expect(rpcLanesNode?.meta?.title).toBe("RPC Lanes");
+    expect(rpcLanesNode?.meta?.description).toContain("catalog RPC lane");
+    expect(eventLanesNode?.meta?.title).toBe("Event Lanes");
+    expect(eventLanesNode?.meta?.description).toContain("event-lane topology");
+  });
+
+  test("attaches meta to the durable resource", () => {
+    const durableNode = contextValue.introspector.getResource(
+      ordersIds.resource(showcaseDurableResource.id)
+    );
+
+    expect(durableNode?.meta?.title).toBe("Durable Runtime");
+    expect(durableNode?.meta?.description).toContain("order approval");
   });
 
   test("exposes tags and tag handlers", async () => {
@@ -109,7 +142,7 @@ describe("Enhanced play showcase app", () => {
           }
         }
       `,
-      variableValues: { tagId: enhancedSuperAppIds.tag(featuredTag.id) },
+      variableValues: { tagId: catalogIds.tag(featuredTag.id) },
       contextValue,
     });
 
@@ -122,7 +155,7 @@ describe("Enhanced play showcase app", () => {
       };
     };
 
-    expect(data.tag.id).toBe(enhancedSuperAppIds.tag(featuredTag.id));
+    expect(data.tag.id).toBe(catalogIds.tag(featuredTag.id));
     expect(data.tag.tasks.map((entry) => entry.id)).toEqual(
       expect.arrayContaining([isolationBoundaryIds.task(catalogSearchTask.id)])
     );
@@ -133,13 +166,11 @@ describe("Enhanced play showcase app", () => {
     );
 
     const handlers = contextValue.introspector.getTagHandlers(
-      enhancedSuperAppIds.tag(featuredTag.id)
+      catalogIds.tag(featuredTag.id)
     );
     expect(handlers).toBeTruthy();
     expect(handlers.tasks.map((task: { id: string }) => task.id)).toEqual(
-      expect.arrayContaining([
-        enhancedSuperAppIds.task(featuredInspectorTask.id),
-      ])
+      expect.arrayContaining([catalogIds.task(featuredInspectorTask.id)])
     );
   });
 
@@ -173,8 +204,7 @@ describe("Enhanced play showcase app", () => {
 
     const boundary = data.resources.find(
       (resource) =>
-        resource.id ===
-        enhancedSuperAppIds.resource(isolationBoundaryResource.id)
+        resource.id === catalogIds.resource(isolationBoundaryResource.id)
     );
     const publicResource = data.resources.find(
       (resource) =>
@@ -231,43 +261,43 @@ describe("Enhanced play showcase app", () => {
     };
 
     const baseTask = data.tasks.find(
-      (task) => task.id === enhancedSuperAppIds.task(interceptorBaseTask.id)
+      (task) => task.id === catalogIds.task(interceptorBaseTask.id)
     );
     expect(baseTask).toBeTruthy();
     expect(baseTask?.hasInterceptors).toBe(true);
     expect(baseTask?.interceptorCount).toBeGreaterThanOrEqual(1);
     expect(baseTask?.interceptorOwnerIds).toEqual(
       expect.arrayContaining([
-        enhancedSuperAppIds.resource(interceptorInstallerResource.id),
+        catalogIds.resource(interceptorInstallerResource.id),
       ])
     );
   });
 
   test("links rpc lane members to rpc lanes resource metadata", () => {
     const rpcLanesResource = contextValue.introspector.getResource(
-      rpcLanesShowcaseResource.id
+      catalogIds.resource(rpcLanesShowcaseResource.id)
     );
     expect(rpcLanesResource).toBeTruthy();
 
     const taskLaneId = contextValue.introspector.getRpcLaneForTask(
-      rpcLanePricingPreviewTask.id
+      catalogIds.task(rpcLanePricingPreviewTask.id)
     );
     expect(taskLaneId).toBe("rpc-pricing-preview");
 
     const owner = contextValue.introspector.getRpcLaneResourceForTask(
-      rpcLanePricingPreviewTask.id
+      catalogIds.task(rpcLanePricingPreviewTask.id)
     );
-    expect(owner?.id).toBe(
-      enhancedSuperAppIds.resource(rpcLanesShowcaseResource.id)
-    );
+    expect(owner?.id).toBe(catalogIds.resource(rpcLanesShowcaseResource.id));
 
     const laneEvent = contextValue.introspector.getEvent(
-      rpcLaneCatalogUpdatedEvent.id
+      catalogIds.event(rpcLaneCatalogUpdatedEvent.id)
     );
     expect(laneEvent?.rpcLane?.laneId).toBe("rpc-catalog-updates");
+    expect(laneEvent?.payloadSchema).toContain("changedSkus");
+    expect(laneEvent?.payloadSchema).toContain("catalog-sync");
 
     const eventLaneEvent = contextValue.introspector.getEvent(
-      eventLaneCatalogProjectionUpdatedEvent.id
+      catalogIds.event(eventLaneCatalogProjectionUpdatedEvent.id)
     );
     expect(eventLaneEvent?.eventLane?.laneId).toBe("event-catalog-updates");
   });
@@ -287,7 +317,7 @@ describe("Enhanced play showcase app", () => {
         }
       `,
       variableValues: {
-        taskId: enhancedSuperAppIds.task(durableOrderApprovalTask.id),
+        taskId: ordersIds.task(durableOrderApprovalTask.id),
       },
       contextValue,
     });
@@ -298,11 +328,11 @@ describe("Enhanced play showcase app", () => {
     };
 
     expect(durableData.task.id).toBe(
-      enhancedSuperAppIds.task(durableOrderApprovalTask.id)
+      ordersIds.task(durableOrderApprovalTask.id)
     );
     expect(durableData.task.isDurable).toBe(true);
     expect(durableData.task.durableResource.id).toBe(
-      enhancedSuperAppIds.resource(showcaseDurableResource.id)
+      ordersIds.resource(showcaseDurableResource.id)
     );
 
     const asyncContextIds = contextValue.introspector
@@ -314,11 +344,11 @@ describe("Enhanced play showcase app", () => {
 
     expect(asyncContextIds).toEqual(
       expect.arrayContaining([
-        enhancedSuperAppIds.asyncContext(supportRequestContext.id),
+        platformIds.asyncContext(supportRequestContext.id),
       ])
     );
     expect(errorIds).toEqual(
-      expect.arrayContaining([enhancedSuperAppIds.error(invalidInputError.id)])
+      expect.arrayContaining([platformIds.error(invalidInputError.id)])
     );
   });
 });

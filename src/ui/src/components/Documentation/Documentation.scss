@@ -170,12 +170,13 @@ body {
   left: 0;
   top: 0;
   width: 280px;
+  box-sizing: border-box;
   height: 100vh;
   background: var(--docs-sidebar-bg);
   color: white;
   padding: $spacing-xxl $spacing-lg;
   padding-top: 0px;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden; // prevent accidental horizontal scroll twitch
   z-index: 1000;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
@@ -184,6 +185,7 @@ body {
   max-width: 600px;
   overscroll-behavior: contain; // avoid chaining to the page
   container-type: inline-size; // enable container queries based on width
+  scrollbar-gutter: stable;
 
   // Custom scrollbar styling
   &::-webkit-scrollbar {
@@ -242,7 +244,7 @@ body {
         label {
           display: none;
         }
-        input {
+        .docs-namespace-input__field input {
           padding-left: 8px;
           min-width: 0;
         }
@@ -311,17 +313,29 @@ body {
   display: flex;
   gap: $spacing-md;
   align-items: center;
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-md;
+  padding-top: $spacing-lg;
+  width: 100%;
+  min-width: 0;
 
   .docs-namespace-input {
     flex: 1;
     margin-bottom: 0; // Override the default margin
     min-width: 0; // Allow shrinking when sidebar is narrow
+    width: 100%;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
+    label {
+      min-width: 0;
+    }
+
+    .docs-namespace-input__field,
     input {
       min-width: 0; // Allow shrinking when sidebar is narrow
+      max-width: 100%;
     }
   }
   // Stack vertically when sidebar gets narrow
@@ -385,7 +399,7 @@ body {
 }
 
 .docs-nav-container {
-  margin-bottom: $spacing-xl;
+  margin-bottom: $spacing-lg;
   overflow-x: hidden; // prevent horizontal overflow
   padding-right: 5px;
 
@@ -462,8 +476,59 @@ body {
   }
 }
 
+.docs-filter-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+  text-transform: none;
+  letter-spacing: normal;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.96);
+    transform: scale(1.04);
+  }
+
+  &:focus-visible,
+  .docs-tooltip-trigger:focus-visible & {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.98);
+    transform: none;
+  }
+}
+
 .docs-namespace-input {
-  margin-bottom: $spacing-xl;
+  margin-bottom: $spacing-lg;
   min-width: 0; // Allow flex shrinking
 
   label {
@@ -472,7 +537,7 @@ body {
     align-items: center;
     font-size: $font-size-xs;
     color: rgba(255, 255, 255, 0.8);
-    margin-bottom: $spacing-xs;
+    margin-bottom: 3px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -480,66 +545,109 @@ body {
     .docs-label-text {
       flex: 1;
     }
+  }
 
-    .docs-filter-help {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 11px;
-      font-weight: bold;
-      cursor: help;
-      transition: all 0.2s ease;
-      text-transform: none;
-      letter-spacing: normal;
-      flex-shrink: 0;
+  .docs-namespace-input__field {
+    position: relative;
+    margin-bottom: 6px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    contain: layout;
 
-      // Hide on mobile
-      @media (max-width: 768px) {
-        display: none;
+    input {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 6px 36px 6px 12px;
+      border-radius: $border-radius-lg;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      font-size: $font-size-base;
+      transition: $transition-normal;
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      &:focus {
+        outline: none;
+        border-color: $primary-blue;
+        background: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
       }
 
       &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        border-color: rgba(255, 255, 255, 0.4);
-        color: rgba(255, 255, 255, 0.9);
-        transform: scale(1.05);
+        border-color: rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    .docs-namespace-input__clear {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.04);
+      color: #111111;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 1;
+      padding: 0;
+      transition:
+        transform 0.18s ease,
+        background 0.18s ease,
+        color 0.18s ease;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.12);
+        transform: translateY(-50%) scale(1.05);
+      }
+
+      &:focus-visible {
+        outline: 2px solid rgba(0, 0, 0, 0.45);
+        outline-offset: 2px;
       }
     }
   }
 
-  input {
-    width: 100%;
-    min-width: 120px;
-    box-sizing: border-box;
-    padding: $spacing-sm $spacing-md;
-    border-radius: $border-radius-lg;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-    font-size: $font-size-base;
-    transition: $transition-normal;
-    margin-bottom: $spacing-sm; // Ensure spacing from the toggle row
-
-    &::placeholder {
-      color: rgba(255, 255, 255, 0.5);
+  &.docs-namespace-input--active {
+    .docs-label-text,
+    .docs-filter-help {
+      color: #ffe16b;
     }
 
-    &:focus {
-      outline: none;
-      border-color: $primary-blue;
-      background: rgba(255, 255, 255, 0.12);
-      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-    }
+    .docs-namespace-input__field {
+      input {
+        background: linear-gradient(135deg, #ffe15c 0%, #ffef99 100%);
+        border-color: #f6c400;
+        color: #111111;
+        font-weight: 600;
 
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.25);
-      background: rgba(255, 255, 255, 0.1);
+        &::placeholder {
+          color: rgba(0, 0, 0, 0.5);
+        }
+
+        &:hover,
+        &:focus {
+          background: linear-gradient(135deg, #ffe76f 0%, #fff1a8 100%);
+          border-color: #d6a600;
+          box-shadow: 0 0 0 3px rgba(255, 225, 92, 0.35);
+        }
+      }
     }
   }
 }
@@ -548,8 +656,8 @@ body {
 // Visibility Toggles
 // -----------------------------------------------------------------------------
 .docs-visibility-toggles {
-  margin-bottom: $spacing-lg;
-  padding: $spacing-sm;
+  margin-bottom: $spacing-md;
+  padding: 5px 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: $border-radius-md;
   background: linear-gradient(
@@ -558,7 +666,7 @@ body {
     rgba(255, 255, 255, 0.03) 100%
   );
   display: grid;
-  gap: $spacing-xs;
+  gap: 2px;
 }
 
 .docs-visibility-toggle-row {
@@ -570,20 +678,34 @@ body {
   width: 100%;
   justify-content: space-between;
   align-items: center;
-  gap: $spacing-sm;
+  gap: 8px;
   cursor: pointer;
   user-select: none;
-  flex-direction: row-reverse; // Put text on the left, control on the right
+  min-height: 22px;
+
+  .docs-switch-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .docs-switch-control {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
 
   .docs-switch-text {
     color: rgba(255, 255, 255, 0.9);
-    font-size: $font-size-sm;
     letter-spacing: 0.3px;
-    font-size: $font-size-xs;
+    font-size: 10px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: $font-family-base;
+    font-weight: 700;
   }
 }
 
@@ -597,35 +719,41 @@ body {
 .docs-switch-track {
   position: relative;
   display: inline-block;
-  width: 48px;
-  height: 26px;
+  width: 36px;
+  height: 18px;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 9999px;
   transition: $transition-normal;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.25);
   flex-shrink: 0; // Prevent shrinking in tight sidebars
 }
 
 .docs-switch-thumb {
   position: absolute;
   top: 50%;
-  left: 4px;
-  width: 18px;
-  height: 18px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
   background: var(--docs-bg-primary);
   border-radius: 50%;
   transform: translate(0, -50%);
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
 .docs-switch:hover .docs-switch-track {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.docs-switch-input:focus + .docs-switch-track {
-  outline: none;
+.docs-switch-input:focus-visible + .docs-switch-track,
+.docs-switch:focus-within .docs-switch-track {
+  outline: 2px solid rgba(var(--primary-rgb), 0.95);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px var(--docs-bg-primary),
+    0 0 0 4px rgba(var(--primary-rgb), 0.45),
+    inset 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .docs-switch-input:checked + .docs-switch-track {
@@ -634,7 +762,7 @@ body {
 }
 
 .docs-switch-input:checked + .docs-switch-track .docs-switch-thumb {
-  transform: translate(22px, -50%);
+  transform: translate(18px, -50%);
   background: #eaf6ff;
 }
 
@@ -903,6 +1031,12 @@ body {
   justify-content: space-between;
 }
 
+.overview-header__stats-button {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
 .overview-support-block {
   margin-top: $spacing-xxl;
 }
@@ -1091,18 +1225,17 @@ body {
       }
     }
 
-    &--connections {
-      background: linear-gradient(135deg, #546e7a, #37474f);
-      box-shadow: 0 4px 20px rgba(84, 110, 122, 0.2);
-      cursor: default;
+    &--topology {
+      background: linear-gradient(135deg, #0f172a, #0f766e);
+      box-shadow: 0 4px 20px rgba(15, 118, 110, 0.22);
 
       &:hover {
         background: linear-gradient(
           135deg,
-          color.adjust(#546e7a, $lightness: 10%),
-          color.adjust(#37474f, $lightness: 10%)
+          color.adjust(#0f172a, $lightness: 8%),
+          color.adjust(#0f766e, $lightness: 8%)
         );
-        box-shadow: 0 20px 40px rgba(84, 110, 122, 0.4);
+        box-shadow: 0 20px 40px rgba(15, 118, 110, 0.38);
       }
     }
 

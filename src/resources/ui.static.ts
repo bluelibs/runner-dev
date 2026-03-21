@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from "express";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
+import { applyDocsUiRuntimeReplacements } from "./docsUiAssets";
 
 export function createUiStaticRouter(uiDir: string): Router {
   const router = express.Router();
@@ -25,16 +26,9 @@ export function createUiStaticRouter(uiDir: string): Router {
 
       let data = await fs.readFile(filePath, "utf8");
 
-      const replacements: [string, string][] = [
-        ["__API_URL__", process.env.API_URL ?? ""],
-        // [AI-CHAT-DISABLED] OpenAI env injection disabled
-        // ["__OPENAI_API_BASE_URL__", process.env.OPENAI_API_BASE_URL ?? ""],
-        // ["__OPENAI_API_KEY__", process.env.OPENAI_API_KEY ?? ""],
-      ];
-
-      for (const [token, value] of replacements) {
-        data = data.split(token).join(JSON.stringify(value));
-      }
+      data = applyDocsUiRuntimeReplacements(data, {
+        apiUrl: process.env.API_URL ?? "",
+      });
 
       jsCache.set(cacheKey, data);
       res.setHeader("Content-Type", "application/javascript");

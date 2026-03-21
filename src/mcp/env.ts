@@ -1,4 +1,5 @@
 export const ENDPOINT = process.env.ENDPOINT || process.env.GRAPHQL_ENDPOINT;
+export const SNAPSHOT_FILE = process.env.SNAPSHOT_FILE;
 
 export const ALLOW_MUTATIONS =
   (process.env.ALLOW_MUTATIONS || "").toLowerCase() === "true";
@@ -27,6 +28,10 @@ export function getEndpoint(): string | undefined {
   return process.env.ENDPOINT || process.env.GRAPHQL_ENDPOINT;
 }
 
+export function getSnapshotFile(): string | undefined {
+  return process.env.SNAPSHOT_FILE;
+}
+
 export function assertEndpoint(): string {
   const endpoint = getEndpoint();
   if (!endpoint) {
@@ -35,4 +40,33 @@ export function assertEndpoint(): string {
     );
   }
   return endpoint;
+}
+
+export function assertSnapshotFile(): string {
+  const snapshotFile = getSnapshotFile();
+  if (!snapshotFile) {
+    throw new Error(
+      "SNAPSHOT_FILE env variable is required to use the snapshot-backed MCP server"
+    );
+  }
+  return snapshotFile;
+}
+
+export function getGraphqlSourceDescription(): string | undefined {
+  const snapshotFile = getSnapshotFile();
+  if (snapshotFile) {
+    return `snapshot:${snapshotFile}`;
+  }
+
+  return getEndpoint();
+}
+
+export function assertGraphqlSourceDescription(): string {
+  const source = getGraphqlSourceDescription();
+  if (!source) {
+    throw new Error(
+      "Set ENDPOINT/GRAPHQL_ENDPOINT for a live server or SNAPSHOT_FILE for an exported snapshot."
+    );
+  }
+  return source;
 }

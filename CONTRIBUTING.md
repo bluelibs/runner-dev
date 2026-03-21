@@ -33,6 +33,16 @@ npm run play:cli
 npm run demo:query
 ```
 
+If you want a frozen visual docs export from the enhanced play app instead of a live server:
+
+```bash
+npm run play:export
+npm run play:export -- ./my-export-dir
+```
+
+This writes a static catalog to `./runner-dev-catalog` by default, or to the custom path you pass after `--`.
+The exported `index.html` is standalone and can be opened directly.
+
 ## Testing
 
 - Unit/integration tests are executed via Jest: `npm test`.

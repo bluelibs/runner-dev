@@ -15,7 +15,7 @@ import { CustomGraphQLContext } from "../context";
 import { ResourceType } from "./ResourceType";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
-import { convertJsonSchemaToReadable } from "../../utils/zod";
+import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { HookType } from "./HookType";
 import { EventLaneSummaryType, RpcLaneSummaryType } from "./LaneSummaryTypes";
 
@@ -46,7 +46,7 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
     },
     eventLane: {
       description:
-        "Event lane summary derived from globals.tags.eventLane when present.",
+        "Event lane summary derived from Event Lane applyTo() assignments when present.",
       type: EventLaneSummaryType,
     },
     rpcLane: {
@@ -91,28 +91,14 @@ export const EventType: GraphQLObjectType = new GraphQLObjectType({
     registeredBy: {
       description: "Id of the resource that registered this event (if any)",
       type: GraphQLString,
-      resolve: (node: any, _args, ctx: CustomGraphQLContext) => {
-        if (node.registeredBy) return node.registeredBy;
-        const allResources = ctx.introspector.getResources();
-        const found = allResources.find((r) =>
-          (r.registers || []).includes(node.id)
-        );
-        return found?.id ?? null;
-      },
+      resolve: (node: any, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResourceId(node),
     },
     registeredByResolved: {
       description: "Resource that registered this event (resolved, if any)",
       type: ResourceType,
-      resolve: (node: any, _args, ctx: CustomGraphQLContext) => {
-        if (node.registeredBy) {
-          return ctx.introspector.getResource(node.registeredBy);
-        }
-        const allResources = ctx.introspector.getResources();
-        return (
-          allResources.find((r) => (r.registers || []).includes(node.id)) ||
-          null
-        );
-      },
+      resolve: (node: any, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getRegisteredByResource(node),
     },
     ...baseElementCommonFields(),
   }),
@@ -128,7 +114,7 @@ export const EventFilterInput = new GraphQLInputObjectType({
     },
     hideSystem: {
       description:
-        "When true, hides internal/system events (runner-dev/globals).",
+        "When true, hides system namespace events (`system` / `system.*`).",
       type: GraphQLBoolean,
     },
     idIncludes: {

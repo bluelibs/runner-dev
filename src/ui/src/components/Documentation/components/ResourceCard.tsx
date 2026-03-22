@@ -41,6 +41,45 @@ export interface ResourceCardProps {
 }
 
 type IsolationRuleSource = "exports" | "deny" | "only";
+type LifecycleMethodTone = "core" | "runtime" | "probe";
+
+const LIFECYCLE_METHODS: Array<{
+  key: "hasInit" | "hasReady" | "hasCooldown" | "hasDispose" | "hasHealthCheck";
+  label: string;
+  detail: string;
+  tone: LifecycleMethodTone;
+}> = [
+  {
+    key: "hasInit",
+    label: "init",
+    detail: "Bootstraps the resource value.",
+    tone: "core",
+  },
+  {
+    key: "hasReady",
+    label: "ready",
+    detail: "Runs after startup dependencies settle.",
+    tone: "runtime",
+  },
+  {
+    key: "hasCooldown",
+    label: "cooldown",
+    detail: "Stops fresh work before teardown.",
+    tone: "runtime",
+  },
+  {
+    key: "hasDispose",
+    label: "dispose",
+    detail: "Releases resources during shutdown.",
+    tone: "core",
+  },
+  {
+    key: "hasHealthCheck",
+    label: "health",
+    detail: "Exposes a runtime health probe.",
+    tone: "probe",
+  },
+];
 
 export const ResourceCard: React.FC<ResourceCardProps> = ({
   resource,
@@ -81,6 +120,36 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const hasRpcLanesSurface = isRpcLanesResource(resource);
   const rootResource = introspector.getRoot();
   const isRootResource = rootResource.id === resource.id;
+  const resources = introspector.getResources();
+  const lifecycleMethods = React.useMemo(
+    () =>
+      LIFECYCLE_METHODS.filter((method) => Boolean(resource[method.key])).map(
+        (method) => ({
+          ...method,
+          available: true,
+        })
+      ),
+    [resource]
+  );
+
+  const resolveAdaptiveReferenceElement = React.useCallback(
+    (id: string) => {
+      return (
+        introspector.getTask(id) ??
+        introspector.getHook(id) ??
+        introspector.getResource(id) ??
+        introspector.getEvent(id) ??
+        introspector.getMiddleware(id) ??
+        introspector.getError(id) ??
+        introspector.getAsyncContext(id) ??
+        introspector.getTag(id) ?? {
+          id,
+          registeredBy: null,
+        }
+      );
+    },
+    [introspector]
+  );
 
   const openIsolationWildcardModal = React.useCallback(
     (source: IsolationRuleSource, rule: string) => {
@@ -266,20 +335,45 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             {resource.isolation?.exportsMode ?? "unset"}
           </InfoBlock>
 
-          <InfoBlock prefix="resource-card" label="Lifecycle Hooks:">
-            {[
-              resource.hasReady && "ready",
-              resource.hasCooldown && "cooldown",
-              resource.hasHealthCheck && "health",
-            ]
-              .filter(Boolean)
-              .join(", ") || "None"}
+          <InfoBlock prefix="resource-card" label="Lifecycle Methods:">
+            <div className="resource-card__lifecycle">
+              {lifecycleMethods.length > 0 ? (
+                <>
+                  <div className="resource-card__lifecycle-strip">
+                    {lifecycleMethods.map((method) => (
+                      <div
+                        key={method.label}
+                        className={`resource-card__lifecycle-chip resource-card__lifecycle-chip--${method.tone}`}
+                        title={method.detail}
+                      >
+                        <span className="resource-card__lifecycle-chip__name">
+                          {method.label}
+                        </span>
+                        <span className="resource-card__lifecycle-chip__detail">
+                          {method.detail}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <span className="resource-card__lifecycle-caption">
+                    Declared resource lifecycle surface detected from the
+                    implementation.
+                  </span>
+                </>
+              ) : (
+                <span className="resource-card__lifecycle-empty">
+                  No custom lifecycle methods declared.
+                </span>
+              )}
+            </div>
           </InfoBlock>
 
           {resource.isolation && (
             <ResourceIsolationSection
               isolation={resource.isolation}
               onOpenWildcard={openIsolationWildcardModal}
+              resolveReferenceElement={resolveAdaptiveReferenceElement}
+              resources={resources}
             />
           )}
 

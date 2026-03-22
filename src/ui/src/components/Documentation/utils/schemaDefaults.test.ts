@@ -17,9 +17,12 @@ describe("computeSchemaDefaultValue", () => {
 
   test("uses a friendly fallback for plain strings", () => {
     expect(
-      computeSchemaDefaultValue({
-        type: "string",
-      }, { fieldName: "statusLabel" })
+      computeSchemaDefaultValue(
+        {
+          type: "string",
+        },
+        { fieldName: "statusLabel" }
+      )
     ).toBe("status-label-sample");
   });
 

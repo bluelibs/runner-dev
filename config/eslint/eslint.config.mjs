@@ -79,6 +79,37 @@ export default [
     },
   },
   {
+    // UI test files run under Jest and should expose its globals in editors.
+    files: ["src/ui/**/*.test.ts", "src/ui/**/*.test.tsx"],
+    plugins: {
+      jest: (await import("eslint-plugin-jest")).default,
+    },
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.jest,
+      },
+      parserOptions: {
+        project: "src/ui/tsconfig.json",
+        tsconfigRootDir: rootDir,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+  {
     // Test files
     files: ["src/__tests__/**/*.ts"],
     plugins: {

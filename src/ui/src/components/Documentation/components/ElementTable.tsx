@@ -1,6 +1,6 @@
 import React from "react";
 import { MarkdownRenderer } from "../utils/markdownUtils";
-import { getOverviewDisplayId } from "../utils/overviewIds";
+import { OverviewIdLink } from "./common/OverviewIdLink";
 import "./ElementTable.scss";
 
 type SortKey = "id" | "title" | "description" | "usedBy" | "visibility";
@@ -72,9 +72,6 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   const [expandedMap, setExpandedMap] = React.useState<Record<string, boolean>>(
     {}
   );
-  const [expandedIdMap, setExpandedIdMap] = React.useState<
-    Record<string, boolean>
-  >({});
   const [clampedMap, setClampedMap] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -257,10 +254,6 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     setExpandedMap((prev) => ({ ...prev, [elementId]: !prev[elementId] }));
   };
 
-  const toggleIdExpanded = (elementId: string) => {
-    setExpandedIdMap((prev) => ({ ...prev, [elementId]: !prev[elementId] }));
-  };
-
   React.useEffect(() => {
     const checkAllClamped = () => {
       const newClampedMap: Record<string, boolean> = {};
@@ -333,9 +326,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
           <button
             type="button"
             className={`element-table__scope-toggle ${
-              showTaskMiddlewares
-                ? "element-table__scope-toggle--active"
-                : ""
+              showTaskMiddlewares ? "element-table__scope-toggle--active" : ""
             }`}
             onClick={() => setShowTaskMiddlewares((value) => !value)}
             aria-pressed={showTaskMiddlewares}
@@ -516,63 +507,25 @@ export const ElementTable: React.FC<ElementTableProps> = ({
             {sortedElements.map((element) => {
               const isExpanded = !!expandedMap[element.id];
               const usedByCount = getUsedByCount(element);
-              const isIdExpanded = !!expandedIdMap[element.id];
-              const displayId = getOverviewDisplayId(element, resources);
-              const visibleLabel = (
-                isIdExpanded
-                  ? displayId.fullSegments
-                  : displayId.collapsedSegments
-              ).join(" > ");
 
               return (
                 <tr key={element.id} className="element-table__row">
                   <td className="element-table__cell element-table__cell--id">
                     <div className="element-table__id-container">
-                      <code
-                        className={`element-table__id-code ${
-                          isIdExpanded ? "element-table__id-code--expanded" : ""
-                        }`}
-                      >
-                        {displayId.hasHiddenAncestors && (
-                          <>
-                            <button
-                              type="button"
-                              className="element-table__id-expand"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                toggleIdExpanded(element.id);
-                              }}
-                              aria-label={
-                                isIdExpanded
-                                  ? `Collapse full ID for ${element.id}`
-                                  : `Expand full ID for ${element.id}`
-                              }
-                              title={
-                                isIdExpanded
-                                  ? `Collapse full ID for ${element.id}`
-                                  : `Expand full ID for ${element.id}`
-                              }
-                            >
-                              {isIdExpanded ? "−" : "..."}
-                            </button>
-                            {!isIdExpanded && (
-                              <span className="element-table__id-separator">
-                                &gt;
-                              </span>
-                            )}
-                          </>
-                        )}
-                        <a
-                          href={`#element-${element.id}`}
-                          className="element-table__id-link"
-                          title={element.id}
-                        >
-                          <span className="element-table__id-label">
-                            {visibleLabel}
-                          </span>
-                        </a>
-                      </code>
+                      <OverviewIdLink
+                        element={element}
+                        resources={resources}
+                        href={`#element-${element.id}`}
+                        classNames={{
+                          shell: "element-table__id-shell",
+                          code: "element-table__id-code",
+                          codeExpanded: "element-table__id-code--expanded",
+                          label: "element-table__id-label",
+                          link: "element-table__id-link",
+                          expand: "element-table__id-expand",
+                          separator: "element-table__id-separator",
+                        }}
+                      />
                     </div>
                   </td>
 

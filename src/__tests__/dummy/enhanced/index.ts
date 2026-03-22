@@ -1,50 +1,43 @@
-import { RegisterableItems, r } from "@bluelibs/runner";
+import type { OverridableElements, RegisterableItems } from "@bluelibs/runner";
+import { r } from "@bluelibs/runner";
 import {
-  catalogDomainResource,
-  enhancedDomainOverrides,
-  enhancedDomainRegistrations,
-  ENHANCED_DOMAIN_IDS,
-  ordersDomainResource,
-  platformDomainResource,
-} from "./domains";
-import {
+  catalogDomainOverrides,
+  catalogDomainRegistrations,
   catalogProjectionHook,
   catalogProjectionResource,
   catalogSearchTask,
-  catalogShowcaseOverrides,
-  catalogShowcaseRegistrations,
-  durableOrderApprovalTask,
-  enhancedShowcaseModules,
-  enhancedShowcaseOverrides,
-  enhancedShowcaseRegistrations,
   eventLaneCatalogProjectionUpdatedEvent,
-  eventLanesShowcaseRegistration,
   eventLanesShowcaseResource,
   featuredInspectorTask,
   featuredTag,
   interceptorBaseTask,
   interceptorConsumerTask,
   interceptorInstallerResource,
-  invalidInputError,
   isolationBoundaryResource,
-  ordersShowcaseRegistrations,
-  platformShowcaseRegistrations,
   privateCacheResource,
   publicCatalogResource,
-  rpcLaneCatalogUpdatedEvent,
   rpcLaneCatalogSyncTask,
+  rpcLaneCatalogUpdatedEvent,
   rpcLanePricingPreviewTask,
-  rpcLanesShowcaseRegistration,
   rpcLanesShowcaseResource,
+} from "./domains/catalog";
+import {
+  ordersDomainRegistrations,
+  durableOrderApprovalTask,
   runDurableOrderApprovalTask,
-  showcaseDurableRegistration,
   showcaseDurableResource,
   startDurableOrderApprovalTask,
-  supportContextAndErrorProbeTask,
+} from "./domains/orders";
+import {
+  platformDomainRegistrations,
+  databaseResource,
+  httpServerResource,
+  httpTag,
+  invalidInputError,
+  mikroOrmResource,
   supportRequestContext,
   supportRequestContextMiddleware,
-  type EnhancedShowcaseModule,
-} from "./showcases";
+} from "./domains/platform";
 
 export const ENHANCED_SUPERAPP_ID = "enhanced-superapp";
 
@@ -79,27 +72,49 @@ function createScopedIds(prefix: string) {
 
 export const enhancedSuperAppIds = {
   ...createScopedIds(ENHANCED_SUPERAPP_ID),
-  platform: createScopedIds(
-    `${ENHANCED_SUPERAPP_ID}.${ENHANCED_DOMAIN_IDS.platform}`
-  ),
-  catalog: createScopedIds(
-    `${ENHANCED_SUPERAPP_ID}.${ENHANCED_DOMAIN_IDS.catalog}`
-  ),
-  orders: createScopedIds(
-    `${ENHANCED_SUPERAPP_ID}.${ENHANCED_DOMAIN_IDS.orders}`
-  ),
+  platform: createScopedIds(`${ENHANCED_SUPERAPP_ID}.platform`),
+  catalog: createScopedIds(`${ENHANCED_SUPERAPP_ID}.catalog`),
+  orders: createScopedIds(`${ENHANCED_SUPERAPP_ID}.orders`),
   scopedResource(localId: string) {
     return createScopedIds(`${ENHANCED_SUPERAPP_ID}.${localId}`);
   },
 };
 
+export const enhancedDomainRegistrations: RegisterableItems[] = [
+  ...platformDomainRegistrations,
+  ...catalogDomainRegistrations,
+  ...ordersDomainRegistrations,
+];
+
+export const enhancedDomainOverrides: OverridableElements[] = [
+  ...catalogDomainOverrides,
+];
+
+export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
+  return r
+    .resource("enhanced-superapp")
+    .meta({
+      title: "Reference Commerce Platform",
+      description:
+        "Realistic local reference app for Runner Dev docs and topology.\n\n- Composed from platform, catalog, and orders domains\n- Simulates HTTP, persistence, lanes, middleware, and durable workflows",
+    })
+    .register([...enhancedDomainRegistrations, ...extra])
+    .overrides(enhancedDomainOverrides)
+    .init(async () => {
+      console.log("[enhanced.play] Reference commerce app ready.");
+      console.log(
+        "[enhanced.play] Domains: platform, catalog, orders. Surfaces: HTTP, database, ORM, isolation, interceptors, lanes, durable workflows."
+      );
+      return {};
+    })
+    .build();
+};
+
 export {
-  ENHANCED_DOMAIN_IDS,
-  platformDomainResource,
-  catalogDomainResource,
-  ordersDomainResource,
-  enhancedDomainRegistrations,
-  enhancedDomainOverrides,
+  httpTag,
+  httpServerResource,
+  databaseResource,
+  mikroOrmResource,
   featuredTag,
   publicCatalogResource,
   privateCacheResource,
@@ -116,44 +131,12 @@ export {
   rpcLanePricingPreviewTask,
   rpcLaneCatalogSyncTask,
   rpcLanesShowcaseResource,
-  rpcLanesShowcaseRegistration,
   eventLanesShowcaseResource,
-  eventLanesShowcaseRegistration,
   showcaseDurableResource,
-  showcaseDurableRegistration,
   durableOrderApprovalTask,
   runDurableOrderApprovalTask,
   startDurableOrderApprovalTask,
   supportRequestContext,
   supportRequestContextMiddleware,
   invalidInputError,
-  supportContextAndErrorProbeTask,
-  enhancedShowcaseModules,
-  enhancedShowcaseOverrides,
-  enhancedShowcaseRegistrations,
-  catalogShowcaseRegistrations,
-  catalogShowcaseOverrides,
-  platformShowcaseRegistrations,
-  ordersShowcaseRegistrations,
-  type EnhancedShowcaseModule,
-};
-
-export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
-  return r
-    .resource("enhanced-superapp")
-    .meta({
-      title: "Play App",
-      description:
-        "Minimal Runner app skeleton for docs and topology.\n\n- Composed from platform, catalog, and orders\n- Exercises tags, isolation, interceptors, lanes, and durable flows",
-    })
-    .register([...enhancedDomainRegistrations, ...extra])
-    .overrides(enhancedDomainOverrides)
-    .init(async () => {
-      console.log("[enhanced.play] Lean showcase app ready.");
-      console.log(
-        "[enhanced.play] Domains: platform, catalog, orders. Features: tags/handlers, isolation, interceptors, lanes, durable, support."
-      );
-      return {};
-    })
-    .build();
 };

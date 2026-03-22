@@ -1,38 +1,35 @@
-# Enhanced Dummy Fixtures
+# Enhanced Reference App Fixtures
 
-This folder contains internal fixtures used by `runner-dev` tests and local exploration.
-It is intentionally test-oriented and not a copy/paste template for production apps.
+This folder contains the deterministic reference app used by `npm run play`,
+`npm run play:export`, and the runner-dev integration tests.
+
+It is still fixture code, but it is intentionally shaped like a believable
+production system rather than a feature showcase sampler platter.
 
 ## Purpose
 
-- Exercise introspection contracts across multiple capabilities in one compact app.
-- Keep deterministic IDs and relationships for component and GraphQL assertions.
-- Provide a quick local playground for validating structural changes.
+- Exercise runner-dev introspection contracts against a realistic topology.
+- Keep stable IDs and relationships for docs, GraphQL, and component tests.
+- Provide a local reference app that looks like an actual system in the docs UI.
 
-## Current Layout
+## Layout
 
-- `index.ts`: builds `enhanced.superapp` from domain roots.
-- `domains.ts`: composes the fixture into `platform`, `catalog`, and `orders`.
-- `showcases/`: focused capability slices reused by the domain roots.
-
-## Capability Coverage
-
-- `tagsIsolation.showcase.ts`: tag handlers and isolation rules.
-- `interceptors.showcase.ts`: interceptor ownership and middleware wiring.
-- `lanes.showcase.ts`: RPC lane + Event lane entities and lane resources.
-- `durable.showcase.ts`: durable workflow resource/task relationships.
-- `support.showcase.ts`: support context and error usage paths.
+- `index.ts`: builds `enhanced-superapp` from the domain roots.
+- `domains/platform`: HTTP edge, request context, database, ORM, platform health.
+- `domains/catalog`: public catalog boundary, repositories, sync lanes, projections.
+- `domains/orders`: durable order approval workflow and order persistence nodes.
+- `schemas.ts`: shared schemas used by the reference app surfaces.
 
 ## Topology Goal
 
-The fixture should look like a minimal real Runner app:
+The reference app should read like a small commerce platform:
 
-- `platform`: async context, shared middleware, typed error
-- `catalog`: search, tags, interceptors, events, hooks, lanes
-- `orders`: durable workflow surface
+- `platform`: HTTP server, async context, middleware, errors, database, ORM
+- `catalog`: public search flow, repository, policies, lanes, projection updates
+- `orders`: durable order review and approval flow
 
 ## Maintenance Notes
 
-- Keep fixture IDs stable unless tests are updated in the same change.
-- Favor small, composable showcase modules over monolithic examples.
-- Treat this folder as a test contract, not end-user documentation.
+- Keep fixture IDs stable unless dependent tests change in the same pass.
+- Prefer one element per file with small barrel files for assembly.
+- Public-facing copy should describe a realistic reference app, not a toy showcase.

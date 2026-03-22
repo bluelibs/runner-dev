@@ -934,8 +934,12 @@ export type Resource = BaseElement & {
   filePath: Maybe<Scalars['String']['output']>;
   /** True when this resource defines a cooldown() lifecycle hook. */
   hasCooldown: Scalars['Boolean']['output'];
+  /** True when this resource defines a dispose() lifecycle hook. */
+  hasDispose: Scalars['Boolean']['output'];
   /** True when this resource defines a health() probe for runtime health reports. */
   hasHealthCheck: Scalars['Boolean']['output'];
+  /** True when this resource defines an init() lifecycle hook. */
+  hasInit: Scalars['Boolean']['output'];
   /** True when this resource defines a ready() lifecycle hook. */
   hasReady: Scalars['Boolean']['output'];
   /** Unique identifier for the element */
@@ -2130,7 +2134,9 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, ResourceFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   hasCooldown: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  hasDispose: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hasHealthCheck: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  hasInit: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hasReady: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;

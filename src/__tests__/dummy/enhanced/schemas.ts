@@ -1,8 +1,86 @@
 import { Match, type CheckSchemaLike } from "@bluelibs/runner";
 
 const regionPattern = Match.OneOf("US", "EU", "APAC");
+const httpMethodPattern = Match.OneOf("GET", "POST", "PATCH");
+const visibilityPattern = Match.OneOf("public", "internal");
 const positiveNumberPattern = Match.Range({ min: 0, inclusive: false });
 const nonNegativeIntegerPattern = Match.Range({ min: 0, integer: true });
+
+export const HttpTagConfigSchema = Match.compile(
+  Match.ObjectIncluding({
+    method: httpMethodPattern,
+    path: String,
+    visibility: visibilityPattern,
+  })
+) as CheckSchemaLike<{
+  method: "GET" | "POST" | "PATCH";
+  path: string;
+  visibility: "public" | "internal";
+}>;
+
+export const FeaturedTagConfigSchema = Match.compile(
+  Match.ObjectIncluding({
+    source: Match.OneOf("catalog", "search", "api"),
+  })
+) as CheckSchemaLike<{
+  source: "catalog" | "search" | "api";
+}>;
+
+export const HttpRequestContextSchema = Match.compile(
+  Match.ObjectIncluding({
+    requestId: String,
+    method: httpMethodPattern,
+    path: String,
+    actorId: Match.Optional(String),
+  })
+) as CheckSchemaLike<{
+  requestId: string;
+  method: "GET" | "POST" | "PATCH";
+  path: string;
+  actorId?: string;
+}>;
+
+export const HttpServerConfigSchema = Match.compile(
+  Match.ObjectIncluding({
+    port: nonNegativeIntegerPattern,
+    host: String,
+  })
+) as CheckSchemaLike<{
+  port: number;
+  host: string;
+}>;
+
+export const DatabaseConfigSchema = Match.compile(
+  Match.ObjectIncluding({
+    client: Match.OneOf("postgresql"),
+    database: String,
+    poolMin: nonNegativeIntegerPattern,
+    poolMax: nonNegativeIntegerPattern,
+  })
+) as CheckSchemaLike<{
+  client: "postgresql";
+  database: string;
+  poolMin: number;
+  poolMax: number;
+}>;
+
+export const MikroOrmConfigSchema = Match.compile(
+  Match.ObjectIncluding({
+    contextName: String,
+    debug: Boolean,
+  })
+) as CheckSchemaLike<{
+  contextName: string;
+  debug: boolean;
+}>;
+
+export const RepositoryConfigSchema = Match.compile(
+  Match.ObjectIncluding({
+    entityName: String,
+  })
+) as CheckSchemaLike<{
+  entityName: string;
+}>;
 
 export const InterceptorInputSchema = Match.compile(
   Match.ObjectIncluding({
@@ -20,30 +98,26 @@ export const InterceptorResultSchema = Match.compile(
   intercepted: boolean;
 }>;
 
-export const FeaturedTagConfigSchema = Match.compile(
-  Match.ObjectIncluding({
-    source: Match.OneOf("catalog", "search"),
-  })
-) as CheckSchemaLike<{
-  source: "catalog" | "search";
-}>;
-
 export const CatalogSearchInputSchema = Match.compile(
   Match.ObjectIncluding({
     query: Match.Optional(String),
+    requestId: Match.Optional(String),
   })
 ) as CheckSchemaLike<{
   query?: string;
+  requestId?: string;
 }>;
 
 export const CatalogSearchResultSchema = Match.compile(
   Match.ObjectIncluding({
     query: String,
     total: nonNegativeIntegerPattern,
+    source: Match.OneOf("catalog-http-handler"),
   })
 ) as CheckSchemaLike<{
   query: string;
   total: number;
+  source: "catalog-http-handler";
 }>;
 
 export const FeaturedInspectorResultSchema = Match.compile(
@@ -172,20 +246,24 @@ export const SupportProbeInputSchema = Match.compile(
   Match.ObjectIncluding({
     fail: Match.Optional(Boolean),
     requestId: Match.Optional(String),
+    actorId: Match.Optional(String),
   })
 ) as CheckSchemaLike<{
   fail?: boolean;
   requestId?: string;
+  actorId?: string;
 }>;
 
 export const SupportProbeResultSchema = Match.compile(
   Match.ObjectIncluding({
     ok: Boolean,
     requestId: String,
+    actorId: String,
   })
 ) as CheckSchemaLike<{
   ok: boolean;
   requestId: string;
+  actorId: string;
 }>;
 
 export const InvalidInputErrorDataSchema = Match.compile(

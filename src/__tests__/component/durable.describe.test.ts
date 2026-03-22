@@ -221,7 +221,7 @@ describe("durable.describe integration", () => {
           }),
           expect.objectContaining({
             kind: "note",
-            message: "Order approved in durable showcase flow",
+            message: "Order review completed in reference workflow",
           }),
         ])
       );

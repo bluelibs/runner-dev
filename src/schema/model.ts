@@ -262,6 +262,8 @@ export interface Resource extends BaseElement {
       validatorCount: number;
     } | null;
   } | null;
+  hasInit?: boolean;
+  hasDispose?: boolean;
   hasCooldown?: boolean;
   hasReady?: boolean;
   hasHealthCheck?: boolean;

@@ -33,7 +33,7 @@ npm run play:cli
 npm run demo:query
 ```
 
-If you want a frozen visual docs export from the enhanced play app instead of a live server:
+If you want a frozen visual docs export from the reference commerce app instead of a live server:
 
 ```bash
 npm run play:export

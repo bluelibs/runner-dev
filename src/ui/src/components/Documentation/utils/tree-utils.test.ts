@@ -82,6 +82,32 @@ describe("tree-utils", () => {
       "metrics",
     ]);
     expect(tree[0].count).toBe(3);
+    expect(tree[0].elementId).toBe("runner");
+  });
+
+  test("upgrades an existing namespace folder into a navigable mixed node when the concrete resource is discovered later", () => {
+    const tree = buildNamespaceTree([
+      {
+        id: "enhanced-superapp.catalog.isolation-boundary.public-catalog",
+        type: "resource",
+      },
+      { id: "enhanced-superapp.catalog.isolation-boundary", type: "resource" },
+    ]);
+
+    const enhanced = tree.find((node) => node.id === "enhanced-superapp");
+    const catalog = enhanced?.children.find((node) => node.label === "catalog");
+    const isolationBoundary = catalog?.children.find(
+      (node) => node.label === "isolation-boundary"
+    );
+
+    expect(isolationBoundary?.type).toBe("folder");
+    expect(isolationBoundary?.elementId).toBe(
+      "enhanced-superapp.catalog.isolation-boundary"
+    );
+    expect(isolationBoundary?.children.map((child) => child.label)).toEqual([
+      "public-catalog",
+    ]);
+    expect(isolationBoundary?.count).toBe(2);
   });
 
   test("sorts namespace children as primitive folders, resource folders, direct resources, then the rest", () => {

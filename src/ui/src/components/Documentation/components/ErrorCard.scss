@@ -155,17 +155,7 @@
 // Error Card Schema
 // -----------------------------------------------------------------------------
 .error-card__schema {
-  background: var(--docs-bg-secondary);
-  border: 1px solid var(--docs-border-primary);
-  border-radius: $border-radius-md;
-  padding: $spacing-md;
-}
-
-.error-card__no-schema {
-  color: var(--docs-text-secondary);
-  font-style: italic;
-  text-align: center;
-  padding: $spacing-lg;
+  min-width: 0;
 }
 
 // -----------------------------------------------------------------------------

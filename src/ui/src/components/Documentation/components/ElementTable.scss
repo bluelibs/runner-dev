@@ -324,6 +324,13 @@
     min-width: 0; // Allow flex child to shrink
   }
 
+  &__id-shell {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
   &__id-link {
     color: #60a5fa;
     text-decoration: none;

@@ -6,15 +6,19 @@ import { schema } from "../../schema";
 import {
   catalogSearchTask,
   createEnhancedSuperApp,
+  databaseResource,
   durableOrderApprovalTask,
   enhancedSuperAppIds,
   eventLanesShowcaseResource,
   featuredInspectorTask,
   featuredTag,
+  httpServerResource,
+  httpTag,
   interceptorBaseTask,
   interceptorInstallerResource,
   invalidInputError,
   isolationBoundaryResource,
+  mikroOrmResource,
   eventLaneCatalogProjectionUpdatedEvent,
   privateCacheResource,
   publicCatalogResource,
@@ -47,13 +51,13 @@ const isolationBoundaryIds = {
   },
 };
 
-describe("Enhanced play showcase app", () => {
+describe("Enhanced play reference app", () => {
   let contextValue: TestContextValue;
   let runtime: Awaited<ReturnType<typeof run>> | null = null;
 
   beforeAll(async () => {
     const probe = defineResource({
-      id: "probe-enhanced-play-showcase",
+      id: "probe-enhanced-play-reference-app",
       dependencies: {
         introspector,
         store: resources.store,
@@ -79,7 +83,7 @@ describe("Enhanced play showcase app", () => {
     }
   });
 
-  test("boots and exposes expected showcase nodes", () => {
+  test("boots and exposes expected reference app nodes", () => {
     expect(
       contextValue.introspector.getTask(
         isolationBoundaryIds.task(catalogSearchTask.id)
@@ -93,6 +97,21 @@ describe("Enhanced play showcase app", () => {
     expect(
       contextValue.introspector.getTask(
         ordersIds.task(durableOrderApprovalTask.id)
+      )
+    ).toBeTruthy();
+    expect(
+      contextValue.introspector.getResource(
+        platformIds.resource(httpServerResource.id)
+      )
+    ).toBeTruthy();
+    expect(
+      contextValue.introspector.getResource(
+        platformIds.resource(databaseResource.id)
+      )
+    ).toBeTruthy();
+    expect(
+      contextValue.introspector.getResource(
+        platformIds.resource(mikroOrmResource.id)
       )
     ).toBeTruthy();
     expect(
@@ -116,7 +135,7 @@ describe("Enhanced play showcase app", () => {
     );
 
     expect(rpcLanesNode?.meta?.title).toBe("RPC Lanes");
-    expect(rpcLanesNode?.meta?.description).toContain("catalog RPC lane");
+    expect(rpcLanesNode?.meta?.description).toContain("reference app RPC");
     expect(eventLanesNode?.meta?.title).toBe("Event Lanes");
     expect(eventLanesNode?.meta?.description).toContain("event-lane topology");
   });
@@ -126,29 +145,42 @@ describe("Enhanced play showcase app", () => {
       ordersIds.resource(showcaseDurableResource.id)
     );
 
-    expect(durableNode?.meta?.title).toBe("Durable Runtime");
-    expect(durableNode?.meta?.description).toContain("order approval");
+    expect(durableNode?.meta?.title).toBe("Order Approval Runtime");
+    expect(durableNode?.meta?.description).toContain("order review");
   });
 
   test("exposes tags and tag handlers", async () => {
     const result = await graphql({
       schema,
       source: `
-        query FeaturedTag($tagId: ID!) {
+        query FeaturedTag($tagId: ID!, $httpTagId: ID!) {
           tag(id: $tagId) {
+            id
+            tasks { id }
+            resources { id }
+          }
+          httpTag: tag(id: $httpTagId) {
             id
             tasks { id }
             resources { id }
           }
         }
       `,
-      variableValues: { tagId: catalogIds.tag(featuredTag.id) },
+      variableValues: {
+        tagId: catalogIds.tag(featuredTag.id),
+        httpTagId: platformIds.tag(httpTag.id),
+      },
       contextValue,
     });
 
     expect(result.errors).toBeUndefined();
     const data = result.data as {
       tag: {
+        id: string;
+        tasks: Array<{ id: string }>;
+        resources: Array<{ id: string }>;
+      };
+      httpTag: {
         id: string;
         tasks: Array<{ id: string }>;
         resources: Array<{ id: string }>;
@@ -171,6 +203,16 @@ describe("Enhanced play showcase app", () => {
     expect(handlers).toBeTruthy();
     expect(handlers.tasks.map((task: { id: string }) => task.id)).toEqual(
       expect.arrayContaining([catalogIds.task(featuredInspectorTask.id)])
+    );
+    expect(data.httpTag.id).toBe(platformIds.tag(httpTag.id));
+    expect(data.httpTag.tasks.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining([isolationBoundaryIds.task(catalogSearchTask.id)])
+    );
+    expect(data.httpTag.resources.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining([
+        platformIds.resource(httpServerResource.id),
+        isolationBoundaryIds.resource(publicCatalogResource.id),
+      ])
     );
   });
 
@@ -239,7 +281,7 @@ describe("Enhanced play showcase app", () => {
       schema,
       source: `
         query Interceptors {
-          tasks(idIncludes: "interceptor-") {
+          tasks(idIncludes: "catalog-http-handler") {
             id
             hasInterceptors
             interceptorCount
@@ -300,6 +342,38 @@ describe("Enhanced play showcase app", () => {
       catalogIds.event(eventLaneCatalogProjectionUpdatedEvent.id)
     );
     expect(eventLaneEvent?.eventLane?.laneId).toBe("event-catalog-updates");
+  });
+
+  test("surfaces lifecycle-rich platform resources", async () => {
+    const httpServerNode = contextValue.introspector.getResource(
+      platformIds.resource(httpServerResource.id)
+    );
+    const databaseNode = contextValue.introspector.getResource(
+      platformIds.resource(databaseResource.id)
+    );
+    const ormNode = contextValue.introspector.getResource(
+      platformIds.resource(mikroOrmResource.id)
+    );
+
+    expect(httpServerNode?.hasInit).toBe(true);
+    expect(httpServerNode?.hasReady).toBe(true);
+    expect(httpServerNode?.hasCooldown).toBe(true);
+    expect(httpServerNode?.hasDispose).toBe(true);
+    expect(httpServerNode?.hasHealthCheck).toBe(true);
+
+    expect(databaseNode?.hasInit).toBe(true);
+    expect(databaseNode?.hasReady).toBe(true);
+    expect(databaseNode?.hasCooldown).toBe(true);
+    expect(databaseNode?.hasDispose).toBe(true);
+    expect(databaseNode?.hasHealthCheck).toBe(true);
+
+    expect(ormNode?.dependsOn).toEqual(
+      expect.arrayContaining([platformIds.resource(databaseResource.id)])
+    );
+    expect(ormNode?.hasReady).toBe(true);
+    expect(ormNode?.hasCooldown).toBe(true);
+    expect(ormNode?.hasDispose).toBe(true);
+    expect(ormNode?.hasHealthCheck).toBe(true);
   });
 
   test("keeps durable metadata and support sections visible", async () => {

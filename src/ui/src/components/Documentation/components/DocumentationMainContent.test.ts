@@ -220,4 +220,77 @@ describe("DocumentationMainContent", () => {
       screen.queryByRole("button", { name: "Open Performance Stats" })
     ).toBeNull();
   });
+
+  it("animates the hero header only while overview is active", () => {
+    const { rerender } = render(
+      React.createElement(DocumentationMainContent, {
+        introspector: createIntrospectorStub(),
+        sidebarWidth: 0,
+        tasks: [],
+        resources: [],
+        events: [],
+        hooks: [],
+        middlewares: [],
+        errors: [],
+        asyncContexts: [],
+        tags: [],
+        topologyConnections: 0,
+        sections: [
+          {
+            id: "overview",
+            label: "Overview",
+            icon: "📋",
+            count: null,
+            hasContent: true,
+          },
+          {
+            id: "tasks",
+            label: "Tasks",
+            icon: getDocumentationIcon("tasks"),
+            count: 0,
+            hasContent: true,
+          },
+        ],
+      })
+    );
+
+    expect(document.querySelector(".docs-header--animated")).not.toBeNull();
+
+    window.location.hash = "#tasks";
+    fireEvent(window, new HashChangeEvent("hashchange"));
+
+    rerender(
+      React.createElement(DocumentationMainContent, {
+        introspector: createIntrospectorStub(),
+        sidebarWidth: 0,
+        tasks: [],
+        resources: [],
+        events: [],
+        hooks: [],
+        middlewares: [],
+        errors: [],
+        asyncContexts: [],
+        tags: [],
+        topologyConnections: 0,
+        sections: [
+          {
+            id: "overview",
+            label: "Overview",
+            icon: "📋",
+            count: null,
+            hasContent: true,
+          },
+          {
+            id: "tasks",
+            label: "Tasks",
+            icon: getDocumentationIcon("tasks"),
+            count: 0,
+            hasContent: true,
+          },
+        ],
+      })
+    );
+
+    expect(document.querySelector(".docs-header--animated")).toBeNull();
+  });
 });

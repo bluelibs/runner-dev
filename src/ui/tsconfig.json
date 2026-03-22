@@ -5,8 +5,7 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["vite/client", "jest"],
-    "typeRoots": ["../../node_modules", "../../node_modules/@types"],
+    "types": ["jest"],
     "skipLibCheck": true
   },
   "include": [

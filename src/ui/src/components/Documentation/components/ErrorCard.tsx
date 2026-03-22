@@ -201,13 +201,7 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
             <div className="error-card__section">
               <h4 className="error-card__section__title">Error Data Schema</h4>
               <div className="error-card__schema">
-                {error.dataSchema ? (
-                  <SchemaRenderer schemaString={error.dataSchema} />
-                ) : (
-                  <div className="error-card__no-schema">
-                    No schema defined for error data
-                  </div>
-                )}
+                <SchemaRenderer schemaString={error.dataSchema} />
               </div>
             </div>
           </div>

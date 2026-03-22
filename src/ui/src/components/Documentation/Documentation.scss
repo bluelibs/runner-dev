@@ -809,6 +809,7 @@ body {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: auto;
   scrollbar-gutter: stable;
+  scrollbar-width: auto;
   position: relative;
   padding-right: 0;
 }
@@ -856,7 +857,6 @@ body {
   overflow: hidden;
   background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
   background-size: 400% 400%;
-  animation: gradient-animation 15s ease infinite;
 
   h1 {
     margin: 0 0 10px 0;
@@ -890,6 +890,16 @@ body {
   }
 }
 
+.docs-header--animated {
+  animation: gradient-animation 15s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docs-header--animated {
+    animation: none;
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Sections
 // -----------------------------------------------------------------------------
@@ -905,6 +915,10 @@ body {
     align-items: center;
     gap: $spacing-sm;
   }
+}
+
+.docs-section#live {
+  margin-bottom: 200px;
 }
 
 .docs-section-tabs {
@@ -1394,6 +1408,22 @@ body {
 .docs-component-grid {
   display: grid;
   gap: $spacing-xxl;
+
+  // Long sections render dozens of large cards. Let the browser defer the
+  // heavy card bodies until they approach the viewport.
+  > [id^="element-"] > .task-card__content,
+  > [id^="element-"] > .resource-card__content,
+  > [id^="element-"] > .event-card__content,
+  > [id^="element-"] > .hook-card__content,
+  > [id^="element-"] > .middleware-card__content,
+  > [id^="element-"] > .error-card__content,
+  > [id^="element-"] > .async-context-card__content,
+  > [id^="element-"] > .tag-card__content {
+    content-visibility: auto;
+    contain: layout paint style;
+    contain-intrinsic-size: auto 900px;
+  }
+
   a {
     text-decoration: none;
   }
@@ -1808,6 +1838,14 @@ body {
       &:hover {
         background: rgba(0, 0, 0, 0.4);
       }
+    }
+  }
+
+  .docs-main-content {
+    // Keep the page-level rail easier to grab than nested panel scrollbars.
+    &::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
     }
   }
 }

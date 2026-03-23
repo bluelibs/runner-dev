@@ -10,15 +10,6 @@ export interface StructuredDataPanelProps {
   emptyBadge?: string;
 }
 
-function isEmptyObjectValue(value: unknown): value is Record<string, never> {
-  return (
-    Boolean(value) &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    Object.keys(value).length === 0
-  );
-}
-
 export const StructuredDataPanel: React.FC<StructuredDataPanelProps> = ({
   data,
   textValue,
@@ -32,8 +23,8 @@ export const StructuredDataPanel: React.FC<StructuredDataPanelProps> = ({
   const hasTextValue =
     typeof textValue === "string" && textValue.trim().length > 0;
 
-  if (data && typeof data === "object" && !isEmptyObjectValue(data)) {
-    return <JsonViewer data={data as object} className={classes} />;
+  if (data !== null && typeof data === "object") {
+    return <JsonViewer data={data} className={classes} />;
   }
 
   if (hasTextValue) {

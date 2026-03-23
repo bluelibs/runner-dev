@@ -22,11 +22,11 @@ describe("StructuredConfigBlock", () => {
     expect(screen.getByText("No configuration defined")).toBeTruthy();
   });
 
-  it("renders the empty state for empty object configuration", () => {
+  it("renders JSON for empty object configuration", () => {
     render(React.createElement(StructuredConfigBlock, { value: "{}" }));
 
-    expect(screen.getByText("No configuration defined")).toBeTruthy();
-    expect(screen.queryByTestId("json-viewer")).toBeNull();
+    expect(screen.queryByText("No configuration defined")).toBeNull();
+    expect(screen.getByTestId("json-viewer").textContent).toBe("{}");
   });
 
   it("renders JSON for non-empty object configuration", () => {

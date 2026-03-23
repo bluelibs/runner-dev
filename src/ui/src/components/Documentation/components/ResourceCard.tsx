@@ -26,6 +26,7 @@ import { ResourceSubtreeSection } from "./ResourceSubtreeSection";
 import { ResourceEventLanesSection } from "./ResourceEventLanesSection";
 import { ResourceRpcLanesSection } from "./ResourceRpcLanesSection";
 import { SearchableList } from "./common/SearchableList";
+import { resolveReferenceElement } from "../utils/resolveReferenceElement";
 import {
   isEventLanesResource,
   isRpcLanesResource,
@@ -133,21 +134,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   );
 
   const resolveAdaptiveReferenceElement = React.useCallback(
-    (id: string) => {
-      return (
-        introspector.getTask(id) ??
-        introspector.getHook(id) ??
-        introspector.getResource(id) ??
-        introspector.getEvent(id) ??
-        introspector.getMiddleware(id) ??
-        introspector.getError(id) ??
-        introspector.getAsyncContext(id) ??
-        introspector.getTag(id) ?? {
-          id,
-          registeredBy: null,
-        }
-      );
-    },
+    (id: string) => resolveReferenceElement(introspector, id),
     [introspector]
   );
 

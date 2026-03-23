@@ -20,6 +20,6 @@ export const rpcLanePricingPreviewTask = r
   .run(async (input) => ({
     sku: input.sku,
     adjustedPrice: Number((input.basePrice * 1.03).toFixed(2)),
-    source: "rpc-lane-task" as const,
+    source: "rpc-lane-task",
   }))
   .build();

@@ -34,7 +34,7 @@ export const catalogSearchTask = r
     return {
       query,
       total: results.length,
-      source: "catalog-http-handler" as const,
+      source: "catalog-http-handler",
     };
   })
   .build();

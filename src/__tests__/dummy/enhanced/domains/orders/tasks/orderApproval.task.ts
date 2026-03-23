@@ -1,3 +1,4 @@
+import type { ITask } from "@bluelibs/runner";
 import { r } from "@bluelibs/runner";
 import {
   DurableOrderApprovalInputSchema,
@@ -34,6 +35,14 @@ type DurableOrderApprovalInput = {
   region: "US" | "EU" | "APAC";
 };
 
+type DurableOrderApprovalResult = {
+  orderId: string;
+  status: "approved";
+  riskScore: number;
+  approvalReference: string;
+  cooldownMs: number;
+};
+
 function normalizeDurableOrderApprovalInput(
   input: DurableOrderApprovalInput | null | undefined
 ): DurableOrderApprovalInput {
@@ -53,7 +62,15 @@ function normalizeDurableOrderApprovalInput(
   return { orderId, amount, region };
 }
 
-export const durableOrderApprovalTask = r
+export const durableOrderApprovalTask: ITask<
+  DurableOrderApprovalInput,
+  Promise<DurableOrderApprovalResult>,
+  {
+    durable: typeof showcaseDurableResource;
+    orderRepositoryResource: typeof orderRepositoryResource;
+  },
+  { title: string; description: string }
+> = r
   .task("order-approval")
   .meta({
     title: "Order Approval Workflow",

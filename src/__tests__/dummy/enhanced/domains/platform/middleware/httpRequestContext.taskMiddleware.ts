@@ -11,7 +11,17 @@ function readStringField(input: unknown, key: string): string | null {
     return null;
   }
 
-  return candidate;
+  return candidate.trim();
+}
+
+function readHttpMethod(input: unknown): "GET" | "POST" | "PATCH" {
+  const method = readStringField(input, "method")?.toUpperCase();
+
+  if (method === "POST" || method === "PATCH") {
+    return method;
+  }
+
+  return "GET";
 }
 
 export const supportRequestContextMiddleware = r.middleware
@@ -23,12 +33,7 @@ export const supportRequestContextMiddleware = r.middleware
   })
   .dependencies({ supportRequestContext })
   .run(async ({ task, next }, { supportRequestContext }) => {
-    const method =
-      (readStringField(task.input, "method") as
-        | "GET"
-        | "POST"
-        | "PATCH"
-        | null) ?? "GET";
+    const method = readHttpMethod(task.input);
     const path = readStringField(task.input, "path") ?? "/internal/reference";
     const requestId =
       readStringField(task.input, "requestId") ||

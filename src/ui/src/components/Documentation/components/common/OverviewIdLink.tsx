@@ -70,6 +70,7 @@ export const OverviewIdLink: React.FC<OverviewIdLinkProps> = ({
             <button
               type="button"
               className={expandClassName}
+              aria-expanded={isExpanded}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();

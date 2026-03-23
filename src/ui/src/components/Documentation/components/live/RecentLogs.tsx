@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import type { Introspector } from "../../../../../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "../../config/documentationConstants";
+import { resolveReferenceElement } from "../../utils/resolveReferenceElement";
 import { OverviewIdLink } from "../common/OverviewIdLink";
 import JsonViewer from "../JsonViewer";
 import { BaseModal } from "../modals";
@@ -162,18 +163,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
   }, [selectedLog]);
 
   const resolveSourceElement = useCallback(
-    (sourceId: string) =>
-      introspector.getTask(sourceId) ??
-      introspector.getHook(sourceId) ??
-      introspector.getResource(sourceId) ??
-      introspector.getEvent(sourceId) ??
-      introspector.getMiddleware(sourceId) ??
-      introspector.getError(sourceId) ??
-      introspector.getAsyncContext(sourceId) ??
-      introspector.getTag(sourceId) ?? {
-        id: sourceId,
-        registeredBy: null,
-      },
+    (sourceId: string) => resolveReferenceElement(introspector, sourceId),
     [introspector]
   );
 

@@ -92,7 +92,7 @@ export const enhancedDomainOverrides: OverridableElements[] = [
 
 export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
   return r
-    .resource("enhanced-superapp")
+    .resource(ENHANCED_SUPERAPP_ID)
     .meta({
       title: "Reference Commerce Platform",
       description:
@@ -101,10 +101,6 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
     .register([...enhancedDomainRegistrations, ...extra])
     .overrides(enhancedDomainOverrides)
     .init(async () => {
-      console.log("[enhanced.play] Reference commerce app ready.");
-      console.log(
-        "[enhanced.play] Domains: platform, catalog, orders. Surfaces: HTTP, database, ORM, isolation, interceptors, lanes, durable workflows."
-      );
       return {};
     })
     .build();

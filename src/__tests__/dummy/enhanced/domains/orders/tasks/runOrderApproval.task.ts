@@ -1,3 +1,4 @@
+import type { ITask } from "@bluelibs/runner";
 import { r } from "@bluelibs/runner";
 import {
   DurableOrderApprovalInputSchema,
@@ -6,7 +7,29 @@ import {
 import { showcaseDurableResource } from "../resources/orderApprovalRuntime.resource";
 import { durableOrderApprovalTask } from "./orderApproval.task";
 
-export const runDurableOrderApprovalTask = r
+type DurableOrderApprovalInput = {
+  orderId: string;
+  amount: number;
+  region: "US" | "EU" | "APAC";
+};
+
+type DurableOrderApprovalResult = {
+  orderId: string;
+  status: "approved";
+  riskScore: number;
+  approvalReference: string;
+  cooldownMs: number;
+};
+
+export const runDurableOrderApprovalTask: ITask<
+  DurableOrderApprovalInput,
+  Promise<DurableOrderApprovalResult>,
+  {
+    durable: typeof showcaseDurableResource;
+    durableOrderApprovalTask: typeof durableOrderApprovalTask;
+  },
+  { title: string; description: string }
+> = r
   .task("run-order-approval")
   .meta({
     title: "Run Order Approval Workflow",

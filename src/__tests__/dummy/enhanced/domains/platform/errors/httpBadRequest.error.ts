@@ -1,6 +1,6 @@
 import { r } from "@bluelibs/runner";
 import {
-  InvalidInputErrorData,
+  type InvalidInputErrorData,
   InvalidInputErrorDataSchema,
 } from "../../../schemas";
 

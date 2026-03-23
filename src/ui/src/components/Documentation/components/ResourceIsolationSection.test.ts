@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 
+import "@testing-library/jest-dom";
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ResourceIsolationSection } from "./ResourceIsolationSection";
@@ -51,7 +52,7 @@ describe("ResourceIsolationSection", () => {
       screen.getByRole("button", {
         name: /expand full id for enhanced-app\.catalog\.public-catalog/i,
       })
-    ).toBeTruthy();
+    ).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -63,6 +64,6 @@ describe("ResourceIsolationSection", () => {
       screen.getByRole("link", {
         name: /enhanced-app\s*>\s*catalog\s*>\s*catalog-search/i,
       })
-    ).toBeTruthy();
+    ).toBeInTheDocument();
   });
 });

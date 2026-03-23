@@ -20,7 +20,7 @@ export const orderRepositoryResource = r
     entityName: config.entityName,
     loadById: async (orderId: string) => ({
       orderId,
-      status: "pending-review" as const,
+      status: "pending-review",
     }),
   }))
   .build();

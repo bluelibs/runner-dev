@@ -119,7 +119,7 @@ Key fields:
 - `rpcLane`
 - `interceptorCount`, `hasInterceptors`, `interceptorOwnerIds`
 - `runs(afterTimestamp, last, filter)`
-- `isDurable`, `durableResource`
+- `isDurable`, `durableResource`, `durableWorkflowKey`
 - `overriddenBy`, `registeredBy`
 
 The middleware usage objects now include subtree provenance details:

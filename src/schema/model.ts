@@ -68,25 +68,6 @@ export interface Event extends Omit<BaseElement, "overriddenBy"> {
   payloadSchema?: string | null;
 }
 
-export interface DurableFlowNode {
-  kind: string;
-  stepId?: string | null;
-  durationMs?: number | null;
-  signalId?: string | null;
-  eventId?: string | null;
-  selectedBranchId?: string | null;
-  message?: string | null;
-  // workflow() node: the task id of the child workflow being started
-  taskId?: string | null;
-  // waitForExecution() node: the target execution id and optional timeout
-  executionId?: string | null;
-  timeoutMs?: number | null;
-}
-
-export interface DurableFlowShape {
-  nodes: DurableFlowNode[];
-}
-
 export interface Tag extends BaseElement {
   id: string;
   configSchema?: string | null;
@@ -191,7 +172,6 @@ export interface Task extends BaseElement {
   isDurable?: boolean;
   durableWorkflowKey?: string | null;
   durableResourceId?: string | null;
-  flowShape?: DurableFlowShape | null;
   // Runtime-registered per-task interceptors via taskDependency.intercept(...)
   interceptorCount?: number;
   hasInterceptors?: boolean;

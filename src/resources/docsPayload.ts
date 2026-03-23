@@ -225,7 +225,6 @@ function enrichDurableTaskMetadata(
     task.durableWorkflowKey = isDurable
       ? getDurableWorkflowKeyFromTags(task.tagsDetailed || [])
       : null;
-    task.flowShape = null;
   }
 }
 

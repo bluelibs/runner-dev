@@ -27,10 +27,6 @@ jest.mock("./common/DependenciesSection", () => ({
   DependenciesSection: () => null,
 }));
 
-jest.mock("./common/MermaidDiagram", () => ({
-  MermaidDiagram: () => null,
-}));
-
 jest.mock("./common/ElementCard", () => ({
   ElementCard: ({
     children,
@@ -190,6 +186,6 @@ describe("TaskCard middleware rendering", () => {
     expect(screen.queryByText("(View Coverage)")).toBeNull();
     expect(screen.queryByText("Preview Graph")).toBeNull();
     expect(screen.queryByTitle("View file contents")).toBeNull();
-    expect(screen.getByText("Flow Nodes:")).toBeTruthy();
+    expect(screen.queryByText("Flow Nodes:")).toBeNull();
   });
 });

@@ -22,12 +22,8 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
-import { DurableFlowShapeType } from "./DurableFlowTypes";
 import { RpcLaneSummaryType } from "./LaneSummaryTypes";
-import {
-  describeDurableTaskFromStore,
-  findDurableResourceIdFromStore,
-} from "../../resources/models/durable.runtime";
+import { findDurableResourceIdFromStore } from "../../resources/models/durable.runtime";
 
 // Extracted to avoid inline self-referential initializer issues
 export const TaskDependsOnType: GraphQLObjectType<
@@ -300,17 +296,6 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
         }
 
         return ctx.introspector.getDurableResourceForTask(node.id);
-      },
-    },
-    flowShape: {
-      description:
-        "The workflow structure (steps, sleeps, signals, etc.) for durable tasks",
-      type: DurableFlowShapeType,
-      resolve: async (node: Task, _args, ctx: CustomGraphQLContext) => {
-        if (!ctx.introspector.isDurableTask(node.id)) return null;
-        return describeDurableTaskFromStore(ctx.store, node.id, {
-          timeoutMs: 800,
-        });
       },
     },
 

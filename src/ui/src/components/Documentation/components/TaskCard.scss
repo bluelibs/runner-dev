@@ -672,68 +672,6 @@
   }
 }
 
-.task-card__durable-preview-btn {
-  border: 1px solid var(--docs-border-primary);
-  background: var(--docs-bg-tertiary);
-  color: var(--docs-text-primary);
-  border-radius: $border-radius-sm;
-  padding: $spacing-xs $spacing-sm;
-  cursor: pointer;
-  font-size: $font-size-sm;
-  font-weight: 600;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: var(--docs-primary-bg);
-    border-color: var(--docs-primary-border);
-    color: var(--docs-primary);
-  }
-}
-
-.task-card__durable-steps {
-  display: grid;
-  gap: $spacing-xs;
-  color: var(--docs-text-secondary);
-  font-size: $font-size-sm;
-  font-family: $font-family-mono;
-}
-
-.task-card__durable-mermaid {
-  background: var(--docs-bg-primary);
-  padding: $spacing-md;
-  border-radius: $border-radius-md;
-  border: 1px solid var(--docs-border-primary);
-  color: var(--docs-text-primary);
-  font-size: initial;
-  line-height: normal;
-  margin: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  font-family: inherit;
-
-  svg {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    margin: 0 auto;
-    overflow: hidden;
-  }
-
-  svg text,
-  svg tspan {
-    font-size: 14px !important;
-    line-height: 1.35 !important;
-    font-family: var(--docs-font-family, $font-family-base) !important;
-  }
-
-  svg .nodeLabel,
-  svg .label {
-    font-size: 14px !important;
-    line-height: 1.35 !important;
-  }
-}
-
 // -----------------------------------------------------------------------------
 // Task Card Context Information
 // -----------------------------------------------------------------------------

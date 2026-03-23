@@ -1,6 +1,7 @@
 import {
   DURABLE_WORKFLOW_TAG_ID,
   findDurableDependencyId,
+  getDurableWorkflowKeyFromTags,
   hasDurableWorkflowTag,
   isDurableWorkflowTagId,
 } from "../../resources/models/durable.tools";
@@ -33,5 +34,76 @@ describe("durable.tools", () => {
     );
     expect(findDurableDependencyId(["app.resources.db"])).toBeNull();
     expect(findDurableDependencyId(null)).toBeNull();
+  });
+
+  describe("getDurableWorkflowKeyFromTags", () => {
+    test("returns null for null/undefined/empty input", () => {
+      expect(getDurableWorkflowKeyFromTags(null)).toBeNull();
+      expect(getDurableWorkflowKeyFromTags(undefined)).toBeNull();
+      expect(getDurableWorkflowKeyFromTags([])).toBeNull();
+    });
+
+    test("returns null when no durable tag present", () => {
+      expect(
+        getDurableWorkflowKeyFromTags([{ id: "app.tags.other", config: null }])
+      ).toBeNull();
+    });
+
+    test("returns null when durable tag has no config", () => {
+      expect(
+        getDurableWorkflowKeyFromTags([
+          { id: DURABLE_WORKFLOW_TAG_ID, config: null },
+        ])
+      ).toBeNull();
+    });
+
+    test("returns null when config has no key", () => {
+      expect(
+        getDurableWorkflowKeyFromTags([
+          { id: DURABLE_WORKFLOW_TAG_ID, config: "{}" },
+        ])
+      ).toBeNull();
+    });
+
+    test("returns the key when present", () => {
+      expect(
+        getDurableWorkflowKeyFromTags([
+          {
+            id: DURABLE_WORKFLOW_TAG_ID,
+            config: JSON.stringify({ key: "billing.payment" }),
+          },
+        ])
+      ).toBe("billing.payment");
+    });
+
+    test("returns null for empty string key", () => {
+      expect(
+        getDurableWorkflowKeyFromTags([
+          {
+            id: DURABLE_WORKFLOW_TAG_ID,
+            config: JSON.stringify({ key: "" }),
+          },
+        ])
+      ).toBeNull();
+    });
+
+    test("returns null for non-string key", () => {
+      expect(
+        getDurableWorkflowKeyFromTags([
+          {
+            id: DURABLE_WORKFLOW_TAG_ID,
+            config: JSON.stringify({ key: 42 }),
+          },
+        ])
+      ).toBeNull();
+    });
+
+    test("handles malformed JSON gracefully", () => {
+      expect(
+        getDurableWorkflowKeyFromTags([
+          { id: DURABLE_WORKFLOW_TAG_ID, config: "{not-json}" },
+        ])
+      ).toBeNull();
+    });
   });
 });

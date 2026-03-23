@@ -2,6 +2,11 @@ import { r } from "@bluelibs/runner";
 import { RepositoryConfigSchema } from "../../../schemas";
 import { mikroOrmResource } from "../../platform/resources/mikroOrm.resource";
 
+export interface OrderRepositoryValue {
+  entityName: string;
+  loadById: (orderId: string) => Promise<{ orderId: string; status: string }>;
+}
+
 export const orderRepositoryResource = r
   .resource("order-repository")
   .configSchema(RepositoryConfigSchema)

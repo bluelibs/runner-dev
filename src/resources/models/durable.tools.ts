@@ -50,3 +50,30 @@ export function findDurableDependencyId(
     null
   );
 }
+
+interface TagUsageLike {
+  id: string;
+  config?: string | null;
+}
+
+/**
+ * Extracts the explicit durable workflow key from the durableWorkflow tag config.
+ * Returns `null` when no explicit key is set (falls back to canonical task id at runtime).
+ */
+export function getDurableWorkflowKeyFromTags(
+  tagsDetailed: TagUsageLike[] | null | undefined
+): string | null {
+  if (!Array.isArray(tagsDetailed)) return null;
+
+  const durableTag = tagsDetailed.find((tag) => isDurableWorkflowTagId(tag.id));
+  if (!durableTag?.config) return null;
+
+  try {
+    const parsed = JSON.parse(durableTag.config) as { key?: unknown };
+    return typeof parsed.key === "string" && parsed.key.length > 0
+      ? parsed.key
+      : null;
+  } catch {
+    return null;
+  }
+}

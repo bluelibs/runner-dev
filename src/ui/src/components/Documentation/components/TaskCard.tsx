@@ -55,6 +55,16 @@ function normalizeDurableNodeLabel(node: any, index: number): string {
   if (kind === "note") {
     return `Note: ${String(node?.message || "note")}`;
   }
+  if (kind === "workflow") {
+    return `Workflow: ${String(
+      node?.taskId || node?.stepId || `workflow_${index + 1}`
+    )}`;
+  }
+  if (kind === "waitForExecution") {
+    return `Await: ${String(
+      node?.taskId || node?.executionId || `execution_${index + 1}`
+    )}`;
+  }
 
   return `${kind}: ${String(node?.stepId || `node_${index + 1}`)}`;
 }
@@ -144,6 +154,8 @@ function normalizeDurableFlowNodes(rawNodes: any[] | null | undefined): any[] {
       node?.stepIdSignal ??
       node?.stepIdEmit ??
       node?.stepIdSwitch ??
+      node?.stepIdWorkflow ??
+      node?.stepIdExecution ??
       null;
 
     return {
@@ -180,6 +192,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     [task.flowShape]
   );
   const durableResourceId = task.durableResourceId || null;
+  const durableWorkflowKey = task.durableWorkflowKey || null;
 
   // Check for async context usage (placeholder for future implementation)
   // This will be populated when we parse context usage from source code
@@ -568,6 +581,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 >
                   {formatId(durableResourceId)}
                 </a>
+              </InfoBlock>
+            )}
+
+            {durableWorkflowKey && (
+              <InfoBlock prefix="task-card" label="Workflow Key:">
+                <code>{durableWorkflowKey}</code>
               </InfoBlock>
             )}
 

@@ -349,8 +349,22 @@ export type FlowEmitNode = {
   stepId: Maybe<Scalars['String']['output']>;
 };
 
+/** A durable workflow waitForExecution node */
+export type FlowExecutionNode = {
+  __typename?: 'FlowExecutionNode';
+  /** The execution id being awaited */
+  executionId: Scalars['String']['output'];
+  kind: Scalars['String']['output'];
+  /** Optional explicit step ID */
+  stepId: Maybe<Scalars['String']['output']>;
+  /** The task id of the awaited workflow */
+  taskId: Scalars['String']['output'];
+  /** Optional timeout in milliseconds */
+  timeoutMs: Maybe<Scalars['Int']['output']>;
+};
+
 /** A node in a durable workflow flow description */
-export type FlowNode = FlowEmitNode | FlowNoteNode | FlowSignalNode | FlowSleepNode | FlowStepNode | FlowSwitchNode;
+export type FlowNode = FlowEmitNode | FlowExecutionNode | FlowNoteNode | FlowSignalNode | FlowSleepNode | FlowStepNode | FlowSwitchNode | FlowWorkflowNode;
 
 /** A durable workflow documentation note */
 export type FlowNoteNode = {
@@ -402,6 +416,16 @@ export type FlowSwitchNode = {
   kind: Scalars['String']['output'];
   /** The switch step identifier */
   stepId: Scalars['String']['output'];
+};
+
+/** A durable workflow child-workflow start node */
+export type FlowWorkflowNode = {
+  __typename?: 'FlowWorkflowNode';
+  kind: Scalars['String']['output'];
+  /** The step identifier for this workflow start */
+  stepId: Scalars['String']['output'];
+  /** The task id of the child workflow being started */
+  taskId: Scalars['String']['output'];
 };
 
 export type GcStats = {
@@ -1334,6 +1358,8 @@ export type Task = BaseElement & {
   depenendsOnResolved: Array<BaseElement>;
   /** The durable resource runtime used by this workflow (if resolvable) */
   durableResource: Maybe<Resource>;
+  /** The explicit durable workflow key when set via tags.durableWorkflow.with({ key }). Null when the workflow uses its canonical task id as the durable identity. */
+  durableWorkflowKey: Maybe<Scalars['String']['output']>;
   /** Event ids this task may emit (from dependencies) */
   emits: Array<Scalars['String']['output']>;
   /** Events emitted by this task (resolved) */
@@ -1548,7 +1574,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of union types */
 export type ResolversUnionTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  FlowNode: ( FlowEmitNode ) | ( FlowNoteNode ) | ( FlowSignalNode ) | ( FlowSleepNode ) | ( FlowStepNode ) | ( FlowSwitchNode );
+  FlowNode: ( FlowEmitNode ) | ( FlowExecutionNode ) | ( FlowNoteNode ) | ( FlowSignalNode ) | ( FlowSleepNode ) | ( FlowStepNode ) | ( FlowSwitchNode ) | ( FlowWorkflowNode );
 }>;
 
 /** Mapping of interface types */
@@ -1577,12 +1603,14 @@ export type ResolversTypes = ResolversObject<{
   EventLoopStats: ResolverTypeWrapper<EventLoopStats>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   FlowEmitNode: ResolverTypeWrapper<FlowEmitNode>;
+  FlowExecutionNode: ResolverTypeWrapper<FlowExecutionNode>;
   FlowNode: ResolverTypeWrapper<ResolversUnionTypes<ResolversTypes>['FlowNode']>;
   FlowNoteNode: ResolverTypeWrapper<FlowNoteNode>;
   FlowSignalNode: ResolverTypeWrapper<FlowSignalNode>;
   FlowSleepNode: ResolverTypeWrapper<FlowSleepNode>;
   FlowStepNode: ResolverTypeWrapper<FlowStepNode>;
   FlowSwitchNode: ResolverTypeWrapper<FlowSwitchNode>;
+  FlowWorkflowNode: ResolverTypeWrapper<FlowWorkflowNode>;
   GcStats: ResolverTypeWrapper<GcStats>;
   Hook: ResolverTypeWrapper<Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, runs: Array<ResolversTypes['RunRecord']>, tags: Maybe<Array<ResolversTypes['Tag']>> }>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
@@ -1663,12 +1691,14 @@ export type ResolversParentTypes = ResolversObject<{
   EventLoopStats: EventLoopStats;
   Float: Scalars['Float']['output'];
   FlowEmitNode: FlowEmitNode;
+  FlowExecutionNode: FlowExecutionNode;
   FlowNode: ResolversUnionTypes<ResolversParentTypes>['FlowNode'];
   FlowNoteNode: FlowNoteNode;
   FlowSignalNode: FlowSignalNode;
   FlowSleepNode: FlowSleepNode;
   FlowStepNode: FlowStepNode;
   FlowSwitchNode: FlowSwitchNode;
+  FlowWorkflowNode: FlowWorkflowNode;
   GcStats: GcStats;
   Hook: Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
   ID: Scalars['ID']['output'];
@@ -1883,8 +1913,17 @@ export type FlowEmitNodeResolvers<ContextType = CustomGraphQLContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type FlowExecutionNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowExecutionNode'] = ResolversParentTypes['FlowExecutionNode']> = ResolversObject<{
+  executionId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  stepId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  taskId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  timeoutMs: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type FlowNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowNode'] = ResolversParentTypes['FlowNode']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'FlowEmitNode' | 'FlowNoteNode' | 'FlowSignalNode' | 'FlowSleepNode' | 'FlowStepNode' | 'FlowSwitchNode', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'FlowEmitNode' | 'FlowExecutionNode' | 'FlowNoteNode' | 'FlowSignalNode' | 'FlowSleepNode' | 'FlowStepNode' | 'FlowSwitchNode' | 'FlowWorkflowNode', ParentType, ContextType>;
 }>;
 
 export type FlowNoteNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowNoteNode'] = ResolversParentTypes['FlowNoteNode']> = ResolversObject<{
@@ -1920,6 +1959,13 @@ export type FlowSwitchNodeResolvers<ContextType = CustomGraphQLContext, ParentTy
   hasDefault: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   stepId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FlowWorkflowNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowWorkflowNode'] = ResolversParentTypes['FlowWorkflowNode']> = ResolversObject<{
+  kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  stepId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  taskId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2380,6 +2426,7 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
   dependsOnResolved: Resolver<ResolversTypes['TaskDependsOn'], ParentType, ContextType>;
   depenendsOnResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   durableResource: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
+  durableWorkflowKey: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   emitsResolved: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, TaskFileContentsArgs>;
@@ -2471,12 +2518,14 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   EventLaneSummary: EventLaneSummaryResolvers<ContextType>;
   EventLoopStats: EventLoopStatsResolvers<ContextType>;
   FlowEmitNode: FlowEmitNodeResolvers<ContextType>;
+  FlowExecutionNode: FlowExecutionNodeResolvers<ContextType>;
   FlowNode: FlowNodeResolvers<ContextType>;
   FlowNoteNode: FlowNoteNodeResolvers<ContextType>;
   FlowSignalNode: FlowSignalNodeResolvers<ContextType>;
   FlowSleepNode: FlowSleepNodeResolvers<ContextType>;
   FlowStepNode: FlowStepNodeResolvers<ContextType>;
   FlowSwitchNode: FlowSwitchNodeResolvers<ContextType>;
+  FlowWorkflowNode: FlowWorkflowNodeResolvers<ContextType>;
   GcStats: GcStatsResolvers<ContextType>;
   Hook: HookResolvers<ContextType>;
   InterceptorOwnersSnapshot: InterceptorOwnersSnapshotResolvers<ContextType>;

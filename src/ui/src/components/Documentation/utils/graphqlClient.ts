@@ -136,6 +136,18 @@ export const TASK_DURABLE_FLOW_QUERY = `
             kind
             message
           }
+          ... on FlowWorkflowNode {
+            kind
+            stepIdWorkflow: stepId
+            taskId
+          }
+          ... on FlowExecutionNode {
+            kind
+            taskId
+            executionId
+            timeoutMs
+            stepIdExecution: stepId
+          }
         }
       }
     }

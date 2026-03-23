@@ -271,6 +271,14 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
       resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
         ctx.introspector.isDurableTask(node.id),
     },
+    durableWorkflowKey: {
+      description:
+        "The explicit durable workflow key when set via tags.durableWorkflow.with({ key }). " +
+        "Null when the workflow uses its canonical task id as the durable identity.",
+      type: GraphQLString,
+      resolve: (node: Task, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getDurableWorkflowKey(node.id),
+    },
     durableResource: {
       description:
         "The durable resource runtime used by this workflow (if resolvable)",

@@ -76,6 +76,11 @@ export interface DurableFlowNode {
   eventId?: string | null;
   selectedBranchId?: string | null;
   message?: string | null;
+  // workflow() node: the task id of the child workflow being started
+  taskId?: string | null;
+  // waitForExecution() node: the target execution id and optional timeout
+  executionId?: string | null;
+  timeoutMs?: number | null;
 }
 
 export interface DurableFlowShape {
@@ -184,6 +189,7 @@ export interface Task extends BaseElement {
   // Prettified Zod schema for the task result if provided
   resultSchema?: string | null;
   isDurable?: boolean;
+  durableWorkflowKey?: string | null;
   durableResourceId?: string | null;
   flowShape?: DurableFlowShape | null;
   // Runtime-registered per-task interceptors via taskDependency.intercept(...)

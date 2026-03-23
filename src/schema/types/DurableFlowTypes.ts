@@ -131,6 +131,52 @@ export const FlowNoteNodeType = new GraphQLObjectType({
   }),
 });
 
+export const FlowWorkflowNodeType = new GraphQLObjectType({
+  name: "FlowWorkflowNode",
+  description: "A durable workflow child-workflow start node",
+  fields: (): GraphQLFieldConfigMap<unknown, unknown> => ({
+    kind: {
+      type: new GraphQLNonNull(GraphQLString),
+      resolve: () => "workflow",
+    },
+    stepId: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "The step identifier for this workflow start",
+    },
+    taskId: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "The task id of the child workflow being started",
+    },
+  }),
+});
+
+export const FlowExecutionNodeType = new GraphQLObjectType({
+  name: "FlowExecutionNode",
+  description: "A durable workflow waitForExecution node",
+  fields: (): GraphQLFieldConfigMap<unknown, unknown> => ({
+    kind: {
+      type: new GraphQLNonNull(GraphQLString),
+      resolve: () => "waitForExecution",
+    },
+    taskId: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "The task id of the awaited workflow",
+    },
+    executionId: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "The execution id being awaited",
+    },
+    timeoutMs: {
+      type: GraphQLInt,
+      description: "Optional timeout in milliseconds",
+    },
+    stepId: {
+      type: GraphQLString,
+      description: "Optional explicit step ID",
+    },
+  }),
+});
+
 // ─── FlowNode Union ──────────────────────────────────────────────────────────
 
 export const FlowNodeType = new GraphQLUnionType({
@@ -143,6 +189,8 @@ export const FlowNodeType = new GraphQLUnionType({
     FlowEmitNodeType,
     FlowSwitchNodeType,
     FlowNoteNodeType,
+    FlowWorkflowNodeType,
+    FlowExecutionNodeType,
   ],
   resolveType: (value: { kind: string }) => {
     switch (value.kind) {
@@ -158,6 +206,10 @@ export const FlowNodeType = new GraphQLUnionType({
         return "FlowSwitchNode";
       case "note":
         return "FlowNoteNode";
+      case "workflow":
+        return "FlowWorkflowNode";
+      case "waitForExecution":
+        return "FlowExecutionNode";
       default:
         return undefined;
     }

@@ -50,6 +50,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const isDurable = task.isDurable === true;
   const durableResourceId = task.durableResourceId || null;
   const durableWorkflowKey = task.durableWorkflowKey || null;
+  const canonicalWorkflowKey = durableWorkflowKey ?? task.id;
 
   // Check for async context usage (placeholder for future implementation)
   // This will be populated when we parse context usage from source code
@@ -385,11 +386,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               </InfoBlock>
             )}
 
-            {durableWorkflowKey && (
-              <InfoBlock prefix="task-card" label="Workflow Key:">
-                <code>{durableWorkflowKey}</code>
-              </InfoBlock>
-            )}
+            <InfoBlock prefix="task-card" label="Workflow Key:">
+              <code>{canonicalWorkflowKey}</code>
+            </InfoBlock>
           </CardSection>
         )}
 

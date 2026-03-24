@@ -78,9 +78,7 @@ describe("ErrorCard", () => {
       );
 
       expect(screen.getByText("Error Data Schema")).toBeInTheDocument();
-      expect(screen.getAllByText("No schema defined").length).toBeGreaterThan(
-        0
-      );
+      expect(screen.getByText("No schema defined")).toBeInTheDocument();
     }
   );
 });

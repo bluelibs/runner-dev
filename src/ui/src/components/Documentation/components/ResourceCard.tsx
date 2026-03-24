@@ -122,16 +122,9 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const rootResource = introspector.getRoot();
   const isRootResource = rootResource.id === resource.id;
   const resources = introspector.getResources();
-  const lifecycleMethods = React.useMemo(
-    () =>
-      LIFECYCLE_METHODS.filter((method) => Boolean(resource[method.key])).map(
-        (method) => ({
-          ...method,
-          available: true,
-        })
-      ),
-    [resource]
-  );
+  const lifecycleMethods = React.useMemo(() => {
+    return LIFECYCLE_METHODS.filter((method) => Boolean(resource[method.key]));
+  }, [resource]);
 
   const resolveAdaptiveReferenceElement = React.useCallback(
     (id: string) => resolveReferenceElement(introspector, id),

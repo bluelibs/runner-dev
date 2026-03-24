@@ -80,13 +80,13 @@ export const enhancedSuperAppIds = {
   },
 };
 
-export const enhancedDomainRegistrations: RegisterableItems[] = [
+export const enhancedDomainRegistrations: readonly RegisterableItems[] = [
   ...platformDomainRegistrations,
   ...catalogDomainRegistrations,
   ...ordersDomainRegistrations,
 ];
 
-export const enhancedDomainOverrides: OverridableElements[] = [
+export const enhancedDomainOverrides: readonly OverridableElements[] = [
   ...catalogDomainOverrides,
 ];
 
@@ -99,7 +99,7 @@ export const createEnhancedSuperApp = (extra: RegisterableItems[] = []) => {
         "Realistic local reference app for Runner Dev docs and topology.\n\n- Composed from platform, catalog, and orders domains\n- Simulates HTTP, persistence, lanes, middleware, and durable workflows",
     })
     .register([...enhancedDomainRegistrations, ...extra])
-    .overrides(enhancedDomainOverrides)
+    .overrides([...enhancedDomainOverrides])
     .init(async () => {
       return {};
     })

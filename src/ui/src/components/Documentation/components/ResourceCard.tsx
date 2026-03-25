@@ -35,6 +35,10 @@ import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
+import {
+  ResourceLifecycleMethodsSection,
+  type LifecycleMethodTone,
+} from "./ResourceLifecycleMethodsSection";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -42,8 +46,6 @@ export interface ResourceCardProps {
 }
 
 type IsolationRuleSource = "exports" | "deny" | "only";
-type LifecycleMethodTone = "core" | "runtime" | "probe";
-
 const LIFECYCLE_METHODS: Array<{
   key: "hasInit" | "hasReady" | "hasCooldown" | "hasDispose" | "hasHealthCheck";
   label: string;
@@ -133,13 +135,13 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
   const openIsolationWildcardModal = React.useCallback(
     (source: IsolationRuleSource, rule: string) => {
-      const matchedResources = introspector
-        .getResources()
-        .filter((item) => matchesWildcardPattern(item.id, rule));
+      const matchedResources = resources.filter((item) =>
+        matchesWildcardPattern(item.id, rule)
+      );
 
       setIsolationRuleModal({ source, rule, matchedResources });
     },
-    [introspector]
+    [resources]
   );
 
   const closeIsolationWildcardModal = React.useCallback(() => {
@@ -316,36 +318,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
           </InfoBlock>
 
           <InfoBlock prefix="resource-card" label="Lifecycle Methods:">
-            <div className="resource-card__lifecycle">
-              {lifecycleMethods.length > 0 ? (
-                <>
-                  <div className="resource-card__lifecycle-strip">
-                    {lifecycleMethods.map((method) => (
-                      <div
-                        key={method.label}
-                        className={`resource-card__lifecycle-chip resource-card__lifecycle-chip--${method.tone}`}
-                        title={method.detail}
-                      >
-                        <span className="resource-card__lifecycle-chip__name">
-                          {method.label}
-                        </span>
-                        <span className="resource-card__lifecycle-chip__detail">
-                          {method.detail}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <span className="resource-card__lifecycle-caption">
-                    Declared resource lifecycle surface detected from the
-                    implementation.
-                  </span>
-                </>
-              ) : (
-                <span className="resource-card__lifecycle-empty">
-                  No custom lifecycle methods declared.
-                </span>
-              )}
-            </div>
+            <ResourceLifecycleMethodsSection methods={lifecycleMethods} />
           </InfoBlock>
 
           {resource.isolation && (

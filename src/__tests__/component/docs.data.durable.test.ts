@@ -95,9 +95,7 @@ describe("/docs/data durable enrichment", () => {
       );
 
       expect(workflow?.isDurable).toBe(true);
-      expect(workflow?.flowShape).toBeNull();
       expect(runner?.isDurable).toBe(false);
-      expect(runner?.flowShape).toBeNull();
     } finally {
       await runtime.dispose();
     }

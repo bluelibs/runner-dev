@@ -438,6 +438,8 @@ export function mapStoreResourceToResourceModel(
   );
   const isolation = normalizeIsolation(resource);
   const subtree = normalizeSubtreePolicy(resource);
+  const hasInit = typeof (resource as any)?.init === "function";
+  const hasDispose = typeof (resource as any)?.dispose === "function";
   const hasCooldown = typeof (resource as any)?.cooldown === "function";
   const hasReady = typeof (resource as any)?.ready === "function";
   const hasHealthCheck = typeof (resource as any)?.health === "function";
@@ -471,6 +473,8 @@ export function mapStoreResourceToResourceModel(
       registers: register.map((r) => r.id.toString()) as string[],
       isolation,
       subtree,
+      hasInit,
+      hasDispose,
       hasCooldown,
       hasReady,
       hasHealthCheck,

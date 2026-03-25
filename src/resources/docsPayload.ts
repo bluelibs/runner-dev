@@ -13,6 +13,7 @@ import {
 } from "./models/Introspector";
 import { initializeFromStore } from "./models/initializeFromStore";
 import { findDurableResourceIdFromStore } from "./models/durable.runtime";
+import { getDurableWorkflowKeyFromTags } from "./models/durable.tools";
 
 export interface DocsContentPayload {
   minimalMd: string;
@@ -221,7 +222,9 @@ function enrichDurableTaskMetadata(
         introspector.getDurableResourceForTask(taskId)?.id ||
         null
       : null;
-    task.flowShape = null;
+    task.durableWorkflowKey = isDurable
+      ? getDurableWorkflowKeyFromTags(task.tagsDetailed || [])
+      : null;
   }
 }
 

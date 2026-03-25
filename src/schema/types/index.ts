@@ -37,14 +37,4 @@ export { ErrorType } from "./ErrorType";
 export { AsyncContextType } from "./AsyncContextType";
 export { RunOptionsType } from "./RunOptionsType";
 export { EventLaneSummaryType, RpcLaneSummaryType } from "./LaneSummaryTypes";
-export {
-  DurableFlowShapeType,
-  FlowNodeType,
-  FlowStepNodeType,
-  FlowSleepNodeType,
-  FlowSignalNodeType,
-  FlowEmitNodeType,
-  FlowSwitchNodeType,
-  FlowNoteNodeType,
-} from "./DurableFlowTypes";
 export { InterceptorOwnersSnapshotType } from "./InterceptorOwnersType";

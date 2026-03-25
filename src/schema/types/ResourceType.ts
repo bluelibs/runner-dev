@@ -279,6 +279,17 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       type: ResourceSubtreePolicyType,
       resolve: (node: Resource) => node.subtree ?? null,
     },
+    hasInit: {
+      description: "True when this resource defines an init() lifecycle hook.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Resource) => Boolean(node.hasInit),
+    },
+    hasDispose: {
+      description:
+        "True when this resource defines a dispose() lifecycle hook.",
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: (node: Resource) => Boolean(node.hasDispose),
+    },
     hasCooldown: {
       description:
         "True when this resource defines a cooldown() lifecycle hook.",

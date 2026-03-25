@@ -27,10 +27,6 @@ jest.mock("./common/DependenciesSection", () => ({
   DependenciesSection: () => null,
 }));
 
-jest.mock("./common/MermaidDiagram", () => ({
-  MermaidDiagram: () => null,
-}));
-
 jest.mock("./common/ElementCard", () => ({
   ElementCard: ({
     children,
@@ -157,8 +153,8 @@ describe("TaskCard middleware rendering", () => {
       middleware: [],
       middlewareDetailed: [],
       filePath: "/tmp/durable.ts",
-      flowShape: { nodes: [{ kind: "step", stepId: "prepare" }] } as any,
       isDurable: true as any,
+      durableWorkflowKey: null,
       coverage: { percentage: 88 } as any,
     };
 
@@ -190,6 +186,44 @@ describe("TaskCard middleware rendering", () => {
     expect(screen.queryByText("(View Coverage)")).toBeNull();
     expect(screen.queryByText("Preview Graph")).toBeNull();
     expect(screen.queryByTitle("View file contents")).toBeNull();
-    expect(screen.getByText("Flow Nodes:")).toBeTruthy();
+    expect(screen.getByText("Workflow Key:")).toBeTruthy();
+    expect(screen.getByText("app.tasks.durable")).toBeTruthy();
+  });
+
+  it("shows the explicit workflow key when one is configured", () => {
+    const task: Task = {
+      id: "app.tasks.orderApproval",
+      meta: { title: "Order Approval" },
+      emits: [],
+      dependsOn: [],
+      middleware: [],
+      middlewareDetailed: [],
+      filePath: null,
+      isDurable: true as any,
+      durableWorkflowKey: "orders.approval.workflow",
+    };
+
+    const introspector = {
+      getDependencies: () => ({
+        tasks: [],
+        hooks: [],
+        resources: [],
+        errors: [],
+      }),
+      getMiddlewareUsagesForTask: () => [],
+      getEmittedEvents: () => [],
+      getTagsByIds: () => [],
+      getEvent: () => null,
+    } as any;
+
+    render(
+      React.createElement(TaskCard, {
+        task,
+        introspector,
+      })
+    );
+
+    expect(screen.getByText("Workflow Key:")).toBeTruthy();
+    expect(screen.getByText("orders.approval.workflow")).toBeTruthy();
   });
 });

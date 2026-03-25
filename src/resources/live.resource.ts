@@ -6,9 +6,7 @@ import {
   type Store,
   type TaskMiddlewareStoreElementType,
 } from "@bluelibs/runner";
-import { type DurableFlowShape } from "@bluelibs/runner/node";
 import { getCorrelationId } from "./telemetry.chain";
-import { describeDurableTaskFromStore } from "./models/durable.runtime";
 
 export type LogLevel =
   | "trace"
@@ -139,7 +137,6 @@ export interface Live {
     parentId?: string | null,
     rootId?: string | null
   ): void;
-  describeFlow(taskId: string): Promise<DurableFlowShape | null>;
   /** Register a listener that fires whenever a record* method is called. Returns an unsubscribe function. */
   onRecord(
     callback: (kind: "log" | "emission" | "error" | "run") => void
@@ -462,9 +459,6 @@ const liveService = defineResource({
           result = result.filter((r) => allowed.has(String(r.correlationId)));
         }
         return sliceLast(result, options.last);
-      },
-      async describeFlow(taskId: string): Promise<DurableFlowShape | null> {
-        return describeDurableTaskFromStore(store, taskId);
       },
       onRecord(callback) {
         recordListeners.add(callback);

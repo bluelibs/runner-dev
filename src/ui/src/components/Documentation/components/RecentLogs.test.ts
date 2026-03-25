@@ -9,6 +9,7 @@ jest.mock(
   "./JsonViewer",
   () => () => React.createElement("div", null, "json-viewer")
 );
+jest.mock("./common/OverviewIdLink.scss", () => ({}), { virtual: true });
 jest.mock("./modals", () => ({
   BaseModal: ({
     children,
@@ -74,7 +75,7 @@ describe("RecentLogs", () => {
     );
 
     const expandButton = screen.getByRole("button", {
-      name: /expand full source id for enhanced-app\.features\.tasks\.server/i,
+      name: /expand full id for enhanced-app\.features\.tasks\.server/i,
     });
     const link = screen.getByRole("link", {
       name: /features\s*>\s*server/i,

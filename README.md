@@ -220,7 +220,7 @@ This also works well as a CI artifact:
 - upload `./runner-dev-catalog` or `./artifacts/runner-dev-catalog` as a build artifact
 - inspect the visual docs after the pipeline finishes without starting the app again
 
-For local package work inside this repository, `npm run play:export` is the same idea wired to the enhanced showcase app:
+For local package work inside this repository, `npm run play:export` is the same idea wired to the reference commerce app used by `npm run play`:
 
 ```bash
 npm run play:export

@@ -9,7 +9,6 @@ import {
 } from "./common/FormControls";
 import { formatSchema } from "../utils/formatting";
 import { copyToClipboard } from "./chat/ChatUtils";
-import JsonViewer from "./JsonViewer";
 import "./SchemaRenderer.scss";
 import {
   computeSchemaDefaultValue,
@@ -21,6 +20,7 @@ import {
   getSchemaStringInputType,
   parseCommaSeparatedArrayValue,
 } from "../utils/schemaForm";
+import { StructuredDataPanel } from "./common/StructuredDataPanel";
 // [AI-CHAT-DISABLED] import {
 //   hasOpenAIKey,
 //   generateInstanceFromJsonSchema,
@@ -322,9 +322,11 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   const renderFormFromSchema = (root: JsonSchema | null) => {
     if (!root)
       return (
-        <Form className="schema-renderer__form">
-          <div className="schema-renderer__empty">No schema defined</div>
-        </Form>
+        <StructuredDataPanel
+          className="schema-renderer__form schema-renderer__form--empty"
+          emptyLabel="No schema defined"
+          emptyBadge="Schema"
+        />
       );
     if (root.type === "object" && root.properties) {
       return (
@@ -346,20 +348,35 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   };
 
   const jsonString = React.useMemo(() => {
+    if (!schema) {
+      return "";
+    }
+
     try {
       return JSON.stringify(formData ?? {}, null, 2);
     } catch {
       return "{}";
     }
-  }, [formData]);
+  }, [formData, schema]);
 
   const jsonPreviewData = React.useMemo(() => {
+    if (!schema) {
+      return null;
+    }
+
     if (formData && typeof formData === "object") {
       return formData;
     }
 
     return { value: formData ?? null };
-  }, [formData]);
+  }, [formData, schema]);
+  const formattedSchemaText = React.useMemo(() => {
+    if (!schemaString || schema) {
+      return null;
+    }
+
+    return formatSchema(schemaString);
+  }, [schema, schemaString]);
 
   // Emit live JSON (minified) and the data object when the form changes
   React.useEffect(() => {
@@ -453,37 +470,19 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
         </button>
       </div>
 
-      {!hidePrint &&
-        activeTab === "print" &&
-        (schema ? (
-          <JsonViewer className="schema-renderer__code-block" data={schema} />
-        ) : (
-          <pre className="schema-renderer__code-block">
-            {formatSchema(schemaString)}
-          </pre>
-        ))}
+      {!hidePrint && activeTab === "print" && (
+        <StructuredDataPanel
+          className="schema-renderer__code-block"
+          data={schema}
+          textValue={formattedSchemaText}
+          emptyLabel="No schema defined"
+          emptyBadge="Schema"
+        />
+      )}
 
       {activeTab === "form" && (
         <div className="schema-renderer__form-wrapper">
           {renderFormFromSchema(resolvedRoot)}
-          <div
-            className="schema-renderer__json-inline"
-            style={{ position: "relative" }}
-          >
-            <button
-              type="button"
-              className={`code-modal__copy-btn${
-                copied ? " code-modal__copy-btn--copied" : ""
-              }`}
-              onClick={copyJson}
-              title={copied ? "Copied!" : "Copy to clipboard"}
-              aria-label={copied ? "Copied" : "Copy code"}
-            />
-            <JsonViewer
-              className="schema-renderer__code-block"
-              data={jsonPreviewData}
-            />
-          </div>
         </div>
       )}
 
@@ -497,10 +496,13 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
             onClick={copyJson}
             title={copied ? "Copied!" : "Copy to clipboard"}
             aria-label={copied ? "Copied" : "Copy code"}
+            disabled={!schema}
           />
-          <JsonViewer
+          <StructuredDataPanel
             className="schema-renderer__code-block"
             data={jsonPreviewData}
+            emptyLabel="No schema defined"
+            emptyBadge="Schema"
           />
         </div>
       )}

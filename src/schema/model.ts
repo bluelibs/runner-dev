@@ -68,20 +68,6 @@ export interface Event extends Omit<BaseElement, "overriddenBy"> {
   payloadSchema?: string | null;
 }
 
-export interface DurableFlowNode {
-  kind: string;
-  stepId?: string | null;
-  durationMs?: number | null;
-  signalId?: string | null;
-  eventId?: string | null;
-  selectedBranchId?: string | null;
-  message?: string | null;
-}
-
-export interface DurableFlowShape {
-  nodes: DurableFlowNode[];
-}
-
 export interface Tag extends BaseElement {
   id: string;
   configSchema?: string | null;
@@ -184,8 +170,8 @@ export interface Task extends BaseElement {
   // Prettified Zod schema for the task result if provided
   resultSchema?: string | null;
   isDurable?: boolean;
+  durableWorkflowKey?: string | null;
   durableResourceId?: string | null;
-  flowShape?: DurableFlowShape | null;
   // Runtime-registered per-task interceptors via taskDependency.intercept(...)
   interceptorCount?: number;
   hasInterceptors?: boolean;
@@ -262,6 +248,8 @@ export interface Resource extends BaseElement {
       validatorCount: number;
     } | null;
   } | null;
+  hasInit?: boolean;
+  hasDispose?: boolean;
   hasCooldown?: boolean;
   hasReady?: boolean;
   hasHealthCheck?: boolean;

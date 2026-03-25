@@ -2,8 +2,8 @@ export function tsconfig() {
   return {
     compilerOptions: {
       target: "ESNext",
-      module: "Node16",
-      moduleResolution: "node16",
+      module: "CommonJS",
+      moduleResolution: "node",
       strict: true,
       types: ["node"],
       esModuleInterop: true,

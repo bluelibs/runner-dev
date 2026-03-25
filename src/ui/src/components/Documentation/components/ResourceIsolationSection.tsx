@@ -3,17 +3,29 @@ import type { Resource } from "../../../../../schema/model";
 import { hasWildcard } from "../utils/wildcard-utils";
 import { formatId } from "../utils/formatting";
 import { InfoBlock } from "./common/ElementCard";
+import { OverviewIdLink } from "./common/OverviewIdLink";
+import type {
+  OverviewIdElement,
+  OverviewIdResource,
+} from "../utils/overviewIds";
 
 type IsolationRuleSource = "exports" | "deny" | "only";
 
 export interface ResourceIsolationSectionProps {
   isolation: NonNullable<Resource["isolation"]>;
   onOpenWildcard: (source: IsolationRuleSource, rule: string) => void;
+  resolveReferenceElement?: (id: string) => OverviewIdElement;
+  resources?: OverviewIdResource[];
 }
 
 export const ResourceIsolationSection: React.FC<
   ResourceIsolationSectionProps
-> = ({ isolation, onOpenWildcard }) => {
+> = ({
+  isolation,
+  onOpenWildcard,
+  resolveReferenceElement,
+  resources = [],
+}) => {
   const hasIsolationWildcardRules = React.useMemo(() => {
     const allRules = [
       ...isolation.exports,
@@ -42,19 +54,37 @@ export const ResourceIsolationSection: React.FC<
       );
     }
 
+    const element = resolveReferenceElement?.(value) ?? {
+      id: value,
+      registeredBy: null,
+    };
+
     if (asLink) {
       return (
-        <a
-          href={`#element-${value}`}
+        <OverviewIdLink
           key={`${source}-${value}`}
+          element={element}
+          resources={resources}
+          href={`#element-${value}`}
           className="clean-button"
-        >
-          {formatId(value)}
-        </a>
+          title={value}
+        />
       );
     }
 
-    return <span key={`${source}-${value}`}>{formatId(value)}</span>;
+    return (
+      <OverviewIdLink
+        key={`${source}-${value}`}
+        element={element}
+        resources={resources}
+        href={`#element-${value}`}
+        className="clean-button"
+        title={value}
+        onClick={(event) => {
+          event.preventDefault();
+        }}
+      />
+    );
   };
 
   return (

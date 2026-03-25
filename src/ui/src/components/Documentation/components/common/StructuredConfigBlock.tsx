@@ -1,6 +1,6 @@
 import React from "react";
-import JsonViewer from "../JsonViewer";
 import { formatConfig } from "../../utils/formatting";
+import { StructuredDataPanel } from "./StructuredDataPanel";
 
 export interface StructuredConfigBlockProps {
   value?: string | null;
@@ -8,12 +8,11 @@ export interface StructuredConfigBlockProps {
   emptyLabel?: string;
 }
 
-function parseConfigValue(value?: string | null): object | null {
+function parseConfigValue(value?: string | null): unknown | null {
   if (!value) return null;
 
   try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === "object" ? parsed : null;
+    return JSON.parse(value);
   } catch {
     return null;
   }
@@ -22,18 +21,21 @@ function parseConfigValue(value?: string | null): object | null {
 export const StructuredConfigBlock: React.FC<StructuredConfigBlockProps> = ({
   value,
   className,
-  emptyLabel = "No configuration",
+  emptyLabel = "No configuration defined",
 }) => {
   const parsedValue = React.useMemo(() => parseConfigValue(value), [value]);
-  const hasValue = typeof value === "string" && value.trim().length > 0;
+  const hasRawValue = typeof value === "string" && value.trim().length > 0;
+  const formattedValue = hasRawValue ? formatConfig(value) : null;
+  const parsedObjectValue =
+    parsedValue && typeof parsedValue === "object" ? parsedValue : undefined;
 
-  if (!hasValue) {
-    return <pre className={className}>{emptyLabel}</pre>;
-  }
-
-  if (parsedValue) {
-    return <JsonViewer data={parsedValue} className={className} />;
-  }
-
-  return <pre className={className}>{formatConfig(value)}</pre>;
+  return (
+    <StructuredDataPanel
+      className={className}
+      data={parsedObjectValue}
+      textValue={parsedObjectValue ? null : formattedValue}
+      emptyLabel={emptyLabel}
+      emptyBadge="Config"
+    />
+  );
 };

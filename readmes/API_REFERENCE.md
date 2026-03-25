@@ -17,7 +17,7 @@ runner-dev schema sdl --entry-file src/main.ts
 
 - Introspection spans tasks, hooks, resources, events, tags, errors, async contexts, middleware, run options, and interceptor ownership.
 - Resource docs now include `isolation`, `subtree`, cooldown/ready/health flags, and resolved registrations.
-- Task docs include durable workflow metadata, `flowShape`, RPC lane summary, and runtime interceptor ownership.
+- Task docs include durable workflow metadata, RPC lane summary, and runtime interceptor ownership.
 - Live telemetry includes logs, event emissions, errors, runs, process stats, and per-resource health reports.
 - Mutations cover task swapping, unswapping, task/event invocation, file editing, and guarded eval.
 
@@ -119,7 +119,7 @@ Key fields:
 - `rpcLane`
 - `interceptorCount`, `hasInterceptors`, `interceptorOwnerIds`
 - `runs(afterTimestamp, last, filter)`
-- `isDurable`, `durableResource`, `flowShape`
+- `isDurable`, `durableResource`, `durableWorkflowKey`
 - `overriddenBy`, `registeredBy`
 
 The middleware usage objects now include subtree provenance details:
@@ -304,18 +304,6 @@ Supporting types include:
 - `ResourceHealthReport`
 - `ResourceHealthTotals`
 - `ResourceHealthEntry`
-
-## Durable Workflow Types
-
-Durable tasks now surface extracted structure without execution:
-
-- `DurableFlowShape.nodes`
-- `FlowStepNode`
-- `FlowSleepNode`
-- `FlowSignalNode`
-- `FlowEmitNode`
-- `FlowSwitchNode`
-- `FlowNoteNode`
 
 ## Diagnostics And Swap Types
 

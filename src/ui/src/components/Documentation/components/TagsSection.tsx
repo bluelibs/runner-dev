@@ -2,6 +2,7 @@ import React from "react";
 import { BaseElement } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { formatId } from "../utils/formatting";
+import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 import "./TagsSection.scss";
 
 export interface TagsSectionProps {
@@ -69,7 +70,10 @@ export const TagsSection: React.FC<TagsSectionProps> = ({
                     {tagUsage.config && (
                       <div className="tag-config">
                         <div className="config-title">Configuration:</div>
-                        <pre className="config-block">{tagUsage.config}</pre>
+                        <StructuredConfigBlock
+                          value={tagUsage.config}
+                          className="config-block"
+                        />
                       </div>
                     )}
                   </div>

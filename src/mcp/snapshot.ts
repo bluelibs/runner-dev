@@ -61,9 +61,6 @@ const snapshotLiveStub: Live = {
   recordEmission() {},
   recordError() {},
   recordRun() {},
-  async describeFlow() {
-    return null;
-  },
   onRecord() {
     return () => {};
   },

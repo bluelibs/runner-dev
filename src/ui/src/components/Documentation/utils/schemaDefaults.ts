@@ -25,11 +25,15 @@ function toFriendlyFieldToken(fieldName?: string): string {
     .replace(/_/g, "-")
     .toLowerCase();
 
-  return normalized
-    .split("-")
-    .filter(Boolean)
-    .filter((token) => !["created", "updated", "deleted", "changed"].includes(token))
-    .join("-") || "value";
+  return (
+    normalized
+      .split("-")
+      .filter(Boolean)
+      .filter(
+        (token) => !["created", "updated", "deleted", "changed"].includes(token)
+      )
+      .join("-") || "value"
+  );
 }
 
 function singularizeFriendlyToken(token: string): string {

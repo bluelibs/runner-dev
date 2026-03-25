@@ -164,6 +164,15 @@ export function buildNamespaceTree(elements: Element[]): TreeNode[] {
             }
           }
         }
+      } else if (i === parts.length - 1) {
+        const existingNode = currentLevel.get(currentPath)!;
+        existingNode.elementId = element.id;
+        existingNode.element = element;
+
+        if (existingNode.children.length === 0) {
+          existingNode.type = elementType;
+          existingNode.icon = getTypeIcon(elementType);
+        }
       }
 
       currentLevel = tree;

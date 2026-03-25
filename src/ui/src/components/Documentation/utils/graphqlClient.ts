@@ -98,50 +98,6 @@ export const TASK_COVERAGE_DETAILS_QUERY = `
   }
 `;
 
-export const TASK_DURABLE_FLOW_QUERY = `
-  query TaskDurableFlow($id: ID!) {
-    task(id: $id) {
-      id
-      flowShape {
-        nodes {
-          __typename
-          ... on FlowStepNode {
-            kind
-            stepIdStep: stepId
-            hasCompensation
-          }
-          ... on FlowSleepNode {
-            kind
-            durationMs
-            stepIdSleep: stepId
-          }
-          ... on FlowSignalNode {
-            kind
-            signalId
-            timeoutMs
-            stepIdSignal: stepId
-          }
-          ... on FlowEmitNode {
-            kind
-            eventId
-            stepIdEmit: stepId
-          }
-          ... on FlowSwitchNode {
-            kind
-            stepIdSwitch: stepId
-            branchIds
-            hasDefault
-          }
-          ... on FlowNoteNode {
-            kind
-            message
-          }
-        }
-      }
-    }
-  }
-`;
-
 export const RESOURCE_COVERAGE_QUERY = `
   query ResourceCoverage($id: ID!) {
     resource(id: $id) {

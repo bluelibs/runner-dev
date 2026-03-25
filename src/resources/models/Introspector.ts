@@ -25,6 +25,7 @@ import {
 } from "./introspector.tools";
 import {
   findDurableDependencyId,
+  getDurableWorkflowKeyFromTags,
   hasDurableWorkflowTag,
 } from "./durable.tools";
 import {
@@ -1360,6 +1361,16 @@ export class Introspector {
    */
   getDurableTasks(): Task[] {
     return this.tasks.filter((t) => this.isDurableTask(t.id));
+  }
+
+  /**
+   * Returns the explicit durable workflow key from the tag config, or null
+   * when the workflow uses the default canonical task id.
+   */
+  getDurableWorkflowKey(taskId: string): string | null {
+    const task = this.getTask(taskId);
+    if (!task) return null;
+    return getDurableWorkflowKeyFromTags(task.tagsDetailed);
   }
 
   /**

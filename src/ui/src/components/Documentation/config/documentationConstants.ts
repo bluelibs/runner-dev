@@ -10,6 +10,8 @@ export const DOCUMENTATION_CONSTANTS = {
     VIEW_MODE: "docs-view-mode",
     TREE_TYPE: "docs-tree-type",
     COMPACT_MODE: "docs-compact-mode",
+    TREE_EXPANSION_NAMESPACE: "docs-tree-expansion-namespace",
+    TREE_EXPANSION_TYPE: "docs-tree-expansion-type",
   },
 
   // Default values

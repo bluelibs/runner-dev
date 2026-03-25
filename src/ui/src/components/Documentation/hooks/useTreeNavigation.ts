@@ -10,6 +10,65 @@ import {
 } from "../utils/tree-utils";
 import { TreeType } from "./useViewMode";
 
+function getExpansionStorageKey(treeType: TreeType): string {
+  return treeType === "namespace"
+    ? DOCUMENTATION_CONSTANTS.STORAGE_KEYS.TREE_EXPANSION_NAMESPACE
+    : DOCUMENTATION_CONSTANTS.STORAGE_KEYS.TREE_EXPANSION_TYPE;
+}
+
+function readExpandedNodeIds(treeType: TreeType): string[] {
+  try {
+    const raw = localStorage.getItem(getExpansionStorageKey(treeType));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistExpandedNodeIds(treeType: TreeType, nodeIds: string[]): void {
+  try {
+    localStorage.setItem(
+      getExpansionStorageKey(treeType),
+      JSON.stringify(Array.from(new Set(nodeIds)))
+    );
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
+function applyExpandedState(
+  nodes: TreeNode[],
+  expandedNodeIds: Set<string>
+): TreeNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    isExpanded:
+      node.children.length > 0 ? expandedNodeIds.has(node.id) : node.isExpanded,
+    children: applyExpandedState(node.children, expandedNodeIds),
+  }));
+}
+
+function collectExpandedNodeIds(nodes: TreeNode[]): string[] {
+  const expandedIds: string[] = [];
+  const visit = (nodeList: TreeNode[]) => {
+    for (const node of nodeList) {
+      if (node.children.length > 0 && node.isExpanded) {
+        expandedIds.push(node.id);
+      }
+      if (node.children.length > 0) {
+        visit(node.children);
+      }
+    }
+  };
+
+  visit(nodes);
+  return expandedIds;
+}
+
 export const useTreeNavigation = (
   allElements: any[],
   treeType: TreeType,
@@ -38,23 +97,47 @@ export const useTreeNavigation = (
     // Apply search filter
     if (localNamespaceSearch) {
       tree = filterTree(tree, localNamespaceSearch);
+    } else {
+      tree = applyExpandedState(tree, new Set(readExpandedNodeIds(treeType)));
     }
 
     setTreeNodes(tree);
   }, [allElements, treeType, localNamespaceSearch]);
 
+  const handleToggleExpansion = (nodeId: string, expanded?: boolean) => {
+    setTreeNodes((prevNodes) => {
+      const nextNodes = toggleNodeExpansion(prevNodes, nodeId, expanded);
+      if (!localNamespaceSearch) {
+        persistExpandedNodeIds(treeType, collectExpandedNodeIds(nextNodes));
+      }
+      return nextNodes;
+    });
+  };
+
   const handleTreeNodeClick = (node: TreeNode) => {
     if (!node.elementId) return;
 
     const anchorId = `element-${node.elementId}`;
+    const targetHash = `#${anchorId}`;
+
+    if (node.children.length > 0) {
+      if (node.isExpanded && window.location.hash === targetHash) {
+        handleToggleExpansion(node.id, false);
+        return;
+      }
+
+      if (!node.isExpanded) {
+        handleToggleExpansion(node.id, true);
+      }
+    }
 
     // If already at this hash, force scroll; otherwise update hash for instant navigation
-    if (window.location.hash === `#${anchorId}`) {
+    if (window.location.hash === targetHash) {
       document
         .getElementById(anchorId)
         ?.scrollIntoView({ behavior: "instant", block: "start" });
     } else {
-      window.location.hash = `#${anchorId}`;
+      window.location.hash = targetHash;
     }
 
     const target = document.getElementById(anchorId);
@@ -68,12 +151,6 @@ export const useTreeNavigation = (
         );
       }, DOCUMENTATION_CONSTANTS.CONSTRAINTS.HIGHLIGHT_DURATION);
     }
-  };
-
-  const handleToggleExpansion = (nodeId: string, expanded?: boolean) => {
-    setTreeNodes((prevNodes) =>
-      toggleNodeExpansion(prevNodes, nodeId, expanded)
-    );
   };
 
   // Handle hash changes to clear search when navigating to filtered-out elements

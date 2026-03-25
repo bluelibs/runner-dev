@@ -26,6 +26,7 @@ import { ResourceSubtreeSection } from "./ResourceSubtreeSection";
 import { ResourceEventLanesSection } from "./ResourceEventLanesSection";
 import { ResourceRpcLanesSection } from "./ResourceRpcLanesSection";
 import { SearchableList } from "./common/SearchableList";
+import { resolveReferenceElement } from "../utils/resolveReferenceElement";
 import {
   isEventLanesResource,
   isRpcLanesResource,
@@ -34,6 +35,10 @@ import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
+import {
+  ResourceLifecycleMethodsSection,
+  type LifecycleMethodTone,
+} from "./ResourceLifecycleMethodsSection";
 
 export interface ResourceCardProps {
   resource: Resource;
@@ -41,6 +46,43 @@ export interface ResourceCardProps {
 }
 
 type IsolationRuleSource = "exports" | "deny" | "only";
+const LIFECYCLE_METHODS: Array<{
+  key: "hasInit" | "hasReady" | "hasCooldown" | "hasDispose" | "hasHealthCheck";
+  label: string;
+  detail: string;
+  tone: LifecycleMethodTone;
+}> = [
+  {
+    key: "hasInit",
+    label: "init",
+    detail: "Bootstraps the resource value.",
+    tone: "core",
+  },
+  {
+    key: "hasReady",
+    label: "ready",
+    detail: "Runs after startup dependencies settle.",
+    tone: "runtime",
+  },
+  {
+    key: "hasCooldown",
+    label: "cooldown",
+    detail: "Stops fresh work before teardown.",
+    tone: "runtime",
+  },
+  {
+    key: "hasDispose",
+    label: "dispose",
+    detail: "Releases resources during shutdown.",
+    tone: "core",
+  },
+  {
+    key: "hasHealthCheck",
+    label: "health",
+    detail: "Exposes a runtime health probe.",
+    tone: "probe",
+  },
+];
 
 export const ResourceCard: React.FC<ResourceCardProps> = ({
   resource,
@@ -81,16 +123,25 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   const hasRpcLanesSurface = isRpcLanesResource(resource);
   const rootResource = introspector.getRoot();
   const isRootResource = rootResource.id === resource.id;
+  const resources = introspector.getResources();
+  const lifecycleMethods = React.useMemo(() => {
+    return LIFECYCLE_METHODS.filter((method) => Boolean(resource[method.key]));
+  }, [resource]);
+
+  const resolveAdaptiveReferenceElement = React.useCallback(
+    (id: string) => resolveReferenceElement(introspector, id),
+    [introspector]
+  );
 
   const openIsolationWildcardModal = React.useCallback(
     (source: IsolationRuleSource, rule: string) => {
-      const matchedResources = introspector
-        .getResources()
-        .filter((item) => matchesWildcardPattern(item.id, rule));
+      const matchedResources = resources.filter((item) =>
+        matchesWildcardPattern(item.id, rule)
+      );
 
       setIsolationRuleModal({ source, rule, matchedResources });
     },
-    [introspector]
+    [resources]
   );
 
   const closeIsolationWildcardModal = React.useCallback(() => {
@@ -266,20 +317,16 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             {resource.isolation?.exportsMode ?? "unset"}
           </InfoBlock>
 
-          <InfoBlock prefix="resource-card" label="Lifecycle Hooks:">
-            {[
-              resource.hasReady && "ready",
-              resource.hasCooldown && "cooldown",
-              resource.hasHealthCheck && "health",
-            ]
-              .filter(Boolean)
-              .join(", ") || "None"}
+          <InfoBlock prefix="resource-card" label="Lifecycle Methods:">
+            <ResourceLifecycleMethodsSection methods={lifecycleMethods} />
           </InfoBlock>
 
           {resource.isolation && (
             <ResourceIsolationSection
               isolation={resource.isolation}
               onOpenWildcard={openIsolationWildcardModal}
+              resolveReferenceElement={resolveAdaptiveReferenceElement}
+              resources={resources}
             />
           )}
 

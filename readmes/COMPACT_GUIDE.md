@@ -90,7 +90,7 @@ Notes:
 - the exported `index.html` is standalone and can be opened directly over `file://`
 - `snapshot.json` is still written as an auxiliary artifact for inspection, debugging, and snapshot-backed MCP
 - this works well in CI too: upload the export folder as a build artifact and inspect it after the pipeline finishes
-- in this repository, `npm run play:export` is the same pattern wired to the enhanced showcase app
+- in this repository, `npm run play:export` is the same pattern wired to the reference commerce app used by `npm run play`
 
 ## MCP Quickstart
 

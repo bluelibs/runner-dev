@@ -7,7 +7,8 @@ import React, {
 } from "react";
 import type { Introspector } from "../../../../../../resources/models/Introspector";
 import { DOCUMENTATION_CONSTANTS } from "../../config/documentationConstants";
-import { getOverviewDisplayId } from "../../utils/overviewIds";
+import { resolveReferenceElement } from "../../utils/resolveReferenceElement";
+import { OverviewIdLink } from "../common/OverviewIdLink";
 import JsonViewer from "../JsonViewer";
 import { BaseModal } from "../modals";
 import "./RecentLogs.scss";
@@ -49,14 +50,6 @@ interface RecentLogsProps {
   onCorrelationIdClick?: (correlationId: string) => void;
 }
 
-interface SourceLinkMeta {
-  href: string;
-  title: string;
-  collapsedLabel: string;
-  fullLabel: string;
-  hasHiddenAncestors: boolean;
-}
-
 const levelName = (
   level: string
 ): "error" | "warn" | "info" | "debug" | "trace" | "default" => {
@@ -92,11 +85,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedSourceIds, setExpandedSourceIds] = useState<
-    Record<string, boolean>
-  >({});
   const searchInputRef = useRef<HTMLInputElement>(null);
   const fsSearchInputRef = useRef<HTMLInputElement>(null);
+  const resources = useMemo(() => introspector.getResources(), [introspector]);
 
   const clearSearch = useCallback(() => {
     setSearchQuery("");
@@ -123,52 +114,6 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     if (!searchQuery) return reversed;
     return reversed.filter((log) => fuzzyMatchLog(log, searchQuery));
   }, [logs, isFullscreen, searchQuery]);
-
-  const sourceLinkMetaById = useMemo(() => {
-    const resources = introspector.getResources();
-    const entries = logs
-      .map((log) => log.sourceId)
-      .filter((sourceId): sourceId is string => Boolean(sourceId))
-      .map((sourceId) => {
-        const source =
-          introspector.getTask(sourceId) ??
-          introspector.getHook(sourceId) ??
-          introspector.getResource(sourceId) ??
-          introspector.getEvent(sourceId) ??
-          introspector.getMiddleware(sourceId) ??
-          introspector.getError(sourceId) ??
-          introspector.getAsyncContext(sourceId) ??
-          introspector.getTag(sourceId);
-
-        if (!source) {
-          return [
-            sourceId,
-            {
-              href: `#element-${sourceId}`,
-              title: sourceId,
-              collapsedLabel: sourceId,
-              fullLabel: sourceId,
-              hasHiddenAncestors: false,
-            } satisfies SourceLinkMeta,
-          ] as const;
-        }
-
-        const displayId = getOverviewDisplayId(source, resources);
-
-        return [
-          sourceId,
-          {
-            href: `#element-${source.id}`,
-            title: source.id,
-            collapsedLabel: displayId.collapsedSegments.join(" > "),
-            fullLabel: displayId.fullSegments.join(" > "),
-            hasHiddenAncestors: displayId.hasHiddenAncestors,
-          } satisfies SourceLinkMeta,
-        ] as const;
-      });
-
-    return new Map(entries);
-  }, [introspector, logs]);
 
   const selectedLog = useMemo(() => {
     if (selectedLogIndex === null) return null;
@@ -217,16 +162,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     };
   }, [selectedLog]);
 
-  const getSourceLinkMeta = useCallback(
-    (sourceId: string): SourceLinkMeta =>
-      sourceLinkMetaById.get(sourceId) ?? {
-        href: `#element-${sourceId}`,
-        title: sourceId,
-        collapsedLabel: sourceId,
-        fullLabel: sourceId,
-        hasHiddenAncestors: false,
-      },
-    [sourceLinkMetaById]
+  const resolveSourceElement = useCallback(
+    (sourceId: string) => resolveReferenceElement(introspector, sourceId),
+    [introspector]
   );
 
   const revealHashTarget = useCallback((targetId: string, attempts = 10) => {
@@ -268,66 +206,28 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     [revealHashTarget]
   );
 
-  const toggleSourceExpanded = useCallback((sourceId: string) => {
-    setExpandedSourceIds((current) => ({
-      ...current,
-      [sourceId]: !current[sourceId],
-    }));
-  }, []);
-
   const renderSourceLink = useCallback(
     (sourceId: string, className: string) => {
-      const sourceMeta = getSourceLinkMeta(sourceId);
-      const isExpanded = !!expandedSourceIds[sourceId];
-      const label = isExpanded
-        ? sourceMeta.fullLabel
-        : sourceMeta.collapsedLabel;
-      const targetId = sourceMeta.href.slice(1);
+      const element = resolveSourceElement(sourceId);
+      const href = `#element-${element.id}`;
+      const targetId = href.slice(1);
 
       return (
-        <span className="recent-logs__source-shell">
-          {sourceMeta.hasHiddenAncestors && (
-            <button
-              type="button"
-              className="recent-logs__source-expand"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                toggleSourceExpanded(sourceId);
-              }}
-              aria-label={
-                isExpanded
-                  ? `Collapse full source ID for ${sourceMeta.title}`
-                  : `Expand full source ID for ${sourceMeta.title}`
-              }
-              title={
-                isExpanded
-                  ? `Collapse full source ID for ${sourceMeta.title}`
-                  : `Expand full source ID for ${sourceMeta.title}`
-              }
-            >
-              {isExpanded ? "−" : "..."}
-            </button>
-          )}
-          <a
-            href={sourceMeta.href}
-            onClick={(event) =>
-              handleSourceNavigate(event, sourceMeta.href, targetId)
-            }
-            title={sourceMeta.title}
-            className={className}
-          >
-            {label}
-          </a>
-        </span>
+        <OverviewIdLink
+          element={element}
+          resources={resources}
+          href={href}
+          title={element.id}
+          className={className}
+          classNames={{
+            shell: "recent-logs__source-shell",
+            expand: "recent-logs__source-expand",
+          }}
+          onClick={(event) => handleSourceNavigate(event, href, targetId)}
+        />
       );
     },
-    [
-      expandedSourceIds,
-      getSourceLinkMeta,
-      handleSourceNavigate,
-      toggleSourceExpanded,
-    ]
+    [handleSourceNavigate, resolveSourceElement, resources]
   );
 
   useEffect(() => {

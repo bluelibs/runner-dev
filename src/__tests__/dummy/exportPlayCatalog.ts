@@ -12,9 +12,7 @@ async function main() {
   });
   const relativeEntryPath = path.relative(process.cwd(), result.entryHtmlPath);
 
-  console.log(
-    `[runner-dev.play:export] ✅ Exported to ${relativeEntryPath}`
-  );
+  console.log(`[runner-dev.play:export] ✅ Exported to ${relativeEntryPath}`);
 }
 
 main().catch((error) => {

@@ -204,7 +204,12 @@ export const DocumentationMainContent: React.FC<
     >
       {suspendRendering && <div className="docs-main-overlay" />}
       <div className="docs-content-container">
-        <header id="top" className="docs-header">
+        <header
+          id="top"
+          className={`docs-header ${
+            activeSection === "overview" ? "docs-header--animated" : ""
+          }`}
+        >
           <h1>{rootTitle}</h1>
           <p>{rootDescription}</p>
         </header>

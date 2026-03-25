@@ -8,6 +8,7 @@ jest.mock("../utils/markdownUtils", () => ({
   MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
 }));
 jest.mock("./ElementTable.scss", () => ({}));
+jest.mock("./common/OverviewIdLink.scss", () => ({}), { virtual: true });
 
 describe("ElementTable", () => {
   const elements: BaseElement[] = [
@@ -241,9 +242,10 @@ describe("ElementTable", () => {
       />
     );
 
-    expect(
-      screen.getByRole("button", { name: "For Tasks" })
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "For Tasks" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
     expect(
       screen.getByRole("button", { name: "For Resources" })
     ).toHaveAttribute("aria-pressed", "true");

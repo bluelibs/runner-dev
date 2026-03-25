@@ -155,13 +155,6 @@ export type Diagnostic = {
   severity: Scalars['String']['output'];
 };
 
-/** The structure of a durable workflow, extracted without executing it */
-export type DurableFlowShape = {
-  __typename?: 'DurableFlowShape';
-  /** Ordered list of flow nodes describing the workflow structure */
-  nodes: Array<FlowNode>;
-};
-
 export type EmissionEntry = {
   __typename?: 'EmissionEntry';
   /** Correlation id for tracing */
@@ -337,71 +330,6 @@ export type EventLoopStats = {
   __typename?: 'EventLoopStats';
   /** Average event loop delay (ms) measured via monitorEventLoopDelay */
   lag: Scalars['Float']['output'];
-};
-
-/** A durable workflow event emission node */
-export type FlowEmitNode = {
-  __typename?: 'FlowEmitNode';
-  /** The event ID being emitted */
-  eventId: Scalars['String']['output'];
-  kind: Scalars['String']['output'];
-  /** Optional explicit step ID */
-  stepId: Maybe<Scalars['String']['output']>;
-};
-
-/** A node in a durable workflow flow description */
-export type FlowNode = FlowEmitNode | FlowNoteNode | FlowSignalNode | FlowSleepNode | FlowStepNode | FlowSwitchNode;
-
-/** A durable workflow documentation note */
-export type FlowNoteNode = {
-  __typename?: 'FlowNoteNode';
-  kind: Scalars['String']['output'];
-  /** The note message */
-  message: Scalars['String']['output'];
-};
-
-/** A durable workflow signal wait node */
-export type FlowSignalNode = {
-  __typename?: 'FlowSignalNode';
-  kind: Scalars['String']['output'];
-  /** The event ID this step waits for */
-  signalId: Scalars['String']['output'];
-  /** Optional explicit step ID */
-  stepId: Maybe<Scalars['String']['output']>;
-  /** Optional timeout in milliseconds */
-  timeoutMs: Maybe<Scalars['Int']['output']>;
-};
-
-/** A durable workflow sleep/delay node */
-export type FlowSleepNode = {
-  __typename?: 'FlowSleepNode';
-  /** Sleep duration in milliseconds */
-  durationMs: Scalars['Int']['output'];
-  kind: Scalars['String']['output'];
-  /** Optional explicit step ID */
-  stepId: Maybe<Scalars['String']['output']>;
-};
-
-/** A durable workflow step node */
-export type FlowStepNode = {
-  __typename?: 'FlowStepNode';
-  /** Whether this step has a rollback/compensation handler */
-  hasCompensation: Scalars['Boolean']['output'];
-  kind: Scalars['String']['output'];
-  /** The step identifier */
-  stepId: Scalars['String']['output'];
-};
-
-/** A durable workflow branching/switch node */
-export type FlowSwitchNode = {
-  __typename?: 'FlowSwitchNode';
-  /** IDs of the available branches */
-  branchIds: Array<Scalars['String']['output']>;
-  /** Whether a default branch is defined */
-  hasDefault: Scalars['Boolean']['output'];
-  kind: Scalars['String']['output'];
-  /** The switch step identifier */
-  stepId: Scalars['String']['output'];
 };
 
 export type GcStats = {
@@ -934,8 +862,12 @@ export type Resource = BaseElement & {
   filePath: Maybe<Scalars['String']['output']>;
   /** True when this resource defines a cooldown() lifecycle hook. */
   hasCooldown: Scalars['Boolean']['output'];
+  /** True when this resource defines a dispose() lifecycle hook. */
+  hasDispose: Scalars['Boolean']['output'];
   /** True when this resource defines a health() probe for runtime health reports. */
   hasHealthCheck: Scalars['Boolean']['output'];
+  /** True when this resource defines an init() lifecycle hook. */
+  hasInit: Scalars['Boolean']['output'];
   /** True when this resource defines a ready() lifecycle hook. */
   hasReady: Scalars['Boolean']['output'];
   /** Unique identifier for the element */
@@ -1330,6 +1262,8 @@ export type Task = BaseElement & {
   depenendsOnResolved: Array<BaseElement>;
   /** The durable resource runtime used by this workflow (if resolvable) */
   durableResource: Maybe<Resource>;
+  /** The explicit durable workflow key when set via tags.durableWorkflow.with({ key }). Null when the workflow uses its canonical task id as the durable identity. */
+  durableWorkflowKey: Maybe<Scalars['String']['output']>;
   /** Event ids this task may emit (from dependencies) */
   emits: Array<Scalars['String']['output']>;
   /** Events emitted by this task (resolved) */
@@ -1338,8 +1272,6 @@ export type Task = BaseElement & {
   fileContents: Maybe<Scalars['String']['output']>;
   /** Path to task file */
   filePath: Maybe<Scalars['String']['output']>;
-  /** The workflow structure (steps, sleeps, signals, etc.) for durable tasks */
-  flowShape: Maybe<DurableFlowShape>;
   /** Whether this task has runtime interceptors registered via taskDependency.intercept(...). */
   hasInterceptors: Scalars['Boolean']['output'];
   /** Unique identifier for the element */
@@ -1542,14 +1474,10 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
   info: GraphQLResolveInfo
 ) => TResult | Promise<TResult>;
 
-/** Mapping of union types */
-export type ResolversUnionTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  FlowNode: ( FlowEmitNode ) | ( FlowNoteNode ) | ( FlowSignalNode ) | ( FlowSleepNode ) | ( FlowStepNode ) | ( FlowSwitchNode );
-}>;
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  BaseElement: ( Omit<All, 'tags'> & { tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<_RefType['Resource']>, requiredBy: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['BaseElement']> } ) | ( Omit<Error, 'tags' | 'thrownBy'> & { tags: Maybe<Array<_RefType['Tag']>>, thrownBy: Array<_RefType['All']> } ) | ( Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved' | 'tags'> & { emittedByResolved: Array<_RefType['BaseElement']>, listenedToByResolved: Array<_RefType['Hook']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Middleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedByResourcesDetailed: Array<_RefType['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<_RefType['Resource']>, usedByTasksDetailed: Array<_RefType['MiddlewareTaskUsage']>, usedByTasksResolved: Array<_RefType['Task']> } ) | ( Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<_RefType['Resource']>, emits: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['ResourceMiddleware']>, middlewareResolvedDetailed: Array<_RefType['ResourceMiddlewareUsage']>, overridesResolved: Array<_RefType['BaseElement']>, registeredByResolved: Maybe<_RefType['Resource']>, registersResolved: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']> } ) | ( Omit<ResourceMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Resource']>, usedByDetailed: Array<_RefType['MiddlewareResourceUsage']> } ) | ( Omit<Tag, 'all' | 'errors' | 'events' | 'hooks' | 'resourceMiddlewares' | 'resources' | 'tags' | 'taskMiddlewares' | 'tasks'> & { all: Array<_RefType['BaseElement']>, errors: Array<_RefType['Error']>, events: Array<_RefType['Event']>, hooks: Array<_RefType['Hook']>, resourceMiddlewares: Array<_RefType['ResourceMiddleware']>, resources: Array<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, taskMiddlewares: Array<_RefType['TaskMiddleware']>, tasks: Array<_RefType['Task']> } ) | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'flowShape' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, durableResource: Maybe<_RefType['Resource']>, emitsResolved: Array<_RefType['Event']>, flowShape: Maybe<_RefType['DurableFlowShape']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<TaskMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']>, usedByDetailed: Array<_RefType['MiddlewareTaskUsage']> } );
+  BaseElement: ( Omit<All, 'tags'> & { tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<_RefType['Resource']>, requiredBy: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['BaseElement']> } ) | ( Omit<Error, 'tags' | 'thrownBy'> & { tags: Maybe<Array<_RefType['Tag']>>, thrownBy: Array<_RefType['All']> } ) | ( Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved' | 'tags'> & { emittedByResolved: Array<_RefType['BaseElement']>, listenedToByResolved: Array<_RefType['Hook']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Middleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedByResourcesDetailed: Array<_RefType['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<_RefType['Resource']>, usedByTasksDetailed: Array<_RefType['MiddlewareTaskUsage']>, usedByTasksResolved: Array<_RefType['Task']> } ) | ( Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<_RefType['Resource']>, emits: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['ResourceMiddleware']>, middlewareResolvedDetailed: Array<_RefType['ResourceMiddlewareUsage']>, overridesResolved: Array<_RefType['BaseElement']>, registeredByResolved: Maybe<_RefType['Resource']>, registersResolved: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']> } ) | ( Omit<ResourceMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Resource']>, usedByDetailed: Array<_RefType['MiddlewareResourceUsage']> } ) | ( Omit<Tag, 'all' | 'errors' | 'events' | 'hooks' | 'resourceMiddlewares' | 'resources' | 'tags' | 'taskMiddlewares' | 'tasks'> & { all: Array<_RefType['BaseElement']>, errors: Array<_RefType['Error']>, events: Array<_RefType['Event']>, hooks: Array<_RefType['Hook']>, resourceMiddlewares: Array<_RefType['ResourceMiddleware']>, resources: Array<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, taskMiddlewares: Array<_RefType['TaskMiddleware']>, tasks: Array<_RefType['Task']> } ) | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, durableResource: Maybe<_RefType['Resource']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<TaskMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']>, usedByDetailed: Array<_RefType['MiddlewareTaskUsage']> } );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
@@ -1561,7 +1489,6 @@ export type ResolversTypes = ResolversObject<{
   CoverageInfo: ResolverTypeWrapper<CoverageInfo>;
   CpuStats: ResolverTypeWrapper<CpuStats>;
   Diagnostic: ResolverTypeWrapper<Diagnostic>;
-  DurableFlowShape: ResolverTypeWrapper<Omit<DurableFlowShape, 'nodes'> & { nodes: Array<ResolversTypes['FlowNode']> }>;
   EmissionEntry: ResolverTypeWrapper<Omit<EmissionEntry, 'emitterResolved' | 'eventResolved'> & { emitterResolved: Maybe<ResolversTypes['BaseElement']>, eventResolved: Maybe<ResolversTypes['Event']> }>;
   EmissionFilterInput: EmissionFilterInput;
   Error: ResolverTypeWrapper<Omit<Error, 'tags' | 'thrownBy'> & { tags: Maybe<Array<ResolversTypes['Tag']>>, thrownBy: Array<ResolversTypes['All']> }>;
@@ -1572,13 +1499,6 @@ export type ResolversTypes = ResolversObject<{
   EventLaneSummary: ResolverTypeWrapper<EventLaneSummary>;
   EventLoopStats: ResolverTypeWrapper<EventLoopStats>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
-  FlowEmitNode: ResolverTypeWrapper<FlowEmitNode>;
-  FlowNode: ResolverTypeWrapper<ResolversUnionTypes<ResolversTypes>['FlowNode']>;
-  FlowNoteNode: ResolverTypeWrapper<FlowNoteNode>;
-  FlowSignalNode: ResolverTypeWrapper<FlowSignalNode>;
-  FlowSleepNode: ResolverTypeWrapper<FlowSleepNode>;
-  FlowStepNode: ResolverTypeWrapper<FlowStepNode>;
-  FlowSwitchNode: ResolverTypeWrapper<FlowSwitchNode>;
   GcStats: ResolverTypeWrapper<GcStats>;
   Hook: ResolverTypeWrapper<Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, runs: Array<ResolversTypes['RunRecord']>, tags: Maybe<Array<ResolversTypes['Tag']>> }>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
@@ -1631,7 +1551,7 @@ export type ResolversTypes = ResolversObject<{
   Tag: ResolverTypeWrapper<Omit<Tag, 'all' | 'errors' | 'events' | 'hooks' | 'resourceMiddlewares' | 'resources' | 'tags' | 'taskMiddlewares' | 'tasks'> & { all: Array<ResolversTypes['BaseElement']>, errors: Array<ResolversTypes['Error']>, events: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['Hook']>, resourceMiddlewares: Array<ResolversTypes['ResourceMiddleware']>, resources: Array<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, taskMiddlewares: Array<ResolversTypes['TaskMiddleware']>, tasks: Array<ResolversTypes['Task']> }>;
   TagTarget: null;
   TagUsage: ResolverTypeWrapper<TagUsage>;
-  Task: ResolverTypeWrapper<Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'flowShape' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversTypes['BaseElement']>, durableResource: Maybe<ResolversTypes['Resource']>, emitsResolved: Array<ResolversTypes['Event']>, flowShape: Maybe<ResolversTypes['DurableFlowShape']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, runs: Array<ResolversTypes['RunRecord']>, tags: Maybe<Array<ResolversTypes['Tag']>> }>;
+  Task: ResolverTypeWrapper<Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversTypes['BaseElement']>, durableResource: Maybe<ResolversTypes['Resource']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, runs: Array<ResolversTypes['RunRecord']>, tags: Maybe<Array<ResolversTypes['Tag']>> }>;
   TaskDependsOn: ResolverTypeWrapper<Omit<TaskDependsOn, 'emitters' | 'hooks' | 'resources' | 'tasks'> & { emitters: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['Hook']>, resources: Array<ResolversTypes['Resource']>, tasks: Array<ResolversTypes['BaseElement']> }>;
   TaskInterceptorOwnersEntry: ResolverTypeWrapper<TaskInterceptorOwnersEntry>;
   TaskMiddleware: ResolverTypeWrapper<Omit<TaskMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: ResolversTypes['MiddlewareAutoApply'], emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Task']>, usedByDetailed: Array<ResolversTypes['MiddlewareTaskUsage']> }>;
@@ -1647,7 +1567,6 @@ export type ResolversParentTypes = ResolversObject<{
   CoverageInfo: CoverageInfo;
   CpuStats: CpuStats;
   Diagnostic: Diagnostic;
-  DurableFlowShape: Omit<DurableFlowShape, 'nodes'> & { nodes: Array<ResolversParentTypes['FlowNode']> };
   EmissionEntry: Omit<EmissionEntry, 'emitterResolved' | 'eventResolved'> & { emitterResolved: Maybe<ResolversParentTypes['BaseElement']>, eventResolved: Maybe<ResolversParentTypes['Event']> };
   EmissionFilterInput: EmissionFilterInput;
   Error: Omit<Error, 'tags' | 'thrownBy'> & { tags: Maybe<Array<ResolversParentTypes['Tag']>>, thrownBy: Array<ResolversParentTypes['All']> };
@@ -1658,13 +1577,6 @@ export type ResolversParentTypes = ResolversObject<{
   EventLaneSummary: EventLaneSummary;
   EventLoopStats: EventLoopStats;
   Float: Scalars['Float']['output'];
-  FlowEmitNode: FlowEmitNode;
-  FlowNode: ResolversUnionTypes<ResolversParentTypes>['FlowNode'];
-  FlowNoteNode: FlowNoteNode;
-  FlowSignalNode: FlowSignalNode;
-  FlowSleepNode: FlowSleepNode;
-  FlowStepNode: FlowStepNode;
-  FlowSwitchNode: FlowSwitchNode;
   GcStats: GcStats;
   Hook: Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
   ID: Scalars['ID']['output'];
@@ -1710,7 +1622,7 @@ export type ResolversParentTypes = ResolversObject<{
   SwappedTask: SwappedTask;
   Tag: Omit<Tag, 'all' | 'errors' | 'events' | 'hooks' | 'resourceMiddlewares' | 'resources' | 'tags' | 'taskMiddlewares' | 'tasks'> & { all: Array<ResolversParentTypes['BaseElement']>, errors: Array<ResolversParentTypes['Error']>, events: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['Hook']>, resourceMiddlewares: Array<ResolversParentTypes['ResourceMiddleware']>, resources: Array<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, taskMiddlewares: Array<ResolversParentTypes['TaskMiddleware']>, tasks: Array<ResolversParentTypes['Task']> };
   TagUsage: TagUsage;
-  Task: Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'flowShape' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversParentTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, durableResource: Maybe<ResolversParentTypes['Resource']>, emitsResolved: Array<ResolversParentTypes['Event']>, flowShape: Maybe<ResolversParentTypes['DurableFlowShape']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
+  Task: Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversParentTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, durableResource: Maybe<ResolversParentTypes['Resource']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
   TaskDependsOn: Omit<TaskDependsOn, 'emitters' | 'hooks' | 'resources' | 'tasks'> & { emitters: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['Hook']>, resources: Array<ResolversParentTypes['Resource']>, tasks: Array<ResolversParentTypes['BaseElement']> };
   TaskInterceptorOwnersEntry: TaskInterceptorOwnersEntry;
   TaskMiddleware: Omit<TaskMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: ResolversParentTypes['MiddlewareAutoApply'], emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Task']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareTaskUsage']> };
@@ -1785,11 +1697,6 @@ export type DiagnosticResolvers<ContextType = CustomGraphQLContext, ParentType e
   nodeId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   nodeKind: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   severity: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type DurableFlowShapeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['DurableFlowShape'] = ResolversParentTypes['DurableFlowShape']> = ResolversObject<{
-  nodes: Resolver<Array<ResolversTypes['FlowNode']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1869,53 +1776,6 @@ export type EventLaneSummaryResolvers<ContextType = CustomGraphQLContext, Parent
 
 export type EventLoopStatsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['EventLoopStats'] = ResolversParentTypes['EventLoopStats']> = ResolversObject<{
   lag: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FlowEmitNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowEmitNode'] = ResolversParentTypes['FlowEmitNode']> = ResolversObject<{
-  eventId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  stepId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FlowNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowNode'] = ResolversParentTypes['FlowNode']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'FlowEmitNode' | 'FlowNoteNode' | 'FlowSignalNode' | 'FlowSleepNode' | 'FlowStepNode' | 'FlowSwitchNode', ParentType, ContextType>;
-}>;
-
-export type FlowNoteNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowNoteNode'] = ResolversParentTypes['FlowNoteNode']> = ResolversObject<{
-  kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  message: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FlowSignalNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowSignalNode'] = ResolversParentTypes['FlowSignalNode']> = ResolversObject<{
-  kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  signalId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  stepId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  timeoutMs: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FlowSleepNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowSleepNode'] = ResolversParentTypes['FlowSleepNode']> = ResolversObject<{
-  durationMs: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  stepId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FlowStepNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowStepNode'] = ResolversParentTypes['FlowStepNode']> = ResolversObject<{
-  hasCompensation: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  stepId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FlowSwitchNodeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['FlowSwitchNode'] = ResolversParentTypes['FlowSwitchNode']> = ResolversObject<{
-  branchIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  hasDefault: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  kind: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  stepId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2130,7 +1990,9 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, ResourceFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   hasCooldown: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  hasDispose: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hasHealthCheck: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  hasInit: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hasReady: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -2374,11 +2236,11 @@ export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends
   dependsOnResolved: Resolver<ResolversTypes['TaskDependsOn'], ParentType, ContextType>;
   depenendsOnResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   durableResource: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
+  durableWorkflowKey: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   emits: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   emitsResolved: Resolver<Array<ResolversTypes['Event']>, ParentType, ContextType>;
   fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, TaskFileContentsArgs>;
   filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  flowShape: Resolver<Maybe<ResolversTypes['DurableFlowShape']>, ParentType, ContextType>;
   hasInterceptors: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   inputSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -2457,20 +2319,12 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   CoverageInfo: CoverageInfoResolvers<ContextType>;
   CpuStats: CpuStatsResolvers<ContextType>;
   Diagnostic: DiagnosticResolvers<ContextType>;
-  DurableFlowShape: DurableFlowShapeResolvers<ContextType>;
   EmissionEntry: EmissionEntryResolvers<ContextType>;
   Error: ErrorResolvers<ContextType>;
   ErrorEntry: ErrorEntryResolvers<ContextType>;
   Event: EventResolvers<ContextType>;
   EventLaneSummary: EventLaneSummaryResolvers<ContextType>;
   EventLoopStats: EventLoopStatsResolvers<ContextType>;
-  FlowEmitNode: FlowEmitNodeResolvers<ContextType>;
-  FlowNode: FlowNodeResolvers<ContextType>;
-  FlowNoteNode: FlowNoteNodeResolvers<ContextType>;
-  FlowSignalNode: FlowSignalNodeResolvers<ContextType>;
-  FlowSleepNode: FlowSleepNodeResolvers<ContextType>;
-  FlowStepNode: FlowStepNodeResolvers<ContextType>;
-  FlowSwitchNode: FlowSwitchNodeResolvers<ContextType>;
   GcStats: GcStatsResolvers<ContextType>;
   Hook: HookResolvers<ContextType>;
   InterceptorOwnersSnapshot: InterceptorOwnersSnapshotResolvers<ContextType>;

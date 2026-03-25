@@ -54,7 +54,6 @@
 
 .schema-renderer__form-wrapper {
   min-width: 0;
-  padding: $spacing-md 0 0;
 
   .schema-renderer__form {
     background: var(--docs-bg-secondary);
@@ -62,6 +61,10 @@
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
   }
+}
+
+.schema-renderer__form--empty {
+  min-height: 120px;
 }
 
 .schema-renderer__grid {
@@ -125,30 +128,6 @@
     &:active {
       transform: translateY(0);
     }
-  }
-}
-
-.schema-renderer__json-inline {
-  margin-top: $spacing-lg;
-  position: relative;
-  min-width: 0;
-
-  .schema-renderer__code-block {
-    position: relative;
-  }
-}
-
-.schema-renderer__empty {
-  color: var(--docs-text-muted);
-  text-align: center;
-  padding: $spacing-xl;
-  font-style: italic;
-
-  &:before {
-    content: "📄";
-    display: block;
-    font-size: 32px;
-    margin-bottom: $spacing-sm;
   }
 }
 

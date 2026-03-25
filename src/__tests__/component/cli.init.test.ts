@@ -383,8 +383,8 @@ describe("CLI init", () => {
     );
     const pkg = JSON.parse(packageJson);
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.4.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.4.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
@@ -499,8 +499,8 @@ describe("CLI init", () => {
     );
     const pkg = JSON.parse(packageJson);
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.4.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.4.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
@@ -554,8 +554,8 @@ describe("CLI init", () => {
       await fs.readFile(path.join(projectDir, "package.json"), "utf-8")
     );
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.4.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.4.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");

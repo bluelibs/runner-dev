@@ -16,11 +16,11 @@ export function packageJson(projectName: string) {
       postinstall: "npm run skills:extract",
     },
     dependencies: {
-      "@bluelibs/runner": "^6.3.0",
-      "npm-skills": "^0.4.0",
+      "@bluelibs/runner": "^6.4.0",
+      "npm-skills": "^0.5.0",
     },
     devDependencies: {
-      "@bluelibs/runner-dev": "^6.3.0",
+      "@bluelibs/runner-dev": "^6.4.0",
       "@types/node": "^20.0.0",
       typescript: "^5.6.3",
       tsx: "^4.20.5",

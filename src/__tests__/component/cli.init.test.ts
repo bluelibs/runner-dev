@@ -386,7 +386,7 @@ describe("CLI init", () => {
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
-    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
+    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
@@ -394,6 +394,14 @@ describe("CLI init", () => {
     expect(pkg.scripts?.postinstall).toBe("npm run skills:extract");
     expect(pkg.scripts?.prepare).toBeUndefined();
     expect(pkg.npmSkills).toBeUndefined();
+
+    const tsconfigJson = await fs.readFile(
+      path.join(projectDir, "tsconfig.json"),
+      "utf-8"
+    );
+    const tsconfig = JSON.parse(tsconfigJson);
+    expect(tsconfig.compilerOptions?.module).toBe("CommonJS");
+    expect(tsconfig.compilerOptions?.moduleResolution).toBe("node");
 
     const appTs = await fs.readFile(
       path.join(projectDir, "src", "app.ts"),
@@ -494,7 +502,7 @@ describe("CLI init", () => {
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
-    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
+    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
@@ -549,7 +557,7 @@ describe("CLI init", () => {
     expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.3.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
-    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.4.0");
+    expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"

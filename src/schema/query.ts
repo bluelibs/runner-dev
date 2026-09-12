@@ -23,6 +23,7 @@ import {
   AsyncContextType,
   RunOptionsType,
   InterceptorOwnersSnapshotType,
+  ResourceBoundaryType,
 } from "./types/index";
 import { SwappedTaskType } from "./types/SwapType";
 import type {
@@ -32,6 +33,8 @@ import type {
   QueryMiddlewaresArgs,
   QueryResourceArgs,
   QueryResourcesArgs,
+  QueryBoundaryArgs,
+  QueryBoundariesArgs,
   QueryTaskArgs,
   QueryTasksArgs,
   QueryHooksArgs,
@@ -354,6 +357,46 @@ export const QueryType = new GraphQLObjectType({
         if ((args as any)?.idIncludes) {
           const sub = String((args as any).idIncludes);
           result = result.filter((r) => String(r.id).includes(sub));
+        }
+        return result;
+      },
+    },
+    boundary: {
+      description:
+        "Inspect the effective public/private surface for one resource boundary.",
+      type: ResourceBoundaryType,
+      args: {
+        ownerId: {
+          description: "Canonical resource id owning the boundary.",
+          type: new GraphQLNonNull(GraphQLID),
+        },
+      },
+      resolve: (_root, args: QueryBoundaryArgs, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getBoundarySurface(args.ownerId),
+    },
+    boundaries: {
+      description: "List resource boundaries with optional id filtering.",
+      type: new GraphQLNonNull(
+        new GraphQLList(new GraphQLNonNull(ResourceBoundaryType))
+      ),
+      args: {
+        ownerIdIncludes: {
+          description:
+            "Return only boundaries whose owner id contains this substring.",
+          type: GraphQLID,
+        },
+      },
+      resolve: (
+        _root,
+        args: QueryBoundariesArgs,
+        ctx: CustomGraphQLContext
+      ) => {
+        let result = ctx.introspector.getBoundarySurfaces();
+        if (args.ownerIdIncludes) {
+          const substring = String(args.ownerIdIncludes);
+          result = result.filter((surface) =>
+            surface.ownerId.includes(substring)
+          );
         }
         return result;
       },

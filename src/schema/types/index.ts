@@ -11,6 +11,7 @@ export {
   MiddlewareApplyScopeType,
 } from "./middleware/common";
 export { ResourceType } from "./ResourceType";
+export { ResourceBoundaryType } from "./ResourceBoundaryType";
 export { TaskType } from "./TaskType";
 export { HookType } from "./HookType";
 export { TagType } from "./TagType";

@@ -682,6 +682,10 @@ export type Query = {
   asyncContext: Maybe<AsyncContext>;
   /** Get all async context definitions. */
   asyncContexts: Array<AsyncContext>;
+  /** List resource boundaries with optional id filtering. */
+  boundaries: Array<ResourceBoundary>;
+  /** Inspect the effective public/private surface for one resource boundary. */
+  boundary: Maybe<ResourceBoundary>;
   /** Diagnostics for potential issues discovered by the introspector. */
   diagnostics: Array<Diagnostic>;
   /** Get a single error definition by its id. */
@@ -744,6 +748,18 @@ export type QueryAsyncContextArgs = {
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryAsyncContextsArgs = {
   idIncludes: InputMaybe<Scalars['ID']['input']>;
+};
+
+
+/** Root queries for introspection, live telemetry, and debugging of Runner apps. */
+export type QueryBoundariesArgs = {
+  ownerIdIncludes: InputMaybe<Scalars['ID']['input']>;
+};
+
+
+/** Root queries for introspection, live telemetry, and debugging of Runner apps. */
+export type QueryBoundaryArgs = {
+  ownerId: Scalars['ID']['input'];
 };
 
 
@@ -900,6 +916,8 @@ export type Resource = BaseElement & {
   registersResolved: Array<BaseElement>;
   /** Resource subtree governance policy summary from resource.subtree(...). */
   subtree: Maybe<ResourceSubtreePolicy>;
+  /** Effective public/private surface for this resource registration subtree. */
+  surface: ResourceBoundary;
   /** Tags associated with this element. */
   tags: Maybe<Array<Tag>>;
   /** Detailed tags associated with this element */
@@ -914,6 +932,21 @@ export type Resource = BaseElement & {
 export type ResourceFileContentsArgs = {
   endLine: InputMaybe<Scalars['Int']['input']>;
   startLine: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** Effective public and private surface for one resource registration subtree. */
+export type ResourceBoundary = {
+  __typename?: 'ResourceBoundary';
+  /** Canonical ids listed directly by the resource's isolate exports. */
+  declaredExports: Array<Scalars['ID']['output']>;
+  /** Canonical ids visible outside the boundary, including definitions reachable through exported resources. */
+  effectiveExports: Array<Scalars['ID']['output']>;
+  /** True when the resource explicitly declared an isolate exports surface. */
+  exportsDeclared: Scalars['Boolean']['output'];
+  /** Canonical id of the resource owning the boundary. */
+  ownerId: Scalars['ID']['output'];
+  /** Canonical ids registered inside the boundary but not visible outside it. */
+  privateDefinitions: Array<Scalars['ID']['output']>;
 };
 
 export type ResourceHealthEntry = {
@@ -1524,6 +1557,7 @@ export type ResolversTypes = ResolversObject<{
   NodeKindEnum: NodeKindEnum;
   Query: ResolverTypeWrapper<{}>;
   Resource: ResolverTypeWrapper<Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<ResolversTypes['Resource']>, emits: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['ResourceMiddlewareUsage']>, overridesResolved: Array<ResolversTypes['BaseElement']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, registersResolved: Array<ResolversTypes['BaseElement']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Task']> }>;
+  ResourceBoundary: ResolverTypeWrapper<ResourceBoundary>;
   ResourceHealthEntry: ResolverTypeWrapper<ResourceHealthEntry>;
   ResourceHealthReport: ResolverTypeWrapper<ResourceHealthReport>;
   ResourceHealthStatus: ResourceHealthStatus;
@@ -1598,6 +1632,7 @@ export type ResolversParentTypes = ResolversObject<{
   MiddlewareTaskUsage: Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversParentTypes['BaseElement'] };
   Query: {};
   Resource: Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<ResolversParentTypes['Resource']>, emits: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['ResourceMiddlewareUsage']>, overridesResolved: Array<ResolversParentTypes['BaseElement']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, registersResolved: Array<ResolversParentTypes['BaseElement']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Task']> };
+  ResourceBoundary: ResourceBoundary;
   ResourceHealthEntry: ResourceHealthEntry;
   ResourceHealthReport: ResourceHealthReport;
   ResourceHealthTotals: ResourceHealthTotals;
@@ -1953,6 +1988,8 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   all: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType, QueryAllArgs>;
   asyncContext: Resolver<Maybe<ResolversTypes['AsyncContext']>, ParentType, ContextType, RequireFields<QueryAsyncContextArgs, 'id'>>;
   asyncContexts: Resolver<Array<ResolversTypes['AsyncContext']>, ParentType, ContextType, QueryAsyncContextsArgs>;
+  boundaries: Resolver<Array<ResolversTypes['ResourceBoundary']>, ParentType, ContextType, QueryBoundariesArgs>;
+  boundary: Resolver<Maybe<ResolversTypes['ResourceBoundary']>, ParentType, ContextType, RequireFields<QueryBoundaryArgs, 'ownerId'>>;
   diagnostics: Resolver<Array<ResolversTypes['Diagnostic']>, ParentType, ContextType>;
   error: Resolver<Maybe<ResolversTypes['Error']>, ParentType, ContextType, RequireFields<QueryErrorArgs, 'id'>>;
   errors: Resolver<Array<ResolversTypes['Error']>, ParentType, ContextType, QueryErrorsArgs>;
@@ -2009,10 +2046,20 @@ export type ResourceResolvers<ContextType = CustomGraphQLContext, ParentType ext
   registers: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   registersResolved: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   subtree: Resolver<Maybe<ResolversTypes['ResourceSubtreePolicy']>, ParentType, ContextType>;
+  surface: Resolver<ResolversTypes['ResourceBoundary'], ParentType, ContextType>;
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   usedBy: Resolver<Array<ResolversTypes['Task']>, ParentType, ContextType>;
   visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ResourceBoundaryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceBoundary'] = ResolversParentTypes['ResourceBoundary']> = ResolversObject<{
+  declaredExports: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  effectiveExports: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  exportsDeclared: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  ownerId: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  privateDefinitions: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2345,6 +2392,7 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   MiddlewareTaskUsage: MiddlewareTaskUsageResolvers<ContextType>;
   Query: QueryResolvers<ContextType>;
   Resource: ResourceResolvers<ContextType>;
+  ResourceBoundary: ResourceBoundaryResolvers<ContextType>;
   ResourceHealthEntry: ResourceHealthEntryResolvers<ContextType>;
   ResourceHealthReport: ResourceHealthReportResolvers<ContextType>;
   ResourceHealthTotals: ResourceHealthTotalsResolvers<ContextType>;

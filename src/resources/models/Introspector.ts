@@ -1,4 +1,5 @@
 import type {
+  BoundarySurface,
   Resource,
   Event,
   Task,
@@ -23,6 +24,7 @@ import {
   buildIdMap,
   ensureStringArray,
 } from "./introspector.tools";
+import { buildBoundarySurfaces } from "./boundarySurfaces";
 import {
   findDurableDependencyId,
   getDurableWorkflowKeyFromTags,
@@ -90,6 +92,7 @@ export class Introspector {
   public runtime: IRuntime | null = null;
   public rootId: string | null = null;
   public runOptions: RunOptions | null = null;
+  private boundarySurfaces: BoundarySurface[] | null = null;
   public interceptorOwners: InterceptorOwnersSnapshot = {
     tasksById: {},
     middleware: {
@@ -289,8 +292,9 @@ export class Introspector {
       );
       resource.registers = this.canonicalizeReferenceArray(
         resource.registers,
-        taskHookResourceMiddlewareIds
+        allDependencyIds
       );
+      this.normalizeIsolationReferences(resource, allDependencyIds);
       this.normalizeMetaTags(resource, tagIds);
     }
 
@@ -355,6 +359,35 @@ export class Introspector {
   public finalizeDerivedState(): void {
     this.normalizeRelationIds();
     this.populateErrorThrownBy();
+    this.boundarySurfaces = buildBoundarySurfaces(this.resources);
+  }
+
+  private normalizeIsolationReferences(
+    resource: Resource,
+    candidateIds: string[]
+  ): void {
+    const isolation = resource.isolation;
+    if (!isolation) {
+      return;
+    }
+
+    isolation.deny = this.canonicalizeReferenceArray(
+      isolation.deny,
+      candidateIds
+    );
+    isolation.only = this.canonicalizeReferenceArray(
+      isolation.only,
+      candidateIds
+    );
+    isolation.exports = this.canonicalizeReferenceArray(
+      isolation.exports,
+      candidateIds
+    );
+    isolation.whitelist = isolation.whitelist.map((entry) => ({
+      ...entry,
+      for: this.canonicalizeReferenceArray(entry.for, candidateIds),
+      targets: this.canonicalizeReferenceArray(entry.targets, candidateIds),
+    }));
   }
 
   private initializeFromData(data: SerializedIntrospector): void {
@@ -711,6 +744,26 @@ export class Introspector {
 
   getResources(): Resource[] {
     return this.resources;
+  }
+
+  getBoundarySurfaces(): BoundarySurface[] {
+    this.boundarySurfaces ??= buildBoundarySurfaces(this.resources);
+    return this.boundarySurfaces;
+  }
+
+  getBoundarySurface(resourceId: string): BoundarySurface | null {
+    const exact = this.getBoundarySurfaces().find(
+      (surface) => surface.ownerId === resourceId
+    );
+    if (exact) {
+      return exact;
+    }
+
+    return (
+      this.getBoundarySurfaces().find((surface) =>
+        this.idsMatch(surface.ownerId, resourceId)
+      ) ?? null
+    );
   }
 
   getEvent(id: string): Event | null {

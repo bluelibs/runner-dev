@@ -50,6 +50,7 @@ const app = r
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
 - Task introspection includes runtime `interceptorCount` / `hasInterceptors` (registered via `taskDependency.intercept(...)` in resource init).
 - Resource introspection includes `isolation` (`deny`, `only`, `exports`, `exportsMode`) from `.isolate(...)`.
+- GraphQL exposes effective resource boundary surfaces, including declared exports, definitions reachable through exported resources, and private definitions.
 - Resource introspection includes `subtree` governance summaries (middleware attachment counts and validator counts per branch).
 - Resource introspection indicates whether a resource exposes a `cooldown()` hook for shutdown lifecycle.
 - Isolation wildcard rules are clickable in the docs UI and open a modal showing matched resources with inline filtering when lists are large.
@@ -523,6 +524,30 @@ query {
       emitters {
         id
       }
+    }
+  }
+}
+```
+
+- Resource boundary surfaces
+
+```graphql
+query {
+  boundary(ownerId: "app.billing") {
+    ownerId
+    exportsDeclared
+    declaredExports
+    effectiveExports
+    privateDefinitions
+  }
+  boundaries(ownerIdIncludes: "app.billing") {
+    ownerId
+    effectiveExports
+  }
+  resource(id: "app.billing") {
+    surface {
+      ownerId
+      privateDefinitions
     }
   }
 }

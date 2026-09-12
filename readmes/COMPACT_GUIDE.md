@@ -208,6 +208,20 @@ query LiveFirstLook {
 }
 ```
 
+Boundary-surface query:
+
+```graphql
+query BoundarySurface {
+  boundary(ownerId: "app.billing") {
+    ownerId
+    exportsDeclared
+    declaredExports
+    effectiveExports
+    privateDefinitions
+  }
+}
+```
+
 ## High-Value Source Files
 
 When working inside `@bluelibs/runner-dev`, start here:
@@ -226,6 +240,7 @@ When working inside `@bluelibs/runner-dev`, start here:
 - Topology graph: a focused lens for blast-radius analysis and resource mindmaps
 - `/docs/data`: the JSON payload feeding docs UI and in-app AI context
 - GraphQL: the main runtime introspection surface
+- Resource boundaries: GraphQL queries for declared exports, effective exports, and private definitions
 - MCP: the fastest AI-native access path when the app is already running
 - Live telemetry: logs, emissions, errors, runs, and correlation-driven inspection
 - Swap tooling: controlled runtime task replacement and restoration

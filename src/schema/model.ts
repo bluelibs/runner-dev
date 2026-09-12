@@ -6,6 +6,13 @@ export interface TagUsage {
 
 export type MiddlewareApplyScope = "where-visible" | "subtree";
 export type IsolationExportsMode = "unset" | "none" | "list";
+export interface BoundarySurface {
+  ownerId: string;
+  exportsDeclared: boolean;
+  declaredExports: string[];
+  effectiveExports: string[];
+  privateDefinitions: string[];
+}
 export type TagTarget =
   | "tasks"
   | "resources"

@@ -22,6 +22,7 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { CoverageInfoType } from "./CoverageType";
+import { ResourceBoundaryType } from "./ResourceBoundaryType";
 
 const IsolationExportsModeType = new GraphQLEnumType({
   name: "IsolationExportsMode",
@@ -272,6 +273,13 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
         "Resource isolation policy generated from .isolate({ deny/only/exports }).",
       type: ResourceIsolationType,
       resolve: (node: Resource) => node.isolation ?? null,
+    },
+    surface: {
+      description:
+        "Effective public/private surface for this resource registration subtree.",
+      type: new GraphQLNonNull(ResourceBoundaryType),
+      resolve: (node: Resource, _args, ctx: CustomGraphQLContext) =>
+        ctx.introspector.getBoundarySurface(node.id),
     },
     subtree: {
       description:

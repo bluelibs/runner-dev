@@ -17,6 +17,7 @@ runner-dev schema sdl --entry-file src/main.ts
 
 - Introspection spans tasks, hooks, resources, events, tags, errors, async contexts, middleware, run options, and interceptor ownership.
 - Resource docs now include `isolation`, `subtree`, cooldown/ready/health flags, and resolved registrations.
+- Boundary queries expose declared exports, effective exports through exported resources, and private definitions.
 - Task docs include durable workflow metadata, RPC lane summary, and runtime interceptor ownership.
 - Live telemetry includes logs, event emissions, errors, runs, process stats, and per-resource health reports.
 - Mutations cover task swapping, unswapping, task/event invocation, file editing, and guarded eval.
@@ -37,6 +38,8 @@ The current `Query` type exposes:
 - `hooks(idIncludes: ID): [Hook!]!`
 - `resource(id: ID!): Resource`
 - `resources(idIncludes: ID): [Resource!]!`
+- `boundary(ownerId: ID!): ResourceBoundary`
+- `boundaries(ownerIdIncludes: ID): [ResourceBoundary!]!`
 - `event(id: ID!): Event`
 - `events(filter: EventFilterInput): [Event!]!`
 - `middleware(id: ID!): Middleware`
@@ -157,6 +160,7 @@ Key fields:
 - `hasCooldown`, `hasReady`, `hasHealthCheck`
 - `isolation`
 - `subtree`
+- `surface`
 
 Important nested resource types:
 
@@ -180,6 +184,18 @@ Subtree policy now covers identity-aware summaries too:
 
 - `ResourceSubtreeTaskBranch.identity`
 - `ResourceSubtreeMiddlewareScope.identityScope`
+
+### ResourceBoundary
+
+Key fields:
+
+- `ownerId`
+- `exportsDeclared`
+- `declaredExports`
+- `effectiveExports`
+- `privateDefinitions`
+
+`declaredExports` mirrors the direct `.isolate({ exports })` list. `effectiveExports` also includes definitions reachable through an exported resource's own public surface. `privateDefinitions` lists registered definitions inside the boundary that are not visible outside it.
 
 ### Middleware
 

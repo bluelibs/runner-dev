@@ -383,10 +383,13 @@ describe("CLI init", () => {
     );
     const pkg = JSON.parse(packageJson);
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.4.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.4.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.6.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.6.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
+    expect(pkg.devDependencies?.vitest).toBe("^4.1.11");
+    expect(pkg.scripts?.audit).toBe("npm audit");
+    expect(pkg.engines?.node).toBe("^20.19.0 || ^22.12.0 || >=24.0.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
@@ -499,10 +502,13 @@ describe("CLI init", () => {
     );
     const pkg = JSON.parse(packageJson);
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.4.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.4.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.6.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.6.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
+    expect(pkg.devDependencies?.vitest).toBe("^4.1.11");
+    expect(pkg.scripts?.audit).toBe("npm audit");
+    expect(pkg.engines?.node).toBe("^20.19.0 || ^22.12.0 || >=24.0.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
@@ -554,10 +560,13 @@ describe("CLI init", () => {
       await fs.readFile(path.join(projectDir, "package.json"), "utf-8")
     );
     expect(pkg.name).toBe(projectName);
-    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.4.0");
-    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.4.0");
+    expect(pkg.dependencies?.["@bluelibs/runner"]).toBe("^6.6.0");
+    expect(pkg.devDependencies?.["@bluelibs/runner-dev"]).toBe("^6.6.0");
     expect(pkg.devDependencies?.["@types/node"]).toBe("^20.0.0");
     expect(pkg.dependencies?.["npm-skills"]).toBe("^0.5.0");
+    expect(pkg.devDependencies?.vitest).toBe("^4.1.11");
+    expect(pkg.scripts?.audit).toBe("npm audit");
+    expect(pkg.engines?.node).toBe("^20.19.0 || ^22.12.0 || >=24.0.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"

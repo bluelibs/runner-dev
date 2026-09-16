@@ -1,8 +1,8 @@
 import type { RegisterableItems } from "@bluelibs/runner";
 import { r } from "@bluelibs/runner";
+import { durableSupportResource } from "@bluelibs/runner/node";
 import { orderRepositoryResource } from "./resources/orderRepository.resource";
 import {
-  durableWorkflowTag,
   showcaseDurableRegistration,
   showcaseDurableResource,
 } from "./resources/orderApprovalRuntime.resource";
@@ -18,7 +18,7 @@ export const ordersDomainResource = r
       "Order review and approval flows for the reference app.\n\n- Repository-backed order state\n- Durable approval workflow with sync and async entrypoints",
   })
   .register([
-    durableWorkflowTag,
+    durableSupportResource,
     orderRepositoryResource.with({ entityName: "OrderRecord" }),
     showcaseDurableRegistration,
     durableOrderApprovalTask,

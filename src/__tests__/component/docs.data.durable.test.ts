@@ -1,5 +1,6 @@
 import { resources, defineResource, run, defineTask } from "@bluelibs/runner";
 import {
+  durableSupportResource,
   durableWorkflowTag,
   memoryDurableResource,
 } from "@bluelibs/runner/node";
@@ -44,7 +45,7 @@ function createDurableDocsFixtureApp() {
   const app = defineResource({
     id: appId,
     register: [
-      durableWorkflowTag,
+      durableSupportResource,
       durableRegistration,
       durableWorkflowTask,
       runWorkflowTask,

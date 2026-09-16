@@ -45,6 +45,11 @@ jobs:
       - name: Run tests with coverage enforcement
         run: npm run test:ci
 
+      - name: Audit backend, frontend tooling, and a fresh release scaffold
+        run: |
+          npm run audit
+          npm run audit:scaffold
+
       # Generate documentation (only on main branch)
       - name: Generate documentation
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

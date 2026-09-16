@@ -154,13 +154,7 @@ export async function main(argv: string[]): Promise<void> {
       console.log("\nInstalling dependencies...\n");
       await runCommand(
         "npm",
-        [
-          "install",
-          "--prefer-offline",
-          "--no-audit",
-          "--no-fund",
-          "--progress=false",
-        ],
+        ["install", "--prefer-offline", "--no-fund", "--progress=false"],
         targetDir
       );
     } else if (shouldInstall && SKIP_INSTALL) {

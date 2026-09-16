@@ -102,6 +102,10 @@ const app = r
 - Event Lane routing now comes from `r.eventLane(...).applyTo([...])` instead of `tags.eventLane`, and Event Lane topology profiles use `consume: [{ lane, hooks?: { only } }]`.
 - Runner now supports `run(app, { signal })`, `run(app, { identity })`, and `runtime.dispose({ force: true })`; runner-dev remains compatible with those lifecycle additions while avoiding deprecated lane-tag assumptions.
 
+## Runner 6.6 Compatibility
+
+Register `resources.durable` (also exported as `durableSupportResource`) from `@bluelibs/runner/node` alongside durable runtime resources. It registers the durable runtime/workflow tags, events, and lifecycle hook; registering only `durableWorkflowTag` is insufficient.
+
 ## Table of Contents
 
 - [Quickstart Guide](#quickstart)
@@ -327,10 +331,15 @@ runner-dev new my-awesome-app
 This command creates a new Runner project with:
 
 - Complete TypeScript setup with `tsx watch` for development
-- Vitest configuration for testing without deprecated install-time transitive deps
+- Runner 6.6 and Vitest 4.1.11+ for the generated runtime and smoke tests
+- Node.js 20.19+, 22.12+, or 24+
 - Package.json with all necessary dependencies
 - Basic project structure with main.ts entry point
 - README and .gitignore files
+
+Run `npm run audit` in the generated project to check all dependencies, including development tools. Install-time audit reporting stays enabled.
+
+Before releasing runner-dev, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`. The scaffold check installs the packed release into a fresh project, audits its full dependency tree, and runs its build and tests. The repository audit also covers the bundled frontend tooling. A scoped Lodash override keeps the existing GraphQL codegen plugins on patched Lodash 4.18.1+ despite their older minor-version constraint.
 
 Flags for `new`:
 

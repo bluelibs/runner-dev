@@ -154,6 +154,12 @@ export const DocumentationMainContent: React.FC<
     target?.scrollIntoView({ behavior: "instant", block: "start" });
   }, []);
 
+  const handleOpenShell = React.useCallback(() => {
+    window.dispatchEvent(
+      new CustomEvent("docs:open-shell", { detail: { resourceId: null } })
+    );
+  }, []);
+
   const [activeSection, setActiveSection] = React.useState<string>(() =>
     resolveSectionFromHash(
       typeof window !== "undefined" ? window.location.hash : "#overview"
@@ -254,7 +260,17 @@ export const DocumentationMainContent: React.FC<
             <div className="overview-header">
               <h2>📋 Overview</h2>
               {mode !== "catalog" && (
-                <div>
+                <div className="overview-header__actions">
+                  <button
+                    type="button"
+                    onClick={handleOpenShell}
+                    aria-label="Open Runtime Shell"
+                    title="Open Runtime Shell (Ctrl+`)"
+                    className="clean-button overview-header__shell-button"
+                  >
+                    <span aria-hidden="true">💻</span>
+                    <span>Shell</span>
+                  </button>
                   <button
                     type="button"
                     onClick={openStats}
@@ -592,6 +608,16 @@ export const DocumentationMainContent: React.FC<
             title="Resources Overview"
             icon={getDocumentationIcon("resources")}
             id="resources"
+            enableActions={mode === "catalog" ? undefined : "resource"}
+            onAction={(el) => {
+              if (mode === "catalog") return;
+              // Ask the ResourceCard to open its Shell modal via a custom event
+              window.dispatchEvent(
+                new CustomEvent("docs:execute-element", {
+                  detail: { type: "resource", id: el.id },
+                })
+              );
+            }}
           />
         )}
         {activeSection === "resources" && resources.length > 0 && (

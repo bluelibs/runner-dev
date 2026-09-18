@@ -296,4 +296,23 @@ describe("ElementTable", () => {
     expect(screen.getByText("R")).toBeInTheDocument();
     expect(screen.queryByText("T")).not.toBeInTheDocument();
   });
+
+  it("shows a Shell action per row for resources", () => {
+    const onAction = jest.fn();
+    render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Resources Overview"
+        enableActions="resource"
+        onAction={onAction}
+      />
+    );
+
+    const shellButtons = screen.getAllByRole("button", { name: "Shell" });
+    expect(shellButtons).toHaveLength(elements.length);
+
+    fireEvent.click(shellButtons[0]);
+    expect(onAction).toHaveBeenCalledWith(elements[0]);
+  });
 });

@@ -32,6 +32,7 @@ import {
   isRpcLanesResource,
 } from "../../../../../utils/lane-resources";
 import { TopologyActionButton } from "./TopologyActionButton";
+import ShellModal from "./ShellModal";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
@@ -118,6 +119,21 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
     rule: string;
     matchedResources: Resource[];
   } | null>(null);
+  const [isShellOpen, setIsShellOpen] = React.useState(false);
+
+  // Listen for shell requests from ElementTable
+  React.useEffect(() => {
+    if (isCatalogMode) return;
+    const handler = (e: any) => {
+      const ce = e as CustomEvent<{ type: string; id: string }>;
+      if (ce?.detail?.type === "resource" && ce.detail.id === resource.id) {
+        setIsShellOpen(true);
+        // Note: Scrolling handled by main Documentation component hash navigation
+      }
+    };
+    window.addEventListener("docs:execute-element", handler);
+    return () => window.removeEventListener("docs:execute-element", handler);
+  }, [isCatalogMode, resource.id]);
 
   const hasEventLanesSurface = isEventLanesResource(resource);
   const hasRpcLanesSurface = isRpcLanesResource(resource);
@@ -248,11 +264,23 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         ) : undefined
       }
       actions={
-        <TopologyActionButton
-          focus={{ kind: "resource", id: resource.id }}
-          title="Open resource mindmap"
-          className="btn--primary"
-        />
+        <>
+          <TopologyActionButton
+            focus={{ kind: "resource", id: resource.id }}
+            title="Open resource mindmap"
+            className="btn--primary"
+          />
+          {!isCatalogMode && (
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => setIsShellOpen(true)}
+              title="Open runtime shell for this resource"
+            >
+              Shell
+            </button>
+          )}
+        </>
       }
     >
       <div className="resource-card__grid">
@@ -550,6 +578,15 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         coverageData={coverageData}
         showCoverage={true}
       />
+
+      {!isCatalogMode && (
+        <ShellModal
+          key={resource.id}
+          isOpen={isShellOpen}
+          onClose={() => setIsShellOpen(false)}
+          resourceId={resource.id}
+        />
+      )}
     </ElementCard>
   );
 };

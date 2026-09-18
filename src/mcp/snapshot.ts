@@ -106,6 +106,15 @@ const snapshotSwapManagerStub: ISwapManager = {
       error: "runnerEval unavailable for snapshots",
     } as any;
   },
+  async shell() {
+    return {
+      success: false,
+      error: "shell unavailable for snapshots",
+    } as any;
+  },
+  async completeShell() {
+    return { from: 0, options: [] } as any;
+  },
 };
 
 const snapshotCoverageStub: CoverageService = {

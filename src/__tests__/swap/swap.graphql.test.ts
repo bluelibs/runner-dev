@@ -72,6 +72,20 @@ function assertInvokeEventData(
   }
 }
 
+function assertShellData(data: unknown): asserts data is { shell: any } {
+  if (!data || typeof data !== "object" || !("shell" in data)) {
+    throw new Error("Expected shell data object");
+  }
+}
+
+function assertShellCompleteData(
+  data: unknown
+): asserts data is { shellComplete: any } {
+  if (!data || typeof data !== "object" || !("shellComplete" in data)) {
+    throw new Error("Expected shellComplete data object");
+  }
+}
+
 describe("Swap GraphQL Integration", () => {
   let _testApp: any;
   let apolloServer: ApolloServer;
@@ -617,6 +631,210 @@ describe("Swap GraphQL Integration", () => {
         const res = resData?.eval as any;
         expect(res.success).toBe(false);
         expect(res.error).toContain("Eval is disabled");
+      }
+
+      // Reset env to non-production for other tests
+      delete process.env.NODE_ENV;
+      process.env.RUNNER_DEV_EVAL = "1";
+    });
+  });
+
+  describe("Shell Mutation", () => {
+    test("should run a snippet with runtime access", async () => {
+      const mutation = `
+        mutation Shell($code: String!) {
+          shell(code: $code) {
+            success
+            error
+            result
+            logs
+            executionTimeMs
+            invocationId
+          }
+        }
+      `;
+
+      process.env.RUNNER_DEV_EVAL = "1";
+
+      const response = await apolloServer.executeOperation(
+        {
+          query: mutation,
+          variables: { code: `await runtime.runTask("${testTaskId}")` },
+        },
+        { contextValue: context }
+      );
+
+      expect(response.body.kind).toBe("single");
+      if (response.body.kind === "single") {
+        expect(response.body.singleResult.errors).toBeUndefined();
+        const responseData = response.body.singleResult.data;
+        assertShellData(responseData);
+        expect(responseData.shell.success).toBe(true);
+        expect(responseData.shell.result).toContain("original graphql test");
+        expect(typeof responseData.shell.executionTimeMs).toBe("number");
+        expect(responseData.shell.invocationId).toBeTruthy();
+      }
+    });
+
+    test("should bind r to the requested resource", async () => {
+      const mutation = `
+        mutation Shell($code: String!, $resourceId: ID) {
+          shell(code: $code, resourceId: $resourceId) {
+            success
+            error
+            result
+          }
+        }
+      `;
+
+      process.env.RUNNER_DEV_EVAL = "1";
+
+      const response = await apolloServer.executeOperation(
+        {
+          query: mutation,
+          variables: { code: "r.url", resourceId: "res-db" },
+        },
+        { contextValue: context }
+      );
+
+      expect(response.body.kind).toBe("single");
+      if (response.body.kind === "single") {
+        expect(response.body.singleResult.errors).toBeUndefined();
+        const responseData = response.body.singleResult.data;
+        assertShellData(responseData);
+        expect(responseData.shell.success).toBe(true);
+        expect(responseData.shell.result).toContain("memory://");
+      }
+    });
+
+    test("should deny shell when disabled by env", async () => {
+      const mutation = `
+        mutation Shell($code: String!) {
+          shell(code: $code) {
+            success
+            error
+          }
+        }
+      `;
+
+      process.env.RUNNER_DEV_EVAL = "0";
+      process.env.NODE_ENV = "production";
+
+      const response = await apolloServer.executeOperation(
+        { query: mutation, variables: { code: "1 + 1" } },
+        { contextValue: context }
+      );
+
+      expect(response.body.kind).toBe("single");
+      if (response.body.kind === "single") {
+        const resData = response.body.singleResult.data as any;
+        const res = resData?.shell as any;
+        expect(res.success).toBe(false);
+        expect(res.error).toContain("Shell is disabled");
+      }
+
+      // Reset env to non-production for other tests
+      delete process.env.NODE_ENV;
+      process.env.RUNNER_DEV_EVAL = "1";
+    });
+  });
+
+  describe("Shell Completion Query", () => {
+    test("should complete runtime members", async () => {
+      const query = `
+        query ShellComplete($code: String!, $position: Int!) {
+          shellComplete(code: $code, position: $position) {
+            from
+            options {
+              label
+              type
+              detail
+            }
+          }
+        }
+      `;
+
+      process.env.RUNNER_DEV_EVAL = "1";
+
+      const response = await apolloServer.executeOperation(
+        {
+          query,
+          variables: { code: "runtime.run", position: 11 },
+        },
+        { contextValue: context }
+      );
+
+      expect(response.body.kind).toBe("single");
+      if (response.body.kind === "single") {
+        expect(response.body.singleResult.errors).toBeUndefined();
+        const responseData = response.body.singleResult.data;
+        assertShellCompleteData(responseData);
+        expect(responseData.shellComplete.from).toBe(8);
+        const labels = responseData.shellComplete.options.map(
+          (o: any) => o.label
+        );
+        expect(labels).toContain("runTask");
+      }
+    });
+
+    test("should complete resource members for r", async () => {
+      const query = `
+        query ShellComplete($code: String!, $position: Int!, $resourceId: ID) {
+          shellComplete(code: $code, position: $position, resourceId: $resourceId) {
+            from
+            options {
+              label
+            }
+          }
+        }
+      `;
+
+      process.env.RUNNER_DEV_EVAL = "1";
+
+      const response = await apolloServer.executeOperation(
+        {
+          query,
+          variables: { code: "r.", position: 2, resourceId: "res-db" },
+        },
+        { contextValue: context }
+      );
+
+      expect(response.body.kind).toBe("single");
+      if (response.body.kind === "single") {
+        expect(response.body.singleResult.errors).toBeUndefined();
+        const responseData = response.body.singleResult.data;
+        assertShellCompleteData(responseData);
+        const labels = responseData.shellComplete.options.map(
+          (o: any) => o.label
+        );
+        expect(labels).toContain("url");
+      }
+    });
+
+    test("should yield no options when disabled by env", async () => {
+      const query = `
+        query ShellComplete($code: String!, $position: Int!) {
+          shellComplete(code: $code, position: $position) {
+            from
+            options {
+              label
+            }
+          }
+        }
+      `;
+
+      process.env.RUNNER_DEV_EVAL = "0";
+      process.env.NODE_ENV = "production";
+
+      const response = await apolloServer.executeOperation(
+        { query, variables: { code: "runtime.", position: 8 } },
+        { contextValue: context }
+      );
+
+      expect(response.body.kind).toBe("single");
+      if (response.body.kind === "single") {
+        const resData = response.body.singleResult.data as any;
+        expect(resData?.shellComplete?.options).toEqual([]);
       }
 
       // Reset env to non-production for other tests

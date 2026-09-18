@@ -274,4 +274,45 @@ describe("DocumentationSidebar visibility toggles", () => {
 
     expect(onNamespaceSearchChange).toHaveBeenCalledWith("");
   });
+
+  it("dispatches docs:open-shell when the Shell action is clicked", () => {
+    const listener = jest.fn();
+    window.addEventListener("docs:open-shell", listener);
+
+    try {
+      render(
+        React.createElement(DocumentationSidebar, {
+          sidebarWidth: 280,
+          sidebarRef: React.createRef<HTMLElement>(),
+          viewMode: "list",
+          treeType: "namespace",
+          localNamespaceSearch: "",
+          showSystem: true,
+          showRunner: true,
+          showPrivate: true,
+          treeNodes: [],
+          sections: [],
+          onViewModeChange: () => {},
+          onTreeTypeChange: () => {},
+          onNamespaceSearchChange: () => {},
+          onShowSystemChange: () => {},
+          onShowRunnerChange: () => {},
+          onShowPrivateChange: () => {},
+          onTreeNodeClick: () => {},
+          onToggleExpansion: () => {},
+          onSectionClick: () => {},
+        })
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Shell/ }));
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      const event = listener.mock.calls[0][0] as CustomEvent<{
+        resourceId: string | null;
+      }>;
+      expect(event.detail).toEqual({ resourceId: null });
+    } finally {
+      window.removeEventListener("docs:open-shell", listener);
+    }
+  });
 });

@@ -3,6 +3,7 @@ import { NavigationView } from "./NavigationView";
 import { TreeNode } from "../utils/tree-utils";
 import { ViewMode, TreeType } from "../hooks/useViewMode";
 import { Tooltip } from "./Tooltip";
+import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface DocumentationSidebarProps {
   sidebarWidth: number;
@@ -65,10 +66,17 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   onSectionClick,
   resolveSectionFromElementId,
 }) => {
+  const isCatalogMode = useIsCatalogDocumentation();
   const navigationSections = React.useMemo(
     () => sections.filter((section) => section.id !== "topology"),
     [sections]
   );
+
+  const handleOpenShell = React.useCallback(() => {
+    window.dispatchEvent(
+      new CustomEvent("docs:open-shell", { detail: { resourceId: null } })
+    );
+  }, []);
   const namespaceInputRef = React.useRef<HTMLInputElement>(null);
   const hasNamespaceFilter = localNamespaceSearch.trim().length > 0;
 
@@ -365,6 +373,19 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       {/* Docs & Support Section */}
       <div className="docs-support-section">
         <div className="docs-support-title">Docs & Support</div>
+
+        {!isCatalogMode && (
+          <button
+            type="button"
+            className="docs-support-link docs-support-link--shell"
+            onClick={handleOpenShell}
+            title="Open runtime shell (Ctrl+`)"
+          >
+            <span className="docs-support-icon">💻</span>
+            <span className="docs-support-text">Shell</span>
+            <span className="docs-support-arrow">→</span>
+          </button>
+        )}
 
         <a
           href="#docs-support"

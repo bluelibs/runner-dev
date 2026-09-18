@@ -112,6 +112,51 @@ describe("DocumentationMainContent", () => {
     expect(openStats).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the runtime shell from the overview header", () => {
+    const listener = jest.fn();
+    window.addEventListener("docs:open-shell", listener);
+
+    try {
+      render(
+        React.createElement(DocumentationMainContent, {
+          introspector: createIntrospectorStub(),
+          sidebarWidth: 0,
+          openStats: jest.fn(),
+          tasks: [],
+          resources: [],
+          events: [],
+          hooks: [],
+          middlewares: [],
+          errors: [],
+          asyncContexts: [],
+          tags: [],
+          topologyConnections: 0,
+          sections: [
+            {
+              id: "overview",
+              label: "Overview",
+              icon: "📋",
+              count: null,
+              hasContent: true,
+            },
+          ],
+        })
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Open Runtime Shell" })
+      );
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      const event = listener.mock.calls[0][0] as CustomEvent<{
+        resourceId: string | null;
+      }>;
+      expect(event.detail).toEqual({ resourceId: null });
+    } finally {
+      window.removeEventListener("docs:open-shell", listener);
+    }
+  });
+
   it("disables task and event actions in catalog mode", () => {
     window.location.hash = "#tasks";
     elementTableMock.mockClear();
@@ -218,6 +263,9 @@ describe("DocumentationMainContent", () => {
 
     expect(
       screen.queryByRole("button", { name: "Open Performance Stats" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Open Runtime Shell" })
     ).toBeNull();
   });
 

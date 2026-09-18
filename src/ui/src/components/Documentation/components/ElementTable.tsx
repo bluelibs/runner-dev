@@ -43,7 +43,8 @@ export interface ElementTableProps {
   // When provided, shows a subtle action button per row and wires ExecuteModal
   // - "task" shows a Run button (InvokeTask)
   // - "event" shows an Emit button (InvokeEvent)
-  enableActions?: "task" | "event";
+  // - "resource" shows a Shell button (ShellModal)
+  enableActions?: "task" | "event" | "resource";
   // Callback to notify parent to handle execution in the respective Card
   onAction?: (element: BaseElement) => void;
   middlewareTypeFilters?: boolean;
@@ -555,7 +556,9 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                         className={`element-table__action-btn ${
                           enableActions === "task"
                             ? "element-table__action-btn--run"
-                            : "element-table__action-btn--emit"
+                            : enableActions === "event"
+                            ? "element-table__action-btn--emit"
+                            : "element-table__action-btn--shell"
                         }`}
                         onClick={(e) => {
                           e.preventDefault();
@@ -563,11 +566,25 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                           openExecuteFor(element);
                         }}
                         title={
-                          enableActions === "task" ? "Run Task" : "Emit Event"
+                          enableActions === "task"
+                            ? "Run Task"
+                            : enableActions === "event"
+                            ? "Emit Event"
+                            : "Open Shell"
                         }
-                        aria-label={enableActions === "task" ? "Run" : "Emit"}
+                        aria-label={
+                          enableActions === "task"
+                            ? "Run"
+                            : enableActions === "event"
+                            ? "Emit"
+                            : "Shell"
+                        }
                       >
-                        {enableActions === "task" ? "Run" : "Emit"}
+                        {enableActions === "task"
+                          ? "Run"
+                          : enableActions === "event"
+                          ? "Emit"
+                          : "Shell"}
                       </button>
                     )}
                   </td>

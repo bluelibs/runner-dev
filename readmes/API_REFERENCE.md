@@ -20,7 +20,7 @@ runner-dev schema sdl --entry-file src/main.ts
 - Boundary queries expose declared exports, effective exports through exported resources, and private definitions.
 - Task docs include durable workflow metadata, RPC lane summary, and runtime interceptor ownership.
 - Live telemetry includes logs, event emissions, errors, runs, process stats, and per-resource health reports.
-- Mutations cover task swapping, unswapping, task/event invocation, file editing, and guarded eval.
+- Mutations cover task swapping, unswapping, task/event invocation, file editing, guarded eval, and the runtime shell.
 
 ## Query Root
 
@@ -53,6 +53,7 @@ The current `Query` type exposes:
 - `live: Live!`
 - `diagnostics: [Diagnostic!]!`
 - `swappedTasks: [SwappedTask!]!`
+- `shellComplete(code: String!, position: Int!, resourceId: ID): ShellCompletion!`
 
 ### Common Query Filters
 
@@ -80,6 +81,7 @@ The current `Mutation` type exposes:
 - `invokeEvent(eventId: ID!, inputJson: String, evalInput: Boolean = false): InvokeEventResult!`
 - `editFile(path: String!, content: String!): EditFileResult!`
 - `eval(code: String!): EvalResult!`
+- `shell(code: String!, resourceId: ID): ShellResult!`
 
 ### Mutation Notes
 
@@ -87,6 +89,8 @@ The current `Mutation` type exposes:
 - `invokeTask` supports `pure: true` to bypass middleware.
 - `editFile` accepts structured paths such as `workspace:src/index.ts`.
 - `eval` is guarded and disabled in production unless `RUNNER_DEV_EVAL=1`.
+- `shell` runs REPL-style snippets with `r` (resource value) and `runtime` in scope, captures `console` into `logs`, and shares the `eval` production guard.
+- `shellComplete` lists member completions for a snippet at a cursor offset by walking the live shell scope (side-effect free); the shell editor uses it for as-you-type autocomplete.
 
 ## Core Types
 

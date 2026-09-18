@@ -11,6 +11,7 @@ import {
   InvokeResultType,
   EvalResultType,
   InvokeEventResultType,
+  ShellResultType,
 } from "./types/SwapType";
 import { CustomGraphQLContext } from "./context";
 import { resolvePathInput } from "../utils/path";
@@ -216,6 +217,48 @@ export const MutationType = new GraphQLObjectType({
           };
         }
         return await ctx.swapManager.runnerEval(code);
+      },
+    },
+    shell: {
+      description: [
+        "Runs a JavaScript/TypeScript snippet against the live runtime (REPL shell).",
+        'Bare expressions auto-return (`r`, `await runtime.runTask("...")`);',
+        "multi-statement snippets use `return` for the result.",
+        "- r: initialized value of `resourceId` (null without one)",
+        "- runtime: live IRuntime (runTask, emitEvent, getResourceValue, getResourceConfig, getHealth, ...)",
+        "- console: captured; lines are returned in `logs`",
+        "",
+        "Security: shell is disabled by default in production; enable with RUNNER_DEV_EVAL=1.",
+      ].join("\n"),
+      type: new GraphQLNonNull(ShellResultType),
+      args: {
+        code: {
+          description:
+            "The JavaScript/TypeScript snippet to execute with `r` and `runtime` in scope.",
+          type: new GraphQLNonNull(GraphQLString),
+        },
+        resourceId: {
+          description:
+            "Optional resource id to bind as `r` (exact or suffix match).",
+          type: GraphQLID,
+        },
+      },
+      async resolve(
+        _parent,
+        { code, resourceId }: { code: string; resourceId?: string | null },
+        ctx: CustomGraphQLContext
+      ) {
+        // Same safeguard as eval: allow only in non-production by default
+        const allowShell =
+          process.env.RUNNER_DEV_EVAL === "1" ||
+          process.env.NODE_ENV !== "production";
+        if (!allowShell) {
+          return {
+            success: false,
+            error: "Shell is disabled in this environment",
+          };
+        }
+        return await ctx.swapManager.shell(code, resourceId ?? null);
       },
     },
   }),

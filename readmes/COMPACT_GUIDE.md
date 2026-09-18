@@ -244,6 +244,7 @@ When working inside `@bluelibs/runner-dev`, start here:
 - MCP: the fastest AI-native access path when the app is already running
 - Live telemetry: logs, emissions, errors, runs, and correlation-driven inspection
 - Swap tooling: controlled runtime task replacement and restoration
+- Runtime shell: per-resource (`r` is the live value) and global (`runtime` access) REPL via UI and the `shell` mutation; shares the `eval` production guard
 
 ## Current Compatibility Notes
 

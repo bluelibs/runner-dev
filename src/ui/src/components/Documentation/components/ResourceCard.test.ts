@@ -1,12 +1,13 @@
 /** @jest-environment jsdom */
 
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { Resource } from "../../../../../schema/model";
 import { ResourceCard } from "./ResourceCard";
 import { DocumentationModeProvider } from "../context/DocumentationModeContext";
 
 const mockResourceIsolationSection = jest.fn(() => null);
+const mockShellModal = jest.fn((_props: unknown) => null);
 
 jest.mock("./ResourceCard.scss", () => ({}), { virtual: true });
 jest.mock("./common/DependenciesSection.scss", () => ({}), { virtual: true });
@@ -59,17 +60,24 @@ jest.mock("./TopologyActionButton", () => ({
   TopologyActionButton: () => null,
 }));
 
+jest.mock("./ShellModal", () => ({
+  __esModule: true,
+  default: (props: unknown) => mockShellModal(props),
+}));
+
 jest.mock("./common/ElementCard", () => ({
   ElementCard: ({
     children,
     title,
     meta,
+    actions,
     className,
     headerClassName,
   }: {
     children: React.ReactNode;
     title: React.ReactNode;
     meta?: React.ReactNode;
+    actions?: React.ReactNode;
     className?: string;
     headerClassName?: string;
   }) =>
@@ -80,7 +88,14 @@ jest.mock("./common/ElementCard", () => ({
         "div",
         { "data-testid": "element-card-header", className: headerClassName },
         React.createElement("h3", null, title),
-        meta
+        meta,
+        actions
+          ? React.createElement(
+              "div",
+              { "data-testid": "element-card-actions" },
+              actions
+            )
+          : null
       ),
       children
     ),
@@ -115,6 +130,7 @@ jest.mock("./common/ElementCard", () => ({
 describe("ResourceCard", () => {
   beforeEach(() => {
     mockResourceIsolationSection.mockClear();
+    mockShellModal.mockClear();
   });
 
   it("adds root resource treatment and root ownership copy", () => {
@@ -410,5 +426,161 @@ describe("ResourceCard", () => {
       catalogSearchTask
     );
     expect(props?.resources).toEqual([resource, publicCatalogResource]);
+  });
+
+  it("opens the shell modal from the Shell action in live mode", () => {
+    const resource: Resource = {
+      id: "app.resources.db",
+      meta: { title: "DB Resource" },
+      emits: [],
+      dependsOn: [],
+      config: null,
+      configSchema: null,
+      middleware: [],
+      overrides: [],
+      registers: [],
+      registeredBy: null,
+      filePath: null,
+    };
+
+    const introspector = {
+      getMiddlewareUsagesForResource: () => [],
+      getTasksUsingResource: () => [],
+      getDependencies: () => ({
+        tasks: [],
+        hooks: [],
+        resources: [],
+        errors: [],
+      }),
+      getTasksByIds: () => [],
+      getResourcesByIds: () => [],
+      getMiddlewaresByIds: () => [],
+      getEventsByIds: () => [],
+      getHooksByIds: () => [],
+      getResources: () => [resource],
+      getRoot: () => resource,
+      getTagsByIds: () => [],
+    } as any;
+
+    render(
+      React.createElement(ResourceCard, {
+        resource,
+        introspector,
+      })
+    );
+
+    const shellButton = screen.getByRole("button", { name: "Shell" });
+    expect(shellButton).toBeTruthy();
+    expect(mockShellModal).toHaveBeenCalledWith(
+      expect.objectContaining({ isOpen: false, resourceId: resource.id })
+    );
+
+    fireEvent.click(shellButton);
+    expect(mockShellModal).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isOpen: true, resourceId: resource.id })
+    );
+  });
+
+  it("opens the shell modal on docs:execute-element for its resource", () => {
+    const resource: Resource = {
+      id: "app.resources.cache",
+      meta: { title: "Cache Resource" },
+      emits: [],
+      dependsOn: [],
+      config: null,
+      configSchema: null,
+      middleware: [],
+      overrides: [],
+      registers: [],
+      registeredBy: null,
+      filePath: null,
+    };
+
+    const introspector = {
+      getMiddlewareUsagesForResource: () => [],
+      getTasksUsingResource: () => [],
+      getDependencies: () => ({
+        tasks: [],
+        hooks: [],
+        resources: [],
+        errors: [],
+      }),
+      getTasksByIds: () => [],
+      getResourcesByIds: () => [],
+      getMiddlewaresByIds: () => [],
+      getEventsByIds: () => [],
+      getHooksByIds: () => [],
+      getResources: () => [resource],
+      getRoot: () => resource,
+      getTagsByIds: () => [],
+    } as any;
+
+    render(
+      React.createElement(ResourceCard, {
+        resource,
+        introspector,
+      })
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("docs:execute-element", {
+          detail: { type: "resource", id: resource.id },
+        })
+      );
+    });
+
+    expect(mockShellModal).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isOpen: true, resourceId: resource.id })
+    );
+  });
+
+  it("hides the Shell action in catalog mode", () => {
+    const resource: Resource = {
+      id: "app.resources.catalog",
+      meta: { title: "Catalog Resource" },
+      emits: [],
+      dependsOn: [],
+      config: null,
+      configSchema: null,
+      middleware: [],
+      overrides: [],
+      registers: [],
+      registeredBy: null,
+      filePath: null,
+    };
+
+    const introspector = {
+      getMiddlewareUsagesForResource: () => [],
+      getTasksUsingResource: () => [],
+      getDependencies: () => ({
+        tasks: [],
+        hooks: [],
+        resources: [],
+        errors: [],
+      }),
+      getTasksByIds: () => [],
+      getResourcesByIds: () => [],
+      getMiddlewaresByIds: () => [],
+      getEventsByIds: () => [],
+      getHooksByIds: () => [],
+      getResources: () => [resource],
+      getRoot: () => resource,
+      getTagsByIds: () => [],
+    } as any;
+
+    render(
+      React.createElement(
+        DocumentationModeProvider,
+        { mode: "catalog" },
+        React.createElement(ResourceCard, {
+          resource,
+          introspector,
+        })
+      )
+    );
+
+    expect(screen.queryByRole("button", { name: "Shell" })).toBeNull();
+    expect(mockShellModal).not.toHaveBeenCalled();
   });
 });

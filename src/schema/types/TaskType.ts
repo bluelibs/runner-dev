@@ -1,5 +1,6 @@
 import {
   GraphQLBoolean,
+  GraphQLFloat,
   GraphQLID,
   GraphQLList,
   GraphQLNonNull,
@@ -9,6 +10,7 @@ import {
 } from "graphql";
 
 import type { Hook, Task } from "../model";
+import { elementKindSymbol, isHookModel } from "../model";
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
 import { ResourceType } from "./ResourceType";
@@ -45,7 +47,7 @@ export const TaskDependsOnType: GraphQLObjectType<
       ),
       resolve: (obj: any) =>
         Array.isArray(obj?.tasks)
-          ? obj.tasks.filter((n: any) => !("event" in (n || {})))
+          ? obj.tasks.filter((n: any) => !isHookModel(n))
           : [],
     },
     hooks: {
@@ -53,7 +55,7 @@ export const TaskDependsOnType: GraphQLObjectType<
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(HookType))),
       resolve: (obj: any) =>
         Array.isArray(obj?.hooks)
-          ? obj.hooks.filter((n: any) => "event" in (n || {}))
+          ? obj.hooks.filter((n: any) => isHookModel(n))
           : [],
     },
     resources: {
@@ -86,10 +88,19 @@ export const TaskMiddlewareUsageType = new GraphQLObjectType({
 export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
   name: "Task",
   interfaces: () => [BaseElementInterface],
-  isTypeOf: (value: unknown) =>
-    Array.isArray((value as any)?.emits) &&
-    Array.isArray((value as any)?.dependsOn) &&
-    !("event" in (value as any)),
+  isTypeOf: (value: unknown) => {
+    const kind = (value as any)?.[elementKindSymbol];
+    if (kind !== undefined) return kind === "TASK";
+    // Unstamped (deserialized) values: hooks and resources also carry
+    // emits+dependsOn, so exclude them structurally. (Hooks carry `events`,
+    // never a singular `event` prop, which is GraphQL-resolve-only.)
+    return (
+      Array.isArray((value as any)?.emits) &&
+      Array.isArray((value as any)?.dependsOn) &&
+      !isHookModel(value) &&
+      !Array.isArray((value as any)?.registers)
+    );
+  },
   fields: (): GraphQLFieldConfigMap<Task, CustomGraphQLContext> => ({
     id: { description: "Task id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Task metadata", type: MetaType },
@@ -246,7 +257,7 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
     runs: {
       description: "Execution run records for this task",
       args: {
-        afterTimestamp: { type: GraphQLInt },
+        afterTimestamp: { type: GraphQLFloat },
         last: { type: GraphQLInt },
         filter: { type: RunFilterInput },
       },

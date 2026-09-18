@@ -406,7 +406,7 @@ export type HookFileContentsArgs = {
 
 
 export type HookRunsArgs = {
-  afterTimestamp: InputMaybe<Scalars['Int']['input']>;
+  afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
 };
@@ -1357,7 +1357,7 @@ export type TaskFileContentsArgs = {
 
 
 export type TaskRunsArgs = {
-  afterTimestamp: InputMaybe<Scalars['Int']['input']>;
+  afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
 };

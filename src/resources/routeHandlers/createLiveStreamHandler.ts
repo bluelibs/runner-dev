@@ -13,6 +13,8 @@ const HEALTH_INTERVAL_MS = 2_000;
 const HEARTBEAT_INTERVAL_MS = 15_000;
 /** Maximum number of entries per category in a single SSE push. */
 const MAX_ENTRIES_PER_PUSH = 1_000;
+/** Maximum pages drained per push so bursts can't stall the tick forever. */
+const MAX_PAGES_PER_PUSH = 10;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -75,27 +77,43 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
     const pushDelta = () => {
       if (closed) return;
 
-      const query = { afterTimestamp: cursor, last: MAX_ENTRIES_PER_PUSH };
-      const logs = live
-        .getLogs(query)
-        .map((l) => ({ ...l, data: safeStringify(l.data) }));
-      const emissions = live
-        .getEmissions(query)
-        .map((e) => ({ ...e, payload: safeStringify(e.payload) }));
-      const errors = live
-        .getErrors(query)
-        .map((e) => ({ ...e, data: safeStringify(e.data) }));
-      const runs = live.getRuns(query);
+      // Drain full pages so a burst larger than one page doesn't stall
+      // behind the cursor until the next record arrives.
+      for (let page = 0; page < MAX_PAGES_PER_PUSH && !closed; page++) {
+        const query = { afterTimestamp: cursor, last: MAX_ENTRIES_PER_PUSH };
+        const logs = live
+          .getLogs(query)
+          .map((l) => ({ ...l, data: safeStringify(l.data) }));
+        const emissions = live
+          .getEmissions(query)
+          .map((e) => ({ ...e, payload: safeStringify(e.payload) }));
+        const errors = live
+          .getErrors(query)
+          .map((e) => ({ ...e, data: safeStringify(e.data) }));
+        const runs = live.getRuns(query);
 
-      if (logs.length + emissions.length + errors.length + runs.length === 0) {
-        return;
+        if (
+          logs.length + emissions.length + errors.length + runs.length ===
+          0
+        ) {
+          return;
+        }
+
+        // Advance cursor past everything we just delivered. The cursor is
+        // timestamp-based, so a page cut splitting entries that share one
+        // millisecond timestamp skips the remainder sharing that stamp.
+        const latest = latestTimestamp(logs, emissions, errors, runs);
+        if (latest !== undefined) cursor = latest;
+
+        sendEvent("telemetry", { logs, emissions, errors, runs });
+
+        const pageIsFull =
+          logs.length >= MAX_ENTRIES_PER_PUSH ||
+          emissions.length >= MAX_ENTRIES_PER_PUSH ||
+          errors.length >= MAX_ENTRIES_PER_PUSH ||
+          runs.length >= MAX_ENTRIES_PER_PUSH;
+        if (!pageIsFull) return;
       }
-
-      // Advance cursor past everything we just delivered
-      const latest = latestTimestamp(logs, emissions, errors, runs);
-      if (latest !== undefined) cursor = latest;
-
-      sendEvent("telemetry", { logs, emissions, errors, runs });
     };
 
     /** Debounced notification handler — batches rapid record calls. */

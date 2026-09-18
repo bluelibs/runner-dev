@@ -8,6 +8,7 @@ import {
 } from "@bluelibs/runner/node";
 import { Introspector } from "../../resources/models/Introspector";
 import { initializeFromStore } from "../../resources/models/initializeFromStore";
+import { buildEvents } from "../../resources/models/initializeFromStore.utils";
 import { RPC_LANES_RESOURCE_ID } from "../../utils/lane-resources";
 
 describe("Lane Introspection", () => {
@@ -298,5 +299,38 @@ describe("Lane Introspection", () => {
     } finally {
       await runtime.dispose();
     }
+  });
+
+  test("ignores unresolvable lane applyTo targets instead of aborting", () => {
+    const fakeStore = {
+      events: new Map(),
+      hooks: new Map(),
+      resources: new Map([
+        [
+          "billing.eventLanes",
+          {
+            resource: { id: "billing.eventLanes", tags: [] },
+            config: {
+              topology: {
+                bindings: [
+                  {
+                    lane: {
+                      id: "lane-1",
+                      applyTo: [{ id: "ghost-event" }, { noId: true }],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      ]),
+      findIdByDefinition() {
+        throw new Error("unknown definition");
+      },
+    };
+
+    expect(() => buildEvents(fakeStore as any)).not.toThrow();
+    expect(buildEvents(fakeStore as any)).toEqual([]);
   });
 });

@@ -305,4 +305,36 @@ describe("GraphQL Live (integration)", () => {
     expect(data.live.gc.collections).toBeGreaterThanOrEqual(0);
     expect(data.live.gc.duration).toBeGreaterThanOrEqual(0);
   });
+
+  test("task and hook runs accept millisecond epoch cursors", async () => {
+    let ctx: any;
+
+    const probe = defineResource({
+      id: "probe-graphql-live-runs-cursor",
+      dependencies: { live, introspector },
+      async init(_config, { live, introspector }) {
+        ctx = { store: undefined, logger: console, introspector, live };
+      },
+    });
+
+    const app = createDummyApp([live, introspector, telemetry, probe]);
+    await run(app);
+
+    // Date.now() overflows Int32, so an Int-typed cursor would reject this
+    // query at validation time.
+    const cursor = Date.now();
+    const result = await graphql({
+      schema,
+      source: `query RunsCursor {
+        tasks { id runs(afterTimestamp: ${cursor}) { nodeId } }
+        hooks { id runs(afterTimestamp: ${cursor}) { nodeId } }
+      }`,
+      contextValue: ctx,
+    });
+
+    expect(result.errors).toBeUndefined();
+    const data: any = result.data;
+    expect(data.tasks.every((t: any) => Array.isArray(t.runs))).toBe(true);
+    expect(data.hooks.every((h: any) => Array.isArray(h.runs))).toBe(true);
+  });
 });

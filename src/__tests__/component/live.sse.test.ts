@@ -132,6 +132,91 @@ describe("createLiveStreamHandler", () => {
     await dispose();
   });
 
+  test("drains bursts larger than one page without dropping entries", async () => {
+    const app = createDummyApp([live, telemetry]);
+    const { getResourceValue, dispose } = await run(app);
+    const liveInstance = await getResourceValue(live);
+
+    // Monotonic clock so every record lands on a distinct timestamp and
+    // page boundaries never split entries sharing one millisecond.
+    let now = Date.now() + 100_000;
+    const nowSpy = jest.spyOn(Date, "now").mockImplementation(() => now++);
+    const total = 1005;
+    for (let i = 0; i < total; i++) {
+      liveInstance.recordLog("info", `burst-${i}`);
+    }
+    nowSpy.mockRestore();
+
+    const handler = createLiveStreamHandler({ live: liveInstance });
+    const { req, res, written, emit } = createMockSseContext();
+
+    handler(req, res);
+
+    const delivered: string[] = [];
+    for (const frame of written.filter((w) => w.includes("event: telemetry"))) {
+      const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
+      if (!dataLine) continue;
+      const parsed = JSON.parse(dataLine.replace("data: ", ""));
+      for (const log of parsed.logs ?? []) {
+        if (
+          typeof log.message === "string" &&
+          log.message.startsWith("burst-")
+        ) {
+          delivered.push(log.message);
+        }
+      }
+    }
+
+    expect(delivered.length).toBe(total);
+    expect(delivered[0]).toBe("burst-0");
+    expect(delivered[delivered.length - 1]).toBe(`burst-${total - 1}`);
+
+    emit("close");
+    await dispose();
+  });
+
+  test("serializes error payloads and exits the drain on empty pages", () => {
+    const circular: any = {};
+    circular.self = circular;
+    let calls = 0;
+    const stubLive = {
+      getLogs: () => [],
+      getEmissions: () => [],
+      getErrors: () =>
+        calls++ === 0
+          ? Array.from({ length: 1000 }, (_, i) => ({
+              timestampMs: Date.now() + i,
+              sourceId: "stub-task",
+              sourceKind: "TASK",
+              message: `stub-error-${i}`,
+              stack: null,
+              data: i === 0 ? circular : null,
+              correlationId: null,
+            }))
+          : [],
+      getRuns: () => [],
+      onRecord: () => () => {},
+    };
+
+    const handler = createLiveStreamHandler({ live: stubLive as any });
+    const { req, res, written, emit } = createMockSseContext();
+
+    handler(req, res);
+
+    // Full first page, then an empty second page that exits the loop.
+    expect(calls).toBe(2);
+    const telemetry = written.filter((w) => w.includes("event: telemetry"));
+    expect(telemetry).toHaveLength(1);
+    const dataLine = telemetry[0]
+      .split("\n")
+      .find((l) => l.startsWith("data: "));
+    const parsed = JSON.parse(dataLine!.replace("data: ", ""));
+    expect(parsed.errors).toHaveLength(1000);
+    expect(parsed.errors[0].data).toBe("[object Object]");
+
+    emit("close");
+  });
+
   test("stops pushing after client disconnects", async () => {
     const app = createDummyApp([live, telemetry]);
     const { getResourceValue, dispose } = await run(app);

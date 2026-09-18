@@ -244,20 +244,65 @@ function hasMiddlewareConfig(middleware: { config?: unknown }): boolean {
   );
 }
 
+type ApplicableMiddlewareResolver = {
+  getApplicableTaskMiddlewares?: (
+    taskDefinition: definitions.ITask
+  ) => definitions.ITaskMiddleware[];
+  getApplicableResourceMiddlewares?: (
+    resourceDefinition: definitions.IResource
+  ) => definitions.IResourceMiddleware[];
+};
+
+function getApplicableMiddlewareResolver(
+  store: Store
+): ApplicableMiddlewareResolver | null {
+  // MiddlewareManager keeps the resolver private; introspection reads it
+  // defensively so a Runner internals change degrades to local middleware
+  // lists instead of crashing init.
+  if (typeof store.getMiddlewareManager !== "function") return null;
+  const resolver = (store.getMiddlewareManager() as any)?.middlewareResolver;
+  if (!resolver || typeof resolver !== "object") return null;
+  return resolver as ApplicableMiddlewareResolver;
+}
+
+function resolveApplicableTaskMiddlewares(
+  store: Store,
+  task: definitions.ITask
+): definitions.ITaskMiddleware[] {
+  const resolver = getApplicableMiddlewareResolver(store);
+  if (typeof resolver?.getApplicableTaskMiddlewares !== "function") {
+    return [...task.middleware];
+  }
+  try {
+    return resolver.getApplicableTaskMiddlewares(task);
+  } catch {
+    // The resolver fails fast on subtree/local id conflicts. Introspection
+    // must stay available to diagnose exactly such apps, so fall back to
+    // the task-local list.
+    return [...task.middleware];
+  }
+}
+
+function resolveApplicableResourceMiddlewares(
+  store: Store,
+  resource: definitions.IResource
+): definitions.IResourceMiddleware[] {
+  const resolver = getApplicableMiddlewareResolver(store);
+  if (typeof resolver?.getApplicableResourceMiddlewares !== "function") {
+    return [...resource.middleware];
+  }
+  try {
+    return resolver.getApplicableResourceMiddlewares(resource);
+  } catch {
+    return [...resource.middleware];
+  }
+}
+
 function buildEffectiveTaskMiddlewareUsages(
   store: Store,
   task: definitions.ITask
 ): NonNullable<Task["middlewareDetailed"]> {
-  const resolver = (store.getMiddlewareManager() as any)?.middlewareResolver as
-    | {
-        getApplicableTaskMiddlewares: (
-          taskDefinition: definitions.ITask
-        ) => definitions.ITaskMiddleware[];
-      }
-    | undefined;
-  const effectiveMiddlewares = resolver
-    ? resolver.getApplicableTaskMiddlewares(task)
-    : task.middleware;
+  const effectiveMiddlewares = resolveApplicableTaskMiddlewares(store, task);
   const subtreeOwnersByKey = collectSubtreeTaskMiddlewareOwnerIds(store, task);
 
   return effectiveMiddlewares.map((middleware: any) => {
@@ -399,22 +444,39 @@ export function mapStoreHookToHookModel(
   );
 }
 
+function invokeRegisterFn(
+  fn: (config: never, mode: never) => unknown,
+  resourceConfig: unknown,
+  mode: unknown
+): any[] {
+  try {
+    const result = fn(resourceConfig as never, mode as never);
+    return Array.isArray(result) ? result : [];
+  } catch {
+    // Mode-sensitive register/overrides fns can throw for the introspected
+    // mode. Runner already resolved the real graph; introspection degrades
+    // to an empty declared list rather than aborting init.
+    return [];
+  }
+}
+
 export function mapStoreResourceToResourceModel(
   resource: definitions.IResource,
-  resourceConfig?: unknown
+  resourceConfig?: unknown,
+  store?: Store
 ): Resource {
-  const introspectorMode = "dev" as never;
+  const introspectorMode = store?.mode ?? ("dev" as Store["mode"]);
 
   const register = Array.isArray(resource.register)
     ? resource.register
     : typeof resource.register === "function"
-    ? resource.register(resourceConfig as never, introspectorMode)
+    ? invokeRegisterFn(resource.register, resourceConfig, introspectorMode)
     : [];
 
   const overrides = Array.isArray(resource.overrides)
     ? resource.overrides
     : typeof resource.overrides === "function"
-    ? resource.overrides(resourceConfig as never, introspectorMode)
+    ? invokeRegisterFn(resource.overrides, resourceConfig, introspectorMode)
     : [];
 
   const depsObj = normalizeDependencies(resource?.dependencies);
@@ -423,7 +485,12 @@ export function mapStoreResourceToResourceModel(
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
   const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
-  const middlewareDetailed = (resource.middleware || []).map((m: any) => ({
+  // Mirror the task path: resolve the effective stack (subtree-composed)
+  // when a store is available, otherwise fall back to the local list.
+  const effectiveResourceMiddlewares = store
+    ? resolveApplicableResourceMiddlewares(store, resource)
+    : [...(resource.middleware || [])];
+  const middlewareDetailed = effectiveResourceMiddlewares.map((m: any) => ({
     id: String(m.id),
     // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
     config:
@@ -465,7 +532,7 @@ export function mapStoreResourceToResourceModel(
           null
       ),
       config,
-      middleware: resource.middleware.map((m) => m.id.toString()),
+      middleware: effectiveResourceMiddlewares.map((m) => m.id.toString()),
       middlewareDetailed,
       overrides: overrides.flatMap((override) =>
         override ? [override.id.toString()] : []
@@ -517,13 +584,14 @@ export function buildEvents(store: Store): Event[] {
   return allEventIds.map((eventId) => {
     const e = findById(eventsCollection, eventId) as Event;
     const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(e.tags);
+    // Specific listeners only: wildcard hooks resolve to ["*"], which never
+    // matches a concrete event. This keeps listenedToBy aligned with
+    // getHooksOfEvent, listenedToByResolved, and the hasNoHooks filter.
     const hooksListeningToEvent = hookEntries
-      .filter(({ hook }) => {
-        if (hook.on === "*") return true;
-        return (
+      .filter(
+        ({ hook }) =>
           hookTargetEventIdsByHookId.get(hook.id)?.includes(eventId) ?? false
-        );
-      })
+      )
       .map(({ hook }) => hook.id);
 
     return stampElementKind(
@@ -755,7 +823,7 @@ function buildEventLaneSummaryByEventId(
       const targetId =
         typeof target === "string"
           ? target
-          : store.findIdByDefinition(target as never) ?? extractLaneId(target);
+          : resolveLaneApplyToTargetId(store, target);
       if (!targetId) continue;
 
       const event = store.events.get(targetId)?.event;
@@ -769,6 +837,20 @@ function buildEventLaneSummaryByEventId(
   }
 
   return laneByEventId;
+}
+
+function resolveLaneApplyToTargetId(
+  store: Store,
+  target: unknown
+): string | null {
+  // findIdByDefinition throws on unknown definitions instead of returning
+  // null, so resolve the best-effort id fallback explicitly. One bad lane
+  // target must not abort the whole introspector init.
+  try {
+    return store.findIdByDefinition(target as never);
+  } catch {
+    return extractLaneId(target);
+  }
 }
 
 function normalizeEventLaneApplyTo(

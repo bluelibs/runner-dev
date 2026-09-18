@@ -61,28 +61,31 @@ function collectEffectiveExports(
   resourcesById: ResourceById,
   cache: Map<string, string[]>,
   visiting: Set<string> = new Set()
-): string[] {
+): { exports: string[]; complete: boolean } {
   const cached = cache.get(ownerId);
   if (cached) {
-    return cached;
+    return { exports: cached, complete: true };
   }
 
   if (visiting.has(ownerId)) {
-    throw new Error(
-      `Boundary surface cycle detected at resource "${ownerId}".`
-    );
+    // Exports form a cycle back to a resource already being resolved up the
+    // stack. It contributes nothing new to this set union, so break the
+    // recursion instead of aborting all boundary computation (and with it
+    // live init and snapshot loading). Marked incomplete so the partial
+    // result is never cached.
+    return { exports: [], complete: false };
   }
 
   const owner = resourcesById.get(ownerId);
   if (!owner) {
-    return [];
+    return { exports: [], complete: true };
   }
 
   const exportsMode = owner.isolation?.exportsMode ?? "unset";
   if (exportsMode === "none") {
     const none: string[] = [];
     cache.set(ownerId, none);
-    return none;
+    return { exports: none, complete: true };
   }
 
   if (exportsMode === "unset") {
@@ -90,11 +93,12 @@ function collectEffectiveExports(
       collectBoundaryElementIds(ownerId, resourcesById)
     );
     cache.set(ownerId, allElements);
-    return allElements;
+    return { exports: allElements, complete: true };
   }
 
   visiting.add(ownerId);
   const exports = new Set<string>();
+  let complete = true;
   for (const exportedId of owner.isolation?.exports ?? []) {
     exports.add(exportedId);
 
@@ -102,20 +106,28 @@ function collectEffectiveExports(
       continue;
     }
 
-    for (const nestedExport of collectEffectiveExports(
+    const nested = collectEffectiveExports(
       exportedId,
       resourcesById,
       cache,
       visiting
-    )) {
+    );
+    if (!nested.complete) {
+      complete = false;
+    }
+    for (const nestedExport of nested.exports) {
       exports.add(nestedExport);
     }
   }
   visiting.delete(ownerId);
 
   const result = sortedIds(exports);
-  cache.set(ownerId, result);
-  return result;
+  // Only cache cycle-free results: a value computed while a cycle was cut
+  // beneath it depends on traversal order.
+  if (complete) {
+    cache.set(ownerId, result);
+  }
+  return { exports: result, complete };
 }
 
 export function buildBoundarySurfaces(
@@ -137,7 +149,7 @@ export function buildBoundarySurfaces(
           resource.id,
           resourcesById,
           effectiveExportsCache
-        )
+        ).exports
       );
       const privateDefinitions = Array.from(boundaryElements).filter(
         (elementId) => !effectiveExports.has(elementId)

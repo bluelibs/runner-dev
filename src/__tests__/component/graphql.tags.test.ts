@@ -8,6 +8,7 @@ import { r, defineResource, run, resources } from "@bluelibs/runner";
 import { graphql as executeGraphql } from "graphql";
 import { schema } from "../../schema";
 import { introspector } from "../../resources/introspector.resource";
+import { Introspector } from "../../resources/models/Introspector";
 
 describe("GraphQL Tags", () => {
   it("exposes tags() and tag(id) reverse usage with configs", async () => {
@@ -145,5 +146,47 @@ describe("GraphQL Tags", () => {
     expect(handlers.tasks.map((task: any) => task.id)).toEqual(
       expect.arrayContaining([dummyAppIds.task(taskUsingTagDependency.id)])
     );
+  });
+
+  it("resolves tags as Tag (not Hook) in the unified all view", async () => {
+    let context: any;
+    const probe = defineResource({
+      id: "probe-graphql-tags-all",
+      dependencies: { introspector, store: resources.store },
+      async init(_c, { introspector, store }) {
+        context = { introspector, store, live: { logs: [] }, logger: console };
+      },
+    });
+
+    const app = createDummyApp([introspector, probe]);
+    await run(app);
+
+    const query = `{ all { __typename id } }`;
+    const liveResult = await executeGraphql({
+      schema,
+      source: query,
+      contextValue: context,
+    });
+    expect(liveResult.errors).toBeUndefined();
+    const liveTag = (liveResult.data as any)?.all.find(
+      (e: any) => e.id === dummyAppIds.tag(areaTag.id)
+    );
+    expect(liveTag?.__typename).toBe("Tag");
+
+    // Serialized snapshots lose the non-enumerable stamp; the structural
+    // fallback must still resolve tags as Tag.
+    const snapshot = Introspector.deserialize(
+      JSON.parse(JSON.stringify(context.introspector.serialize()))
+    );
+    const snapshotResult = await executeGraphql({
+      schema,
+      source: query,
+      contextValue: { ...context, introspector: snapshot },
+    });
+    expect(snapshotResult.errors).toBeUndefined();
+    const snapshotTag = (snapshotResult.data as any)?.all.find(
+      (e: any) => e.id === dummyAppIds.tag(areaTag.id)
+    );
+    expect(snapshotTag?.__typename).toBe("Tag");
   });
 });

@@ -403,7 +403,10 @@ export class Introspector {
     this.asyncContexts = Array.isArray(data.asyncContexts)
       ? data.asyncContexts
       : [];
-    this.tags = Array.isArray(data.tags) ? data.tags : [];
+    // Re-stamp: the kind discriminator is non-enumerable and lost in JSON.
+    this.tags = Array.isArray(data.tags)
+      ? data.tags.map((tag) => stampElementKind(tag, "TAG"))
+      : [];
     this.rootId = data.rootId ?? null;
     this.runOptions = data.runOptions
       ? this.normalizeRunOptions(data.runOptions)
@@ -860,10 +863,16 @@ export class Introspector {
     );
   }
 
-  // Backward-compat for schema fields expecting this name
-  // Returns only task-like nodes (tasks and hooks)
+  // Task-like nodes (tasks and hooks) listing this middleware. Hooks
+  // carry no middleware in Runner today, so this currently matches tasks,
+  // but the scan stays correct if that ever changes.
   getTaskLikesUsingMiddleware(middlewareId: string): (Task | Hook)[] {
-    return this.getTasksUsingMiddleware(middlewareId);
+    return [...this.tasks, ...this.hooks].filter((node) =>
+      this.idsContainLike(
+        (node as Partial<Task>).middleware ?? [],
+        middlewareId
+      )
+    );
   }
 
   getEmittersOfEvent(eventId: string): (Task | Hook | Resource)[] {
@@ -877,11 +886,21 @@ export class Introspector {
   }
 
   getMiddlewareEmittedEvents(middlewareId: string): Event[] {
-    const taskLikes = this.getTasksUsingMiddleware(middlewareId);
     const emittedIds = new Set<string>();
-    for (const t of taskLikes) {
+    for (const t of this.getTaskLikesUsingMiddleware(middlewareId)) {
       for (const e of ensureStringArray(t.emits)) {
         emittedIds.add(e);
+      }
+    }
+    // Resource middlewares are used by resources, not tasks; without this
+    // their `emits` field is always empty.
+    for (const r of this.resources) {
+      if (!this.idsContainLike(r.middleware, middlewareId)) continue;
+      for (const e of ensureStringArray(r.emits)) {
+        emittedIds.add(e);
+      }
+      for (const e of this.getEmittedEventsForResource(r.id)) {
+        emittedIds.add(e.id);
       }
     }
     return this.events.filter((e) => emittedIds.has(e.id));

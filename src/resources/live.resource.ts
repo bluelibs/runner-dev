@@ -241,9 +241,18 @@ const liveService = defineResource({
       return (arg ?? ({} as T)) as T;
     };
 
-    const sliceLast = <T>(arr: T[], last?: number): T[] => {
+    const sliceWindow = <T>(
+      arr: T[],
+      last?: number,
+      afterTimestamp?: number
+    ): T[] => {
       if (typeof last !== "number") return arr;
       if (last <= 0) return [];
+      // Cursor pagination must advance oldest-first: taking the newest N
+      // here would skip (and, once the cursor advances, permanently drop)
+      // every entry beyond the page. Without a cursor, `last` keeps its
+      // "most recent N" meaning.
+      if (typeof afterTimestamp === "number") return arr.slice(0, last);
       return arr.slice(-last);
     };
 
@@ -289,7 +298,7 @@ const liveService = defineResource({
           const allowed = new Set(options.correlationIds.map(String));
           result = result.filter((l) => allowed.has(String(l.correlationId)));
         }
-        return sliceLast(result, options.last);
+        return sliceWindow(result, options.last, options.afterTimestamp);
       },
       recordEmission(eventId, payload, emitterId) {
         emissions.push({
@@ -331,7 +340,7 @@ const liveService = defineResource({
           const allowed = new Set(options.correlationIds.map(String));
           result = result.filter((e) => allowed.has(String(e.correlationId)));
         }
-        return sliceLast(result, options.last);
+        return sliceWindow(result, options.last, options.afterTimestamp);
       },
       recordError(sourceId, sourceKind, error, data) {
         const { message, stack } = normalizeError(error);
@@ -387,7 +396,7 @@ const liveService = defineResource({
           const allowed = new Set(options.correlationIds.map(String));
           result = result.filter((e) => allowed.has(String(e.correlationId)));
         }
-        return sliceLast(result, options.last);
+        return sliceWindow(result, options.last, options.afterTimestamp);
       },
       recordRun(nodeId, nodeKind, durationMs, ok, error, parentId, rootId) {
         const errStr = (() => {
@@ -458,7 +467,7 @@ const liveService = defineResource({
           const allowed = new Set(options.correlationIds.map(String));
           result = result.filter((r) => allowed.has(String(r.correlationId)));
         }
-        return sliceLast(result, options.last);
+        return sliceWindow(result, options.last, options.afterTimestamp);
       },
       onRecord(callback) {
         recordListeners.add(callback);

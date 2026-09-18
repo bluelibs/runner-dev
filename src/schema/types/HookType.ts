@@ -1,4 +1,5 @@
 import {
+  GraphQLFloat,
   GraphQLID,
   GraphQLInt,
   GraphQLList,
@@ -7,6 +8,7 @@ import {
   GraphQLString,
 } from "graphql";
 import type { Hook } from "../model";
+import { elementKindSymbol, isHookModel } from "../model";
 import type { CustomGraphQLContext } from "../context";
 import { BaseElementInterface } from "./AllType";
 import { MetaType } from "./MetaType";
@@ -22,7 +24,12 @@ import { RunRecordType, RunFilterInput } from "./RunTypes";
 export const HookType = new GraphQLObjectType({
   name: "Hook",
   interfaces: () => [BaseElementInterface],
-  isTypeOf: (value) => Array.isArray((value as any)?.events),
+  isTypeOf: (value) => {
+    const kind = (value as any)?.[elementKindSymbol];
+    if (kind !== undefined) return kind === "HOOK";
+    // Tags also carry an `events` collection; isHookModel excludes them.
+    return isHookModel(value);
+  },
   fields: () => ({
     id: { description: "Hook id", type: new GraphQLNonNull(GraphQLID) },
     meta: { description: "Hook metadata", type: MetaType },
@@ -74,8 +81,9 @@ export const HookType = new GraphQLObjectType({
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(TaskMiddlewareUsageType))
       ),
-      resolve: (node: Hook, _args, ctx: CustomGraphQLContext) =>
-        ctx.introspector.getMiddlewareUsagesForTask((node as any).id),
+      // Runner hooks carry no middleware; the field exists for task-like
+      // shape parity and always resolves empty.
+      resolve: () => [],
     },
     emitsResolved: {
       description: "Events emitted by this hook (resolved)",
@@ -135,7 +143,7 @@ export const HookType = new GraphQLObjectType({
     runs: {
       description: "Execution run records for this hook",
       args: {
-        afterTimestamp: { type: GraphQLInt },
+        afterTimestamp: { type: GraphQLFloat },
         last: { type: GraphQLInt },
         filter: { type: RunFilterInput },
       },

@@ -217,6 +217,104 @@ describe("createLiveStreamHandler", () => {
     emit("close");
   });
 
+  test("tracks each telemetry category with its own cursor", () => {
+    // 1005 older logs plus one newer error: a shared max-timestamp cursor
+    // would jump past the undelivered logs once the error lands.
+    const allLogs = Array.from({ length: 1005 }, (_, i) => ({
+      timestampMs: 1000 + i,
+      level: "info",
+      message: `cat-log-${i}`,
+    }));
+    const allErrors = [
+      {
+        timestampMs: 5000,
+        sourceId: "stub-task",
+        sourceKind: "TASK",
+        message: "cat-error",
+        stack: null,
+        data: null,
+        correlationId: null,
+      },
+    ];
+    const pageAfter = <T extends { timestampMs: number }>(
+      entries: T[],
+      query: { afterTimestamp?: number; last?: number }
+    ) =>
+      entries
+        .filter((e) => e.timestampMs > (query.afterTimestamp ?? 0))
+        .slice(0, query.last ?? entries.length);
+    const stubLive = {
+      getLogs: (query: any) => pageAfter(allLogs, query),
+      getEmissions: () => [],
+      getErrors: (query: any) => pageAfter(allErrors, query),
+      getRuns: () => [],
+      onRecord: () => () => {},
+    };
+
+    const handler = createLiveStreamHandler({ live: stubLive as any });
+    const { req, res, written, emit } = createMockSseContext();
+
+    handler(req, res);
+
+    const deliveredLogs: string[] = [];
+    let deliveredErrors = 0;
+    for (const frame of written.filter((w) => w.includes("event: telemetry"))) {
+      const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
+      const parsed = JSON.parse(dataLine!.replace("data: ", ""));
+      for (const log of parsed.logs ?? []) deliveredLogs.push(log.message);
+      deliveredErrors += (parsed.errors ?? []).length;
+    }
+
+    expect(deliveredLogs.length).toBe(1005);
+    expect(deliveredLogs[0]).toBe("cat-log-0");
+    expect(deliveredLogs[1004]).toBe("cat-log-1004");
+    expect(deliveredErrors).toBe(1);
+
+    emit("close");
+  });
+
+  test("schedules another drain when the page cap hides backlog", async () => {
+    const allLogs = Array.from({ length: 10_005 }, (_, i) => ({
+      timestampMs: 1000 + i,
+      level: "info",
+      message: `cap-log-${i}`,
+    }));
+    let calls = 0;
+    const stubLive = {
+      getLogs: (query: any) => {
+        calls++;
+        return allLogs
+          .filter((l) => l.timestampMs > (query.afterTimestamp ?? 0))
+          .slice(0, query.last ?? allLogs.length);
+      },
+      getEmissions: () => [],
+      getErrors: () => [],
+      getRuns: () => [],
+      onRecord: () => () => {},
+    };
+
+    const handler = createLiveStreamHandler({ live: stubLive as any });
+    const { req, res, written, emit } = createMockSseContext();
+
+    handler(req, res);
+    // Initial push drains 10 full pages, then the scheduled drain delivers
+    // the remainder without waiting for new records.
+    await new Promise((r) => setTimeout(r, 400));
+
+    const delivered = written
+      .filter((w) => w.includes("event: telemetry"))
+      .flatMap((frame) => {
+        const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
+        return JSON.parse(dataLine!.replace("data: ", "")).logs ?? [];
+      });
+
+    expect(calls).toBe(11);
+    expect(delivered.length).toBe(10_005);
+    expect(delivered[10_004].message).toBe("cap-log-10004");
+
+    emit("close");
+  });
+
   test("stops pushing after client disconnects", async () => {
     const app = createDummyApp([live, telemetry]);
     const { getResourceValue, dispose } = await run(app);

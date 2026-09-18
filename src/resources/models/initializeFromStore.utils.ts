@@ -274,7 +274,9 @@ function resolveApplicableTaskMiddlewares(
     return [...task.middleware];
   }
   try {
-    return resolver.getApplicableTaskMiddlewares(task);
+    const result = resolver.getApplicableTaskMiddlewares(task);
+    // The resolver is private API; never trust its shape blindly.
+    return Array.isArray(result) ? result : [...task.middleware];
   } catch {
     // The resolver fails fast on subtree/local id conflicts. Introspection
     // must stay available to diagnose exactly such apps, so fall back to
@@ -292,7 +294,8 @@ function resolveApplicableResourceMiddlewares(
     return [...resource.middleware];
   }
   try {
-    return resolver.getApplicableResourceMiddlewares(resource);
+    const result = resolver.getApplicableResourceMiddlewares(resource);
+    return Array.isArray(result) ? result : [...resource.middleware];
   } catch {
     return [...resource.middleware];
   }
@@ -444,6 +447,14 @@ export function mapStoreHookToHookModel(
   );
 }
 
+function hasRegisterId(entry: unknown): boolean {
+  return (
+    entry !== null &&
+    (typeof entry === "object" || typeof entry === "function") &&
+    (entry as { id?: unknown }).id != null
+  );
+}
+
 function invokeRegisterFn(
   fn: (config: never, mode: never) => unknown,
   resourceConfig: unknown,
@@ -451,7 +462,10 @@ function invokeRegisterFn(
 ): any[] {
   try {
     const result = fn(resourceConfig as never, mode as never);
-    return Array.isArray(result) ? result : [];
+    if (!Array.isArray(result)) return [];
+    // Mappers dereference entry.id; drop malformed entries rather than
+    // aborting init on user-composed edge cases.
+    return result.filter(hasRegisterId);
   } catch {
     // Mode-sensitive register/overrides fns can throw for the introspected
     // mode. Runner already resolved the real graph; introspection degrades

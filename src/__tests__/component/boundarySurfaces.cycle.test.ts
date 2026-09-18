@@ -4,16 +4,26 @@ import type { Resource } from "../../schema";
 function resource(
   id: string,
   registers: string[],
-  isolation: Resource["isolation"]
+  exports: string[]
 ): Resource {
-  return { id, registers, isolation } as Resource;
+  return {
+    id,
+    registers,
+    isolation: {
+      deny: [],
+      only: [],
+      whitelist: [],
+      exports,
+      exportsMode: "list",
+    },
+  } as unknown as Resource;
 }
 
 describe("boundary surfaces cycles", () => {
   test("tolerates cyclic exports instead of throwing", () => {
     const surfaces = buildBoundarySurfaces([
-      resource("a", ["b"], { exportsMode: "list", exports: ["b"] } as any),
-      resource("b", ["a"], { exportsMode: "list", exports: ["a"] } as any),
+      resource("a", ["b"], ["b"]),
+      resource("b", ["a"], ["a"]),
     ]);
 
     expect(surfaces.find((s) => s.ownerId === "a")?.effectiveExports).toEqual([
@@ -27,9 +37,7 @@ describe("boundary surfaces cycles", () => {
   });
 
   test("tolerates self exports", () => {
-    const surfaces = buildBoundarySurfaces([
-      resource("a", [], { exportsMode: "list", exports: ["a"] } as any),
-    ]);
+    const surfaces = buildBoundarySurfaces([resource("a", [], ["a"])]);
 
     expect(surfaces.find((s) => s.ownerId === "a")?.effectiveExports).toEqual([
       "a",
@@ -38,8 +46,8 @@ describe("boundary surfaces cycles", () => {
 
   test("keeps acyclic exports unchanged", () => {
     const surfaces = buildBoundarySurfaces([
-      resource("a", ["b"], { exportsMode: "list", exports: ["b"] } as any),
-      resource("b", [], { exportsMode: "list", exports: [] } as any),
+      resource("a", ["b"], ["b"]),
+      resource("b", [], []),
     ]);
 
     expect(surfaces.find((s) => s.ownerId === "a")?.effectiveExports).toEqual([

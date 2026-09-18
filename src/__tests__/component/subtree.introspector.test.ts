@@ -399,5 +399,15 @@ describe("Subtree Introspection", () => {
         subtreeOwnerId: null,
       },
     ]);
+
+    const nonArray = mapStoreTaskToTaskModel(fakeTask, {
+      ...baseStore,
+      getMiddlewareManager: () => ({
+        middlewareResolver: {
+          getApplicableTaskMiddlewares: () => "nope",
+        },
+      }),
+    } as any);
+    expect(nonArray.middleware).toEqual([localMiddlewareId]);
   });
 });

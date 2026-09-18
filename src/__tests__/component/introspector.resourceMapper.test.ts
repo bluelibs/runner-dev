@@ -140,5 +140,27 @@ describe("mapStoreResourceToResourceModel", () => {
       } as any
     );
     expect(missingManager.middleware).toEqual(["mw-local"]);
+
+    const nonArray = mapStoreResourceToResourceModel(resource, undefined, {
+      mode: "dev",
+      getMiddlewareManager: () => ({
+        middlewareResolver: {
+          getApplicableResourceMiddlewares: () => ({ oops: true }),
+        },
+      }),
+    } as any);
+    expect(nonArray.middleware).toEqual(["mw-local"]);
+  });
+
+  test("drops register/overrides entries without an id", () => {
+    const resource = fakeResource({
+      register: () => [null, "bare-string", { id: "ok-task" }, { noId: true }],
+      overrides: () => [{ id: "ok-override" }, undefined],
+    });
+
+    const mapped = mapStoreResourceToResourceModel(resource);
+
+    expect(mapped.registers).toEqual(["ok-task"]);
+    expect(mapped.overrides).toEqual(["ok-override"]);
   });
 });

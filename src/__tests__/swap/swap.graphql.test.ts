@@ -72,7 +72,29 @@ function assertInvokeEventData(
   }
 }
 
-function assertShellData(data: unknown): asserts data is { shell: any } {
+type ShellMutationData = {
+  shell: {
+    success: boolean;
+    error?: string | null;
+    result?: string | null;
+    logs?: Array<string | null> | null;
+    executionTimeMs?: number | null;
+    invocationId?: string | null;
+  };
+};
+
+type ShellCompleteQueryData = {
+  shellComplete: {
+    from: number;
+    options: Array<{
+      label: string;
+      type?: string | null;
+      detail?: string | null;
+    }>;
+  };
+};
+
+function assertShellData(data: unknown): asserts data is ShellMutationData {
   if (!data || typeof data !== "object" || !("shell" in data)) {
     throw new Error("Expected shell data object");
   }
@@ -80,9 +102,34 @@ function assertShellData(data: unknown): asserts data is { shell: any } {
 
 function assertShellCompleteData(
   data: unknown
-): asserts data is { shellComplete: any } {
+): asserts data is ShellCompleteQueryData {
   if (!data || typeof data !== "object" || !("shellComplete" in data)) {
     throw new Error("Expected shellComplete data object");
+  }
+}
+
+type ShellEnvSnapshot = {
+  RUNNER_DEV_EVAL: string | undefined;
+  NODE_ENV: string | undefined;
+};
+
+function captureShellEnv(): ShellEnvSnapshot {
+  return {
+    RUNNER_DEV_EVAL: process.env.RUNNER_DEV_EVAL,
+    NODE_ENV: process.env.NODE_ENV,
+  };
+}
+
+function restoreShellEnv(previous: ShellEnvSnapshot): void {
+  if (previous.RUNNER_DEV_EVAL === undefined) {
+    delete process.env.RUNNER_DEV_EVAL;
+  } else {
+    process.env.RUNNER_DEV_EVAL = previous.RUNNER_DEV_EVAL;
+  }
+  if (previous.NODE_ENV === undefined) {
+    delete process.env.NODE_ENV;
+  } else {
+    process.env.NODE_ENV = previous.NODE_ENV;
   }
 }
 
@@ -717,25 +764,26 @@ describe("Swap GraphQL Integration", () => {
         }
       `;
 
+      const previousEnv = captureShellEnv();
       process.env.RUNNER_DEV_EVAL = "0";
       process.env.NODE_ENV = "production";
 
-      const response = await apolloServer.executeOperation(
-        { query: mutation, variables: { code: "1 + 1" } },
-        { contextValue: context }
-      );
+      try {
+        const response = await apolloServer.executeOperation(
+          { query: mutation, variables: { code: "1 + 1" } },
+          { contextValue: context }
+        );
 
-      expect(response.body.kind).toBe("single");
-      if (response.body.kind === "single") {
-        const resData = response.body.singleResult.data as any;
-        const res = resData?.shell as any;
-        expect(res.success).toBe(false);
-        expect(res.error).toContain("Shell is disabled");
+        expect(response.body.kind).toBe("single");
+        if (response.body.kind === "single") {
+          const responseData = response.body.singleResult.data;
+          assertShellData(responseData);
+          expect(responseData.shell.success).toBe(false);
+          expect(responseData.shell.error).toContain("Shell is disabled");
+        }
+      } finally {
+        restoreShellEnv(previousEnv);
       }
-
-      // Reset env to non-production for other tests
-      delete process.env.NODE_ENV;
-      process.env.RUNNER_DEV_EVAL = "1";
     });
   });
 
@@ -770,9 +818,7 @@ describe("Swap GraphQL Integration", () => {
         const responseData = response.body.singleResult.data;
         assertShellCompleteData(responseData);
         expect(responseData.shellComplete.from).toBe(8);
-        const labels = responseData.shellComplete.options.map(
-          (o: any) => o.label
-        );
+        const labels = responseData.shellComplete.options.map((o) => o.label);
         expect(labels).toContain("runTask");
       }
     });
@@ -804,9 +850,7 @@ describe("Swap GraphQL Integration", () => {
         expect(response.body.singleResult.errors).toBeUndefined();
         const responseData = response.body.singleResult.data;
         assertShellCompleteData(responseData);
-        const labels = responseData.shellComplete.options.map(
-          (o: any) => o.label
-        );
+        const labels = responseData.shellComplete.options.map((o) => o.label);
         expect(labels).toContain("url");
       }
     });
@@ -823,23 +867,25 @@ describe("Swap GraphQL Integration", () => {
         }
       `;
 
+      const previousEnv = captureShellEnv();
       process.env.RUNNER_DEV_EVAL = "0";
       process.env.NODE_ENV = "production";
 
-      const response = await apolloServer.executeOperation(
-        { query, variables: { code: "runtime.", position: 8 } },
-        { contextValue: context }
-      );
+      try {
+        const response = await apolloServer.executeOperation(
+          { query, variables: { code: "runtime.", position: 8 } },
+          { contextValue: context }
+        );
 
-      expect(response.body.kind).toBe("single");
-      if (response.body.kind === "single") {
-        const resData = response.body.singleResult.data as any;
-        expect(resData?.shellComplete?.options).toEqual([]);
+        expect(response.body.kind).toBe("single");
+        if (response.body.kind === "single") {
+          const responseData = response.body.singleResult.data;
+          assertShellCompleteData(responseData);
+          expect(responseData.shellComplete.options).toEqual([]);
+        }
+      } finally {
+        restoreShellEnv(previousEnv);
       }
-
-      // Reset env to non-production for other tests
-      delete process.env.NODE_ENV;
-      process.env.RUNNER_DEV_EVAL = "1";
     });
   });
 

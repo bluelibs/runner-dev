@@ -280,13 +280,22 @@ export const swapManager = defineResource({
       };
     };
 
-    const getShellResourceValue = async (resolvedResourceId: string) => {
+    const getShellResourceValue = async (
+      resolvedResourceId: string,
+      allowLazyInit: boolean
+    ) => {
       try {
         return {
           value: runtime.getResourceValue(resolvedResourceId),
           error: null as string | null,
         };
       } catch (syncError) {
+        // Completion must stay side-effect free: it never wakes lazy resources.
+        if (!allowLazyInit) {
+          const syncDetail =
+            syncError instanceof Error ? syncError.message : String(syncError);
+          return { value: null, error: syncDetail };
+        }
         try {
           return {
             value: await runtime.getLazyResourceValue(resolvedResourceId),
@@ -305,7 +314,10 @@ export const swapManager = defineResource({
       }
     };
 
-    const resolveShellResource = async (resourceId?: string | null) => {
+    const resolveShellResource = async (
+      resourceId?: string | null,
+      allowLazyInit = true
+    ) => {
       if (!resourceId) {
         return {
           value: null as unknown,
@@ -337,7 +349,10 @@ export const swapManager = defineResource({
         };
       }
 
-      const { value, error } = await getShellResourceValue(resolved);
+      const { value, error } = await getShellResourceValue(
+        resolved,
+        allowLazyInit
+      );
       if (error) {
         return {
           value: null as unknown,
@@ -835,9 +850,11 @@ export const swapManager = defineResource({
             return { from: safePosition, options: [] };
           }
           // Completion never fails loudly: unknown resources or shapes
-          // simply yield no options.
+          // simply yield no options. It also never initializes lazy
+          // resources: only already-initialized values are completed.
           const { value, resolvedId, error } = await resolveShellResource(
-            resourceId
+            resourceId,
+            false
           );
           if (error) {
             return { from: target.from, options: [] };

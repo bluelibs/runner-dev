@@ -396,9 +396,11 @@ describe("completeShellScope", () => {
     ).toEqual([]);
   });
 
-  test("tolerates throwing getters", () => {
+  test("lists getters without invoking them", () => {
+    let getterCalls = 0;
     const tricky = {
       get boom(): unknown {
+        getterCalls += 1;
         throw new Error("getter boom");
       },
     };
@@ -409,6 +411,46 @@ describe("completeShellScope", () => {
     });
     expect(options.map((o) => o.label)).toEqual(["boom"]);
     expect(options[0].detail).toBeUndefined();
+    expect(getterCalls).toBe(0);
+  });
+
+  test("does not traverse through accessors", () => {
+    let getterCalls = 0;
+    const tricky = {
+      get nested(): unknown {
+        getterCalls += 1;
+        return { deep: 1 };
+      },
+    };
+    expect(
+      completeShellScope(tricky, {
+        objectPath: ["nested"],
+        prefix: "",
+        from: 0,
+      })
+    ).toEqual([]);
+    expect(getterCalls).toBe(0);
+  });
+
+  test("walks the full prototype chain", () => {
+    class Grandparent {
+      grandMethod() {
+        return "grand";
+      }
+    }
+    class Parent extends Grandparent {
+      parentMethod() {
+        return "parent";
+      }
+    }
+    const options = completeShellScope(
+      { child: new Parent() },
+      { objectPath: ["child"], prefix: "", from: 0 }
+    );
+    const labels = options.map((o) => o.label);
+    expect(labels).toContain("parentMethod");
+    expect(labels).toContain("grandMethod");
+    expect(labels).not.toContain("hasOwnProperty");
   });
 
   test("exposes prototype members without Object noise", () => {

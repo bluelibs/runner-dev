@@ -228,7 +228,7 @@ export const MutationType = new GraphQLObjectType({
         "- runtime: live IRuntime (runTask, emitEvent, getResourceValue, getResourceConfig, getHealth, ...)",
         "- console: captured; lines are returned in `logs`",
         "",
-        "Security: shell is disabled by default in production; enable with RUNNER_DEV_EVAL=1.",
+        "Security: shell runs only with RUNNER_DEV_EVAL=1 or NODE_ENV=development.",
       ].join("\n"),
       type: new GraphQLNonNull(ShellResultType),
       args: {
@@ -248,10 +248,11 @@ export const MutationType = new GraphQLObjectType({
         { code, resourceId }: { code: string; resourceId?: string | null },
         ctx: CustomGraphQLContext
       ) {
-        // Same safeguard as eval: allow only in non-production by default
+        // Fail closed: shell runs only with the explicit opt-in flag or in
+        // development. Unset, production, and unexpected values deny.
         const allowShell =
           process.env.RUNNER_DEV_EVAL === "1" ||
-          process.env.NODE_ENV !== "production";
+          process.env.NODE_ENV === "development";
         if (!allowShell) {
           return {
             success: false,

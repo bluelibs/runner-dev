@@ -533,8 +533,32 @@ function describeShellValue(value: unknown): string | undefined {
 }
 
 /**
- * Lists completion options for a target against a shell scope. Only reads
- * properties (never calls), tolerates throwing getters, and caps output.
+ * Reads a property without ever invoking a getter: follows data descriptors
+ * up the prototype chain and reports accessors without reading them.
+ */
+function readShellDataProperty(
+  owner: object,
+  key: string
+): { found: boolean; accessor: boolean; value?: unknown } {
+  let current: object | null = owner;
+  while (current !== null) {
+    const descriptor = Object.getOwnPropertyDescriptor(current, key);
+    if (descriptor) {
+      // Accessors are reported but never read: invoking a getter could
+      // mutate live runtime state during completion.
+      if (!("value" in descriptor)) {
+        return { found: true, accessor: true };
+      }
+      return { found: true, accessor: false, value: descriptor.value };
+    }
+    current = Object.getPrototypeOf(current);
+  }
+  return { found: false, accessor: false };
+}
+
+/**
+ * Lists completion options for a target against a shell scope. Never calls
+ * functions or invokes getters, and caps output.
  */
 export function completeShellScope(
   scope: Record<string, unknown>,
@@ -548,11 +572,12 @@ export function completeShellScope(
     ) {
       return [];
     }
-    try {
-      base = (base as Record<string, unknown>)[segment];
-    } catch {
+    // Accessors stop traversal: descending further would invoke the getter.
+    const segmentRead = readShellDataProperty(base as object, segment);
+    if (!segmentRead.found || segmentRead.accessor) {
       return [];
     }
+    base = segmentRead.value;
   }
   if (
     base === null ||
@@ -570,14 +595,14 @@ export function completeShellScope(
     seen.add(key);
     let type = inScope ? "variable" : "property";
     let detail: string | undefined;
-    try {
-      const value = (owner as Record<string, unknown>)[key];
+    // Accessors are listed by name only: reading them would invoke the getter.
+    const descriptor = Object.getOwnPropertyDescriptor(owner, key);
+    if (descriptor && "value" in descriptor) {
+      const value = descriptor.value;
       if (typeof value === "function") {
         type = inScope ? "function" : "method";
       }
       detail = describeShellValue(value);
-    } catch {
-      // Keep throwing getters listed, just without a description.
     }
     const option: ShellCompletionOption = { label: key, type };
     if (detail !== undefined) option.detail = detail;
@@ -587,12 +612,15 @@ export function completeShellScope(
   for (const key of Object.keys(base)) {
     pushKey(key, base as object);
   }
-  const proto = Object.getPrototypeOf(base);
-  if (proto && proto !== Object.prototype) {
+  // Walk the full prototype chain so inherited methods complete too, while
+  // still skipping the Object.prototype noise (toString, hasOwnProperty…).
+  let proto: object | null = Object.getPrototypeOf(base);
+  while (proto !== null && proto !== Object.prototype) {
     for (const key of Object.getOwnPropertyNames(proto)) {
       if (HIDDEN_PROTO_KEYS.has(key)) continue;
-      pushKey(key, proto as object);
+      pushKey(key, proto);
     }
+    proto = Object.getPrototypeOf(proto);
   }
 
   options.sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));

@@ -496,8 +496,8 @@ export const QueryType = new GraphQLObjectType({
         "live shell scope without executing anything, so it is side-effect free.",
         "Returns the offset the completed word starts at plus matching options.",
         "",
-        "Security: completion is disabled by default in production, like the",
-        "shell itself; enable with RUNNER_DEV_EVAL=1 (yields no options).",
+        "Security: completion runs only with RUNNER_DEV_EVAL=1 or",
+        "NODE_ENV=development, like the shell itself (yields no options).",
       ].join("\n"),
       type: new GraphQLNonNull(ShellCompletionType),
       args: {
@@ -524,10 +524,10 @@ export const QueryType = new GraphQLObjectType({
         }: { code: string; position: number; resourceId?: string | null },
         ctx: CustomGraphQLContext
       ) {
-        // Same safeguard as the shell: fail soft when disabled.
+        // Same fail-closed safeguard as the shell: fail soft when disabled.
         const allowShell =
           process.env.RUNNER_DEV_EVAL === "1" ||
-          process.env.NODE_ENV !== "production";
+          process.env.NODE_ENV === "development";
         if (!allowShell) {
           return { from: position, options: [] };
         }

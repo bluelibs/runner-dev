@@ -124,9 +124,10 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
   // Listen for shell requests from ElementTable
   React.useEffect(() => {
     if (isCatalogMode) return;
-    const handler = (e: any) => {
-      const ce = e as CustomEvent<{ type: string; id: string }>;
-      if (ce?.detail?.type === "resource" && ce.detail.id === resource.id) {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ type: string; id: string }>)
+        .detail;
+      if (detail?.type === "resource" && detail.id === resource.id) {
         setIsShellOpen(true);
         // Note: Scrolling handled by main Documentation component hash navigation
       }

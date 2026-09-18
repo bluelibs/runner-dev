@@ -151,7 +151,7 @@ Inside the UI, you can:
 - Manually invoke tasks with custom inputs.
 - Inspect live logs and event emissions in real-time.
 - View and edit files directly via the browser.
-- Open a runtime shell per resource (`Shell` button, `r` is the live resource value) or a global shell from the sidebar (`Ctrl+\``) with full `runtime` access.
+- Open a runtime shell per resource (`Shell` button, `r` is the live resource value) or a global shell from the sidebar (``Ctrl+` ``) with full `runtime` access.
 
 ### Static Catalog Export
 
@@ -1387,7 +1387,7 @@ mutation {
 }
 ```
 
-In the UI, every resource card and resources overview row has a `Shell` action, and the sidebar footer (or `Ctrl+\``) opens a global runtime shell. The editor completes scope members as you type (`r`, `runtime`, `store`, …) via the side-effect-free `shellComplete` query, with `Enter` to run, `Shift+Enter` for a new line, and `Tab` to accept a suggestion.
+In the UI, every resource card and resources overview row has a `Shell` action, and the sidebar footer (or ``Ctrl+` ``) opens a global runtime shell. The editor completes scope members as you type (`r`, `runtime`, `store`, …) via the side-effect-free `shellComplete` query, with `Enter` to run, `Shift+Enter` for a new line, and `Tab` to accept a suggestion.
 
 ### Use Cases
 

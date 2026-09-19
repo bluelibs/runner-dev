@@ -196,6 +196,40 @@ describe("live resource (integration)", () => {
     }
   });
 
+  test("paginates oldest-first when a cursor is combined with last", async () => {
+    const app = createDummyApp([live, telemetry]);
+    const runtime = await run(app);
+
+    try {
+      const containerLive = await runtime.getResourceValue(live);
+      containerLive.recordLog("info", "cursor-first-1");
+      containerLive.recordLog("info", "cursor-first-2");
+      containerLive.recordLog("info", "cursor-first-3");
+
+      const page = containerLive.getLogs({
+        afterTimestamp: 0,
+        last: 2,
+        messageIncludes: "cursor-first-",
+      });
+      expect(page.map((l) => l.message)).toEqual([
+        "cursor-first-1",
+        "cursor-first-2",
+      ]);
+
+      // Without a cursor, `last` keeps its "most recent N" meaning.
+      const tail = containerLive.getLogs({
+        last: 2,
+        messageIncludes: "cursor-first-",
+      });
+      expect(tail.map((l) => l.message)).toEqual([
+        "cursor-first-2",
+        "cursor-first-3",
+      ]);
+    } finally {
+      await runtime.dispose();
+    }
+  });
+
   test("canonicalizes log source ids to the actual element id", async () => {
     const userServerTask = defineTask({
       id: "server",

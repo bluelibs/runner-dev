@@ -13,6 +13,8 @@ const HEALTH_INTERVAL_MS = 2_000;
 const HEARTBEAT_INTERVAL_MS = 15_000;
 /** Maximum number of entries per category in a single SSE push. */
 const MAX_ENTRIES_PER_PUSH = 1_000;
+/** Maximum pages drained per push so bursts can't stall the tick forever. */
+const MAX_PAGES_PER_PUSH = 10;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -55,7 +57,11 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
     res.setHeader("X-Accel-Buffering", "no"); // nginx
     res.flushHeaders();
 
-    let cursor = 0; // start from the beginning so the initial push picks up existing entries
+    // Independent cursor per category: each getter has its own 1,000-entry
+    // window, so advancing every category with one shared maximum would skip
+    // undelivered entries in the categories lagging behind. Start from the
+    // beginning so the initial push picks up existing entries.
+    const cursors = { logs: 0, emissions: 0, errors: 0, runs: 0 };
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     let closed = false;
 
@@ -71,33 +77,6 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
       }
     };
 
-    /** Read new telemetry entries since `cursor`, serialize, and push. */
-    const pushDelta = () => {
-      if (closed) return;
-
-      const query = { afterTimestamp: cursor, last: MAX_ENTRIES_PER_PUSH };
-      const logs = live
-        .getLogs(query)
-        .map((l) => ({ ...l, data: safeStringify(l.data) }));
-      const emissions = live
-        .getEmissions(query)
-        .map((e) => ({ ...e, payload: safeStringify(e.payload) }));
-      const errors = live
-        .getErrors(query)
-        .map((e) => ({ ...e, data: safeStringify(e.data) }));
-      const runs = live.getRuns(query);
-
-      if (logs.length + emissions.length + errors.length + runs.length === 0) {
-        return;
-      }
-
-      // Advance cursor past everything we just delivered
-      const latest = latestTimestamp(logs, emissions, errors, runs);
-      if (latest !== undefined) cursor = latest;
-
-      sendEvent("telemetry", { logs, emissions, errors, runs });
-    };
-
     /** Debounced notification handler — batches rapid record calls. */
     const onRecordNotification = () => {
       if (closed || debounceTimer) return;
@@ -105,6 +84,71 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
         debounceTimer = null;
         pushDelta();
       }, DEBOUNCE_MS);
+    };
+
+    /** Read new telemetry entries since the cursors, serialize, and push. */
+    const pushDelta = () => {
+      if (closed) return;
+
+      // Drain full pages so a burst larger than one page doesn't stall
+      // behind the cursor until the next record arrives.
+      for (let page = 0; page < MAX_PAGES_PER_PUSH && !closed; page++) {
+        const logs = live
+          .getLogs({
+            afterTimestamp: cursors.logs,
+            last: MAX_ENTRIES_PER_PUSH,
+          })
+          .map((l) => ({ ...l, data: safeStringify(l.data) }));
+        const emissions = live
+          .getEmissions({
+            afterTimestamp: cursors.emissions,
+            last: MAX_ENTRIES_PER_PUSH,
+          })
+          .map((e) => ({ ...e, payload: safeStringify(e.payload) }));
+        const errors = live
+          .getErrors({
+            afterTimestamp: cursors.errors,
+            last: MAX_ENTRIES_PER_PUSH,
+          })
+          .map((e) => ({ ...e, data: safeStringify(e.data) }));
+        const runs = live.getRuns({
+          afterTimestamp: cursors.runs,
+          last: MAX_ENTRIES_PER_PUSH,
+        });
+
+        if (
+          logs.length + emissions.length + errors.length + runs.length ===
+          0
+        ) {
+          return;
+        }
+
+        // Advance each cursor only from its own delivered records. Cursors
+        // are timestamp-based, so a page cut splitting entries that share
+        // one millisecond timestamp skips the remainder sharing that stamp.
+        const latestLogs = latestTimestamp(logs);
+        if (latestLogs !== undefined) cursors.logs = latestLogs;
+        const latestEmissions = latestTimestamp(emissions);
+        if (latestEmissions !== undefined) cursors.emissions = latestEmissions;
+        const latestErrors = latestTimestamp(errors);
+        if (latestErrors !== undefined) cursors.errors = latestErrors;
+        const latestRuns = latestTimestamp(runs);
+        if (latestRuns !== undefined) cursors.runs = latestRuns;
+
+        sendEvent("telemetry", { logs, emissions, errors, runs });
+
+        const pageIsFull =
+          logs.length >= MAX_ENTRIES_PER_PUSH ||
+          emissions.length >= MAX_ENTRIES_PER_PUSH ||
+          errors.length >= MAX_ENTRIES_PER_PUSH ||
+          runs.length >= MAX_ENTRIES_PER_PUSH;
+        if (!pageIsFull) return;
+      }
+
+      // The loop only exits here via the page cap with a full last page, so
+      // more backlog may remain. Schedule another bounded drain through the
+      // debounce path (cleared on cleanup) instead of waiting for records.
+      if (!closed) onRecordNotification();
     };
 
     // --- Subscriptions & timers ----------------------------------------------
@@ -124,8 +168,11 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
     sendEvent("health", getHealthSnapshot());
     pushDelta(); // push any pre-existing entries
 
-    // If nothing existed, advance cursor to now so future pushes are incremental
-    if (cursor === 0) cursor = Date.now() - 1;
+    // Categories that had nothing stay at 0; advance them to now so future
+    // pushes are incremental.
+    for (const key of ["logs", "emissions", "errors", "runs"] as const) {
+      if (cursors[key] === 0) cursors[key] = Date.now() - 1;
+    }
 
     // --- Cleanup on disconnect -----------------------------------------------
 

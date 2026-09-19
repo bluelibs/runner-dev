@@ -157,6 +157,14 @@ describe("introspector (extended)", () => {
       expect(snapshot.evtHello_specificHooks).not.toEqual(
         expect.arrayContaining([dummyAppIds.hook("hook-all")])
       );
+      // listenedToBy carries the same specific-only semantic so it never
+      // disagrees with listenedToByResolved and the hasNoHooks filter.
+      expect(snapshot.evtHello_listenedToBy).toEqual(
+        expect.arrayContaining([dummyAppIds.hook("hook-hello")])
+      );
+      expect(snapshot.evtHello_listenedToBy).not.toEqual(
+        expect.arrayContaining([dummyAppIds.hook("hook-all")])
+      );
       expect(snapshot.mwLog.usedByResources).toEqual(
         expect.arrayContaining([dummyAppIds.resource("res-db")])
       );

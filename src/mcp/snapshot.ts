@@ -188,6 +188,12 @@ function inferSnapshotTypeName(source: unknown): string {
     return "Tag";
   }
 
+  // Serialized tags with `targets: null` still carry per-kind collections;
+  // detect them before the Hook check below (tags also have `events`).
+  if (Array.isArray(value.tasks) && Array.isArray(value.hooks)) {
+    return "Tag";
+  }
+
   if (
     Array.isArray(value.usedBy) ||
     Array.isArray(value.requiredBy) ||

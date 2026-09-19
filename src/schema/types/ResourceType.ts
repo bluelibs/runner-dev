@@ -17,7 +17,7 @@ import { TaskType } from "./TaskType";
 import { EventType } from "./EventType";
 import { CustomGraphQLContext } from "../context";
 import { ResourceMiddlewareUsageType } from "./middleware/UsageTypes";
-import { Resource } from "../model";
+import { isHookModel, Resource } from "../model";
 import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
@@ -336,7 +336,7 @@ export const ResourceType: GraphQLObjectType = new GraphQLObjectType({
       resolve: async (node, _args, ctx: CustomGraphQLContext) => {
         return ctx.introspector
           .getTasksUsingResource(node.id)
-          .filter((n: any) => !("event" in (n || {})));
+          .filter((n: any) => !isHookModel(n));
       },
     },
     emits: {

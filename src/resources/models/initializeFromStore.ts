@@ -14,7 +14,11 @@ import {
   normalizeDependencies,
 } from "./initializeFromStore.utils";
 import { Introspector } from "./Introspector";
-import { buildIdMap, ensureStringArray } from "./introspector.tools";
+import {
+  buildIdMap,
+  ensureStringArray,
+  stampElementKind,
+} from "./introspector.tools";
 import { formatSchemaIfZod } from "../../utils/schemaFormat";
 import { sanitizePath } from "../../utils/path";
 
@@ -165,7 +169,7 @@ export function initializeFromStore(
 
   // Build resources
   introspector.resources = Array.from(s.resources.values()).map((r: any) =>
-    mapStoreResourceToResourceModel(r.resource, r.config)
+    mapStoreResourceToResourceModel(r.resource, r.config, s)
   );
 
   // Build events
@@ -407,6 +411,10 @@ export function initializeFromStore(
   });
   introspector.tagMap = new Map<string, Tag>();
   for (const tag of introspector.tags) {
+    // Stamped so interface type resolution sees Tag, not Hook (tags also
+    // carry an `events` collection, which the structural fallback checks
+    // before Task).
+    stampElementKind(tag, "TAG");
     introspector.tagMap.set(tag.id, tag);
   }
   introspector.finalizeDerivedState();

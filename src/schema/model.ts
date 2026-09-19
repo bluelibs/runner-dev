@@ -96,7 +96,8 @@ export type ElementKind =
   | "RESOURCE"
   | "MIDDLEWARE"
   | "EVENT"
-  | "ERROR";
+  | "ERROR"
+  | "TAG";
 
 export const elementKindSymbol: unique symbol = Symbol(
   "runner-dev.elementKind"
@@ -142,6 +143,25 @@ export interface Middleware extends BaseElement {
   usedByResources: string[];
   // Prettified Zod schema for the middleware config if provided
   configSchema?: string | null;
+}
+
+/**
+ * Structural hook check for already-partitioned task-like collections.
+ * Hook models always carry an `events` array; tasks never do. Tags also
+ * carry `events`, so tag-shaped objects are excluded defensively.
+ */
+export function isHookModel(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as {
+    events?: unknown;
+    tasks?: unknown;
+    registers?: unknown;
+  };
+  return (
+    Array.isArray(candidate.events) &&
+    !Array.isArray(candidate.tasks) &&
+    !Array.isArray(candidate.registers)
+  );
 }
 
 export function resolveMiddlewareGraphqlTypeName(

@@ -21,6 +21,7 @@ import {
   MiddlewareTaskUsageType,
 } from "./UsageTypes";
 import { TaskType } from "../TaskType";
+import { isHookModel } from "../../model";
 
 export const MiddlewareApplyScopeType = new GraphQLEnumType({
   name: "MiddlewareApplyScope",
@@ -125,7 +126,7 @@ export function buildTaskMiddlewareFields(): GraphQLFieldConfigMap<any, any> {
       resolve: (node, _args, ctx) =>
         ctx.introspector
           .getTaskLikesUsingMiddleware(node.id)
-          .filter((n: any) => !("event" in (n || {}))),
+          .filter((n: any) => !isHookModel(n)),
     },
     usedByDetailed: {
       description: "Detailed task/hook usages with per-usage config",
@@ -181,7 +182,7 @@ export function buildLegacyCombinedMiddlewareFields(): GraphQLFieldConfigMap<
       resolve: (node, _args, ctx) =>
         ctx.introspector
           .getTaskLikesUsingMiddleware(node.id)
-          .filter((n: any) => !("event" in (n || {}))),
+          .filter((n: any) => !isHookModel(n)),
     },
     usedByResources: {
       description: "Ids of resources that use this middleware",

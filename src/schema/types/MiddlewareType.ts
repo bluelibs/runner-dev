@@ -9,14 +9,16 @@ import { BaseElementInterface } from "./AllType";
 export const TaskMiddlewareType: GraphQLObjectType = new GraphQLObjectType({
   name: "TaskMiddleware",
   interfaces: () => [BaseElementInterface],
-  isTypeOf: (value) => Boolean((value as any)?.usedByTasks),
+  // usedByTasks is always an array (possibly empty), so Boolean([]) matched
+  // every middleware; the `type` discriminator is authoritative.
+  isTypeOf: (value) => (value as any)?.type === "task",
   fields: (): GraphQLFieldConfigMap<any, any> => buildTaskMiddlewareFields(),
 });
 
 export const ResourceMiddlewareType: GraphQLObjectType = new GraphQLObjectType({
   name: "ResourceMiddleware",
   interfaces: () => [BaseElementInterface],
-  isTypeOf: (value) => Boolean((value as any)?.usedByResources),
+  isTypeOf: (value) => (value as any)?.type === "resource",
   fields: (): GraphQLFieldConfigMap<any, any> =>
     buildResourceMiddlewareFields(),
 });
@@ -26,7 +28,7 @@ export const MiddlewareType: GraphQLObjectType = new GraphQLObjectType({
   name: "Middleware",
   interfaces: () => [BaseElementInterface],
   isTypeOf: (value) =>
-    Boolean((value as any)?.usedByTasks && (value as any)?.usedByResources),
+    (value as any)?.type === "task" || (value as any)?.type === "resource",
   fields: (): GraphQLFieldConfigMap<any, any> =>
     buildLegacyCombinedMiddlewareFields(),
 });

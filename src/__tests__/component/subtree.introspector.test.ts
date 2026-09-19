@@ -358,4 +358,56 @@ describe("Subtree Introspection", () => {
       tags: null,
     });
   });
+
+  test("falls back to local task middleware when resolution is unavailable", () => {
+    const taskId = "test-subtree-fallback-task";
+    const localMiddlewareId = "test-subtree-fallback-local";
+    const fakeTask = {
+      id: taskId,
+      meta: {},
+      tags: [],
+      dependencies: [],
+      middleware: [{ id: localMiddlewareId, config: {} }],
+    } as any;
+    const baseStore = {
+      getOwnerResourceId: () => null,
+      resources: new Map(),
+    };
+
+    const missingFn = mapStoreTaskToTaskModel(fakeTask, {
+      ...baseStore,
+      getMiddlewareManager: () => ({ middlewareResolver: {} }),
+    } as any);
+    expect(missingFn.middleware).toEqual([localMiddlewareId]);
+
+    const throwing = mapStoreTaskToTaskModel(fakeTask, {
+      ...baseStore,
+      getMiddlewareManager: () => ({
+        middlewareResolver: {
+          getApplicableTaskMiddlewares: () => {
+            throw new Error("subtree conflict");
+          },
+        },
+      }),
+    } as any);
+    expect(throwing.middleware).toEqual([localMiddlewareId]);
+    expect(throwing.middlewareDetailed).toEqual([
+      {
+        id: localMiddlewareId,
+        config: "{}",
+        origin: "local",
+        subtreeOwnerId: null,
+      },
+    ]);
+
+    const nonArray = mapStoreTaskToTaskModel(fakeTask, {
+      ...baseStore,
+      getMiddlewareManager: () => ({
+        middlewareResolver: {
+          getApplicableTaskMiddlewares: () => "nope",
+        },
+      }),
+    } as any);
+    expect(nonArray.middleware).toEqual([localMiddlewareId]);
+  });
 });

@@ -82,7 +82,8 @@ export const BaseElementInterface: GraphQLInterfaceType =
         | "RESOURCE"
         | "MIDDLEWARE"
         | "EVENT"
-        | "ERROR";
+        | "ERROR"
+        | "TAG";
       switch (kind) {
         case "TASK":
           return "Task";
@@ -97,6 +98,8 @@ export const BaseElementInterface: GraphQLInterfaceType =
           return "Event";
         case "ERROR":
           return "Error";
+        case "TAG":
+          return "Tag";
         default:
           break;
       }
@@ -112,6 +115,11 @@ export const BaseElementInterface: GraphQLInterfaceType =
       }
       if (Array.isArray(value?.listenedToBy)) {
         return "Event";
+      }
+      // Tags carry per-kind collections (including `events`), so they must
+      // be detected before the Hook check below.
+      if (Array.isArray(value?.tasks) && Array.isArray(value?.hooks)) {
+        return "Tag";
       }
       if (Array.isArray(value?.events)) {
         return "Hook";
@@ -141,7 +149,8 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
       kind === "RESOURCE" ||
       kind === "MIDDLEWARE" ||
       kind === "EVENT" ||
-      kind === "ERROR"
+      kind === "ERROR" ||
+      kind === "TAG"
     ) {
       return false;
     }
@@ -158,6 +167,9 @@ export const AllType: GraphQLObjectType = new GraphQLObjectType({
     }
     if (Array.isArray(value?.listenedToBy)) {
       return false; // Event
+    }
+    if (Array.isArray(value?.tasks) && Array.isArray(value?.hooks)) {
+      return false; // Tag
     }
     if (Array.isArray(value?.events)) {
       return false; // Hook

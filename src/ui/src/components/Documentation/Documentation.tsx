@@ -14,6 +14,7 @@ import { createSections } from "./config/documentationSections";
 // [AI-CHAT-DISABLED] import { ChatSidebar } from "./components/chat/ChatSidebar";
 import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
 import { ModalStackProvider } from "./components/modals";
+import ShellModal from "./components/ShellModal";
 import { getHashScrollTargetId } from "./utils/documentationHash";
 import { useRef } from "react";
 import {
@@ -323,6 +324,42 @@ export const Documentation: React.FC<DocumentationProps> = ({
     introspector,
   ]);
 
+  // Global runtime shell (live mode only)
+  const [isShellOpen, setIsShellOpen] = useState<boolean>(false);
+  const [shellResourceId, setShellResourceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mode === "catalog") return;
+    const handleOpenShell = (e: Event) => {
+      const ce = e as CustomEvent<{ resourceId?: string | null }>;
+      setShellResourceId(ce?.detail?.resourceId ?? null);
+      setIsShellOpen(true);
+    };
+    const handleShortcut = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "`") {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.tagName === "SELECT" ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        setShellResourceId(null);
+        setIsShellOpen(true);
+      }
+    };
+    window.addEventListener("docs:open-shell", handleOpenShell);
+    window.addEventListener("keydown", handleShortcut);
+    return () => {
+      window.removeEventListener("docs:open-shell", handleOpenShell);
+      window.removeEventListener("keydown", handleShortcut);
+    };
+  }, [mode]);
+
   // Consider layout busy whenever dragging resizers or debounced widths are catching up
   const isLayoutBusy =
     sidebarHook.isResizing ||
@@ -406,6 +443,15 @@ export const Documentation: React.FC<DocumentationProps> = ({
 
           {/* Render overlayed stats panel when hash requests it */}
           {isStatsOpen && <OverviewStatsPanel overlay onClose={closeStats} />}
+
+          {mode !== "catalog" && (
+            <ShellModal
+              key={shellResourceId ?? "global"}
+              isOpen={isShellOpen}
+              onClose={() => setIsShellOpen(false)}
+              resourceId={shellResourceId}
+            />
+          )}
         </div>
       </ModalStackProvider>
     </DocumentationModeProvider>

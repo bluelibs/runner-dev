@@ -180,3 +180,51 @@ export const SAMPLE_ASYNC_CONTEXT_FILE_QUERY = `
     }
   }
 `;
+
+export const SHELL_MUTATION = `
+  mutation Shell($code: String!, $resourceId: ID) {
+    shell(code: $code, resourceId: $resourceId) {
+      success
+      error
+      result
+      logs
+      executionTimeMs
+      invocationId
+    }
+  }
+`;
+
+export interface ShellMutationResult {
+  shell: {
+    success: boolean;
+    error?: string | null;
+    result?: string | null;
+    logs?: Array<string | null> | null;
+    executionTimeMs?: number | null;
+    invocationId?: string | null;
+  };
+}
+
+export const SHELL_COMPLETE_QUERY = `
+  query ShellComplete($code: String!, $position: Int!, $resourceId: ID) {
+    shellComplete(code: $code, position: $position, resourceId: $resourceId) {
+      from
+      options {
+        label
+        type
+        detail
+      }
+    }
+  }
+`;
+
+export interface ShellCompleteResult {
+  shellComplete: {
+    from: number;
+    options: Array<{
+      label: string;
+      type: string;
+      detail?: string | null;
+    }>;
+  };
+}

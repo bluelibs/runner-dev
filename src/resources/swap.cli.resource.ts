@@ -49,6 +49,15 @@ export const swapManagerCli = defineResource({
           error: "runnerEval unavailable in CLI",
         } as any;
       },
+      async shell() {
+        return {
+          success: false,
+          error: "shell unavailable in CLI",
+        } as any;
+      },
+      async completeShell() {
+        return { from: 0, options: [] } as any;
+      },
     };
     // Note: cli.store is available if needed for future enhancements
     void cli;

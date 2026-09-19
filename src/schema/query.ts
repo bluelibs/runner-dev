@@ -1,8 +1,10 @@
 import {
   GraphQLID,
+  GraphQLInt,
   GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
+  GraphQLString,
 } from "graphql";
 import type { CustomGraphQLContext } from "./context";
 
@@ -25,7 +27,7 @@ import {
   InterceptorOwnersSnapshotType,
   ResourceBoundaryType,
 } from "./types/index";
-import { SwappedTaskType } from "./types/SwapType";
+import { SwappedTaskType, ShellCompletionType } from "./types/SwapType";
 import type {
   QueryEventArgs,
   QueryEventsArgs,
@@ -486,6 +488,55 @@ export const QueryType = new GraphQLObjectType({
       ),
       resolve: (_root, _args, ctx: CustomGraphQLContext) =>
         ctx.swapManager.getSwappedTasks(),
+    },
+    shellComplete: {
+      description: [
+        "Completion options for a shell snippet at a cursor position.",
+        "Resolves identifier-only dotted paths (`runtime`, `r.db`) against the",
+        "live shell scope without executing anything, so it is side-effect free.",
+        "Returns the offset the completed word starts at plus matching options.",
+        "",
+        "Security: completion runs only with RUNNER_DEV_EVAL=1 or",
+        "NODE_ENV=development, like the shell itself (yields no options).",
+      ].join("\n"),
+      type: new GraphQLNonNull(ShellCompletionType),
+      args: {
+        code: {
+          description: "The shell snippet being edited.",
+          type: new GraphQLNonNull(GraphQLString),
+        },
+        position: {
+          description: "Cursor offset in `code`.",
+          type: new GraphQLNonNull(GraphQLInt),
+        },
+        resourceId: {
+          description:
+            "Optional resource id to bind as `r` (exact or suffix match).",
+          type: GraphQLID,
+        },
+      },
+      async resolve(
+        _parent,
+        {
+          code,
+          position,
+          resourceId,
+        }: { code: string; position: number; resourceId?: string | null },
+        ctx: CustomGraphQLContext
+      ) {
+        // Same fail-closed safeguard as the shell: fail soft when disabled.
+        const allowShell =
+          process.env.RUNNER_DEV_EVAL === "1" ||
+          process.env.NODE_ENV === "development";
+        if (!allowShell) {
+          return { from: position, options: [] };
+        }
+        return await ctx.swapManager.completeShell(
+          code,
+          position,
+          resourceId ?? null
+        );
+      },
     },
   }),
 });

@@ -170,6 +170,21 @@
           );
         }
       }
+
+      &.docs-support-link--shell {
+        font: inherit;
+        width: 100%;
+        text-align: left;
+
+        &:hover {
+          background: linear-gradient(
+            135deg,
+            var(--docs-hover-bg),
+            rgba(74, 222, 128, 0.08)
+          );
+          border-color: #4ade80;
+        }
+      }
     }
   }
 

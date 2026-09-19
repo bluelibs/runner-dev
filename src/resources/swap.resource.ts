@@ -2,9 +2,14 @@ import { resources, defineResource } from "@bluelibs/runner";
 import { introspector } from "./introspector.resource";
 import {
   compileRunFunction,
+  compileShellFunction,
+  completeShellScope,
+  createCapturedConsole,
+  extractCompletionTarget,
   getTaskStoreElement,
   getTaskDependencies,
   serializeResult,
+  serializeShellResult,
   deserializeInput,
 } from "./swap.tools";
 import { randomUUID } from "crypto";
@@ -39,6 +44,27 @@ export interface EvalResult {
   invocationId?: string; // For correlation
 }
 
+export interface ShellResult {
+  success: boolean;
+  error?: string;
+  result?: string; // Serialized result
+  logs?: string[]; // Captured console output
+  executionTimeMs?: number;
+  invocationId?: string; // For correlation
+}
+
+export interface ShellCompletionOption {
+  label: string;
+  type: string;
+  detail?: string;
+}
+
+export interface ShellCompletion {
+  /** Offset in the snippet where the completed word starts. */
+  from: number;
+  options: ShellCompletionOption[];
+}
+
 export interface SwappedTask {
   taskId: string;
   swappedAt: number;
@@ -63,6 +89,12 @@ export interface ISwapManager {
     evalInput?: boolean
   ): Promise<InvokeEventResult>;
   runnerEval(code: string): Promise<EvalResult>;
+  shell(code: string, resourceId?: string | null): Promise<ShellResult>;
+  completeShell(
+    code: string,
+    position: number,
+    resourceId?: string | null
+  ): Promise<ShellCompletion>;
 }
 
 export const swapManager = defineResource({
@@ -77,10 +109,11 @@ export const swapManager = defineResource({
     taskRunner: resources.taskRunner,
     introspector,
     eventManager: resources.eventManager,
+    runtime: resources.runtime,
   },
   async init(
     _,
-    { store, introspector, taskRunner, eventManager }
+    { store, introspector, taskRunner, eventManager, runtime }
   ): Promise<ISwapManager> {
     // Track swap metadata and swap interceptor wiring (deep-freeze safe).
     const originalRunCodeByTaskId = new Map<string, string | undefined>();
@@ -232,6 +265,119 @@ export const swapManager = defineResource({
         ambiguousEventIds: match.ambiguousIds,
       };
     };
+
+    const resolveResourceReference = (inputResourceId: string) => {
+      const match = resolveReference(
+        inputResourceId,
+        store.resources.values(),
+        (entry: any) => (entry?.resource ? String(entry.resource.id) : null)
+      );
+
+      return {
+        resource: match.element?.resource ?? null,
+        resourceId: match.resolvedId,
+        ambiguousResourceIds: match.ambiguousIds,
+      };
+    };
+
+    const getShellResourceValue = async (
+      resolvedResourceId: string,
+      allowLazyInit: boolean
+    ) => {
+      try {
+        return {
+          value: runtime.getResourceValue(resolvedResourceId),
+          error: null as string | null,
+        };
+      } catch (syncError) {
+        // Completion must stay side-effect free: it never wakes lazy resources.
+        if (!allowLazyInit) {
+          const syncDetail =
+            syncError instanceof Error ? syncError.message : String(syncError);
+          return { value: null, error: syncDetail };
+        }
+        try {
+          return {
+            value: await runtime.getLazyResourceValue(resolvedResourceId),
+            error: null as string | null,
+          };
+        } catch (lazyError) {
+          const detail =
+            lazyError instanceof Error ? lazyError.message : String(lazyError);
+          const syncDetail =
+            syncError instanceof Error ? syncError.message : String(syncError);
+          return {
+            value: null,
+            error: detail || syncDetail,
+          };
+        }
+      }
+    };
+
+    const resolveShellResource = async (
+      resourceId?: string | null,
+      allowLazyInit = true
+    ) => {
+      if (!resourceId) {
+        return {
+          value: null as unknown,
+          resolvedId: null as string | null,
+          error: null as string | null,
+        };
+      }
+      const {
+        resource,
+        resourceId: resolved,
+        ambiguousResourceIds,
+      } = resolveResourceReference(resourceId);
+
+      if (ambiguousResourceIds.length > 1) {
+        return {
+          value: null as unknown,
+          resolvedId: null as string | null,
+          error: `Resource '${resourceId}' is ambiguous. Use one of: ${ambiguousResourceIds.join(
+            ", "
+          )}`,
+        };
+      }
+
+      if (!resource) {
+        return {
+          value: null as unknown,
+          resolvedId: null as string | null,
+          error: `Resource '${resourceId}' not found`,
+        };
+      }
+
+      const { value, error } = await getShellResourceValue(
+        resolved,
+        allowLazyInit
+      );
+      if (error) {
+        return {
+          value: null as unknown,
+          resolvedId: null as string | null,
+          error: `Resource '${resolved}' has no initialized value: ${error}`,
+        };
+      }
+      return { value, resolvedId: resolved, error: null as string | null };
+    };
+
+    const buildShellScope = (
+      r: unknown,
+      resolvedResourceId: string | null,
+      consoleImpl: Console
+    ) => ({
+      r,
+      resourceId: resolvedResourceId,
+      runtime,
+      store,
+      introspector,
+      globals: resources,
+      taskRunner,
+      eventManager,
+      console: consoleImpl,
+    });
 
     const api: ISwapManager = {
       async swap(taskId: string, runCode: string): Promise<SwapResult> {
@@ -611,6 +757,119 @@ export const swapManager = defineResource({
             executionTimeMs,
             invocationId,
           };
+        }
+      },
+
+      async shell(
+        code: string,
+        resourceId?: string | null
+      ): Promise<ShellResult> {
+        const invocationId = randomUUID();
+        const startTime = Date.now();
+
+        try {
+          const {
+            value: r,
+            resolvedId: resolvedResourceId,
+            error: resourceError,
+          } = await resolveShellResource(resourceId);
+          if (resourceError) {
+            return {
+              success: false,
+              error: resourceError,
+              invocationId,
+            };
+          }
+
+          const compileResult = compileShellFunction(code);
+          if (!compileResult.success) {
+            return {
+              success: false,
+              error: compileResult.error,
+              invocationId,
+            };
+          }
+
+          const captured = createCapturedConsole();
+          const dependencies = buildShellScope(
+            r,
+            resolvedResourceId,
+            captured.console
+          );
+
+          let result: unknown;
+          try {
+            result = await compileResult.func(dependencies);
+          } catch (execError) {
+            const executionTimeMs = Date.now() - startTime;
+            return {
+              success: false,
+              error: `Shell execution failed: ${
+                execError instanceof Error
+                  ? execError.message
+                  : String(execError)
+              }`,
+              logs: captured.logs,
+              executionTimeMs,
+              invocationId,
+            };
+          }
+
+          const serializedResult = serializeShellResult(result);
+          const executionTimeMs = Date.now() - startTime;
+
+          return {
+            success: true,
+            result: serializedResult,
+            logs: captured.logs,
+            executionTimeMs,
+            invocationId,
+          };
+        } catch (error) {
+          const executionTimeMs = Date.now() - startTime;
+          return {
+            success: false,
+            error: `Shell failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+            executionTimeMs,
+            invocationId,
+          };
+        }
+      },
+
+      async completeShell(
+        code: string,
+        position: number,
+        resourceId?: string | null
+      ): Promise<ShellCompletion> {
+        const safePosition = Math.max(0, Math.min(position, code.length));
+        try {
+          const target = extractCompletionTarget(code, safePosition);
+          if (!target) {
+            return { from: safePosition, options: [] };
+          }
+          // Completion never fails loudly: unknown resources or shapes
+          // simply yield no options. It also never initializes lazy
+          // resources: only already-initialized values are completed.
+          const { value, resolvedId, error } = await resolveShellResource(
+            resourceId,
+            false
+          );
+          if (error) {
+            return { from: target.from, options: [] };
+          }
+          const scope = buildShellScope(
+            value,
+            resolvedId,
+            globalThis.console
+          ) as unknown as Record<string, unknown>;
+          return {
+            from: target.from,
+            options: completeShellScope(scope, target),
+          };
+        } catch {
+          return { from: safePosition, options: [] };
         }
       },
     };

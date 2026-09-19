@@ -44,6 +44,7 @@ const app = r
 ## What you get
 
 - Fully-featured UI with AI assistance to explore your app, call tasks, emit events, diagnostics, logs and more.
+- Runtime shell (REPL) in the UI and via the `shell` GraphQL mutation: per-resource shells bind `r` to the live resource value, plus a global shell with full `runtime` access.
 - Static catalog export via `exportDocs(app, { output?, overwrite? })` for a standalone frozen docs site under `./runner-dev-catalog` by default.
 - Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters.
 - Overview tables now include `Visibility` (`Public`/`Private`) derived from Runner resource `isolate()` boundaries.
@@ -150,6 +151,7 @@ Inside the UI, you can:
 - Manually invoke tasks with custom inputs.
 - Inspect live logs and event emissions in real-time.
 - View and edit files directly via the browser.
+- Open a runtime shell per resource (`Shell` button, `r` is the live resource value) or a global shell from the sidebar (``Ctrl+` ``) with full `runtime` access.
 
 ### Static Catalog Export
 
@@ -1363,6 +1365,29 @@ mutation {
   }
 }
 ```
+
+### Runtime Shell
+
+The `shell` mutation runs a JavaScript/TypeScript snippet against the live runtime, like a REPL. Bare expressions auto-return (`r`, `await runtime.runTask("...")`); multi-statement snippets use `return`. `console` output is captured and returned in `logs`.
+
+- `code`: the snippet to execute.
+- `resourceId` (optional): binds `r` to that resource's initialized value (exact or suffix match); without it, `r` is `null`.
+- `runtime`: the live runtime (`runTask`, `emitEvent`, `getResourceValue`, `getResourceConfig`, `getHealth`, …).
+
+Like `eval`, the shell is disabled in production unless `RUNNER_DEV_EVAL=1`.
+
+```graphql
+mutation {
+  shell(code: "r", resourceId: "app.db") {
+    success
+    result
+    logs
+    executionTimeMs
+  }
+}
+```
+
+In the UI, every resource card and resources overview row has a `Shell` action, and the sidebar footer (or ``Ctrl+` ``) opens a global runtime shell. The editor completes scope members as you type (`r`, `runtime`, `store`, …) via the side-effect-free `shellComplete` query, with `Enter` to run, `Shift+Enter` for a new line, and `Tab` to accept a suggestion.
 
 ### Use Cases
 

@@ -1045,7 +1045,19 @@ body {
   justify-content: space-between;
 }
 
+.overview-header__actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
 .overview-header__stats-button {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.overview-header__shell-button {
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;

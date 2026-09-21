@@ -9,6 +9,7 @@ import { DocIcon } from "./common/DocIcon";
 import { TopologyFocusBar } from "./TopologyFocusBar";
 import { TopologyDetailPanels, TopologySidebar } from "./TopologySidebar";
 import { TopologyToolbar } from "./TopologyToolbar";
+import { summarizeImpact } from "./topologyPanel.utils";
 
 export interface TopologyPanelViewProps {
   graph: TopologyGraphProjection;
@@ -69,22 +70,30 @@ export const TopologyPanelView: React.FC<TopologyPanelViewProps> = ({
           </div>
 
           <div className="topology-panel__hero-stats">
-            <div className="topology-panel__stat">
-              <span className="label">Visible</span>
-              <span className="value">{graph.summary.visibleNodes} nodes</span>
-            </div>
-            <div className="topology-panel__stat">
-              <span className="label">Edges</span>
-              <span className="value">{graph.summary.visibleEdges}</span>
-            </div>
-            <div className="topology-panel__stat">
-              <span className="label">Hidden</span>
-              <span className="value">{graph.summary.hiddenNodes}</span>
-            </div>
-            <div className="topology-panel__stat">
-              <span className="label">Depth</span>
-              <span className="value">{graph.radius} hops</span>
-            </div>
+            {view === "blast" ? (
+              <BlastHeroStats nodes={graph.nodes} />
+            ) : (
+              <>
+                <div className="topology-panel__stat">
+                  <span className="label">Visible</span>
+                  <span className="value">
+                    {graph.summary.visibleNodes} nodes
+                  </span>
+                </div>
+                <div className="topology-panel__stat">
+                  <span className="label">Edges</span>
+                  <span className="value">{graph.summary.visibleEdges}</span>
+                </div>
+                <div className="topology-panel__stat">
+                  <span className="label">Hidden</span>
+                  <span className="value">{graph.summary.hiddenNodes}</span>
+                </div>
+                <div className="topology-panel__stat">
+                  <span className="label">Depth</span>
+                  <span className="value">{graph.radius} hops</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -150,8 +159,33 @@ export const TopologyPanelView: React.FC<TopologyPanelViewProps> = ({
         edges={graph.edges}
         nodesById={nodeMap}
         selectedNode={selectedNode}
+        view={view}
         onSelect={onSelectNode}
       />
     </>
   );
 };
+
+function BlastHeroStats({ nodes }: { nodes: TopologyGraphNode[] }) {
+  const summary = summarizeImpact(nodes);
+  return (
+    <>
+      <div className="topology-panel__stat">
+        <span className="label">Affected</span>
+        <span className="value">{summary.affected}</span>
+      </div>
+      <div className="topology-panel__stat">
+        <span className="label">Direct</span>
+        <span className="value">{summary.direct}</span>
+      </div>
+      <div className="topology-panel__stat">
+        <span className="label">Transitive</span>
+        <span className="value">{summary.transitive}</span>
+      </div>
+      <div className="topology-panel__stat">
+        <span className="label">Contract</span>
+        <span className="value">{summary.contract}</span>
+      </div>
+    </>
+  );
+}

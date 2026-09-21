@@ -3,6 +3,7 @@ import { formatFilePath } from "../utils/formatting";
 import type {
   TopologyGraphEdge,
   TopologyGraphNode,
+  TopologyViewMode,
 } from "../utils/topologyGraph";
 import { DocIcon } from "./common/DocIcon";
 import { TopologyNavigator } from "./TopologyNavigator";
@@ -46,6 +47,7 @@ export interface TopologyDetailPanelsProps {
   edges: TopologyGraphEdge[];
   nodesById: Map<string, TopologyGraphNode>;
   selectedNode: TopologyGraphNode;
+  view: TopologyViewMode;
   onSelect: (node: TopologyGraphNode) => void;
 }
 
@@ -53,6 +55,7 @@ export const TopologyDetailPanels: React.FC<TopologyDetailPanelsProps> = ({
   edges,
   nodesById,
   selectedNode,
+  view,
   onSelect,
 }) => {
   const outgoingGroups = React.useMemo(
@@ -78,6 +81,13 @@ export const TopologyDetailPanels: React.FC<TopologyDetailPanelsProps> = ({
 
   return (
     <section className="topology-panel__details">
+      {view === "blast" && (
+        <TopologyImpactPanel
+          nodes={[...nodesById.values()]}
+          focusId={selectedNode.id}
+          onSelect={onSelect}
+        />
+      )}
       <div className="topology-panel__detail-card">
         <div className="topology-panel__detail-header">
           <div>
@@ -155,6 +165,85 @@ export const TopologyDetailPanels: React.FC<TopologyDetailPanelsProps> = ({
     </section>
   );
 };
+
+function TopologyImpactPanel({
+  nodes,
+  focusId,
+  onSelect,
+}: {
+  nodes: TopologyGraphNode[];
+  focusId: string;
+  onSelect: (node: TopologyGraphNode) => void;
+}) {
+  const groups = React.useMemo(() => {
+    const byLabel = (left: TopologyGraphNode, right: TopologyGraphNode) =>
+      left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
+    const affected = nodes.filter(
+      (node) => node.id !== focusId && node.isVisible
+    );
+    return [
+      {
+        title: "Direct",
+        hint: "Behaves differently if the focus changes",
+        nodes: affected
+          .filter((node) => !node.terminal && node.depth <= 1)
+          .sort(byLabel),
+      },
+      {
+        title: "Transitive",
+        hint: "Affected further down the chain",
+        nodes: affected
+          .filter((node) => !node.terminal && node.depth > 1)
+          .sort(byLabel),
+      },
+      {
+        title: "Shared contract",
+        hint: "Must still conform: emitters, throwers, providers",
+        nodes: affected.filter((node) => node.terminal).sort(byLabel),
+      },
+    ].filter((group) => group.nodes.length > 0);
+  }, [nodes, focusId]);
+
+  return (
+    <div className="topology-panel__detail-card topology-panel__detail-card--relations">
+      <div className="topology-panel__detail-kicker">Blast radius</div>
+      {groups.length === 0 ? (
+        <p className="topology-panel__detail-description">
+          No downstream impact tracked. Mindmap shows the full neighborhood.
+        </p>
+      ) : (
+        <div className="topology-panel__relations">
+          {groups.map((group) => (
+            <div key={group.title} className="topology-panel__relation-group">
+              <div
+                className="topology-panel__relation-group-title"
+                title={group.hint}
+              >
+                {group.title} ({group.nodes.length})
+              </div>
+              <div className="topology-panel__relation-group-items">
+                {group.nodes.map((node) => (
+                  <button
+                    key={node.id}
+                    type="button"
+                    className="topology-panel__relation-chip"
+                    onClick={() => onSelect(node)}
+                    title={node.description || node.subtitle}
+                  >
+                    <span className="icon">
+                      <DocIcon name={node.icon} size={13} />
+                    </span>
+                    <span className="label">{node.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function TopologyRelationPanel({
   title,

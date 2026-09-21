@@ -92,6 +92,12 @@ interface BaseDescriptor {
 interface TraversalRelation {
   kind: TopologyEdgeKind;
   targets: BaseDescriptor[];
+  /**
+   * Terminal contract edge (blast lens only): the target shares a contract
+   * with the source (emitter, thrower, provider) but does not propagate its
+   * changes further, so traversal records the edge without expanding it.
+   */
+  terminal?: boolean;
 }
 
 interface TopologyNodeRecord extends BaseDescriptor {
@@ -103,6 +109,7 @@ interface TopologyNodeRecord extends BaseDescriptor {
   parentRelationKind: TopologyEdgeKind | null;
   isFocus: boolean;
   isVisible: boolean;
+  terminal: boolean;
   incomingIds: Set<string>;
   outgoingIds: Set<string>;
   hiddenIds: Set<string>;
@@ -124,6 +131,8 @@ export interface TopologyGraphNode {
   parentRelationKind: TopologyEdgeKind | null;
   isFocus: boolean;
   isVisible: boolean;
+  /** Reached via a terminal contract edge: shares a contract, not downstream. */
+  terminal: boolean;
   hiddenNeighborCount: number;
   incomingCount: number;
   outgoingCount: number;
@@ -216,6 +225,7 @@ export function buildTopologyProjection(
     depth: number;
     parentId: string | null;
     relationKind: TopologyEdgeKind | null;
+    terminal: boolean;
     order: number;
   }> = [];
   const queued = new Set<string>();
@@ -229,6 +239,7 @@ export function buildTopologyProjection(
     depth: 0,
     parentId: null,
     relationKind: null,
+    terminal: false,
     order,
   });
   queued.add(focus.id);
@@ -246,11 +257,15 @@ export function buildTopologyProjection(
       descriptor.id === focus.id;
     const shouldIncludeRegisters =
       state.view === "mindmap" && focus.kind === "resource";
-    const relations = getTraversalRelations(
-      introspector,
-      descriptor,
-      shouldIncludeRegisters
-    );
+    // Terminal contract nodes get a record (so the edge renders) but never
+    // expand: their neighbors are not affected by the focus.
+    const relations = current.terminal
+      ? []
+      : getTraversalRelations(introspector, descriptor, {
+          includeRegisters: shouldIncludeRegisters,
+          impact: state.view === "blast",
+          includeContract: state.view === "blast" && current.depth === 0,
+        });
 
     const node = nodeRecords.get(descriptor.id) ?? createNodeRecord(descriptor);
     if (!nodeRecords.has(descriptor.id)) {
@@ -260,6 +275,7 @@ export function buildTopologyProjection(
       node.parentRelationKind = current.relationKind;
       node.isFocus = descriptor.id === focus.id;
       node.isVisible = isVisible;
+      node.terminal = current.terminal;
       nodeRecords.set(descriptor.id, node);
     }
 
@@ -298,6 +314,7 @@ export function buildTopologyProjection(
             depth: nextDepth,
             parentId: descriptor.id,
             relationKind: relation.kind,
+            terminal: relation.terminal === true,
             order: ++order,
           });
         }
@@ -366,6 +383,7 @@ export function buildTopologyProjection(
       parentRelationKind: node.parentRelationKind,
       isFocus: node.isFocus,
       isVisible: node.isVisible,
+      terminal: node.terminal,
       hiddenNeighborCount: node.hiddenIds.size,
       incomingCount: node.incomingIds.size,
       outgoingCount: node.outgoingIds.size,
@@ -405,6 +423,7 @@ function createNodeRecord(descriptor: BaseDescriptor): TopologyNodeRecord {
     parentRelationKind: null,
     isFocus: false,
     isVisible: true,
+    terminal: false,
     incomingIds: new Set<string>(),
     outgoingIds: new Set<string>(),
     hiddenIds: new Set<string>(),
@@ -426,6 +445,7 @@ function createFallbackNode(focus: TopologyFocus): TopologyGraphNode {
     parentRelationKind: null,
     isFocus: true,
     isVisible: true,
+    terminal: false,
     hiddenNeighborCount: 0,
     incomingCount: 0,
     outgoingCount: 0,
@@ -434,16 +454,33 @@ function createFallbackNode(focus: TopologyFocus): TopologyGraphNode {
   };
 }
 
+interface TraversalFlags {
+  includeRegisters: boolean;
+  /** Blast lens: follow dependents-only (downstream impact) relations. */
+  impact: boolean;
+  /**
+   * Depth-0 only: include terminal contract partners (emitters, throwers,
+   * providers). Deeper contract edges would be false positives — the
+   * intermediate node's type is unchanged, only its behavior.
+   */
+  includeContract: boolean;
+}
+
 function getTraversalRelations(
   introspector: Introspector,
   descriptor: BaseDescriptor,
-  includeRegisters: boolean
+  flags: TraversalFlags
 ): TraversalRelation[] {
+  if (flags.impact) {
+    return getImpactRelations(introspector, descriptor, flags.includeContract);
+  }
+
   const resolved = resolveNodeDescriptor(introspector, descriptor.id);
   if (!resolved) return [];
 
   const element = resolved.element;
   const relations: TraversalRelation[] = [];
+  const includeRegisters = flags.includeRegisters;
 
   if (descriptor.kind === "task") {
     const task = element as Task;
@@ -609,6 +646,158 @@ function getTraversalRelations(
   return relations;
 }
 
+/**
+ * Dependents-only relations for the blast lens: "what behaves differently
+ * if this node changes". Ownership (`registered-by`, `registers`) and
+ * upstream edges (`depends-on`, `uses-middleware`, `listens-to`,
+ * `provided-by`) are excluded — the mindmap lens keeps the full
+ * neighborhood. Override propagation is a known gap: consumers of an
+ * overridden base execute the winner's code but are not listed yet.
+ */
+function getImpactRelations(
+  introspector: Introspector,
+  descriptor: BaseDescriptor,
+  includeContract: boolean
+): TraversalRelation[] {
+  const resolved = resolveNodeDescriptor(introspector, descriptor.id);
+  if (!resolved) return [];
+
+  const element = resolved.element;
+  const relations: TraversalRelation[] = [];
+
+  if (
+    descriptor.kind === "task" ||
+    descriptor.kind === "resource" ||
+    descriptor.kind === "hook"
+  ) {
+    relations.push({
+      kind: "used-by",
+      targets: resolveMany(
+        introspector,
+        getImpactDependents(introspector, descriptor.id)
+      ),
+    });
+    relations.push({
+      kind: "emits",
+      targets: resolveMany(
+        introspector,
+        (element as Task | Resource | Hook).emits
+      ),
+    });
+    return dedupeRelations(relations);
+  }
+
+  if (descriptor.kind === "event") {
+    const event = element as Event;
+    relations.push({
+      kind: "listened-to-by",
+      targets: resolveMany(introspector, event.listenedToBy),
+    });
+    if (includeContract) {
+      relations.push({
+        kind: "emitted-by",
+        targets: resolveMany(
+          introspector,
+          introspector.getEmittersOfEvent(event.id).map((item) => item.id)
+        ),
+        terminal: true,
+      });
+    }
+    return dedupeRelations(relations);
+  }
+
+  if (descriptor.kind === "middleware") {
+    const middleware = element as Middleware & { emits?: string[] | null };
+    relations.push({
+      kind: "used-by",
+      targets: resolveMany(introspector, [
+        ...middleware.usedByTasks,
+        ...middleware.usedByResources,
+      ]),
+    });
+    relations.push({
+      kind: "emits",
+      targets: resolveMany(introspector, middleware.emits ?? []),
+    });
+    return dedupeRelations(relations);
+  }
+
+  if (descriptor.kind === "error") {
+    if (includeContract) {
+      const error = element as ErrorModel;
+      relations.push({
+        kind: "thrown-by",
+        targets: resolveMany(introspector, error.thrownBy),
+        terminal: true,
+      });
+    }
+    return dedupeRelations(relations);
+  }
+
+  if (descriptor.kind === "asyncContext") {
+    const context = element as AsyncContextModel;
+    relations.push({
+      kind: "used-by",
+      targets: resolveMany(introspector, context.usedBy),
+    });
+    relations.push({
+      kind: "required-by",
+      targets: resolveMany(introspector, context.requiredBy),
+    });
+    if (includeContract) {
+      relations.push({
+        kind: "provided-by",
+        targets: resolveMany(introspector, context.providedBy),
+        terminal: true,
+      });
+    }
+    return dedupeRelations(relations);
+  }
+
+  if (descriptor.kind === "tag") {
+    const handlers = introspector.getTagHandlers(descriptor.id);
+    relations.push({
+      kind: "used-by",
+      targets: resolveMany(introspector, [
+        ...handlers.tasks.map((item) => item.id),
+        ...handlers.hooks.map((item) => item.id),
+        ...handlers.resources.map((item) => item.id),
+      ]),
+    });
+    return dedupeRelations(relations);
+  }
+
+  return relations;
+}
+
+/**
+ * Reverse dependency scan: tasks/hooks/resources that would behave
+ * differently if `id` changed. Matches getResourceConsumerIds for resources
+ * plus durable-resource users; generalizes to any kind for blast traversal.
+ */
+function getImpactDependents(introspector: Introspector, id: string): string[] {
+  const dependentIds = new Set<string>();
+  for (const dependent of introspector.getTasksUsingResource(id)) {
+    dependentIds.add(dependent.id);
+  }
+  for (const candidate of introspector.getResources()) {
+    if (candidate.id === id) continue;
+    if (
+      ensureStringArray(candidate.dependsOn).some((depId) =>
+        idsMatchLike(depId, id)
+      )
+    ) {
+      dependentIds.add(candidate.id);
+    }
+  }
+  for (const task of introspector.getTasks()) {
+    if (task.id !== id && task.durableResourceId === id) {
+      dependentIds.add(task.id);
+    }
+  }
+  return Array.from(dependentIds);
+}
+
 function appendRegisteredByRelation(
   introspector: Introspector,
   element: TopologyResolvedNode["element"],
@@ -675,6 +864,7 @@ function dedupeRelations(relations: TraversalRelation[]): TraversalRelation[] {
       output.push({
         kind: relation.kind,
         targets,
+        ...(relation.terminal === true ? { terminal: true as const } : {}),
       });
     }
   }

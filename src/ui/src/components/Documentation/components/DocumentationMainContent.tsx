@@ -530,10 +530,6 @@ export const DocumentationMainContent: React.FC<
 
         {mode !== "catalog" && activeSection === "live" && (
           <section id="live" className="docs-section">
-            <h2>
-              <DocIcon name="live" size={18} className="doc-icon--accent" />{" "}
-              Live Telemetry
-            </h2>
             <LivePanel detailed introspector={introspector} />
           </section>
         )}

@@ -38,6 +38,18 @@ function formatBytes(bytes: number): string {
   return `${mb.toFixed(1)} MB`;
 }
 
+function LivePanelHeader({ controls }: { controls?: React.ReactNode }) {
+  return (
+    <div className="live-header">
+      <h2>
+        <DocIcon name="live" size={18} className="doc-icon--accent" /> Live
+        Telemetry
+      </h2>
+      {controls}
+    </div>
+  );
+}
+
 export const LivePanel: React.FC<LivePanelProps> = ({
   detailed = false,
   introspector: _introspector,
@@ -62,6 +74,7 @@ export const LivePanel: React.FC<LivePanelProps> = ({
   if (error) {
     return (
       <div className="live-panel live-panel--error">
+        <LivePanelHeader />
         <div className="live-error">
           <span>
             <DocIcon name="error" size={14} /> Error loading live data: {error}
@@ -75,6 +88,7 @@ export const LivePanel: React.FC<LivePanelProps> = ({
   if (!liveData) {
     return (
       <div className="live-panel live-panel--loading">
+        <LivePanelHeader />
         <div className="live-loading">
           <DocIcon name="live" size={14} /> Loading live data...
         </div>
@@ -84,46 +98,52 @@ export const LivePanel: React.FC<LivePanelProps> = ({
 
   return (
     <div className="live-panel">
-      <div className="live-controls">
-        <span
-          className={`connection-badge ${badge.className}`}
-          title={`Connected via ${badge.label}`}
-        >
-          <DocIcon name={badge.icon} size={13} /> {badge.label}
-        </span>
-
-        <button
-          onClick={() => setIsActive(!isActive)}
-          className={`clean-button ${isActive ? "live-toggle--active" : ""}`}
-        >
-          {isActive ? "⏸ Pause" : "▶ Resume"} Live Updates
-        </button>
-        <button onClick={() => refresh()} className="clean-button">
-          Refresh
-        </button>
-
-        {/* Poll interval slider — only shown in polling mode */}
-        {connectionMode === "polling" && (
-          <div className="poll-interval-control">
-            <label
-              htmlFor="poll-interval-slider"
-              className="poll-interval-label"
+      <LivePanelHeader
+        controls={
+          <div className="live-controls">
+            <span
+              className={`connection-badge ${badge.className}`}
+              title={`Connected via ${badge.label}`}
             >
-              Interval: {(pollInterval / 1000).toFixed(1)}s
-            </label>
-            <input
-              id="poll-interval-slider"
-              type="range"
-              min={MIN_POLL_INTERVAL_MS}
-              max={MAX_POLL_INTERVAL_MS}
-              step={100}
-              value={pollInterval}
-              onChange={(e) => setPollInterval(Number(e.target.value))}
-              className="poll-interval-slider"
-            />
+              <DocIcon name={badge.icon} size={13} /> {badge.label}
+            </span>
+
+            <button
+              onClick={() => setIsActive(!isActive)}
+              className={`clean-button ${
+                isActive ? "live-toggle--active" : ""
+              }`}
+            >
+              {isActive ? "⏸ Pause" : "▶ Resume"} Live Updates
+            </button>
+            <button onClick={() => refresh()} className="clean-button">
+              Refresh
+            </button>
+
+            {/* Poll interval slider — only shown in polling mode */}
+            {connectionMode === "polling" && (
+              <div className="poll-interval-control">
+                <label
+                  htmlFor="poll-interval-slider"
+                  className="poll-interval-label"
+                >
+                  Interval: {(pollInterval / 1000).toFixed(1)}s
+                </label>
+                <input
+                  id="poll-interval-slider"
+                  type="range"
+                  min={MIN_POLL_INTERVAL_MS}
+                  max={MAX_POLL_INTERVAL_MS}
+                  step={100}
+                  value={pollInterval}
+                  onChange={(e) => setPollInterval(Number(e.target.value))}
+                  className="poll-interval-slider"
+                />
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        }
+      />
 
       {/* Main Grid Layout */}
       <div className="live-main-grid">

@@ -51,6 +51,7 @@ function createNode(
     parentRelationKind: overrides.parentRelationKind ?? null,
     isFocus: overrides.isFocus ?? false,
     isVisible: overrides.isVisible ?? true,
+    terminal: overrides.terminal ?? false,
     hiddenNeighborCount: overrides.hiddenNeighborCount ?? 0,
     incomingCount: overrides.incomingCount,
     outgoingCount: overrides.outgoingCount,
@@ -175,5 +176,130 @@ describe("TopologyPanelView", () => {
     expect(
       screen.queryByRole("button", { name: "Expand navigator drawer" })
     ).toBeNull();
+  });
+
+  it("shows impact counts in the hero for the blast lens", () => {
+    const nodes = [
+      createNode({
+        id: "resource.cache",
+        kind: "resource",
+        label: "Cache",
+        incomingCount: 0,
+        outgoingCount: 1,
+        isFocus: true,
+      }),
+      createNode({
+        id: "task.build",
+        kind: "task",
+        label: "Build",
+        incomingCount: 1,
+        outgoingCount: 1,
+        depth: 1,
+      }),
+      createNode({
+        id: "task.hidden",
+        kind: "task",
+        label: "Hidden",
+        incomingCount: 1,
+        outgoingCount: 0,
+        depth: 1,
+        isVisible: false,
+      }),
+      createNode({
+        id: "event.shipped",
+        kind: "event",
+        label: "Shipped",
+        incomingCount: 1,
+        outgoingCount: 0,
+        depth: 2,
+      }),
+      createNode({
+        id: "task.emit",
+        kind: "task",
+        label: "Emit",
+        incomingCount: 1,
+        outgoingCount: 0,
+        depth: 1,
+        terminal: true,
+      }),
+    ];
+    const graph = createProjection(nodes);
+
+    const { container } = render(
+      React.createElement(TopologyPanelView, {
+        graph,
+        nodeMap: new Map(nodes.map((node) => [node.id, node] as const)),
+        selectedNode: nodes[0],
+        view: "blast",
+        autoOrder: true,
+        isNavigatorOpen: false,
+        navigatorQuery: "",
+        isFullscreen: false,
+        canOpenSelectedCard: true,
+        onSelectNode: () => {},
+        onNavigatorQueryChange: () => {},
+        onViewChange: () => {},
+        onRadiusChange: () => {},
+        onReset: () => {},
+        onOpenSelectedCard: () => {},
+        onToggleFullscreen: () => {},
+        onToggleAutoOrder: () => {},
+        onToggleNavigator: () => {},
+      })
+    );
+
+    const stats = new Map(
+      Array.from(container.querySelectorAll(".topology-panel__stat")).map(
+        (stat) => [
+          stat.querySelector(".label")?.textContent,
+          stat.querySelector(".value")?.textContent,
+        ]
+      )
+    );
+    expect(stats.get("Affected")).toBe("3");
+    expect(stats.get("Direct")).toBe("1");
+    expect(stats.get("Transitive")).toBe("1");
+    expect(stats.get("Contract")).toBe("1");
+    expect(screen.queryByText("Visible")).toBeNull();
+  });
+
+  it("keeps structural hero stats for the mindmap lens", () => {
+    const nodes = [
+      createNode({
+        id: "resource.root",
+        kind: "resource",
+        label: "Root",
+        incomingCount: 1,
+        outgoingCount: 2,
+        isFocus: true,
+      }),
+    ];
+    const graph = createProjection(nodes);
+
+    render(
+      React.createElement(TopologyPanelView, {
+        graph,
+        nodeMap: new Map(nodes.map((node) => [node.id, node] as const)),
+        selectedNode: nodes[0],
+        view: "mindmap",
+        autoOrder: true,
+        isNavigatorOpen: false,
+        navigatorQuery: "",
+        isFullscreen: false,
+        canOpenSelectedCard: true,
+        onSelectNode: () => {},
+        onNavigatorQueryChange: () => {},
+        onViewChange: () => {},
+        onRadiusChange: () => {},
+        onReset: () => {},
+        onOpenSelectedCard: () => {},
+        onToggleFullscreen: () => {},
+        onToggleAutoOrder: () => {},
+        onToggleNavigator: () => {},
+      })
+    );
+
+    expect(screen.getByText("Visible")).toBeTruthy();
+    expect(screen.queryByText("Affected")).toBeNull();
   });
 });

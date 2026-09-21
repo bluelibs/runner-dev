@@ -29,6 +29,7 @@ import {
   readStoredTopologyPanelState,
   type TopologyPanelState,
 } from "./topologyPanelState";
+import { summarizeImpact } from "./topologyPanel.utils";
 import { TopologyPanelView } from "./TopologyPanelView";
 import { getMatchingTopologyNodeIds } from "./topologyNavigator.utils";
 import "./TopologyPanel.scss";
@@ -295,9 +296,12 @@ export const TopologyPanel: React.FC<TopologyPanelProps> = ({
   const closeFullscreen = () => setIsFullscreen(false);
 
   const fullscreenTitle = "Topology";
-  const fullscreenSubtitle = `${
-    state.view === "mindmap" ? "Mindmap" : "Blast radius"
-  } · ${graph.summary.visibleNodes} visible nodes`;
+  const fullscreenSubtitle =
+    state.view === "blast"
+      ? `Blast radius · ${
+          summarizeImpact(graph.nodes).affected
+        } affected within ${graph.radius} hops`
+      : `Mindmap · ${graph.summary.visibleNodes} visible nodes`;
 
   return (
     <>

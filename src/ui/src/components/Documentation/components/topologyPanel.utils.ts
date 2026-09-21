@@ -9,6 +9,42 @@ export interface TopologyRelationGroup {
   nodes: TopologyGraphNode[];
 }
 
+export interface TopologyImpactSummary {
+  affected: number;
+  direct: number;
+  transitive: number;
+  contract: number;
+}
+
+/**
+ * Blast-lens counts over visible, non-focus nodes: depth-1 downstream
+ * (direct), deeper downstream (transitive), and terminal contract partners
+ * (emitters, throwers, providers — checked, not expanded).
+ */
+export function summarizeImpact(
+  nodes: TopologyGraphNode[]
+): TopologyImpactSummary {
+  let direct = 0;
+  let transitive = 0;
+  let contract = 0;
+  for (const node of nodes) {
+    if (node.isFocus || !node.isVisible) continue;
+    if (node.terminal) {
+      contract += 1;
+    } else if (node.depth <= 1) {
+      direct += 1;
+    } else {
+      transitive += 1;
+    }
+  }
+  return {
+    affected: direct + transitive + contract,
+    direct,
+    transitive,
+    contract,
+  };
+}
+
 export function buildRelationGroups(
   edges: TopologyGraphEdge[],
   nodesById: Map<string, TopologyGraphNode>,

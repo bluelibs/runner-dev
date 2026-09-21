@@ -157,7 +157,7 @@ describe("topologyGraph", () => {
     });
   });
 
-  it("builds a blast-radius projection with static edges", () => {
+  it("builds a blast-radius projection with downstream-only edges", () => {
     const introspector = createIntrospector();
 
     const graph = buildTopologyProjection(introspector, {
@@ -175,20 +175,22 @@ describe("topologyGraph", () => {
     expect(
       graph.selectedNode.incomingCount + graph.selectedNode.outgoingCount
     ).toBeGreaterThan(0);
-    expect(graph.nodes.map((node) => node.id)).toEqual(
-      expect.arrayContaining([
-        "task.build",
-        "resource.cache",
-        "event.shipped",
-        "hook.shipped",
-        "middleware.audit",
-      ])
-    );
+    // Upstream edges (depends-on resource.cache, uses-middleware
+    // middleware.audit) stay in the mindmap lens, not the blast lens.
+    expect(graph.nodes.map((node) => node.id).sort()).toEqual([
+      "event.shipped",
+      "hook.shipped",
+      "task.build",
+    ]);
     expect(graph.summary).toEqual({
-      visibleNodes: 5,
-      visibleEdges: 8,
+      visibleNodes: 3,
+      visibleEdges: 2,
       hiddenNodes: 0,
     });
+    const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+    expect(byId.get("event.shipped")?.depth).toBe(1);
+    expect(byId.get("hook.shipped")?.depth).toBe(2);
+    expect(byId.get("hook.shipped")?.terminal).toBe(false);
     expect(
       graph.edges.find((edge) => edge.id === "task.build::emits::event.shipped")
         ?.isPrimary
@@ -197,6 +199,159 @@ describe("topologyGraph", () => {
       graph.edges.find(
         (edge) => edge.id === "event.shipped::listened-to-by::hook.shipped"
       )?.isPrimary
+    ).toBe(true);
+  });
+
+  it("keeps task mindmaps on the full neighborhood", () => {
+    const introspector = createIntrospector();
+    const graph = buildTopologyProjection(introspector, {
+      focusId: "task.build",
+      focusKind: "task",
+      view: "mindmap",
+      radius: 2,
+    });
+
+    expect(graph.nodes.map((node) => node.id).sort()).toEqual([
+      "event.shipped",
+      "hook.shipped",
+      "middleware.audit",
+      "resource.cache",
+      "task.build",
+    ]);
+    expect(
+      graph.edges.some(
+        (edge) => edge.id === "task.build::depends-on::resource.cache"
+      )
+    ).toBe(true);
+    expect(
+      graph.edges.some(
+        (edge) => edge.id === "task.build::uses-middleware::middleware.audit"
+      )
+    ).toBe(true);
+  });
+
+  it("marks event emitters as terminal contract partners", () => {
+    const introspector = createIntrospector();
+    const graph = buildTopologyProjection(introspector, {
+      focusId: "event.shipped",
+      focusKind: "event",
+      view: "blast",
+      radius: 2,
+    });
+
+    const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+    expect([...byId.keys()].sort()).toEqual([
+      "event.shipped",
+      "hook.shipped",
+      "task.build",
+    ]);
+    // The emitter shares the event contract but never expands: expanding it
+    // would pull in its other emits as false-positive impact.
+    expect(byId.get("task.build")?.terminal).toBe(true);
+    expect(byId.get("hook.shipped")?.terminal).toBe(false);
+    expect(graph.edges.some((edge) => edge.sourceId === "task.build")).toBe(
+      false
+    );
+    expect(
+      graph.edges.find(
+        (edge) => edge.id === "event.shipped::emitted-by::task.build"
+      )
+    ).toBeDefined();
+  });
+
+  it("follows resource consumers transitively without ownership", () => {
+    const introspector = createLoggerIntrospector();
+    const graph = buildTopologyProjection(introspector, {
+      focusId: "runner.logger",
+      focusKind: "resource",
+      view: "blast",
+      radius: 3,
+    });
+
+    const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+    expect([...byId.keys()].sort()).toEqual([
+      "event.play.logged",
+      "hook.play.logged",
+      "runner.logger",
+      "task.play",
+    ]);
+    // Ownership (registered-by runner) is mindmap territory, not impact.
+    expect(byId.has("runner")).toBe(false);
+    expect(byId.get("task.play")?.depth).toBe(1);
+    expect(byId.get("event.play.logged")?.depth).toBe(2);
+    expect(byId.get("hook.play.logged")?.depth).toBe(3);
+  });
+
+  it("terminates blast traversal on event cycles", () => {
+    const introspector = new Introspector({
+      data: {
+        tasks: [],
+        hooks: [
+          {
+            id: "hook.ping",
+            events: ["event.ping"],
+            dependsOn: [],
+            emits: ["event.pong"],
+            isPrivate: false,
+            tags: [],
+          },
+          {
+            id: "hook.pong",
+            events: ["event.pong"],
+            dependsOn: [],
+            emits: ["event.ping"],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        resources: [
+          {
+            id: "resource.root",
+            emits: [],
+            dependsOn: [],
+            middleware: [],
+            overrides: [],
+            registers: [],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        events: [
+          {
+            id: "event.ping",
+            listenedToBy: ["hook.ping"],
+            isPrivate: false,
+            tags: [],
+          },
+          {
+            id: "event.pong",
+            listenedToBy: ["hook.pong"],
+            isPrivate: false,
+            tags: [],
+          },
+        ],
+        middlewares: [],
+        errors: [],
+        asyncContexts: [],
+        tags: [],
+        rootId: "resource.root",
+      },
+    });
+    const graph = buildTopologyProjection(introspector, {
+      focusId: "hook.ping",
+      focusKind: "hook",
+      view: "blast",
+      radius: 4,
+    });
+
+    expect(graph.nodes.map((node) => node.id).sort()).toEqual([
+      "event.ping",
+      "event.pong",
+      "hook.ping",
+      "hook.pong",
+    ]);
+    expect(
+      graph.edges.some((edge) => edge.id === "hook.pong::emits::event.ping")
     ).toBe(true);
   });
 

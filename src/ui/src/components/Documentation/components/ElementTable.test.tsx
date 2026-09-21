@@ -274,6 +274,75 @@ describe("ElementTable", () => {
     expect(screen.queryByText("T")).not.toBeInTheDocument();
   });
 
+  it("focuses the ID search when the table opens", () => {
+    render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
+    );
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("searchbox", { name: "Search by ID" })
+    );
+  });
+
+  it("matches titles fuzzily across word order and gaps", () => {
+    const { container } = render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
+    );
+
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: "Search by Title" }),
+      {
+        target: { value: "sync proj" },
+      }
+    );
+
+    expect(getRenderedIds(container)).toEqual([
+      "...>catalog > catalogOnEnabled",
+    ]);
+  });
+
+  it("keeps sort buttons out of the tab order between search inputs", () => {
+    const { container } = render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
+    );
+
+    const sortButtons = Array.from(
+      container.querySelectorAll(".element-table__sort-btn")
+    );
+    expect(sortButtons.length).toBeGreaterThan(0);
+    sortButtons.forEach((button) => {
+      expect((button as HTMLElement).tabIndex).toBe(-1);
+    });
+  });
+
+  it("matches ids fuzzily across separators", () => {
+    const { container } = render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
+    );
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search by ID" }), {
+      target: { value: "zlst" },
+    });
+
+    expect(getRenderedIds(container)).toEqual(["enhanced-app > z-last"]);
+  });
+
   it("shows a Shell action per row for resources", () => {
     const onAction = jest.fn();
     render(

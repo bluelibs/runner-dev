@@ -133,6 +133,19 @@ export function scoreEntry(entry: PaletteEntry, query: string): number {
   return total;
 }
 
+/**
+ * Boolean fuzzy match of a free-text query against one haystack, using the
+ * same token scoring as the palette: every whitespace-separated token must
+ * match (exact, prefix, word-boundary, substring, or subsequence). Empty
+ * queries match everything.
+ */
+export function matchesFuzzyText(query: string, text: string): boolean {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  const haystack = text.toLowerCase();
+  return tokens.every((token) => scoreToken(token, haystack) >= 0);
+}
+
 function entryLength(entry: PaletteEntry): number {
   return entry.id.length;
 }

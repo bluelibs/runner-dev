@@ -1,6 +1,7 @@
 import {
   buildPaletteEntries,
   filterPaletteEntries,
+  matchesFuzzyText,
   scoreEntry,
   type PaletteEntry,
 } from "./commandPalette";
@@ -199,6 +200,22 @@ describe("commandPalette", () => {
       });
       expect(ranked).toHaveLength(1);
       expect(ranked[0].entry.kind).toBe("element");
+    });
+  });
+
+  describe("matchesFuzzyText", () => {
+    test("matches tokens in any order with gaps", () => {
+      expect(matchesFuzzyText("sync proj", "Projection Sync")).toBe(true);
+      expect(matchesFuzzyText("ten alpha", "Alpha Ten")).toBe(true);
+      expect(matchesFuzzyText("zlst", "enhanced-app.events.z-last")).toBe(true);
+    });
+
+    test("requires every token to match", () => {
+      expect(matchesFuzzyText("alpha bravo", "Alpha Ten")).toBe(false);
+    });
+
+    test("matches everything on an empty query", () => {
+      expect(matchesFuzzyText("   ", "Anything")).toBe(true);
     });
   });
 });

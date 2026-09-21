@@ -1,5 +1,6 @@
 import React from "react";
 import { MarkdownRenderer } from "../utils/markdownUtils";
+import { matchesFuzzyText } from "../utils/commandPalette";
 import { OverviewIdLink } from "./common/OverviewIdLink";
 import { DocIcon } from "./common/DocIcon";
 import "./ElementTable.scss";
@@ -79,6 +80,13 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   const [showTaskMiddlewares, setShowTaskMiddlewares] = React.useState(true);
   const [showResourceMiddlewares, setShowResourceMiddlewares] =
     React.useState(true);
+  const idFilterRef = React.useRef<HTMLInputElement>(null);
+
+  // Section opens land in the ID search so typing filters immediately;
+  // preventScroll avoids fighting the hash-scroll pass on navigation.
+  React.useEffect(() => {
+    idFilterRef.current?.focus({ preventScroll: true });
+  }, []);
   const descriptionRefs = React.useRef<Record<string, HTMLElement | null>>({});
 
   const getUsedByCount = React.useCallback((element: BaseElement): number => {
@@ -132,8 +140,8 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   }, []);
 
   const filteredElements = React.useMemo(() => {
-    const idFilter = columnFilters.id.trim().toLowerCase();
-    const titleFilter = columnFilters.title.trim().toLowerCase();
+    const idFilter = columnFilters.id.trim();
+    const titleFilter = columnFilters.title.trim();
     const descriptionFilter = columnFilters.description.trim().toLowerCase();
     const usedByFilter = columnFilters.usedBy.trim().toLowerCase();
 
@@ -150,14 +158,14 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     }
 
     return middlewareScopedElements.filter((element) => {
-      const idValue = element.id.toLowerCase();
-      const titleValue = (element.meta?.title ?? "").toLowerCase();
       const descriptionValue = (element.meta?.description ?? "").toLowerCase();
       const usedByValue = String(getUsedByCount(element)).toLowerCase();
 
+      // ID and Title share the palette's fuzzy matcher; Description and
+      // Used By stay exact-substring (long prose and numeric counts).
       return (
-        (!idFilter || idValue.includes(idFilter)) &&
-        (!titleFilter || titleValue.includes(titleFilter)) &&
+        matchesFuzzyText(idFilter, element.id) &&
+        matchesFuzzyText(titleFilter, element.meta?.title ?? "") &&
         (!descriptionFilter || descriptionValue.includes(descriptionFilter)) &&
         (!usedByFilter || usedByValue.includes(usedByFilter))
       );
@@ -364,9 +372,11 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                 aria-sort={getAriaSort("id")}
               >
                 <div className="element-table__header-content">
+                  {/* Sort stays mouse-only so Tab walks the search inputs back-to-back. */}
                   <button
                     className="element-table__sort-btn"
                     type="button"
+                    tabIndex={-1}
                     onClick={() => handleSort("id")}
                   >
                     <span>ID</span>
@@ -381,6 +391,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                   </button>
                   <input
                     type="search"
+                    ref={idFilterRef}
                     className="element-table__filter-input"
                     value={columnFilters.id}
                     onChange={(event) =>
@@ -399,6 +410,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                   <button
                     className="element-table__sort-btn"
                     type="button"
+                    tabIndex={-1}
                     onClick={() => handleSort("title")}
                   >
                     <span>Title</span>
@@ -431,6 +443,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                   <button
                     className="element-table__sort-btn"
                     type="button"
+                    tabIndex={-1}
                     onClick={() => handleSort("description")}
                   >
                     <span>Description</span>
@@ -463,6 +476,7 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                   <button
                     className="element-table__sort-btn"
                     type="button"
+                    tabIndex={-1}
                     onClick={() => handleSort("usedBy")}
                   >
                     <span>Used By</span>

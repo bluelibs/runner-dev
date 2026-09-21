@@ -5,6 +5,7 @@ import "./ExecuteModal.scss";
 //   generateInstanceFromJsonSchema,
 // } from "./chat/ai.prefill";
 import { copyToClipboard } from "./chat/ChatUtils";
+import { DocIcon } from "./common/DocIcon";
 import { BaseModal } from "./modals";
 import { computeSchemaDefaultValue } from "../utils/schemaDefaults";
 import {
@@ -459,7 +460,7 @@ export const ExecuteModal: React.FC<ExecuteModalProps> = ({
                           schemaString.length > 100 ? "..." : ""
                         }`}
                       >
-                        📋
+                        <DocIcon name="info" size={14} />
                       </span>
                     </div>
                   )}

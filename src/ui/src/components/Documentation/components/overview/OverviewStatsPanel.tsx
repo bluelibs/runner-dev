@@ -83,14 +83,22 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
               <svg width={"100%"} height={160} viewBox={`0 0 800 160`}>
                 <defs>
                   <linearGradient id="tp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.7" />
-                    <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.1" />
+                    <stop
+                      offset="0%"
+                      style={{ stopColor: "var(--docs-text-muted)" }}
+                      stopOpacity="0.7"
+                    />
+                    <stop
+                      offset="100%"
+                      style={{ stopColor: "var(--docs-text-muted)" }}
+                      stopOpacity="0.1"
+                    />
                   </linearGradient>
                 </defs>
                 <path
                   d={tpPath}
                   fill="url(#tp)"
-                  stroke="#3b82f6"
+                  style={{ stroke: "var(--docs-text-muted)" }}
                   strokeWidth={1}
                 />
               </svg>
@@ -107,19 +115,19 @@ export const OverviewStatsPanel: React.FC<OverviewStatsPanelProps> = ({
                 <path
                   d={latencyPaths.p50}
                   fill="none"
-                  stroke="#22c55e"
+                  style={{ stroke: "var(--docs-success)" }}
                   strokeWidth={2}
                 />
                 <path
                   d={latencyPaths.p95}
                   fill="none"
-                  stroke="#eab308"
+                  style={{ stroke: "var(--docs-warning)" }}
                   strokeWidth={2}
                 />
                 <path
                   d={latencyPaths.p99}
                   fill="none"
-                  stroke="#ef4444"
+                  style={{ stroke: "var(--docs-danger)" }}
                   strokeWidth={2}
                 />
               </svg>

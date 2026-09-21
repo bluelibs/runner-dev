@@ -1,0 +1,10 @@
+.doc-icon {
+  flex-shrink: 0;
+  vertical-align: -2px;
+}
+
+// True-blue touch for identity icons (nav, tabs, headings). Functional
+// glyphs (search, close, chevrons) and status icons stay monochrome.
+.doc-icon--accent {
+  color: var(--docs-accent);
+}

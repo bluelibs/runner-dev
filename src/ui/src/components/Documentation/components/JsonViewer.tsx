@@ -33,7 +33,17 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data, className }) => {
     );
   };
 
-  const renderValue = (value: any, path: string): React.ReactNode => {
+  // The trailing comma belongs to the value: for containers it must render
+  // after the closing bracket, not as a flex sibling (which lands it next
+  // to the opening bracket when children wrap below).
+  const renderComma = (show: boolean): React.ReactNode =>
+    show ? <span className="json-comma">,</span> : null;
+
+  const renderValue = (
+    value: any,
+    path: string,
+    showComma: boolean = false
+  ): React.ReactNode => {
     if (typeof value === "object" && value !== null) {
       const isArray = Array.isArray(value);
       const keys = Object.keys(value);
@@ -44,21 +54,35 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data, className }) => {
           <span className="json-toggle" onClick={() => toggleKey(path)}>
             {isExpanded ? "▼" : "▶"}
           </span>
-          <span className="json-bracket">{isArray ? "[" : "{"}</span>
+          <span className="json-bracket json-bracket--open">
+            {isArray ? "[" : "{"}
+          </span>
           {isExpanded && (
             <div className="json-children">
               {keys.map((key, index) => (
                 <div key={index} className="json-key-value">
                   {!isArray && <span className="json-key">"{key}":</span>}
-                  {renderValue(value[key], `${path}.${key}`)}
-                  {index < keys.length - 1 && <span>,</span>}
+                  {renderValue(
+                    value[key],
+                    `${path}.${key}`,
+                    index < keys.length - 1
+                  )}
                 </div>
               ))}
             </div>
           )}
           {!isExpanded && <span className="json-ellipsis">...</span>}
-          <span className="json-bracket">{isArray ? "]" : "}"}</span>
+          <span className="json-bracket json-bracket--close">
+            {isArray ? "]" : "}"}
+          </span>
+          {renderComma(showComma)}
         </div>
+      );
+    } else if (value === undefined) {
+      return (
+        <span className="json-value json-value--undefined">
+          undefined{renderComma(showComma)}
+        </span>
       );
     } else {
       const stringValue = JSON.stringify(value);
@@ -79,7 +103,7 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data, className }) => {
                 onClick={() => toggleText(path)}
                 style={{
                   cursor: "pointer",
-                  color: "#0066cc",
+                  color: "var(--docs-text-secondary)",
                   marginLeft: "4px",
                 }}
               >
@@ -92,19 +116,21 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data, className }) => {
                 onClick={() => toggleText(path)}
                 style={{
                   cursor: "pointer",
-                  color: "#0066cc",
+                  color: "var(--docs-text-secondary)",
                   marginLeft: "4px",
                 }}
               >
                 [collapse]
               </span>
             )}
+            {renderComma(showComma)}
           </span>
         );
       } else {
         return (
           <span className={`json-value json-value--${typeof value}`}>
             {stringValue}
+            {renderComma(showComma)}
           </span>
         );
       }

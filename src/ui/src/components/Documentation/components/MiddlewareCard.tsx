@@ -14,6 +14,7 @@ import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { OverviewIdLink } from "./common/OverviewIdLink";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
@@ -147,13 +148,12 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             <InfoBlock prefix="middleware-card" label="Intercepted By:">
               <div className="middleware-card__tags">
                 {interceptorOwnerIds.map((ownerId) => (
-                  <a
-                    href={`#element-${ownerId}`}
+                  <OverviewIdLink
                     key={ownerId}
-                    className="clean-button"
-                  >
-                    {formatId(ownerId)}
-                  </a>
+                    element={{ id: ownerId }}
+                    resources={introspector.getResources()}
+                    href={`#element-${ownerId}`}
+                  />
                 ))}
               </div>
             </InfoBlock>
@@ -179,13 +179,12 @@ export const MiddlewareCard: React.FC<MiddlewareCardProps> = ({
             <InfoBlock prefix="middleware-card" label="Tags:">
               <div className="middleware-card__tags">
                 {introspector.getTagsByIds(middleware.tags).map((tag) => (
-                  <a
-                    href={`#element-${tag.id}`}
+                  <OverviewIdLink
                     key={tag.id}
-                    className="clean-button"
-                  >
-                    {formatId(tag.id)}
-                  </a>
+                    element={tag}
+                    resources={introspector.getResources()}
+                    href={`#element-${tag.id}`}
+                  />
                 ))}
               </div>
             </InfoBlock>

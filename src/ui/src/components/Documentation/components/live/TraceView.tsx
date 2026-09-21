@@ -7,6 +7,7 @@ import type {
   RunRecord,
 } from "../../hooks/useLiveStream";
 import { BaseModal } from "../modals";
+import { DocIcon } from "../common/DocIcon";
 import "./TraceView.scss";
 
 // ─── Unified timeline entry ──────────────────────────────────────────────────
@@ -47,10 +48,10 @@ const KIND_LABELS: Record<TraceEntryKind, string> = {
 };
 
 const KIND_ICONS: Record<TraceEntryKind, string> = {
-  log: "📝",
-  emission: "📡",
-  error: "🔴",
-  run: "⚡",
+  log: "file",
+  emission: "event",
+  error: "error",
+  run: "task",
 };
 
 const formatTimestamp = (ms: number): string => {
@@ -130,7 +131,7 @@ function buildTimeline(
 
   for (const run of runs) {
     if (run.correlationId !== correlationId) continue;
-    const status = run.ok ? "✅" : "❌";
+    const status = run.ok ? "OK" : "FAIL";
     const duration =
       run.durationMs != null ? ` (${run.durationMs.toFixed(1)}ms)` : "";
     entries.push({
@@ -190,7 +191,7 @@ export const TraceView: React.FC<TraceViewProps> = ({
     <BaseModal
       isOpen
       onClose={onClose}
-      title="🔍 Trace View"
+      title="Trace View"
       subtitle={correlationId}
       size="xl"
       className="trace-view__panel"
@@ -203,7 +204,8 @@ export const TraceView: React.FC<TraceViewProps> = ({
             key={kind}
             className={`trace-view__stat trace-view__stat--${kind}`}
           >
-            {KIND_ICONS[kind]} {stats[kind]} {KIND_LABELS[kind]}
+            <DocIcon name={KIND_ICONS[kind]} size={13} /> {stats[kind]}{" "}
+            {KIND_LABELS[kind]}
             {stats[kind] !== 1 ? "S" : ""}
           </span>
         ))}
@@ -252,7 +254,8 @@ export const TraceView: React.FC<TraceViewProps> = ({
                     <span
                       className={`trace-view__badge trace-view__badge--${entry.kind}`}
                     >
-                      {KIND_ICONS[entry.kind]} {KIND_LABELS[entry.kind]}
+                      <DocIcon name={KIND_ICONS[entry.kind]} size={13} />{" "}
+                      {KIND_LABELS[entry.kind]}
                     </span>
                     <span className="trace-view__summary">{entry.summary}</span>
                     {relativeMs > 0 && (

@@ -139,18 +139,6 @@ export const useTreeNavigation = (
     } else {
       window.location.hash = targetHash;
     }
-
-    const target = document.getElementById(anchorId);
-    if (target) {
-      target.classList.add(
-        DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
-      );
-      setTimeout(() => {
-        target.classList.remove(
-          DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
-        );
-      }, DOCUMENTATION_CONSTANTS.CONSTRAINTS.HIGHLIGHT_DURATION);
-    }
   };
 
   // Handle hash changes to clear search when navigating to filtered-out elements

@@ -45,6 +45,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
   onPositionChange,
 }) => {
   const railRef = React.useRef<HTMLDivElement>(null);
+  const trackRef = React.useRef<HTMLDivElement>(null);
   const [railHeight, setRailHeight] = React.useState(0);
   const pointerStateRef = React.useRef<{
     pointerId: number;
@@ -52,11 +53,14 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
   } | null>(null);
 
   React.useLayoutEffect(() => {
-    const rail = railRef.current;
-    if (!rail) return;
+    // Measure the inner track, not the outer rail: the thumb is positioned
+    // inside the track, and the rail's vertical padding would otherwise let
+    // the thumb overshoot past the bottom of its box.
+    const track = trackRef.current;
+    if (!track) return;
 
     const syncRailHeight = () => {
-      const nextHeight = rail.getBoundingClientRect().height;
+      const nextHeight = track.getBoundingClientRect().height;
       setRailHeight((currentHeight) =>
         currentHeight === nextHeight ? currentHeight : nextHeight
       );
@@ -68,7 +72,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
       syncRailHeight();
     });
 
-    resizeObserver.observe(rail);
+    resizeObserver.observe(track);
 
     return () => {
       resizeObserver.disconnect();
@@ -76,7 +80,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
   }, []);
 
   const getRailMetrics = React.useCallback(() => {
-    const rect = railRef.current?.getBoundingClientRect();
+    const rect = trackRef.current?.getBoundingClientRect();
     if (!rect) return null;
     const { thumbHeight, maxTravel, thumbTop } = getThumbMetrics(
       rect.height,
@@ -222,7 +226,7 @@ export const TopologyScrollRail: React.FC<TopologyScrollRailProps> = ({
       onPointerCancel={handlePointerUp}
       onKeyDown={handleKeyDown}
     >
-      <div className="topology-panel__scroll-rail-track">
+      <div ref={trackRef} className="topology-panel__scroll-rail-track">
         <div
           className="topology-panel__scroll-rail-thumb"
           data-topology-rail-thumb="true"

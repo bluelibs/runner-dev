@@ -12,6 +12,7 @@ import "./AsyncContextCard.scss";
 import { ElementKindBadge, SystemBadge } from "./common/ElementKindBadge";
 import { isSystemElement } from "../utils/isSystemElement";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { OverviewIdLink } from "./common/OverviewIdLink";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface AsyncContextCardProps {
@@ -151,13 +152,12 @@ export const AsyncContextCard: React.FC<AsyncContextCardProps> = ({
                         {introspector
                           .getTagsByIds(asyncContext.tags)
                           .map((tag) => (
-                            <a
-                              href={`#element-${tag.id}`}
+                            <OverviewIdLink
                               key={tag.id}
-                              className="clean-button"
-                            >
-                              {formatId(tag.id)}
-                            </a>
+                              element={tag}
+                              resources={introspector.getResources()}
+                              href={`#element-${tag.id}`}
+                            />
                           ))}
                       </div>
                     </div>

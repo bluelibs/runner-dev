@@ -18,7 +18,8 @@
 // Error Card Header
 // -----------------------------------------------------------------------------
 .error-card__header {
-  background: $gradient-danger;
+  background: var(--docs-bg-secondary);
+  border-bottom: 1px solid var(--docs-border-primary);
   color: var(--docs-text-primary);
   padding: $spacing-xl;
 }
@@ -213,8 +214,7 @@
 
   &:hover {
     background: var(--docs-bg-tertiary);
-    border-color: var(--docs-border-hover);
-    transform: translateY(-1px);
+    border-color: var(--docs-border-secondary);
   }
 
   .title {
@@ -230,19 +230,12 @@
     overflow-wrap: break-word;
   }
 
-  &--task {
-    border-left: 3px solid #2196f3;
-
-    &:hover {
-      border-left-color: #1976d2;
-    }
-  }
-
+  &--task,
   &--resource {
-    border-left: 3px solid #4caf50;
+    border-left: 3px solid var(--docs-border-secondary);
 
     &:hover {
-      border-left-color: #388e3c;
+      border-left-color: var(--docs-text-muted);
     }
   }
 }
@@ -270,7 +263,7 @@
 
   &:hover {
     background: var(--docs-bg-tertiary);
-    border-color: var(--docs-border-hover);
+    border-color: var(--docs-border-secondary);
   }
 
   .title {
@@ -312,13 +305,13 @@
 
   &--warning {
     background: var(--docs-warning-bg);
-    border: 1px solid var(--docs-warning-border);
+    border: 1px solid var(--docs-warning);
     color: var(--docs-warning-text);
   }
 
   &--error {
     background: var(--docs-error-bg);
-    border: 1px solid var(--docs-error-border);
+    border: 1px solid var(--docs-danger);
     color: var(--docs-error-text);
   }
 }
@@ -331,12 +324,12 @@
   text-decoration: none;
   font-family: $font-family-mono;
   font-size: $font-size-sm;
-  border-bottom: 1px dotted var(--docs-border-hover);
+  border-bottom: 1px dotted var(--docs-border-secondary);
   transition: all 0.2s ease;
 
   &:hover {
-    color: var(--docs-link-color);
-    border-bottom-color: var(--docs-link-color);
+    color: var(--docs-text-secondary);
+    border-bottom-color: var(--docs-text-secondary);
   }
 }
 

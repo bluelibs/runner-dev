@@ -106,50 +106,7 @@ describe("ElementTable", () => {
     ]);
   });
 
-  it("sorts by visibility when clicking the visibility column", () => {
-    const { container } = render(
-      <ElementTable
-        elements={elements}
-        resources={resources}
-        title="Tasks Overview"
-      />
-    );
-
-    expect(
-      screen
-        .getByRole("columnheader", { name: /visibility/i })
-        .getAttribute("aria-sort")
-    ).toBe("none");
-
-    fireEvent.click(screen.getByRole("button", { name: /visibility/i }));
-
-    expect(getRenderedIds(container)).toEqual([
-      "...>features > alphaTen",
-      "...>catalog > catalogOnEnabled",
-      "enhanced-app > z-last",
-      "...>deep > alphaTwo",
-    ]);
-
-    fireEvent.click(screen.getByRole("button", { name: /visibility/i }));
-
-    expect(getRenderedIds(container)).toEqual([
-      "enhanced-app > z-last",
-      "...>deep > alphaTwo",
-      "...>features > alphaTen",
-      "...>catalog > catalogOnEnabled",
-    ]);
-
-    fireEvent.click(screen.getByRole("button", { name: /visibility/i }));
-
-    expect(getRenderedIds(container)).toEqual([
-      "enhanced-app > z-last",
-      "...>features > alphaTen",
-      "...>deep > alphaTwo",
-      "...>catalog > catalogOnEnabled",
-    ]);
-  });
-
-  it("renders visibility as badge labels", () => {
+  it("renders no visibility column", () => {
     render(
       <ElementTable
         elements={elements}
@@ -158,8 +115,28 @@ describe("ElementTable", () => {
       />
     );
 
-    expect(screen.getAllByText("Private")).toHaveLength(2);
-    expect(screen.getAllByText("Public")).toHaveLength(2);
+    expect(
+      screen.queryByRole("columnheader", { name: /visibility/i })
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /visibility/i })).toBeNull();
+    expect(screen.queryByText("Public")).toBeNull();
+  });
+
+  it("marks private elements under the title only", () => {
+    render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
+    );
+
+    const markers = screen.getAllByText("private");
+    expect(markers).toHaveLength(2);
+    markers.forEach((marker) => {
+      expect(marker.className).toContain("element-table__private-marker");
+      expect(marker.closest(".element-table__cell--title")).not.toBeNull();
+    });
   });
 
   it("keeps canonical ids in links and hover titles while rendering display ids", () => {

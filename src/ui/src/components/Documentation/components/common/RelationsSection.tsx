@@ -51,7 +51,7 @@ export const RelationsSection: React.FC<RelationsSectionProps> = ({
 
   return (
     <div className={`relations-section ${className}`}>
-      <h4 className="relations-section__title">🔗 Dependencies & Relations</h4>
+      <h4 className="relations-section__title">Dependencies & Relations</h4>
       <div className="relations-section__grid">
         {Object.entries(relations).map(([category, items]) => {
           if (items.length === 0) return null;

@@ -18,7 +18,8 @@
 // Hook Card Header
 // -----------------------------------------------------------------------------
 .hook-card__header {
-  background: $gradient-purple;
+  background: var(--docs-bg-secondary);
+  border-bottom: 1px solid var(--docs-border-primary);
   color: var(--docs-text-primary);
   padding: $spacing-xl;
 }
@@ -96,7 +97,8 @@
   display: flex;
   align-items: center;
   gap: $spacing-xs;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-xl;
 
@@ -111,7 +113,8 @@
 }
 
 .hook-card__order-badge {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-xl;
   font-size: $font-size-xs;
@@ -125,7 +128,8 @@
 }
 
 .hook-card__tag {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -213,8 +217,8 @@
 // Target Event Details
 // -----------------------------------------------------------------------------
 .hook-card__target-event {
-  background: var(--docs-purple-bg);
-  border: 1px solid var(--docs-primary-border);
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
   margin-bottom: $spacing-lg;
@@ -231,7 +235,7 @@
 
     .title {
       margin: 0;
-      color: var(--docs-primary);
+      color: var(--docs-text-primary);
       font-size: $font-size-md;
     }
   }
@@ -239,13 +243,13 @@
   &__id {
     font-family: $font-family-mono;
     font-size: $font-size-sm;
-    color: var(--docs-primary);
+    color: var(--docs-text-secondary);
     margin-bottom: 10px;
   }
 
   &__description {
     font-size: $font-size-sm;
-    color: var(--docs-primary);
+    color: var(--docs-text-secondary);
     line-height: 1.4;
   }
 }
@@ -319,14 +323,14 @@
     border: 1px solid var(--docs-danger);
 
     .title {
-      color: var(--docs-danger-text);
+      color: var(--docs-error-text);
       font-weight: bold;
     }
 
     .content {
       margin-top: $spacing-sm;
       font-size: $font-size-sm;
-      color: var(--docs-danger-text);
+      color: var(--docs-error-text);
     }
   }
 
@@ -363,12 +367,12 @@
   }
 
   .title {
-    color: var(--docs-danger-text);
+    color: var(--docs-error-text);
     margin: $spacing-md 0 10px 0;
   }
 
   .message {
-    color: var(--docs-danger-text);
+    color: var(--docs-error-text);
     margin: 0;
   }
 }
@@ -412,37 +416,27 @@
 // -----------------------------------------------------------------------------
 .hook-card__dependency-item {
   padding: $spacing-sm $font-size-md;
-  border-radius: $border-radius-lg;
-  border-left: 4px solid;
+  border-radius: $border-radius-sm;
+  border: 1px solid var(--docs-border-primary);
   display: block;
+  background: var(--docs-bg-secondary);
 
-  &--task {
-    background: var(--docs-primary-bg);
-    border-left-color: var(--docs-primary);
-  }
-
-  &--resource {
-    background: var(--docs-success-bg);
-    border-left-color: var(--docs-success);
-  }
-
+  &--task,
+  &--resource,
   &--event {
-    background: var(--docs-warning-bg);
-    border-left-color: var(--docs-warning);
+    background: var(--docs-bg-secondary);
+    border-color: var(--docs-border-primary);
   }
 
   .title {
     font-weight: 600;
     margin-bottom: $spacing-xs;
+    color: var(--docs-text-primary);
 
-    &--task {
-      color: var(--docs-primary);
-    }
-    &--resource {
-      color: var(--docs-success);
-    }
+    &--task,
+    &--resource,
     &--event {
-      color: var(--docs-warning);
+      color: var(--docs-text-primary);
     }
   }
 
@@ -459,27 +453,14 @@
 // Global Hook Styles
 // -----------------------------------------------------------------------------
 .hook-card__global-badge {
-  background: linear-gradient(135deg, #ff6b6b, #feca57);
-  color: var(--docs-text-primary);
+  background: var(--docs-warning-bg);
+  border: 1px solid var(--docs-warning);
+  color: var(--docs-warning-text);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
   font-weight: 600;
   margin-left: $spacing-sm;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  50% {
-    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
-  }
-  100% {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
 }
 
 .hook-card__global-event {
@@ -503,7 +484,8 @@
 }
 
 .hook-card__global-message {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
   color: var(--docs-text-primary);
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
@@ -541,9 +523,9 @@
     align-items: center;
     gap: $spacing-sm;
     padding: $spacing-sm;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--docs-hover-bg);
     border-radius: $border-radius-sm;
-    border-left: 3px solid var(--docs-primary);
+    border: 1px solid var(--docs-border-primary);
 
     .icon {
       font-size: $font-size-sm;
@@ -566,28 +548,12 @@
   position: relative;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-decoration: none;
-
-    &.hook-card__dependency-item--task {
-      background: var(--docs-primary-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-primary-light);
-    }
-
-    &.hook-card__dependency-item--resource {
-      background: var(--docs-success-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-success-light);
-    }
-
-    &.hook-card__dependency-item--event {
-      background: var(--docs-warning-bg);
-      box-shadow: 0 4px 12px var(--docs-warning-light);
-    }
+    background: var(--docs-hover-bg);
   }
 
   &:focus {
-    outline: 2px solid var(--docs-primary);
+    outline: 2px solid var(--docs-focus-ring);
     outline-offset: 2px;
   }
 
@@ -597,7 +563,7 @@
 
   // Add a subtle click indicator
   &::after {
-    content: "🔗";
+    content: "→";
     position: absolute;
     top: 50%;
     right: $spacing-sm;

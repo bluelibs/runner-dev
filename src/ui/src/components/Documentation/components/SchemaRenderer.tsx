@@ -319,15 +319,18 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
     }
   };
 
+  // One shared empty treatment for Print/Form/JSON: same panel, same
+  // badge, same message — no tab-specific surfaces or mono styling.
+  const renderSchemaEmpty = () => (
+    <StructuredDataPanel
+      className="schema-renderer__empty"
+      emptyLabel="No schema defined"
+      emptyBadge="Schema"
+    />
+  );
+
   const renderFormFromSchema = (root: JsonSchema | null) => {
-    if (!root)
-      return (
-        <StructuredDataPanel
-          className="schema-renderer__form schema-renderer__form--empty"
-          emptyLabel="No schema defined"
-          emptyBadge="Schema"
-        />
-      );
+    if (!root) return renderSchemaEmpty();
     if (root.type === "object" && root.properties) {
       return (
         <Form className="schema-renderer__form">
@@ -471,13 +474,20 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
       </div>
 
       {!hidePrint && activeTab === "print" && (
-        <StructuredDataPanel
-          className="schema-renderer__code-block"
-          data={schema}
-          textValue={formattedSchemaText}
-          emptyLabel="No schema defined"
-          emptyBadge="Schema"
-        />
+        <>
+          {schema !== null ||
+          (formattedSchemaText && formattedSchemaText.trim().length > 0) ? (
+            <StructuredDataPanel
+              className="schema-renderer__code-block"
+              data={schema}
+              textValue={formattedSchemaText}
+              emptyLabel="No schema defined"
+              emptyBadge="Schema"
+            />
+          ) : (
+            renderSchemaEmpty()
+          )}
+        </>
       )}
 
       {activeTab === "form" && (
@@ -498,12 +508,16 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
             aria-label={copied ? "Copied" : "Copy code"}
             disabled={!schema}
           />
-          <StructuredDataPanel
-            className="schema-renderer__code-block"
-            data={jsonPreviewData}
-            emptyLabel="No schema defined"
-            emptyBadge="Schema"
-          />
+          {jsonPreviewData !== null && typeof jsonPreviewData === "object" ? (
+            <StructuredDataPanel
+              className="schema-renderer__code-block"
+              data={jsonPreviewData}
+              emptyLabel="No schema defined"
+              emptyBadge="Schema"
+            />
+          ) : (
+            renderSchemaEmpty()
+          )}
         </div>
       )}
     </div>

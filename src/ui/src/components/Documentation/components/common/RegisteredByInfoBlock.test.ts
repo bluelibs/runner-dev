@@ -31,8 +31,9 @@ describe("RegisteredByInfoBlock", () => {
       })
     );
 
-    const link = screen.getByRole("link", { name: "app.resources.catalog" });
+    const link = screen.getByRole("link", { name: "app > catalog" });
     expect(link.getAttribute("href")).toBe("#element-app.resources.catalog");
+    expect(link.getAttribute("title")).toBe("app.resources.catalog");
   });
 
   it("renders a fallback label when no registrar is available", () => {
@@ -70,8 +71,9 @@ describe("RegisteredByInfoBlock", () => {
       })
     );
 
-    const link = screen.getByRole("link", { name: "app.catalog" });
+    const link = screen.getByRole("link", { name: "app > catalog" });
     expect(link.getAttribute("href")).toBe("#element-app.catalog");
+    expect(link.getAttribute("title")).toBe("app.catalog");
   });
 
   it("renders a fancier non-link root state for the root resource itself", () => {

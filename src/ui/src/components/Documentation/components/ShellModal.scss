@@ -1,8 +1,8 @@
 // Visual overrides only — layout is handled by BaseModal's panel + size variant.
 .shell-modal__container {
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b2e 100%);
-  box-shadow: 0 32px 64px rgba(2, 6, 23, 0.5),
-    0 0 0 1px rgba(148, 163, 184, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--docs-bg-elevated);
+  border: 1px solid var(--docs-border-primary);
+  box-shadow: var(--docs-shadow-lg);
   height: 90vh;
   max-width: 1100px;
 
@@ -21,7 +21,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  border-bottom: 1px solid var(--docs-border-primary);
 }
 
 .shell-modal__titles {
@@ -37,7 +37,7 @@
   gap: 10px;
   font-size: 17px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--docs-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -45,7 +45,7 @@
 
 .shell-modal__prompt {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #4ade80;
+  color: var(--docs-success);
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -61,9 +61,9 @@
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(99, 102, 241, 0.18);
-  border: 1px solid rgba(99, 102, 241, 0.45);
-  color: #c7d2fe;
+  background: var(--docs-hover-bg);
+  border: 1px solid var(--docs-border-primary);
+  color: var(--docs-text-secondary);
   max-width: 420px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -71,9 +71,9 @@
 }
 
 .shell-modal__chip--r {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: rgba(74, 222, 128, 0.4);
-  color: #bbf7d0;
+  background: var(--docs-success-bg);
+  border-color: var(--docs-success);
+  color: var(--docs-success);
 }
 
 .shell-modal__controls {
@@ -88,28 +88,46 @@
   cursor: wait;
 }
 
+.shell-modal__disabled-note {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--docs-warning-text);
+  background: var(--docs-warning-bg);
+  color: var(--docs-warning-text);
+  font-size: 12.5px;
+  line-height: 1.5;
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    background: var(--docs-hover-bg);
+    border: 1px solid var(--docs-border-secondary);
+    border-radius: 4px;
+    padding: 0 5px;
+  }
+}
+
 .shell-modal__banner {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 10px 20px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-  background: rgba(2, 6, 23, 0.35);
+  border-bottom: 1px solid var(--docs-border-primary);
+  background: var(--docs-hover-bg);
 }
 
 .shell-modal__banner-text {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--docs-text-muted);
 
   kbd {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 11px;
-    background: rgba(148, 163, 184, 0.2);
-    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: var(--docs-active-bg);
+    border: 1px solid var(--docs-border-secondary);
     border-bottom-width: 2px;
     border-radius: 4px;
     padding: 0 5px;
-    color: #e2e8f0;
+    color: var(--docs-text-primary);
   }
 }
 
@@ -122,17 +140,18 @@
 .shell-modal__example {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--docs-text-secondary);
+  background: var(--docs-hover-bg);
+  border: 1px solid var(--docs-border-primary);
   border-radius: 6px;
   padding: 3px 8px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 
   &:hover {
-    background: rgba(59, 130, 246, 0.22);
-    border-color: rgba(59, 130, 246, 0.55);
+    background: var(--docs-active-bg);
+    border-color: var(--docs-border-secondary);
+    color: var(--docs-text-primary);
   }
 }
 
@@ -144,22 +163,22 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(2, 6, 23, 0.55);
+  background: var(--docs-bg-secondary);
 }
 
 .shell-modal__empty {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  color: #64748b;
+  color: var(--docs-text-muted);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .shell-modal__entry {
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--docs-border-primary);
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--docs-card-bg);
   overflow: hidden;
 }
 
@@ -168,14 +187,14 @@
   gap: 10px;
   align-items: flex-start;
   padding: 10px 12px;
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--docs-hover-bg);
 
   pre {
     margin: 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 13px;
     line-height: 1.5;
-    color: #e2e8f0;
+    color: var(--docs-text-primary);
     white-space: pre-wrap;
     word-break: break-word;
     flex: 1;
@@ -190,15 +209,15 @@
   padding: 10px 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
-  color: #fbbf24;
+  color: var(--docs-warning-text);
 }
 
 .shell-modal__spinner {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid rgba(251, 191, 36, 0.3);
-  border-top-color: #fbbf24;
+  border: 2px solid var(--docs-border-secondary);
+  border-top-color: var(--docs-warning-text);
   animation: shell-modal-spin 0.8s linear infinite;
   flex-shrink: 0;
 }
@@ -224,19 +243,19 @@
 }
 
 .shell-modal__entry-logs {
-  color: #94a3b8;
-  border-top: 1px dashed rgba(148, 163, 184, 0.25);
+  color: var(--docs-text-muted);
+  border-top: 1px dashed var(--docs-border-primary);
 }
 
 .shell-modal__entry-result {
-  color: #d1fae5;
-  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  color: var(--docs-text-primary);
+  border-top: 1px solid var(--docs-border-primary);
 }
 
 .shell-modal__entry-error {
-  color: #fecaca;
-  background: rgba(127, 29, 29, 0.25);
-  border-top: 1px solid rgba(248, 113, 113, 0.3);
+  color: var(--docs-error-text);
+  background: var(--docs-error-bg);
+  border-top: 1px solid var(--docs-danger);
 }
 
 .shell-modal__entry-meta {
@@ -246,8 +265,8 @@
   gap: 8px;
   padding: 6px 12px;
   font-size: 11px;
-  color: #64748b;
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  color: var(--docs-text-muted);
+  border-top: 1px solid var(--docs-border-primary);
 }
 
 .shell-modal__entry-actions {
@@ -258,14 +277,15 @@
 .shell-modal__entry-action {
   background: transparent;
   border: none;
-  color: #7dd3fc;
+  color: var(--docs-text-secondary);
   font-size: 11px;
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
 
   &:hover {
-    background: rgba(125, 211, 252, 0.12);
+    background: var(--docs-hover-bg);
+    color: var(--docs-text-primary);
     text-decoration: underline;
   }
 }
@@ -275,8 +295,8 @@
   gap: 10px;
   align-items: flex-start;
   padding: 12px 20px 16px;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(15, 23, 42, 0.85);
+  border-top: 1px solid var(--docs-border-primary);
+  background: var(--docs-bg-secondary);
 
   .shell-modal__prompt {
     padding-top: 8px;
@@ -287,16 +307,17 @@
 .shell-modal__editor-wrap {
   flex: 1;
   min-width: 0;
-  border: 1px solid rgba(74, 222, 128, 0.25);
+  border: 1px solid var(--docs-border-secondary);
   border-radius: 8px;
   // Visible so the autocomplete tooltip can escape the editor box instead of
   // being clipped underneath it.
   overflow: visible;
+  // The input stays a dark terminal surface in both themes.
   background: #0b1220;
 
   &:focus-within {
-    border-color: rgba(74, 222, 128, 0.55);
-    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.25);
+    border-color: var(--docs-text-muted);
+    box-shadow: 0 0 0 1px var(--docs-focus-ring);
   }
 }
 

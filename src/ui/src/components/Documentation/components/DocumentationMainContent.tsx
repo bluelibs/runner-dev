@@ -18,6 +18,34 @@ import type {
   DocumentationMode,
 } from "../../../../../resources/docsPayload";
 import { getDocumentationIcon } from "../config/documentationIcons";
+import { DocIcon } from "./common/DocIcon";
+import ExecuteModal from "./ExecuteModal";
+import ShellModal from "./ShellModal";
+import { formatId } from "../utils/formatting";
+import { invokeEventById, invokeTaskById } from "../utils/invokeElement";
+
+const ELEMENT_SECTION_IDS = new Set([
+  "tasks",
+  "resources",
+  "events",
+  "hooks",
+  "middlewares",
+  "errors",
+  "asyncContexts",
+  "tags",
+]);
+
+function parseElementIdFromHash(hash: string): string | null {
+  const rawHash = hash.startsWith("#") ? hash.slice(1) : hash;
+  let cleanHash = rawHash;
+  try {
+    cleanHash = decodeURIComponent(rawHash);
+  } catch {
+    cleanHash = rawHash;
+  }
+  if (!cleanHash.startsWith("element-")) return null;
+  return cleanHash.slice("element-".length);
+}
 
 export interface DocumentationMainContentProps {
   introspector: Introspector;
@@ -160,15 +188,68 @@ export const DocumentationMainContent: React.FC<
     );
   }, []);
 
+  // List-level Run/Emit/Shell actions dispatch `docs:execute-element`, but
+  // the detail cards that used to listen are not mounted in list view —
+  // so this level owns the modals and opens them directly by id.
+  const [executeTarget, setExecuteTarget] = React.useState<{
+    type: "task" | "event" | "resource";
+    id: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (mode === "catalog") return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ type: string; id: string }>).detail;
+      if (!detail || typeof detail.id !== "string") return;
+      if (
+        detail.type !== "task" &&
+        detail.type !== "event" &&
+        detail.type !== "resource"
+      ) {
+        return;
+      }
+      const found =
+        detail.type === "task"
+          ? tasks.some((task) => task.id === detail.id)
+          : detail.type === "event"
+          ? events.some((event) => event.id === detail.id)
+          : resources.some((resource) => resource.id === detail.id);
+      if (found) setExecuteTarget({ type: detail.type, id: detail.id });
+    };
+    window.addEventListener("docs:execute-element", handler);
+    return () => window.removeEventListener("docs:execute-element", handler);
+  }, [mode, tasks, events, resources]);
+
+  const executeTask =
+    executeTarget?.type === "task"
+      ? tasks.find((task) => task.id === executeTarget.id) ?? null
+      : null;
+  const executeEvent =
+    executeTarget?.type === "event"
+      ? events.find((event) => event.id === executeTarget.id) ?? null
+      : null;
+
   const [activeSection, setActiveSection] = React.useState<string>(() =>
     resolveSectionFromHash(
       typeof window !== "undefined" ? window.location.hash : "#overview"
     )
   );
+  const [selectedElementId, setSelectedElementId] = React.useState<
+    string | null
+  >(() =>
+    parseElementIdFromHash(
+      typeof window !== "undefined" ? window.location.hash : ""
+    )
+  );
+
+  // Tab clicks swap the section in place without a hash jump; this flag
+  // tells the scroll-into-view pass below to stand down for that switch.
+  const suppressHashScrollRef = React.useRef(false);
 
   React.useEffect(() => {
     const updateFromHash = () => {
       setActiveSection(resolveSectionFromHash(window.location.hash));
+      setSelectedElementId(parseElementIdFromHash(window.location.hash));
     };
 
     window.addEventListener("hashchange", updateFromHash);
@@ -177,6 +258,10 @@ export const DocumentationMainContent: React.FC<
   }, [resolveSectionFromHash]);
 
   React.useEffect(() => {
+    if (suppressHashScrollRef.current) {
+      suppressHashScrollRef.current = false;
+      return;
+    }
     const frameId = window.requestAnimationFrame(() => {
       scrollToHashTarget();
     });
@@ -191,9 +276,205 @@ export const DocumentationMainContent: React.FC<
     };
   }, [activeSection, scrollToHashTarget]);
 
-  const handleTabClick = React.useCallback((sectionId: string) => {
-    window.location.hash = `#${sectionId}`;
+  const handleTabClick = React.useCallback(
+    (sectionId: string) => {
+      // Clicking the active tab is a no-op (same as re-assigning one hash).
+      if (sectionId === activeSection) return;
+      // Only the active section renders, so tabs swap content in place:
+      // no hash assignment (which yanks the scroll position), just state.
+      // replaceState keeps the URL shareable without firing hashchange.
+      suppressHashScrollRef.current = true;
+      setActiveSection(sectionId);
+      setSelectedElementId(null);
+      try {
+        window.history.replaceState(null, "", `#${sectionId}`);
+      } catch {
+        /* non-browser or restricted contexts keep in-memory state only */
+      }
+      window.dispatchEvent(
+        new CustomEvent<string>("docs:select-section", { detail: sectionId })
+      );
+    },
+    [activeSection]
+  );
+
+  const handleBackToList = React.useCallback(() => {
+    window.location.hash = `#${activeSection}`;
+  }, [activeSection]);
+
+  // The detail section node survives card swaps, so paging can jump
+  // straight to its top: most cards render no `element-…` anchor id
+  // for the browser (or the hash-scroll pass) to find.
+  const detailSectionRef = React.useRef<HTMLElement>(null);
+  const handlePagerNavigate = React.useCallback(() => {
+    detailSectionRef.current?.scrollIntoView({
+      behavior: "instant",
+      block: "start",
+    });
   }, []);
+
+  // Focused detail lookup: prefer the filtered list, fall back to the
+  // introspector so deep links render even when filters hide the element.
+  const detailElement = React.useMemo(() => {
+    if (!selectedElementId || !ELEMENT_SECTION_IDS.has(activeSection)) {
+      return null;
+    }
+    const findIn = <T extends { id: string }>(list: T[]): T | undefined =>
+      list.find((item) => item.id === selectedElementId);
+    switch (activeSection) {
+      case "tasks":
+        return findIn(tasks) ?? introspector.getTask(selectedElementId) ?? null;
+      case "resources":
+        return (
+          findIn(resources) ??
+          introspector.getResource(selectedElementId) ??
+          null
+        );
+      case "events":
+        return (
+          findIn(events) ?? introspector.getEvent(selectedElementId) ?? null
+        );
+      case "hooks":
+        return findIn(hooks) ?? introspector.getHook(selectedElementId) ?? null;
+      case "middlewares":
+        return (
+          findIn(middlewares) ??
+          introspector.getMiddleware(selectedElementId) ??
+          null
+        );
+      case "errors":
+        return (
+          findIn(errors) ?? introspector.getError(selectedElementId) ?? null
+        );
+      case "asyncContexts":
+        return (
+          findIn(asyncContexts) ??
+          introspector.getAsyncContext(selectedElementId) ??
+          null
+        );
+      case "tags":
+        return findIn(tags) ?? introspector.getTag(selectedElementId) ?? null;
+      default:
+        return null;
+    }
+  }, [
+    activeSection,
+    selectedElementId,
+    tasks,
+    resources,
+    events,
+    hooks,
+    middlewares,
+    errors,
+    asyncContexts,
+    tags,
+    introspector,
+  ]);
+
+  // Ordered neighbors for the detail pager: readers cycle within the
+  // section's own list instead of going back and forth to the list.
+  // A filtered-out detail still pages to the first/last list entry.
+  const detailNeighbors = React.useMemo(() => {
+    if (!detailElement) return null;
+    const listForSection = (): Array<{ id: string }> => {
+      switch (activeSection) {
+        case "tasks":
+          return tasks;
+        case "resources":
+          return resources;
+        case "events":
+          return events;
+        case "hooks":
+          return hooks;
+        case "middlewares":
+          return middlewares;
+        case "errors":
+          return errors;
+        case "asyncContexts":
+          return asyncContexts;
+        case "tags":
+          return tags;
+        default:
+          return [];
+      }
+    };
+    const list = listForSection();
+    if (list.length === 0) return null;
+    const index = list.findIndex((item) => item.id === selectedElementId);
+    const previous = index <= 0 ? list[list.length - 1] : list[index - 1];
+    const next =
+      index < 0 || index === list.length - 1 ? list[0] : list[index + 1];
+    return {
+      previous,
+      next,
+      position: index < 0 ? null : index + 1,
+      total: list.length,
+    };
+  }, [
+    detailElement,
+    activeSection,
+    selectedElementId,
+    tasks,
+    resources,
+    events,
+    hooks,
+    middlewares,
+    errors,
+    asyncContexts,
+    tags,
+  ]);
+
+  const renderDetailCard = () => {
+    if (!detailElement) return null;
+    switch (activeSection) {
+      case "tasks":
+        return (
+          <TaskCard
+            task={detailElement}
+            introspector={introspector}
+            mode={mode}
+          />
+        );
+      case "resources":
+        return (
+          <ResourceCard resource={detailElement} introspector={introspector} />
+        );
+      case "events":
+        return (
+          <EventCard
+            event={detailElement}
+            introspector={introspector}
+            mode={mode}
+          />
+        );
+      case "hooks":
+        return <HookCard hook={detailElement} introspector={introspector} />;
+      case "middlewares":
+        return (
+          <MiddlewareCard
+            middleware={detailElement}
+            introspector={introspector}
+          />
+        );
+      case "errors":
+        return <ErrorCard error={detailElement} introspector={introspector} />;
+      case "asyncContexts":
+        return (
+          <AsyncContextCard
+            asyncContext={detailElement}
+            introspector={introspector}
+          />
+        );
+      case "tags":
+        return <TagCard tag={detailElement} introspector={introspector} />;
+      default:
+        return null;
+    }
+  };
+
+  const activeSectionLabel =
+    sections.find((section) => section.id === activeSection)?.label ??
+    activeSection;
 
   return (
     <div
@@ -221,36 +502,52 @@ export const DocumentationMainContent: React.FC<
         </header>
 
         <div className="docs-section-tabs" role="tablist" aria-label="Sections">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              role="tab"
-              aria-selected={activeSection === section.id}
-              className={`docs-section-tab ${
-                activeSection === section.id ? "docs-section-tab--active" : ""
-              }`}
-              onClick={() => handleTabClick(section.id)}
-            >
-              <span className="docs-section-tab__icon">{section.icon}</span>
-              <span className="docs-section-tab__label">{section.label}</span>
-              {section.count !== null && (
-                <span className="docs-section-tab__count">{section.count}</span>
-              )}
-            </button>
-          ))}
+          {sections
+            .filter((section) => !ELEMENT_SECTION_IDS.has(section.id))
+            .map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                role="tab"
+                aria-selected={activeSection === section.id}
+                className={`docs-section-tab ${
+                  activeSection === section.id ? "docs-section-tab--active" : ""
+                }`}
+                onClick={() => handleTabClick(section.id)}
+              >
+                <span className="docs-section-tab__icon">
+                  <DocIcon name={section.icon} size={14} />
+                </span>
+                <span className="docs-section-tab__label">{section.label}</span>
+                {section.count !== null && (
+                  <span className="docs-section-tab__count">
+                    {section.count}
+                  </span>
+                )}
+              </button>
+            ))}
         </div>
 
         {mode !== "catalog" && activeSection === "live" && (
           <section id="live" className="docs-section">
-            <h2>📡 Live Telemetry</h2>
+            <h2>
+              <DocIcon name="live" size={18} className="doc-icon--accent" />{" "}
+              Live Telemetry
+            </h2>
             <LivePanel detailed introspector={introspector} />
           </section>
         )}
 
         {activeSection === "diagnostics" && (
           <section id="diagnostics" className="docs-section">
-            <h2>🔍 Diagnostics</h2>
+            <h2>
+              <DocIcon
+                name="diagnostics"
+                size={18}
+                className="doc-icon--accent"
+              />{" "}
+              Diagnostics
+            </h2>
             <DiagnosticsPanel introspector={introspector} detailed />
           </section>
         )}
@@ -258,7 +555,14 @@ export const DocumentationMainContent: React.FC<
         {activeSection === "overview" && (
           <section id="overview" className="docs-section">
             <div className="overview-header">
-              <h2>📋 Overview</h2>
+              <h2>
+                <DocIcon
+                  name="overview"
+                  size={18}
+                  className="doc-icon--accent"
+                />{" "}
+                Overview
+              </h2>
               {mode !== "catalog" && (
                 <div className="overview-header__actions">
                   <button
@@ -268,7 +572,9 @@ export const DocumentationMainContent: React.FC<
                     title="Open Runtime Shell (Ctrl+`)"
                     className="clean-button overview-header__shell-button"
                   >
-                    <span aria-hidden="true">💻</span>
+                    <span aria-hidden="true">
+                      <DocIcon name="terminal" size={14} />
+                    </span>
                     <span>Shell</span>
                   </button>
                   <button
@@ -278,7 +584,9 @@ export const DocumentationMainContent: React.FC<
                     title="Open Performance Stats"
                     className="clean-button overview-header__stats-button"
                   >
-                    <span aria-hidden="true">📊</span>
+                    <span aria-hidden="true">
+                      <DocIcon name="chart" size={14} />
+                    </span>
                     <span>Stats</span>
                   </button>
                 </div>
@@ -328,10 +636,10 @@ export const DocumentationMainContent: React.FC<
             </div>
 
             <div className="overview-run-info">
-              <h3>🚀 Run Info</h3>
+              <h3>Run Info</h3>
               <div className="overview-run-info__grid">
                 <div className="overview-run-info__item overview-run-info__item--root">
-                  <span className="overview-run-info__label">🎯 Root</span>
+                  <span className="overview-run-info__label">Root</span>
                   <a
                     href={`#element-${rootResource?.id}`}
                     className="overview-run-info__value overview-run-info__link"
@@ -341,7 +649,7 @@ export const DocumentationMainContent: React.FC<
                   </a>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">⚙️ Mode</span>
+                  <span className="overview-run-info__label">Mode</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${runOptions.mode}`}
                   >
@@ -349,7 +657,7 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">🐛 Debug</span>
+                  <span className="overview-run-info__label">Debug</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
                       runOptions.debugMode || (runOptions.debug ? "on" : "off")
@@ -359,7 +667,7 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">📝 Logs</span>
+                  <span className="overview-run-info__label">Logs</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
                       runOptions.logsEnabled
@@ -373,7 +681,7 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">🚀 Lifecycle</span>
+                  <span className="overview-run-info__label">Lifecycle</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${runOptions.lifecycleMode}`}
                   >
@@ -382,7 +690,7 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    ⏱️ Dispose Total
+                    Dispose Total
                   </span>
                   <span className="overview-run-info__value">
                     {typeof disposeOptions.totalBudgetMs === "number"
@@ -402,7 +710,7 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    🪟 Cooldown Window
+                    Cooldown Window
                   </span>
                   <span className="overview-run-info__value">
                     {typeof disposeOptions.cooldownWindowMs === "number"
@@ -411,7 +719,7 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">🏜️ Dry Run</span>
+                  <span className="overview-run-info__label">Dry Run</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
                       runOptions.dryRun ? "yes" : "no"
@@ -421,7 +729,7 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">🦥 Lazy</span>
+                  <span className="overview-run-info__label">Lazy</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
                       runOptions.lazy ? "yes" : "no"
@@ -432,7 +740,7 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    🛡️ Error Boundary
+                    Error Boundary
                   </span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${formatBooleanOption(
@@ -444,7 +752,7 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    🔌 Shutdown Hooks
+                    Shutdown Hooks
                   </span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${formatBooleanOption(
@@ -456,7 +764,7 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    🧭 Execution Context
+                    Execution Context
                   </span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
@@ -468,7 +776,7 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    🔄 Cycle Detection
+                    Cycle Detection
                   </span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${formatBooleanOption(
@@ -480,7 +788,7 @@ export const DocumentationMainContent: React.FC<
                 </div>
                 <div className="overview-run-info__item">
                   <span className="overview-run-info__label">
-                    ⚠️ Unhandled Handler
+                    Unhandled Handler
                   </span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
@@ -491,9 +799,7 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">
-                    📋 Log Strategy
-                  </span>
+                  <span className="overview-run-info__label">Log Strategy</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
                       runOptions.logsPrintStrategy || "unknown"
@@ -503,9 +809,7 @@ export const DocumentationMainContent: React.FC<
                   </span>
                 </div>
                 <div className="overview-run-info__item">
-                  <span className="overview-run-info__label">
-                    🗄️ Log Buffer
-                  </span>
+                  <span className="overview-run-info__label">Log Buffer</span>
                   <span
                     className={`overview-run-info__badge overview-run-info__badge--${
                       runOptions.logsBuffer ? "enabled" : "disabled"
@@ -522,7 +826,7 @@ export const DocumentationMainContent: React.FC<
                 <DocsSection
                   docsContent={docsContent}
                   id="docs-support"
-                  title="📚 Docs & Support"
+                  title="Docs & Support"
                   description="Reference guides for Runner, plus quick ways to report issues or reach the creator."
                   actions={
                     <>
@@ -564,243 +868,199 @@ export const DocumentationMainContent: React.FC<
 
         {/* Inline stats panel is no longer rendered here; overlay is handled by parent */}
 
-        {activeSection === "tasks" && tasks.length > 0 && (
-          <ElementTable
-            elements={tasks}
-            resources={resources}
-            title="Tasks Overview"
-            icon={getDocumentationIcon("tasks")}
-            id="tasks"
-            enableActions={mode === "catalog" ? undefined : "task"}
-            onAction={(el) => {
-              if (mode === "catalog") return;
-              // Ask the TaskCard to open its Run modal via a custom event
-              window.dispatchEvent(
-                new CustomEvent("docs:execute-element", {
-                  detail: { type: "task", id: el.id },
-                })
-              );
-            }}
-          />
-        )}
-        {activeSection === "tasks" && tasks.length > 0 && (
-          <section className="docs-section">
-            <h2>
-              {getDocumentationIcon("tasks")} Tasks ({tasks.length})
-            </h2>
-            <div className="docs-component-grid">
-              {tasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  introspector={introspector}
-                  mode={mode}
-                />
-              ))}
+        {detailElement ? (
+          <section ref={detailSectionRef} className="docs-section docs-detail">
+            <div className="docs-detail__nav">
+              <button
+                type="button"
+                className="docs-detail__back"
+                onClick={handleBackToList}
+                title="Back to list (Esc)"
+              >
+                <DocIcon name="arrow-left" size={14} />
+                <span>Back to {activeSectionLabel}</span>
+              </button>
+              <span className="docs-detail__id" title={selectedElementId ?? ""}>
+                {selectedElementId}
+              </span>
             </div>
+            {renderDetailCard()}
+            {detailNeighbors && (
+              <nav
+                className="docs-detail__pager"
+                aria-label="Walk through elements"
+              >
+                <a
+                  href={`#element-${detailNeighbors.previous.id}`}
+                  className="docs-detail__back"
+                  title={detailNeighbors.previous.id}
+                  aria-label="View previous element"
+                  onClick={handlePagerNavigate}
+                >
+                  <DocIcon name="arrow-left" size={14} />
+                  <span>Previous</span>
+                </a>
+                {detailNeighbors.position !== null && (
+                  <span className="docs-detail__position">
+                    {detailNeighbors.position} of {detailNeighbors.total}
+                  </span>
+                )}
+                <a
+                  href={`#element-${detailNeighbors.next.id}`}
+                  className="docs-detail__back"
+                  title={detailNeighbors.next.id}
+                  aria-label="View next element"
+                  onClick={handlePagerNavigate}
+                >
+                  <span>Next</span>
+                  <DocIcon name="arrow-right" size={14} />
+                </a>
+              </nav>
+            )}
           </section>
-        )}
+        ) : (
+          <>
+            {activeSection === "tasks" && tasks.length > 0 && (
+              <ElementTable
+                elements={tasks}
+                resources={resources}
+                title="Tasks Overview"
+                icon={getDocumentationIcon("tasks")}
+                id="tasks"
+                enableActions={mode === "catalog" ? undefined : "task"}
+                onAction={(el) => {
+                  if (mode === "catalog") return;
+                  // Ask the TaskCard to open its Run modal via a custom event
+                  window.dispatchEvent(
+                    new CustomEvent("docs:execute-element", {
+                      detail: { type: "task", id: el.id },
+                    })
+                  );
+                }}
+              />
+            )}
 
-        {activeSection === "resources" && resources.length > 0 && (
-          <ElementTable
-            elements={resources}
-            resources={resources}
-            title="Resources Overview"
-            icon={getDocumentationIcon("resources")}
-            id="resources"
-            enableActions={mode === "catalog" ? undefined : "resource"}
-            onAction={(el) => {
-              if (mode === "catalog") return;
-              // Ask the ResourceCard to open its Shell modal via a custom event
-              window.dispatchEvent(
-                new CustomEvent("docs:execute-element", {
-                  detail: { type: "resource", id: el.id },
-                })
-              );
-            }}
-          />
-        )}
-        {activeSection === "resources" && resources.length > 0 && (
-          <section className="docs-section">
-            <h2>
-              {getDocumentationIcon("resources")} Resources ({resources.length})
-            </h2>
-            <div className="docs-component-grid">
-              {resources.map((resource) => (
-                <ResourceCard
-                  key={resource.id}
-                  resource={resource}
-                  introspector={introspector}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            {activeSection === "resources" && resources.length > 0 && (
+              <ElementTable
+                elements={resources}
+                resources={resources}
+                title="Resources Overview"
+                icon={getDocumentationIcon("resources")}
+                id="resources"
+                enableActions={mode === "catalog" ? undefined : "resource"}
+                onAction={(el) => {
+                  if (mode === "catalog") return;
+                  // Ask the ResourceCard to open its Shell modal via a custom event
+                  window.dispatchEvent(
+                    new CustomEvent("docs:execute-element", {
+                      detail: { type: "resource", id: el.id },
+                    })
+                  );
+                }}
+              />
+            )}
 
-        {activeSection === "events" && events.length > 0 && (
-          <ElementTable
-            elements={events}
-            resources={resources}
-            title="Events Overview"
-            icon={getDocumentationIcon("events")}
-            id="events"
-            enableActions={mode === "catalog" ? undefined : "event"}
-            onAction={(el) => {
-              if (mode === "catalog") return;
-              // Ask the EventCard to open its Emit modal via a custom event
-              window.dispatchEvent(
-                new CustomEvent("docs:execute-element", {
-                  detail: { type: "event", id: el.id },
-                })
-              );
-            }}
-          />
-        )}
-        {activeSection === "events" && events.length > 0 && (
-          <section className="docs-section">
-            <h2>
-              {getDocumentationIcon("events")} Events ({events.length})
-            </h2>
-            <div className="docs-component-grid">
-              {events.map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  introspector={introspector}
-                  mode={mode}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            {activeSection === "events" && events.length > 0 && (
+              <ElementTable
+                elements={events}
+                resources={resources}
+                title="Events Overview"
+                icon={getDocumentationIcon("events")}
+                id="events"
+                enableActions={mode === "catalog" ? undefined : "event"}
+                onAction={(el) => {
+                  if (mode === "catalog") return;
+                  // Ask the EventCard to open its Emit modal via a custom event
+                  window.dispatchEvent(
+                    new CustomEvent("docs:execute-element", {
+                      detail: { type: "event", id: el.id },
+                    })
+                  );
+                }}
+              />
+            )}
 
-        {activeSection === "hooks" && hooks.length > 0 && (
-          <ElementTable
-            elements={hooks}
-            resources={resources}
-            title="Hooks Overview"
-            icon={getDocumentationIcon("hooks")}
-            id="hooks"
-          />
-        )}
-        {activeSection === "hooks" && hooks.length > 0 && (
-          <section className="docs-section">
-            <h2>
-              {getDocumentationIcon("hooks")} Hooks ({hooks.length})
-            </h2>
-            <div className="docs-component-grid">
-              {hooks.map((hook) => (
-                <HookCard
-                  key={hook.id}
-                  hook={hook}
-                  introspector={introspector}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            {activeSection === "hooks" && hooks.length > 0 && (
+              <ElementTable
+                elements={hooks}
+                resources={resources}
+                title="Hooks Overview"
+                icon={getDocumentationIcon("hooks")}
+                id="hooks"
+              />
+            )}
 
-        {activeSection === "errors" && errors.length > 0 && (
-          <ElementTable
-            elements={errors}
-            resources={resources}
-            title="Errors Overview"
-            icon={getDocumentationIcon("errors")}
-            id="errors"
-          />
-        )}
-        {activeSection === "errors" && errors.length > 0 && (
-          <section className="docs-section">
-            <h2>
-              {getDocumentationIcon("errors")} Errors ({errors.length})
-            </h2>
-            <div className="docs-component-grid">
-              {errors.map((error) => (
-                <ErrorCard
-                  key={error.id}
-                  error={error}
-                  introspector={introspector}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            {activeSection === "errors" && errors.length > 0 && (
+              <ElementTable
+                elements={errors}
+                resources={resources}
+                title="Errors Overview"
+                icon={getDocumentationIcon("errors")}
+                id="errors"
+              />
+            )}
 
-        {activeSection === "asyncContexts" && asyncContexts.length > 0 && (
-          <ElementTable
-            elements={asyncContexts}
-            resources={resources}
-            title="Async Contexts Overview"
-            icon={getDocumentationIcon("asyncContexts")}
-            id="asyncContexts"
-          />
-        )}
-        {activeSection === "asyncContexts" && asyncContexts.length > 0 && (
-          <section className="docs-section">
-            <h2>
-              {getDocumentationIcon("asyncContexts")} Async Contexts (
-              {asyncContexts.length})
-            </h2>
-            <div className="docs-component-grid">
-              {asyncContexts.map((asyncContext) => (
-                <AsyncContextCard
-                  key={asyncContext.id}
-                  asyncContext={asyncContext}
-                  introspector={introspector}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            {activeSection === "asyncContexts" && asyncContexts.length > 0 && (
+              <ElementTable
+                elements={asyncContexts}
+                resources={resources}
+                title="Async Contexts Overview"
+                icon={getDocumentationIcon("asyncContexts")}
+                id="asyncContexts"
+              />
+            )}
 
-        {activeSection === "middlewares" && middlewares.length > 0 && (
-          <ElementTable
-            elements={middlewares}
-            resources={resources}
-            title="Middleware Overview"
-            icon={getDocumentationIcon("middlewares")}
-            id="middlewares"
-            middlewareTypeFilters
-          />
-        )}
-        {activeSection === "middlewares" && middlewares.length > 0 && (
-          <section className="docs-section">
-            <h2>
-              {getDocumentationIcon("middlewares")} Middleware (
-              {middlewares.length})
-            </h2>
-            <div className="docs-component-grid">
-              {middlewares.map((middleware) => (
-                <MiddlewareCard
-                  key={middleware.id}
-                  middleware={middleware}
-                  introspector={introspector}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            {activeSection === "middlewares" && middlewares.length > 0 && (
+              <ElementTable
+                elements={middlewares}
+                resources={resources}
+                title="Middleware Overview"
+                icon={getDocumentationIcon("middlewares")}
+                id="middlewares"
+                middlewareTypeFilters
+              />
+            )}
 
-        {activeSection === "tags" && tags.length > 0 && (
-          <ElementTable
-            elements={tags}
-            resources={resources}
-            title="Tags Overview"
-            icon={getDocumentationIcon("tags")}
-            id="tags"
+            {activeSection === "tags" && tags.length > 0 && (
+              <ElementTable
+                elements={tags}
+                resources={resources}
+                title="Tags Overview"
+                icon={getDocumentationIcon("tags")}
+                id="tags"
+              />
+            )}
+          </>
+        )}
+        {mode !== "catalog" && executeTask && (
+          <ExecuteModal
+            isOpen
+            title={executeTask.meta?.title || formatId(executeTask.id)}
+            schemaString={executeTask.inputSchema}
+            onClose={() => setExecuteTarget(null)}
+            onInvoke={({ inputJson }) =>
+              invokeTaskById(executeTask.id, inputJson)
+            }
           />
         )}
-        {activeSection === "tags" && tags.length > 0 && (
-          <section className="docs-section">
-            <h2>
-              {getDocumentationIcon("tags")} Tags ({tags.length})
-            </h2>
-            <div className="docs-tags-grid">
-              {tags.map((tag) => (
-                <TagCard key={tag.id} tag={tag} introspector={introspector} />
-              ))}
-            </div>
-          </section>
+        {mode !== "catalog" && executeEvent && (
+          <ExecuteModal
+            isOpen
+            title={executeEvent.meta?.title || formatId(executeEvent.id)}
+            schemaString={executeEvent.payloadSchema}
+            onClose={() => setExecuteTarget(null)}
+            onInvoke={({ inputJson }) =>
+              invokeEventById(executeEvent.id, inputJson)
+            }
+          />
+        )}
+        {mode !== "catalog" && executeTarget?.type === "resource" && (
+          <ShellModal
+            key={executeTarget.id}
+            isOpen
+            onClose={() => setExecuteTarget(null)}
+            resourceId={executeTarget.id}
+          />
         )}
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { formatId } from "../utils/formatting";
+import { DocIcon } from "./common/DocIcon";
 import type {
   TopologyGraphNode,
   TopologyViewMode,
@@ -22,7 +23,7 @@ export const TopologyFocusBar: React.FC<TopologyFocusBarProps> = ({
         <span
           className={`topology-panel__kind topology-panel__kind--${selectedNode.kind}`}
         >
-          {selectedNode.icon}
+          <DocIcon name={selectedNode.icon} size={14} />
         </span>
         <div className="topology-panel__focus-copy">
           <div className="topology-panel__focus-title">{formattedPath}</div>

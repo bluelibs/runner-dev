@@ -14,86 +14,97 @@ jest.mock("./sidebar/SidebarHeader", () => ({
   SidebarHeader: ({ title }: { title: string }) => title,
 }));
 
-jest.mock("./Tooltip", () => ({
-  Tooltip: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-describe("DocumentationSidebar visibility toggles", () => {
+describe("DocumentationSidebar visibility filters", () => {
   beforeEach(() => {
     mockNavigationView.mockClear();
   });
 
-  it("renders SYSTEM, RUNNER, and PRIVATE toggles in compact rows", () => {
+  const renderSidebar = (props: Record<string, unknown> = {}) =>
     render(
       React.createElement(DocumentationSidebar, {
         sidebarWidth: 280,
         sidebarRef: React.createRef<HTMLElement>(),
         viewMode: "list",
         treeType: "namespace",
-        localNamespaceSearch: "",
-        showSystem: true,
-        showRunner: true,
-        showPrivate: true,
+        showSystem: false,
+        showRunner: false,
+        showPrivate: false,
         treeNodes: [],
         sections: [],
         onViewModeChange: () => {},
         onTreeTypeChange: () => {},
-        onNamespaceSearchChange: () => {},
         onShowSystemChange: () => {},
         onShowRunnerChange: () => {},
         onShowPrivateChange: () => {},
         onTreeNodeClick: () => {},
         onToggleExpansion: () => {},
         onSectionClick: () => {},
+        ...props,
       })
     );
 
-    expect(screen.getByText("SYSTEM")).toBeTruthy();
-    expect(screen.getByText("RUNNER")).toBeTruthy();
-    expect(screen.getByText("PRIVATE")).toBeTruthy();
+  it("opens a popover with Framework, System, and Private checkboxes", () => {
+    renderSidebar();
+
+    expect(screen.queryByText("Show Framework")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Visibility filters" }));
+
+    expect(screen.getByText("Show Framework")).toBeTruthy();
+    expect(screen.getByText("Show System")).toBeTruthy();
+    expect(screen.getByText("Show Private Components")).toBeTruthy();
     expect(screen.getAllByRole("checkbox")).toHaveLength(3);
   });
 
-  it("calls toggle handlers when SYSTEM, RUNNER, and PRIVATE are changed", () => {
+  it("calls filter handlers when the popover checkboxes are changed", () => {
     const onShowSystemChange = jest.fn();
     const onShowRunnerChange = jest.fn();
     const onShowPrivateChange = jest.fn();
 
-    render(
-      React.createElement(DocumentationSidebar, {
-        sidebarWidth: 280,
-        sidebarRef: React.createRef<HTMLElement>(),
-        viewMode: "list",
-        treeType: "namespace",
-        localNamespaceSearch: "",
-        showSystem: false,
-        showRunner: true,
-        showPrivate: false,
-        treeNodes: [],
-        sections: [],
-        onViewModeChange: () => {},
-        onTreeTypeChange: () => {},
-        onNamespaceSearchChange: () => {},
-        onShowSystemChange,
-        onShowRunnerChange,
-        onShowPrivateChange,
-        onTreeNodeClick: () => {},
-        onToggleExpansion: () => {},
-        onSectionClick: () => {},
-      })
-    );
+    renderSidebar({
+      showSystem: false,
+      showRunner: true,
+      showPrivate: false,
+      onShowSystemChange,
+      onShowRunnerChange,
+      onShowPrivateChange,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Visibility filters" }));
 
-    const systemToggle = screen.getByRole("checkbox", { name: "SYSTEM" });
-    const runnerToggle = screen.getByRole("checkbox", { name: "RUNNER" });
-    const privateToggle = screen.getByRole("checkbox", { name: "PRIVATE" });
+    const frameworkToggle = screen.getByRole("checkbox", {
+      name: /Show Framework/,
+    });
+    const systemToggle = screen.getByRole("checkbox", {
+      name: /Show System/,
+    });
+    const privateToggle = screen.getByRole("checkbox", {
+      name: /Show Private Components/,
+    });
 
+    fireEvent.click(frameworkToggle);
     fireEvent.click(systemToggle);
-    fireEvent.click(runnerToggle);
     fireEvent.click(privateToggle);
 
-    expect(onShowSystemChange).toHaveBeenCalledWith(true);
     expect(onShowRunnerChange).toHaveBeenCalledWith(false);
+    expect(onShowSystemChange).toHaveBeenCalledWith(true);
     expect(onShowPrivateChange).toHaveBeenCalledWith(true);
+  });
+
+  it("closes the popover on Escape", () => {
+    renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Visibility filters" }));
+    expect(screen.getByText("Show Framework")).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByText("Show Framework")).toBeNull();
+  });
+
+  it("closes the popover on outside pointer down", () => {
+    renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Visibility filters" }));
+    expect(screen.getByText("Show Framework")).toBeTruthy();
+
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByText("Show Framework")).toBeNull();
   });
 
   it("renders docs and support actions", () => {
@@ -103,7 +114,6 @@ describe("DocumentationSidebar visibility toggles", () => {
         sidebarRef: React.createRef<HTMLElement>(),
         viewMode: "list",
         treeType: "namespace",
-        localNamespaceSearch: "",
         showSystem: true,
         showRunner: true,
         showPrivate: true,
@@ -111,7 +121,6 @@ describe("DocumentationSidebar visibility toggles", () => {
         sections: [],
         onViewModeChange: () => {},
         onTreeTypeChange: () => {},
-        onNamespaceSearchChange: () => {},
         onShowSystemChange: () => {},
         onShowRunnerChange: () => {},
         onShowPrivateChange: () => {},
@@ -132,7 +141,6 @@ describe("DocumentationSidebar visibility toggles", () => {
         sidebarRef: React.createRef<HTMLElement>(),
         viewMode: "list",
         treeType: "namespace",
-        localNamespaceSearch: "",
         showSystem: true,
         showRunner: true,
         showPrivate: true,
@@ -162,7 +170,6 @@ describe("DocumentationSidebar visibility toggles", () => {
         ],
         onViewModeChange: () => {},
         onTreeTypeChange: () => {},
-        onNamespaceSearchChange: () => {},
         onShowSystemChange: () => {},
         onShowRunnerChange: () => {},
         onShowPrivateChange: () => {},
@@ -183,74 +190,14 @@ describe("DocumentationSidebar visibility toggles", () => {
     ]);
   });
 
-  it("shows a clear button only while the ID filter has content", () => {
-    const onNamespaceSearchChange = jest.fn();
-
-    const { rerender } = render(
-      React.createElement(DocumentationSidebar, {
-        sidebarWidth: 280,
-        sidebarRef: React.createRef<HTMLElement>(),
-        viewMode: "list",
-        treeType: "namespace",
-        localNamespaceSearch: "",
-        showSystem: true,
-        showRunner: true,
-        showPrivate: true,
-        treeNodes: [],
-        sections: [],
-        onViewModeChange: () => {},
-        onTreeTypeChange: () => {},
-        onNamespaceSearchChange,
-        onShowSystemChange: () => {},
-        onShowRunnerChange: () => {},
-        onShowPrivateChange: () => {},
-        onTreeNodeClick: () => {},
-        onToggleExpansion: () => {},
-        onSectionClick: () => {},
-      })
-    );
-
-    expect(screen.queryByLabelText("Clear ID filter")).toBeNull();
-
-    rerender(
-      React.createElement(DocumentationSidebar, {
-        sidebarWidth: 280,
-        sidebarRef: React.createRef<HTMLElement>(),
-        viewMode: "list",
-        treeType: "namespace",
-        localNamespaceSearch: "task.user",
-        showSystem: true,
-        showRunner: true,
-        showPrivate: true,
-        treeNodes: [],
-        sections: [],
-        onViewModeChange: () => {},
-        onTreeTypeChange: () => {},
-        onNamespaceSearchChange,
-        onShowSystemChange: () => {},
-        onShowRunnerChange: () => {},
-        onShowPrivateChange: () => {},
-        onTreeNodeClick: () => {},
-        onToggleExpansion: () => {},
-        onSectionClick: () => {},
-      })
-    );
-
-    fireEvent.click(screen.getByLabelText("Clear ID filter"));
-
-    expect(onNamespaceSearchChange).toHaveBeenCalledWith("");
-  });
-
-  it("clears the ID filter when Escape is pressed while the input is focused", () => {
-    const onNamespaceSearchChange = jest.fn();
-
+  it("opens the palette from the search trigger", () => {
+    const onOpenPalette = jest.fn();
     render(
       React.createElement(DocumentationSidebar, {
         sidebarWidth: 280,
         sidebarRef: React.createRef<HTMLElement>(),
         viewMode: "list",
         treeType: "namespace",
-        localNamespaceSearch: "task.user",
         showSystem: true,
         showRunner: true,
         showPrivate: true,
@@ -258,21 +205,83 @@ describe("DocumentationSidebar visibility toggles", () => {
         sections: [],
         onViewModeChange: () => {},
         onTreeTypeChange: () => {},
-        onNamespaceSearchChange,
         onShowSystemChange: () => {},
         onShowRunnerChange: () => {},
         onShowPrivateChange: () => {},
         onTreeNodeClick: () => {},
         onToggleExpansion: () => {},
         onSectionClick: () => {},
+        onOpenPalette,
+        onOpenShortcuts: () => {},
       })
     );
 
-    const input = screen.getByPlaceholderText("Filter by ID...");
-    input.focus();
-    fireEvent.keyDown(input, { key: "Escape" });
+    fireEvent.click(screen.getByTitle(/⌘K/));
+    expect(onOpenPalette).toHaveBeenCalledTimes(1);
+  });
 
-    expect(onNamespaceSearchChange).toHaveBeenCalledWith("");
+  it("opens shortcuts help and toggles the theme from the footer", () => {
+    const onOpenShortcuts = jest.fn();
+    const onToggleDarkMode = jest.fn();
+    render(
+      React.createElement(DocumentationSidebar, {
+        sidebarWidth: 280,
+        sidebarRef: React.createRef<HTMLElement>(),
+        isDarkMode: true,
+        onToggleDarkMode,
+        viewMode: "list",
+        treeType: "namespace",
+        showSystem: true,
+        showRunner: true,
+        showPrivate: true,
+        treeNodes: [],
+        sections: [],
+        onViewModeChange: () => {},
+        onTreeTypeChange: () => {},
+        onShowSystemChange: () => {},
+        onShowRunnerChange: () => {},
+        onShowPrivateChange: () => {},
+        onTreeNodeClick: () => {},
+        onToggleExpansion: () => {},
+        onSectionClick: () => {},
+        onOpenPalette: () => {},
+        onOpenShortcuts,
+      })
+    );
+
+    fireEvent.click(screen.getByTitle(/keyboard shortcuts/));
+    expect(onOpenShortcuts).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTitle(/light theme/));
+    expect(onToggleDarkMode).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the theme toggle when no handler is provided", () => {
+    render(
+      React.createElement(DocumentationSidebar, {
+        sidebarWidth: 280,
+        sidebarRef: React.createRef<HTMLElement>(),
+        viewMode: "list",
+        treeType: "namespace",
+        showSystem: true,
+        showRunner: true,
+        showPrivate: true,
+        treeNodes: [],
+        sections: [],
+        onViewModeChange: () => {},
+        onTreeTypeChange: () => {},
+        onShowSystemChange: () => {},
+        onShowRunnerChange: () => {},
+        onShowPrivateChange: () => {},
+        onTreeNodeClick: () => {},
+        onToggleExpansion: () => {},
+        onSectionClick: () => {},
+        onOpenPalette: () => {},
+        onOpenShortcuts: () => {},
+      })
+    );
+
+    expect(screen.queryByTitle(/theme/)).toBeNull();
   });
 
   it("dispatches docs:open-shell when the Shell action is clicked", () => {
@@ -286,7 +295,6 @@ describe("DocumentationSidebar visibility toggles", () => {
           sidebarRef: React.createRef<HTMLElement>(),
           viewMode: "list",
           treeType: "namespace",
-          localNamespaceSearch: "",
           showSystem: true,
           showRunner: true,
           showPrivate: true,
@@ -294,7 +302,6 @@ describe("DocumentationSidebar visibility toggles", () => {
           sections: [],
           onViewModeChange: () => {},
           onTreeTypeChange: () => {},
-          onNamespaceSearchChange: () => {},
           onShowSystemChange: () => {},
           onShowRunnerChange: () => {},
           onShowPrivateChange: () => {},

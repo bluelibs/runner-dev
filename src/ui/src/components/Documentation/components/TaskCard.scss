@@ -25,7 +25,8 @@
 // Task Card Header
 // -----------------------------------------------------------------------------
 .task-card__header {
-  background: $gradient-primary;
+  background: var(--docs-bg-secondary);
+  border-bottom: 1px solid var(--docs-border-primary);
   color: var(--docs-text-primary);
   padding: $spacing-xl;
 }
@@ -55,13 +56,18 @@
     flex-shrink: 0;
 
     button {
-      border: none;
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
+      border: 1px solid var(--docs-border-primary);
+      background: var(--docs-hover-bg);
+      color: var(--docs-text-secondary);
       padding: 6px 8px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
+
+      &:hover {
+        background: var(--docs-active-bg);
+        color: var(--docs-text-primary);
+      }
     }
   }
 
@@ -114,7 +120,8 @@
 }
 
 .task-card__tag {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -208,25 +215,24 @@
 
 .task-card__emit-event-link {
   display: inline-block;
-  background: var(--docs-primary-bg);
-  color: var(--docs-primary);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   text-decoration: none;
   font-size: $font-size-xs;
   font-weight: 500;
-  border: 1px solid var(--docs-primary-border);
+  border: 1px solid var(--docs-border-primary);
   transition: all 0.2s ease;
 
   &:hover {
-    background: var(--docs-primary-hover-bg);
-    color: var(--docs-primary);
+    background: var(--docs-active-bg);
+    color: var(--docs-text-primary);
     text-decoration: none;
-    transform: translateY(-1px);
   }
 
   &:focus {
-    outline: 2px solid var(--docs-primary);
+    outline: 2px solid var(--docs-focus-ring);
     outline-offset: 2px;
   }
 }
@@ -313,46 +319,29 @@
 // -----------------------------------------------------------------------------
 .task-card__relation-item {
   padding: $spacing-sm $font-size-md;
-  border-radius: $border-radius-lg;
-  border-left: 4px solid;
+  border-radius: $border-radius-sm;
+  border: 1px solid var(--docs-border-primary);
   display: block;
+  background: var(--docs-bg-secondary);
 
-  &--task {
-    background: var(--docs-primary-bg);
-    border-left-color: var(--docs-primary);
-  }
-
-  &--resource {
-    background: var(--docs-success-bg);
-    border-left-color: var(--docs-success);
-  }
-
-  &--event {
-    background: var(--docs-warning-bg);
-    border-left-color: var(--docs-warning);
-  }
-
+  &--task,
+  &--resource,
+  &--event,
   &--error {
-    background: var(--docs-error-bg);
-    border-left-color: var(--docs-error);
+    background: var(--docs-bg-secondary);
+    border-color: var(--docs-border-primary);
   }
 
   .title {
     font-weight: 600;
     margin-bottom: $spacing-xs;
+    color: var(--docs-text-primary);
 
-    &--task {
-      color: var(--docs-primary);
-    }
-    &--resource {
-      color: var(--docs-success);
-    }
-    &--event {
-      color: var(--docs-warning);
-    }
-
+    &--task,
+    &--resource,
+    &--event,
     &--error {
-      color: var(--docs-error);
+      color: var(--docs-text-primary);
     }
   }
 
@@ -375,33 +364,12 @@
   position: relative;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-decoration: none;
-
-    &.task-card__relation-item--task {
-      background: var(--docs-primary-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-primary-light);
-    }
-
-    &.task-card__relation-item--resource {
-      background: var(--docs-success-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-success-light);
-    }
-
-    &.task-card__relation-item--event {
-      background: var(--docs-warning-bg);
-      box-shadow: 0 4px 12px var(--docs-warning-light);
-    }
-
-    &.task-card__relation-item--error {
-      background: var(--docs-error-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-error-light);
-    }
+    background: var(--docs-hover-bg);
   }
 
   &:focus {
-    outline: 2px solid var(--docs-primary);
+    outline: 2px solid var(--docs-focus-ring);
     outline-offset: 2px;
   }
 
@@ -411,7 +379,7 @@
 
   // Add a subtle click indicator
   &::after {
-    content: "🔗";
+    content: "→";
     position: absolute;
     top: 50%;
     right: $spacing-sm;
@@ -435,7 +403,7 @@
 
   .task-card__relation-item {
     background: var(--docs-bg-secondary);
-    border: 1px solid var(--docs-error-border, #ff6b6b);
+    border: 1px solid var(--docs-danger);
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
     display: flex;
@@ -447,19 +415,17 @@
     position: relative;
 
     &:hover {
-      background: var(--docs-error-bg, rgba(255, 107, 107, 0.1));
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.15);
+      background: var(--docs-error-bg);
     }
 
     .title--error {
-      color: var(--docs-error-color, #ff6b6b);
+      color: var(--docs-error-text);
       font-weight: 600;
     }
 
     .id {
       font-size: $font-size-xs;
-      color: var(--docs-text-tertiary);
+      color: var(--docs-text-muted);
       font-family: $font-family-mono;
       word-break: break-all;
       overflow-wrap: break-word;
@@ -543,9 +509,9 @@
     align-items: center;
     border-radius: $border-radius-pill;
     padding: $spacing-xs $spacing-sm;
-    background: rgba(255, 184, 77, 0.18);
-    border: 1px solid rgba(255, 184, 77, 0.38);
-    color: var(--docs-warning, #ffb84d);
+    background: var(--docs-warning-bg);
+    border: 1px solid var(--docs-warning);
+    color: var(--docs-warning-text);
     font-size: $font-size-xs;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -562,7 +528,7 @@
     a {
       color: inherit;
       text-decoration: underline;
-      text-decoration-color: var(--docs-border-hover);
+      text-decoration-color: var(--docs-border-secondary);
     }
   }
 }
@@ -585,12 +551,11 @@
 
   &:hover {
     opacity: 1;
-    transform: translateY(-1px);
     border-bottom-color: currentColor;
   }
 
   &:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.82);
+    outline: 2px solid var(--docs-focus-ring);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -625,12 +590,12 @@
   color: var(--docs-text-primary);
   text-decoration: none;
   font-weight: 600;
-  border-bottom: 1px dotted var(--docs-border-hover);
+  border-bottom: 1px dotted var(--docs-border-secondary);
   transition: all 0.2s ease;
 
   &:hover {
-    color: var(--docs-link-color);
-    border-bottom-color: var(--docs-link-color);
+    color: var(--docs-text-secondary);
+    border-bottom-color: var(--docs-text-secondary);
   }
 }
 
@@ -663,12 +628,12 @@
   color: var(--docs-text-primary);
   text-decoration: none;
   font-weight: 600;
-  border-bottom: 1px dotted var(--docs-border-hover);
+  border-bottom: 1px dotted var(--docs-border-secondary);
   transition: all 0.2s ease;
 
   &:hover {
-    color: var(--docs-link-color);
-    border-bottom-color: var(--docs-link-color);
+    color: var(--docs-text-secondary);
+    border-bottom-color: var(--docs-text-secondary);
   }
 }
 
@@ -716,7 +681,6 @@
 
   &:hover {
     background: var(--docs-bg-primary);
-    border-color: var(--docs-border-hover);
-    transform: translateY(-1px);
+    border-color: var(--docs-border-secondary);
   }
 }

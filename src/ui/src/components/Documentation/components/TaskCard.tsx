@@ -4,6 +4,7 @@ import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   formatFilePath,
   formatId,
+  getCoverageColor,
   shouldDisplayConfig,
 } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
@@ -19,9 +20,12 @@ import ExecuteModal from "./ExecuteModal";
 import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
+import { DocIcon } from "./common/DocIcon";
 import { isSystemElement } from "../utils/isSystemElement";
+import { invokeTaskById } from "../utils/invokeElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { OverviewIdLink } from "./common/OverviewIdLink";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 import type { DocumentationMode } from "../../../../../resources/docsPayload";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
@@ -210,12 +214,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <span
                 style={{
                   fontWeight: 600,
-                  color:
-                    task.coverage.percentage >= 100
-                      ? "#2e7d32"
-                      : task.coverage.percentage >= 80
-                      ? "#ef6c00"
-                      : "#c62828",
+                  color: getCoverageColor(task.coverage.percentage),
                 }}
               >
                 {task.coverage.percentage}%
@@ -263,13 +262,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               <InfoBlock prefix="task-card" label="Intercepted By:">
                 <div className="task-card__tags">
                   {task.interceptorOwnerIds.map((ownerId) => (
-                    <a
-                      href={`#element-${ownerId}`}
+                    <OverviewIdLink
                       key={ownerId}
-                      className="clean-button"
-                    >
-                      {formatId(ownerId)}
-                    </a>
+                      element={{ id: ownerId }}
+                      resources={introspector.getResources()}
+                      href={`#element-${ownerId}`}
+                    />
                   ))}
                 </div>
               </InfoBlock>
@@ -307,13 +305,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <InfoBlock prefix="task-card" label="Tags:">
               <div className="task-card__tags">
                 {introspector.getTagsByIds(task.tags).map((tag) => (
-                  <a
-                    href={`#element-${tag.id}`}
+                  <OverviewIdLink
                     key={tag.id}
-                    className="clean-button"
-                  >
-                    {formatId(tag.id)}
-                  </a>
+                    element={tag}
+                    resources={introspector.getResources()}
+                    href={`#element-${tag.id}`}
+                  />
                 ))}
               </div>
             </InfoBlock>
@@ -395,7 +392,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {contextInfo.length > 0 && (
           <CardSection
             prefix="task-card"
-            title="🔄 Async Contexts"
+            title={
+              <>
+                <DocIcon
+                  name="asyncContext"
+                  size={13}
+                  className="doc-icon--accent"
+                />{" "}
+                Async Contexts
+              </>
+            }
             className="task-card__context-info"
             contentClassName="task-card__context-info__content"
           >
@@ -532,40 +538,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           title={task.meta?.title || formatId(task.id)}
           schemaString={task.inputSchema}
           onClose={() => setIsExecuteOpen(false)}
-          onInvoke={async ({ inputJson }) => {
-            const INVOKE_TASK_MUTATION = `
-              mutation InvokeTask($taskId: ID!, $inputJson: String, $evalInput: Boolean) {
-                invokeTask(taskId: $taskId, inputJson: $inputJson, evalInput: $evalInput) {
-                  success
-                  error
-                  result
-                  invocationId
-                }
-              }
-            `;
-
-            try {
-              const res = await graphqlRequest<{
-                invokeTask: {
-                  success: boolean;
-                  error?: string | null;
-                  result?: string | null;
-                  invocationId?: string | null;
-                };
-              }>(INVOKE_TASK_MUTATION, {
-                taskId: task.id,
-                inputJson: inputJson?.trim() || undefined,
-                evalInput: false,
-              });
-
-              return {
-                output: res.invokeTask.result ?? undefined,
-                error: res.invokeTask.error ?? undefined,
-              };
-            } catch (e: any) {
-              return { error: e?.message ?? String(e) };
-            }
-          }}
+          onInvoke={({ inputJson }) => invokeTaskById(task.id, inputJson)}
         />
       )}
 

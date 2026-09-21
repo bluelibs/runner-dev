@@ -1,4 +1,5 @@
 import React from "react";
+import { DocIcon } from "./DocIcon";
 import "./SearchableList.scss";
 
 export interface SearchableListItem {
@@ -57,7 +58,7 @@ export const SearchableList: React.FC<SearchableListProps> = ({
       {items.length > searchThreshold && (
         <div className="searchable-list__search">
           <span className="searchable-list__search-icon" aria-hidden="true">
-            🔎
+            <DocIcon name="diagnostics" size={14} />
           </span>
           <input
             type="search"

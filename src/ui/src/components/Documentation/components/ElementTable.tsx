@@ -1,12 +1,12 @@
 import React from "react";
 import { MarkdownRenderer } from "../utils/markdownUtils";
 import { OverviewIdLink } from "./common/OverviewIdLink";
+import { DocIcon } from "./common/DocIcon";
 import "./ElementTable.scss";
 
-type SortKey = "id" | "title" | "description" | "usedBy" | "visibility";
+type SortKey = "id" | "title" | "description" | "usedBy";
 type SortDirection = "asc" | "desc";
-type ColumnFilterKey = Exclude<SortKey, "visibility">;
-type ColumnFilters = Record<ColumnFilterKey, string>;
+type ColumnFilters = Record<SortKey, string>;
 
 export interface BaseElement {
   id: string;
@@ -187,7 +187,6 @@ export const ElementTable: React.FC<ElementTableProps> = ({
       if (key === "id") return element.id;
       if (key === "title") return element.meta?.title ?? "";
       if (key === "description") return element.meta?.description ?? "";
-      if (key === "visibility") return element.isPrivate ? 1 : 0;
       return getUsedByCount(element);
     };
 
@@ -312,10 +311,18 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     return null;
   };
 
+  const openElementDetail = React.useCallback((elementId: string) => {
+    window.location.hash = `#element-${elementId}`;
+  }, []);
+
   return (
     <div className="element-table" id={id}>
       <h2 className="element-table__title">
-        {icon && <span className="element-table__icon">{icon}</span>}
+        {icon && (
+          <span className="element-table__icon">
+            <DocIcon name={icon} size={18} />
+          </span>
+        )}
         {title} ({elements.length})
       </h2>
       {middlewareTypeFilters && (
@@ -480,28 +487,6 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                   />
                 </div>
               </th>
-              <th
-                className="element-table__header element-table__header--visibility"
-                aria-sort={getAriaSort("visibility")}
-              >
-                <div className="element-table__header-content">
-                  <button
-                    className="element-table__sort-btn"
-                    type="button"
-                    onClick={() => handleSort("visibility")}
-                  >
-                    <span>Visibility</span>
-                    <span
-                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
-                        "visibility"
-                      )}`}
-                      aria-hidden
-                    >
-                      {getSortIndicator("visibility")}
-                    </span>
-                  </button>
-                </div>
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -510,7 +495,11 @@ export const ElementTable: React.FC<ElementTableProps> = ({
               const usedByCount = getUsedByCount(element);
 
               return (
-                <tr key={element.id} className="element-table__row">
+                <tr
+                  key={element.id}
+                  className="element-table__row element-table__row--clickable"
+                  onClick={() => openElementDetail(element.id)}
+                >
                   <td className="element-table__cell element-table__cell--id">
                     <div className="element-table__id-container">
                       <OverviewIdLink
@@ -547,6 +536,11 @@ export const ElementTable: React.FC<ElementTableProps> = ({
                         {getMiddlewareScopeLabel(element) && (
                           <span className="element-table__scope-badge">
                             {getMiddlewareScopeLabel(element)}
+                          </span>
+                        )}
+                        {element.isPrivate && (
+                          <span className="element-table__private-marker">
+                            private
                           </span>
                         )}
                       </span>
@@ -625,17 +619,6 @@ export const ElementTable: React.FC<ElementTableProps> = ({
 
                   <td className="element-table__cell element-table__cell--used-by">
                     {usedByCount}
-                  </td>
-                  <td className="element-table__cell element-table__cell--visibility">
-                    <span
-                      className={`element-table__visibility-badge ${
-                        element.isPrivate
-                          ? "element-table__visibility-badge--private"
-                          : "element-table__visibility-badge--public"
-                      }`}
-                    >
-                      {element.isPrivate ? "Private" : "Public"}
-                    </span>
                   </td>
                 </tr>
               );

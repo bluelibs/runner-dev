@@ -47,7 +47,7 @@ const app = r
 - Runtime shell (REPL) in the UI and via the `shell` GraphQL mutation: per-resource shells bind `r` to the live resource value, plus a global shell with full `runtime` access.
 - Static catalog export via `exportDocs(app, { output?, overwrite? })` for a standalone frozen docs site under `./runner-dev-catalog` by default.
 - Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters.
-- Overview tables now include `Visibility` (`Public`/`Private`) derived from Runner resource `isolate()` boundaries.
+- Overview tables mark private elements with a tag under the title (visibility derived from Runner resource `isolate()` boundaries).
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
 - Task introspection includes runtime `interceptorCount` / `hasInterceptors` (registered via `taskDependency.intercept(...)` in resource init).
 - Resource introspection includes `isolation` (`deny`, `only`, `exports`, `exportsMode`) from `.isolate(...)`.
@@ -152,6 +152,7 @@ Inside the UI, you can:
 - Inspect live logs and event emissions in real-time.
 - View and edit files directly via the browser.
 - Open a runtime shell per resource (`Shell` button, `r` is the live resource value) or a global shell from the sidebar (``Ctrl+` ``) with full `runtime` access.
+- Press `⌘K`/`Ctrl+K` for the command palette (fuzzy-jump to any element, section, or action) and `?` for the full keyboard shortcut map (`g` + key section jumps, `/` focuses the sidebar filter, `Esc` walks back).
 
 ### Static Catalog Export
 
@@ -1387,7 +1388,7 @@ mutation {
 }
 ```
 
-In the UI, every resource card and resources overview row has a `Shell` action, and the sidebar footer (or ``Ctrl+` ``) opens a global runtime shell. The editor completes scope members as you type (`r`, `runtime`, `store`, …) via the side-effect-free `shellComplete` query, with `Enter` to run, `Shift+Enter` for a new line, and `Tab` to accept a suggestion.
+In the UI, every resource card and resources overview row has a `Shell` action, and the sidebar footer (or ``Ctrl+` ``) opens a global runtime shell — also available from the `⌘K` command palette. The editor completes scope members as you type (`r`, `runtime`, `store`, …) via the side-effect-free `shellComplete` query, with `Enter` to run, `Shift+Enter` for a new line, and `Tab` to accept a suggestion.
 
 ### Use Cases
 

@@ -8,7 +8,9 @@ import {
 } from "../../utils/graphqlClient";
 import { Introspector } from "../../../../../../resources/models/Introspector";
 import { CardSection, InfoBlock } from "../common/ElementCard";
+import { DocIcon } from "../common/DocIcon";
 import { RegisteredByInfoBlock } from "../common/RegisteredByInfoBlock";
+import { OverviewIdLink } from "../common/OverviewIdLink";
 import { useIsCatalogDocumentation } from "../../context/DocumentationModeContext";
 
 export interface HookOverviewProps {
@@ -58,7 +60,12 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
     <>
       <CardSection
         prefix="hook-card"
-        title="📋 Overview"
+        title={
+          <>
+            <DocIcon name="overview" size={13} className="doc-icon--accent" />{" "}
+            Overview
+          </>
+        }
         contentClassName="hook-card__section__content"
       >
         <InfoBlock prefix="hook-card" label="File Path:">
@@ -79,7 +86,9 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
         <InfoBlock prefix="hook-card" label="Target Events:">
           {isGlobal ? (
             <div className="hook-card__global-event">
-              <span className="global-indicator">🌐 ALL EVENTS</span>
+              <span className="global-indicator">
+                <DocIcon name="globe" size={13} /> ALL EVENTS
+              </span>
               <div className="global-description">
                 This hook listens to every event in the system
               </div>
@@ -120,13 +129,12 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
           <InfoBlock prefix="hook-card" label="Tags:">
             <div className="hook-card__tags">
               {introspector.getTagsByIds(hook.tags).map((tag) => (
-                <a
-                  href={`#element-${tag.id}`}
+                <OverviewIdLink
                   key={tag.id}
-                  className="clean-button"
-                >
-                  {formatId(tag.id)}
-                </a>
+                  element={tag}
+                  resources={introspector.getResources()}
+                  href={`#element-${tag.id}`}
+                />
               ))}
             </div>
           </InfoBlock>
@@ -134,7 +142,9 @@ export const HookOverview: React.FC<HookOverviewProps> = ({
 
         {hook.overriddenBy && (
           <div className="hook-card__alert hook-card__alert--warning">
-            <div className="title">⚠️ Overridden By:</div>
+            <div className="title">
+              <DocIcon name="warning" size={13} /> Overridden By:
+            </div>
             <div className="content">{hook.overriddenBy}</div>
           </div>
         )}

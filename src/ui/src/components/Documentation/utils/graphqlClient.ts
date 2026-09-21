@@ -205,6 +205,16 @@ export interface ShellMutationResult {
   };
 }
 
+export const SHELL_ENABLED_QUERY = `
+  query ShellEnabled {
+    shellEnabled
+  }
+`;
+
+export interface ShellEnabledResult {
+  shellEnabled: boolean;
+}
+
 export const SHELL_COMPLETE_QUERY = `
   query ShellComplete($code: String!, $position: Int!, $resourceId: ID) {
     shellComplete(code: $code, position: $position, resourceId: $resourceId) {

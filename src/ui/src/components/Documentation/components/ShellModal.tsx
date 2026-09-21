@@ -1,6 +1,10 @@
 import React from "react";
 import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { acceptCompletion, autocompletion } from "@codemirror/autocomplete";
+import {
+  acceptCompletion,
+  autocompletion,
+  startCompletion,
+} from "@codemirror/autocomplete";
 import {
   javascript,
   localCompletionSource,
@@ -12,7 +16,9 @@ import { copyToClipboard } from "./chat/ChatUtils";
 import { BaseModal } from "./modals";
 import {
   graphqlRequest,
+  SHELL_ENABLED_QUERY,
   SHELL_MUTATION,
+  type ShellEnabledResult,
   type ShellMutationResult,
 } from "../utils/graphqlClient";
 import { createShellCompletionSource } from "../utils/shellCompletion";
@@ -65,6 +71,28 @@ function buildExamples(resourceId: string | null): string[] {
 
 let shellEntryCounter = 0;
 
+/**
+ * Whether the cursor sits on the editor edge in the given direction, so
+ * Up/Down can browse history instead of moving the caret. Unknown shapes
+ * (tests) and single-line editors always allow history.
+ */
+function isHistoryEdge(
+  view: { state?: unknown } | null | undefined,
+  direction: -1 | 1
+): boolean {
+  const state = view?.state as
+    | {
+        doc?: { lines: number; lineAt: (pos: number) => { number: number } };
+        selection?: { main?: { head?: number } };
+      }
+    | undefined;
+  const doc = state?.doc;
+  const head = state?.selection?.main?.head;
+  if (!doc || typeof head !== "number" || doc.lines <= 1) return true;
+  const line = doc.lineAt(head).number;
+  return direction < 0 ? line === 1 : line === doc.lines;
+}
+
 export const ShellModal: React.FC<ShellModalProps> = ({
   isOpen,
   onClose,
@@ -73,6 +101,10 @@ export const ShellModal: React.FC<ShellModalProps> = ({
   const [code, setCode] = React.useState<string>("");
   const [entries, setEntries] = React.useState<ShellEntry[]>([]);
   const [running, setRunning] = React.useState<boolean>(false);
+  // Tri-state: null while the server gate is unknown (assume enabled so the
+  // UI never flashes a disabled state on slow networks), then the real value.
+  const [shellEnabled, setShellEnabled] = React.useState<boolean | null>(null);
+  const isShellDisabled = shellEnabled === false;
   const [copiedEntryId, setCopiedEntryId] = React.useState<number | null>(null);
   const transcriptRef = React.useRef<HTMLDivElement>(null);
   const editorWrapRef = React.useRef<HTMLDivElement>(null);
@@ -120,6 +152,28 @@ export const ShellModal: React.FC<ShellModalProps> = ({
 
   const title = resourceId ? `Shell — ${resourceId}` : "Shell — Runtime";
 
+  // Surface the server-side shell gate up front so users don't discover it
+  // by sending a snippet. Failures keep the optimistic state; the mutation
+  // surfaces the real error if a run is attempted.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setShellEnabled(null);
+    void (async () => {
+      try {
+        const response = await graphqlRequest<ShellEnabledResult>(
+          SHELL_ENABLED_QUERY
+        );
+        if (!cancelled) setShellEnabled(response?.shellEnabled ?? true);
+      } catch {
+        if (!cancelled) setShellEnabled(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   React.useEffect(() => {
     cancelledRef.current = false;
     return () => {
@@ -154,7 +208,7 @@ export const ShellModal: React.FC<ShellModalProps> = ({
 
   const handleRun = React.useCallback(async () => {
     const snippet = code.trim();
-    if (!snippet || running) return;
+    if (!snippet || running || isShellDisabled) return;
 
     const entry: ShellEntry = {
       id: ++shellEntryCounter,
@@ -163,6 +217,8 @@ export const ShellModal: React.FC<ShellModalProps> = ({
       startedAt: Date.now(),
     };
     setEntries((prev) => [...prev, entry]);
+    historyRef.current = [...historyRef.current, snippet];
+    historyIndexRef.current = null;
     setCode("");
     setRunning(true);
     stickToBottomRef.current = true;
@@ -205,12 +261,81 @@ export const ShellModal: React.FC<ShellModalProps> = ({
         setRunning(false);
       }
     }
-  }, [code, resourceId, running]);
+  }, [code, resourceId, running, isShellDisabled]);
+
+  // Submitted snippets, oldest first. Independent from the transcript so
+  // clearing entries never wipes recall. Navigation state: null when the
+  // editor shows the live draft, otherwise the recalled history index.
+  const editorRef = React.useRef<ReactCodeMirrorRef>(null);
+  const historyRef = React.useRef<string[]>([]);
+  const historyIndexRef = React.useRef<number | null>(null);
+  const historyDraftRef = React.useRef<string>("");
+  // Navigation writes count: lets onChange tell programmatic history
+  // recalls (keep position) apart from manual edits (reset position).
+  const historyNavWritesRef = React.useRef<number>(0);
+
+  const replaceEditorText = React.useCallback((text: string) => {
+    const view = editorRef.current?.view as
+      | {
+          dispatch?: (spec: unknown) => void;
+          state?: { doc?: { length?: number } };
+        }
+      | undefined;
+    if (typeof view?.dispatch === "function") {
+      historyNavWritesRef.current += 1;
+      view.dispatch({
+        changes: {
+          from: 0,
+          to: view.state?.doc?.length ?? text.length,
+          insert: text,
+        },
+        selection: { anchor: text.length },
+      });
+    }
+    setCode(text);
+  }, []);
+
+  const navigateHistory = React.useCallback(
+    (direction: -1 | 1): boolean => {
+      const history = historyRef.current;
+      if (history.length === 0) return false;
+      let index = historyIndexRef.current;
+      if (index === null) {
+        if (direction > 0) return false;
+        historyDraftRef.current = code;
+        index = history.length;
+      }
+      index += direction;
+      if (index < 0) index = 0;
+      if (index >= history.length) {
+        historyIndexRef.current = null;
+        replaceEditorText(historyDraftRef.current);
+        return true;
+      }
+      historyIndexRef.current = index;
+      replaceEditorText(history[index]);
+      return true;
+    },
+    [code, replaceEditorText]
+  );
+
+  const handleEditorChange = React.useCallback((value: string) => {
+    if (historyNavWritesRef.current > 0) {
+      historyNavWritesRef.current -= 1;
+    } else {
+      historyIndexRef.current = null;
+    }
+    setCode(value);
+  }, []);
 
   // Enter always runs, Shift+Enter inserts a newline (Ctrl/Cmd+Enter also
-  // runs), Tab accepts an open completion. Capture phase so we reach keys
-  // before CodeMirror's own handlers (its Enter would insert a newline).
-  const editorRef = React.useRef<ReactCodeMirrorRef>(null);
+  // runs), Tab accepts an open completion or opens one, Up/Down browse
+  // history at the editor edges. Capture phase so we reach keys before
+  // CodeMirror's own handlers (its Enter would insert a newline, its Tab
+  // would indent).
+  React.useEffect(() => {
+    historyIndexRef.current = null;
+  }, [isOpen]);
   React.useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -243,11 +368,42 @@ export const ShellModal: React.FC<ShellModalProps> = ({
         !e.shiftKey &&
         !e.ctrlKey &&
         !e.metaKey &&
-        !e.altKey &&
-        editor.querySelector(".cm-tooltip-autocomplete")
+        !e.altKey
       ) {
+        // Tab always means completion in the shell: accept the open
+        // suggestion, or open suggestions when there is no tooltip (after
+        // deleting, dismissing, or before the server roundtrip lands).
+        // Never fall through to indent: spaces here only corrupt snippets.
         const view = editorRef.current?.view;
-        if (view && acceptCompletion(view)) {
+        if (!view) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (editor.querySelector(".cm-tooltip-autocomplete")) {
+          if (!acceptCompletion(view)) {
+            // Visible list but nothing accepted (stale state): refresh
+            // instead of leaving Tab a dead key.
+            startCompletion(view);
+          }
+          return;
+        }
+        startCompletion(view);
+      }
+      if (
+        (e.key === "ArrowUp" || e.key === "ArrowDown") &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
+        // History at the editor edges; otherwise the caret moves within
+        // a multiline snippet. A completion list owns the arrows while
+        // it is open (moving the selection).
+        const direction = e.key === "ArrowUp" ? -1 : 1;
+        if (
+          !editor.querySelector(".cm-tooltip-autocomplete") &&
+          isHistoryEdge(editorRef.current?.view, direction) &&
+          navigateHistory(direction)
+        ) {
           e.preventDefault();
           e.stopPropagation();
         }
@@ -255,7 +411,7 @@ export const ShellModal: React.FC<ShellModalProps> = ({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [handleRun, isOpen]);
+  }, [handleRun, navigateHistory, isOpen]);
 
   const handleCopyEntry = React.useCallback(async (entryToCopy: ShellEntry) => {
     const text =
@@ -322,8 +478,14 @@ export const ShellModal: React.FC<ShellModalProps> = ({
               running ? "shell-modal__loading" : ""
             }`}
             onClick={handleRun}
-            disabled={running || code.trim().length === 0}
-            title={running ? "Running..." : "Run snippet (Enter)"}
+            disabled={running || code.trim().length === 0 || isShellDisabled}
+            title={
+              isShellDisabled
+                ? "Shell is disabled in this environment"
+                : running
+                ? "Running..."
+                : "Run snippet (Enter)"
+            }
           >
             {running ? "Running..." : "Run"}
           </button>
@@ -333,7 +495,16 @@ export const ShellModal: React.FC<ShellModalProps> = ({
         </div>
       </div>
     ),
-    [code, entries.length, handleClear, handleRun, resourceId, running, title]
+    [
+      code,
+      entries.length,
+      handleClear,
+      handleRun,
+      isShellDisabled,
+      resourceId,
+      running,
+      title,
+    ]
   );
 
   return (
@@ -345,10 +516,17 @@ export const ShellModal: React.FC<ShellModalProps> = ({
       renderHeader={renderHeader}
       ariaLabel={title}
     >
+      {isShellDisabled && (
+        <div className="shell-modal__disabled-note" role="status">
+          Shell is disabled in production. Set <code>RUNNER_DEV_EVAL=1</code> to
+          enable it.
+        </div>
+      )}
       <div className="shell-modal__banner">
         <span className="shell-modal__banner-text">
           Expressions auto-return · <kbd>Enter</kbd> to run · <kbd>Shift</kbd>+
-          <kbd>Enter</kbd> for a new line · <kbd>Tab</kbd> accepts a suggestion
+          <kbd>Enter</kbd> for a new line · <kbd>Tab</kbd> suggests & accepts ·{" "}
+          <kbd>↑</kbd> <kbd>↓</kbd> history
         </span>
         <div className="shell-modal__examples">
           {examples.map((example) => (
@@ -462,8 +640,9 @@ export const ShellModal: React.FC<ShellModalProps> = ({
           <CodeMirror
             ref={editorRef}
             value={code}
-            onChange={(val) => setCode(val)}
+            onChange={handleEditorChange}
             extensions={editorExtensions}
+            editable={!isShellDisabled}
             theme={oneDark}
             basicSetup={{
               lineNumbers: false,

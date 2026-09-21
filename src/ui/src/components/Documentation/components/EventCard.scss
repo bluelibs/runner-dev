@@ -19,11 +19,7 @@
 // Event Card Header
 // -----------------------------------------------------------------------------
 .event-card__header {
-  background: linear-gradient(
-    180deg,
-    var(--docs-panel-bg),
-    var(--docs-bg-secondary)
-  );
+  background: var(--docs-bg-secondary);
   color: var(--docs-text-primary);
   padding: $spacing-xl;
   border-bottom: 1px solid var(--docs-border-primary);
@@ -54,13 +50,18 @@
     flex-shrink: 0;
 
     button {
-      border: none;
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
+      border: 1px solid var(--docs-border-primary);
+      background: var(--docs-hover-bg);
+      color: var(--docs-text-secondary);
       padding: 6px 8px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
+
+      &:hover {
+        background: var(--docs-active-bg);
+        color: var(--docs-text-primary);
+      }
     }
   }
 
@@ -137,7 +138,8 @@
 }
 
 .event-card__tag {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -245,12 +247,11 @@
   border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-sm;
   padding: $spacing-sm;
-  border-left: 4px solid var(--docs-warning);
   transition: $transition-fast;
 
   &:hover {
     background: var(--docs-hover-bg);
-    border-color: var(--docs-primary);
+    border-color: var(--docs-border-secondary);
     text-decoration: none;
   }
 
@@ -478,22 +479,15 @@
 // -----------------------------------------------------------------------------
 .event-card__emitter {
   padding: $spacing-sm $font-size-md;
-  border-radius: $border-radius-lg;
-  border-left: 4px solid;
+  border-radius: $border-radius-sm;
+  border: 1px solid var(--docs-border-primary);
+  background: var(--docs-bg-secondary);
 
-  &--task {
-    background: var(--docs-primary-bg);
-    border-left-color: var(--docs-primary);
-  }
-
-  &--resource {
-    background: var(--docs-success-bg);
-    border-left-color: var(--docs-success);
-  }
-
+  &--task,
+  &--resource,
   &--hook {
-    background: var(--docs-purple-bg);
-    border-left-color: var(--docs-purple);
+    background: var(--docs-bg-secondary);
+    border-color: var(--docs-border-primary);
   }
 
   &__content {
@@ -506,15 +500,12 @@
     .title {
       font-weight: 600;
       margin-bottom: $spacing-xs;
+      color: var(--docs-text-primary);
 
-      &--task {
-        color: var(--docs-primary);
-      }
-      &--resource {
-        color: var(--docs-success);
-      }
+      &--task,
+      &--resource,
       &--hook {
-        color: var(--docs-purple);
+        color: var(--docs-text-primary);
       }
     }
 
@@ -530,9 +521,9 @@
 
 .event-card__listener {
   padding: $spacing-sm $font-size-md;
-  background: var(--docs-purple-bg);
-  border-radius: $border-radius-lg;
-  border-left: 4px solid var(--docs-purple);
+  background: var(--docs-bg-secondary);
+  border-radius: $border-radius-sm;
+  border: 1px solid var(--docs-border-primary);
 
   &__content {
     display: flex;
@@ -552,7 +543,7 @@
     .details {
       .title {
         font-weight: 600;
-        color: var(--docs-purple);
+        color: var(--docs-text-primary);
       }
 
       .id {
@@ -573,8 +564,8 @@
   }
 
   &__order-badge {
-    background: #e1bee7;
-    color: #4a148c;
+    background: var(--docs-hover-bg);
+    color: var(--docs-text-secondary);
     padding: $spacing-xs $spacing-sm;
     border-radius: $border-radius-xl;
     font-size: $font-size-xs;

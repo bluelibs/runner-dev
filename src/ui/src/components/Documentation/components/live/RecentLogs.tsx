@@ -6,9 +6,9 @@ import React, {
   useState,
 } from "react";
 import type { Introspector } from "../../../../../../resources/models/Introspector";
-import { DOCUMENTATION_CONSTANTS } from "../../config/documentationConstants";
 import { resolveReferenceElement } from "../../utils/resolveReferenceElement";
 import { OverviewIdLink } from "../common/OverviewIdLink";
+import { DocIcon } from "../common/DocIcon";
 import JsonViewer from "../JsonViewer";
 import { BaseModal } from "../modals";
 import "./RecentLogs.scss";
@@ -171,14 +171,6 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     const target = document.getElementById(targetId);
     if (target) {
       target.scrollIntoView({ behavior: "instant", block: "start" });
-      target.classList.add(
-        DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
-      );
-      window.setTimeout(() => {
-        target.classList.remove(
-          DOCUMENTATION_CONSTANTS.CSS_CLASSES.HIGHLIGHT_TARGET
-        );
-      }, DOCUMENTATION_CONSTANTS.CONSTRAINTS.HIGHLIGHT_DURATION);
       return;
     }
 
@@ -307,7 +299,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
       >
         {searchQuery && visibleLogs.length === 0 ? (
           <div className="recent-logs__empty">
-            <span className="recent-logs__empty-icon">🔍</span>
+            <span className="recent-logs__empty-icon">
+              <DocIcon name="diagnostics" size={20} />
+            </span>
             <p className="recent-logs__empty-text">No logs found</p>
             <p className="recent-logs__empty-hint">
               Try adjusting your search query
@@ -419,7 +413,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
         <div className="recent-logs-fs__content">
           {searchQuery && visibleLogs.length === 0 ? (
             <div className="recent-logs-fs__empty">
-              <span className="recent-logs-fs__empty-icon">🔍</span>
+              <span className="recent-logs-fs__empty-icon">
+                <DocIcon name="diagnostics" size={20} />
+              </span>
               <p className="recent-logs-fs__empty-text">No logs found</p>
               <p className="recent-logs-fs__empty-hint">
                 Try adjusting your search query

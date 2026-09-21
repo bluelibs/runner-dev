@@ -45,9 +45,11 @@ export function createShellCompletionSource(
         type: option.type,
         detail: option.detail ?? undefined,
       })),
-      // Keep filtering client-side while typing word characters, so we don't
-      // refetch on every keystroke.
-      validFor: /^\w*$/,
+      // Deliberately no `validFor`: the server already filters by the live
+      // prefix, so every keystroke refetches fresh options. Keeping the
+      // result client-side "valid" froze the list: typing `r` (3 options)
+      // then `u` kept showing all 3 instead of narrowing to `runtime`,
+      // and the stale tooltip even broke Tab-accept.
     };
   };
 }

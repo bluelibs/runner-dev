@@ -82,18 +82,19 @@ function setShowSystemInStorage(value: boolean): void {
 function getShowRunnerFromStorage(): boolean {
   try {
     return (
-      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER) ===
-      "1"
+      localStorage.getItem(
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_FRAMEWORK
+      ) === "1"
     );
   } catch {
-    return DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER;
+    return DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_FRAMEWORK;
   }
 }
 
 function setShowRunnerInStorage(value: boolean): void {
   try {
     localStorage.setItem(
-      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_FRAMEWORK,
       value ? "1" : "0"
     );
   } catch {

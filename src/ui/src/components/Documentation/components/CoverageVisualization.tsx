@@ -1,5 +1,7 @@
 import React from "react";
 import type { LineCoverage } from "../../../../resources/coverage.resource";
+import { DocIcon } from "./common/DocIcon";
+import { getCoverageColor } from "../utils/formatting";
 
 export interface CoverageData {
   percentage?: number | null;
@@ -14,12 +16,6 @@ export interface CoverageVisualizationProps {
   filePath?: string | null;
   compact?: boolean;
 }
-
-const getCoverageColor = (percentage: number) => {
-  if (percentage >= 100) return "#66bb6a"; // Lighter green for dark theme
-  if (percentage >= 80) return "#ffa726"; // Lighter orange for dark theme
-  return "#ef5350"; // Lighter red for dark theme
-};
 
 const getCoverageLevel = (percentage: number) => {
   if (percentage >= 100) return { label: "excellent", icon: "✓" };
@@ -36,7 +32,9 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
   if (!coverage) {
     return (
       <div className="coverage-visualization coverage-visualization--no-data">
-        <div className="coverage-visualization__no-data-icon">📊</div>
+        <div className="coverage-visualization__no-data-icon">
+          <DocIcon name="chart" size={20} />
+        </div>
         <span className="coverage-visualization__label">
           No coverage data available
         </span>
@@ -99,7 +97,7 @@ export const CoverageVisualization: React.FC<CoverageVisualizationProps> = ({
             style={{
               borderColor: coverageColor,
               color: coverageColor,
-              backgroundColor: `${coverageColor}15`,
+              backgroundColor: `color-mix(in srgb, ${coverageColor} 12%, transparent)`,
             }}
           >
             <span className="coverage-visualization__percentage-text">

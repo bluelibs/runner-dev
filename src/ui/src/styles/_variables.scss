@@ -5,18 +5,27 @@
 // -----------------------------------------------------------------------------
 // Colors
 // -----------------------------------------------------------------------------
-$primary-blue: #007acc;
-$primary-blue-dark: #0056b3;
-$success-green: #28a745;
-$success-green-dark: #20c997;
-$warning-orange: #ffc107;
-$warning-orange-dark: #ff8f00;
-$danger-red: #dc3545;
-$purple: #6f42c1;
-$purple-dark: #9c27b0;
-$info-blue: #17a2b8;
-$info-teal: #17a2b8;
-$sidebar-dark: #2c3e50;
+// Linear-style monochrome: steel greys carry the UI, one restrained cool-grey
+// accent marks interactive elements. Status hues are muted and reserved for
+// status dots, badges, and diagnostics — never large surfaces.
+// A single true-blue accent adds a touch of color: identity icons, active
+// indicators, links, and focus rings only — never surfaces or body text.
+$accent-blue: #2563eb;
+$accent-blue-soft: rgba(37, 99, 235, 0.08);
+$dark-accent-blue: #60a5fa;
+$dark-accent-blue-soft: rgba(96, 165, 250, 0.12);
+$primary-blue: #4d5a6e;
+$primary-blue-dark: #3a4453;
+$success-green: #2f9e63;
+$success-green-dark: #1f8a52;
+$warning-orange: #d9a014;
+$warning-orange-dark: #b07d0a;
+$danger-red: #cf4444;
+$purple: #6b6486;
+$purple-dark: #8a7bb0;
+$info-blue: #5b7a99;
+$info-teal: #4f6f8c;
+$sidebar-dark: #14161c;
 
 // Grays
 $white: #fff;
@@ -70,9 +79,9 @@ $border-radius-pill: 16px;
 // -----------------------------------------------------------------------------
 // Box Shadows
 // -----------------------------------------------------------------------------
-$shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.2);
-$shadow-md: 0 6px 20px rgba(0, 0, 0, 0.1);
-$shadow-lg: 0 8px 32px rgba(0, 122, 204, 0.3);
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+$shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.35);
 
 // -----------------------------------------------------------------------------
 // Gradients
@@ -101,34 +110,34 @@ $transition-normal: all 0.3s ease;
 // -----------------------------------------------------------------------------
 
 // Dark background colors
-$dark-bg-primary: #111827; // Main dark background
-$dark-bg-secondary: #1f2937; // Secondary dark background
-$dark-bg-tertiary: #374151; // Card/panel backgrounds
-$dark-bg-elevated: #1e1e1e; // Modal/elevated surfaces
-$dark-bg-sidebar: #0f172a; // Sidebar dark background
+$dark-bg-primary: #0e0f13; // Main dark background
+$dark-bg-secondary: #14161c; // Secondary dark background
+$dark-bg-tertiary: #1c1f27; // Card/panel backgrounds
+$dark-bg-elevated: #171a21; // Modal/elevated surfaces
+$dark-bg-sidebar: #0a0b0e; // Sidebar dark background
 
 // Dark text colors
-$dark-text-primary: #f9fafb; // Primary text on dark
-$dark-text-secondary: #d1d5db; // Secondary text on dark
-$dark-text-muted: #9ca3af; // Muted text on dark
-$dark-text-disabled: #6b7280; // Disabled text on dark
+$dark-text-primary: #e8eaed; // Primary text on dark
+$dark-text-secondary: #a3aab6; // Secondary text on dark
+$dark-text-muted: #6f7683; // Muted text on dark
+$dark-text-disabled: #4a505b; // Disabled text on dark
 
 // Dark border colors
-$dark-border-primary: #374151; // Primary borders on dark
-$dark-border-secondary: #4b5563; // Secondary borders on dark
-$dark-border-subtle: #1f2937; // Subtle borders on dark
+$dark-border-primary: #262b35; // Primary borders on dark
+$dark-border-secondary: #313845; // Secondary borders on dark
+$dark-border-subtle: #1c2029; // Subtle borders on dark
 
-// Dark state colors (adjusted for dark theme)
-$dark-primary-blue: #60a5fa; // Brighter blue for dark mode
-$dark-success-green: #34d399; // Brighter green for dark mode
-$dark-warning-orange: #fbbf24; // Brighter orange for dark mode
-$dark-danger-red: #f87171; // Brighter red for dark mode
-$dark-info-blue: #38bdf8; // Brighter info blue for dark mode
+// Dark state colors: one restrained cool-grey accent, muted status hues
+$dark-primary-blue: #9aa7bd; // Cool-grey accent for dark mode
+$dark-success-green: #4ea87c; // Muted green for dark mode
+$dark-warning-orange: #c9a227; // Muted amber for dark mode
+$dark-danger-red: #d96a63; // Muted red for dark mode
+$dark-info-blue: #9aa7bd; // Same cool-grey accent for dark mode
 
 // Dark interactive colors
-$dark-hover-bg: rgba(59, 130, 246, 0.1); // Hover background
-$dark-active-bg: rgba(59, 130, 246, 0.2); // Active background
-$dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
+$dark-hover-bg: rgba(255, 255, 255, 0.05); // Hover background
+$dark-active-bg: rgba(255, 255, 255, 0.09); // Active background
+$dark-focus-ring: rgba(96, 165, 250, 0.5); // Blue-tinted focus ring
 
 // -----------------------------------------------------------------------------
 // Semantic Color Tokens (CSS Custom Properties approach)
@@ -153,9 +162,9 @@ $dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
   --docs-border-secondary: #{$dark-border-secondary};
   --docs-border-subtle: #{$dark-border-subtle};
 
-  // Interactive colors - bright colors for dark theme
+  // Interactive colors - restrained cool-grey accent for dark theme
   --docs-primary: #{$dark-primary-blue};
-  --primary-rgb: 96, 165, 250;
+  --primary-rgb: 154, 167, 189;
   --docs-success: #{$dark-success-green};
   --docs-warning: #{$dark-warning-orange};
   --docs-danger: #{$dark-danger-red};
@@ -172,36 +181,43 @@ $dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
   --docs-card-bg: #{$dark-bg-secondary};
   --docs-input-bg: #{$dark-bg-tertiary};
   --docs-code-bg: #{$dark-bg-tertiary};
-  --docs-pre-bg: #161b22;
+  --docs-pre-bg: #101218;
 
-  // Shadows - darker shadows for dark mode
-  --docs-shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --docs-shadow-md: 0 6px 20px rgba(0, 0, 0, 0.3);
-  --docs-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  // Shadows - soft neutral shadows for dark mode
+  --docs-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --docs-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --docs-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
 
   // Alert & warning backgrounds - dark theme
-  --docs-alert-bg: rgba(245, 124, 0, 0.2);
-  --docs-alert-text: #ffa726;
-  --docs-warning-bg: rgba(255, 193, 7, 0.15);
-  --docs-warning-text: #ffca28;
-  --docs-error-bg: rgb(40, 7, 5);
-  --docs-error-text: #ef5350;
+  --docs-alert-bg: rgba(201, 162, 39, 0.14);
+  --docs-alert-text: #d3b34f;
+  --docs-warning-bg: rgba(201, 162, 39, 0.12);
+  --docs-warning-text: #c9a94f;
+  --docs-error-bg: rgb(32, 14, 13);
+  --docs-error-text: #d96a63;
 
   // Interactive states - dark theme
   --docs-loading-overlay-bg: rgba(0, 0, 0, 0.7);
-  --docs-primary-bg: rgba(33, 150, 243, 0.15);
-  --docs-primary-hover-bg: rgba(33, 150, 243, 0.25);
-  --docs-primary-light: rgba(33, 150, 243, 0.3);
-  --docs-primary-border: rgba(33, 150, 243, 0.4);
-  --docs-success-bg: rgba(76, 175, 80, 0.15);
-  --docs-success-hover-bg: rgba(76, 175, 80, 0.25);
-  --docs-success-light: rgba(76, 175, 80, 0.3);
-  --docs-success-border: rgba(76, 175, 80, 0.4);
-  --docs-purple-bg: rgba(156, 39, 176, 0.15);
+  --docs-primary-bg: rgba(154, 167, 189, 0.12);
+  --docs-primary-hover-bg: rgba(154, 167, 189, 0.2);
+  --docs-primary-light: rgba(154, 167, 189, 0.26);
+  --docs-primary-border: rgba(154, 167, 189, 0.35);
+  --docs-success-bg: rgba(78, 168, 124, 0.13);
+  --docs-success-hover-bg: rgba(78, 168, 124, 0.22);
+  --docs-success-light: rgba(78, 168, 124, 0.28);
+  --docs-success-border: rgba(78, 168, 124, 0.38);
+  --docs-purple-bg: rgba(138, 123, 176, 0.13);
   --docs-purple: #{$purple-dark};
-  --docs-danger-bg: rgba(244, 67, 54, 0.15);
+  --docs-danger-bg: rgba(217, 106, 99, 0.13);
   // Info background (used by tag/hook items)
-  --docs-info-bg: rgba(56, 189, 248, 0.15);
+  --docs-info-bg: rgba(154, 167, 189, 0.12);
+  // JSON token colors - dark theme
+  --docs-json-string: #22c55e;
+  --docs-json-number: #3b82f6;
+  --docs-json-boolean: #a855f7;
+  // True-blue accent - identity icons, active indicators, links, focus
+  --docs-accent: #{$dark-accent-blue};
+  --docs-accent-soft: #{$dark-accent-blue-soft};
 }
 
 // Light mode overrides (when explicitly enabled)
@@ -211,7 +227,7 @@ $dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
   --docs-bg-secondary: #{$light-gray};
   --docs-bg-tertiary: #{$border-gray};
   --docs-bg-elevated: #{$white};
-  --primary-rgb: 0, 122, 204;
+  --primary-rgb: 77, 90, 110;
 
   // Text colors - light theme
   --docs-text-primary: #{$text-darker};
@@ -232,9 +248,9 @@ $dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
   --docs-info: #{$info-blue};
 
   // State colors - light theme
-  --docs-hover-bg: rgba(0, 122, 204, 0.05);
-  --docs-active-bg: rgba(0, 122, 204, 0.1);
-  --docs-focus-ring: rgba(0, 122, 204, 0.2);
+  --docs-hover-bg: rgba(15, 23, 42, 0.05);
+  --docs-active-bg: rgba(15, 23, 42, 0.09);
+  --docs-focus-ring: rgba(37, 99, 235, 0.35);
 
   // Component specific - light theme
   --docs-sidebar-bg: #{$light-gray};
@@ -272,4 +288,11 @@ $dark-focus-ring: rgba(96, 165, 250, 0.4); // Focus ring color
   --docs-danger-bg: #f8d7da;
   // Info background (used by tag/hook items)
   --docs-info-bg: #e0f7fa;
+  // JSON token colors - darkened for light-theme contrast
+  --docs-json-string: #15803d;
+  --docs-json-number: #1d4ed8;
+  --docs-json-boolean: #7e22ce;
+  // True-blue accent - identity icons, active indicators, links, focus
+  --docs-accent: #{$accent-blue};
+  --docs-accent-soft: #{$accent-blue-soft};
 }

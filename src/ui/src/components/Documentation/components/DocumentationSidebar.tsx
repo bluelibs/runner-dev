@@ -1,8 +1,9 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { NavigationView } from "./NavigationView";
 import { TreeNode } from "../utils/tree-utils";
 import { ViewMode, TreeType } from "../hooks/useViewMode";
-import { Tooltip } from "./Tooltip";
+import { DocIcon } from "./common/DocIcon";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface DocumentationSidebarProps {
@@ -15,7 +16,8 @@ export interface DocumentationSidebarProps {
   onToggleDarkMode?: () => void;
   viewMode: ViewMode;
   treeType: TreeType;
-  localNamespaceSearch: string;
+  /** Highlights matching tree labels when the docs are pre-filtered by namespace. */
+  searchTerm?: string;
   showSystem: boolean;
   showRunner: boolean;
   showPrivate: boolean;
@@ -29,7 +31,6 @@ export interface DocumentationSidebarProps {
   }>;
   onViewModeChange: (mode: ViewMode) => void;
   onTreeTypeChange: (type: TreeType) => void;
-  onNamespaceSearchChange: (value: string) => void;
   onShowSystemChange: (value: boolean) => void;
   onShowRunnerChange: (value: boolean) => void;
   onShowPrivateChange: (value: boolean) => void;
@@ -37,6 +38,8 @@ export interface DocumentationSidebarProps {
   onToggleExpansion: (nodeId: string, expanded?: boolean) => void;
   onSectionClick: (sectionId: string) => void;
   resolveSectionFromElementId?: (elementId: string) => string | null;
+  onOpenPalette: () => void;
+  onOpenShortcuts: () => void;
 }
 
 export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
@@ -45,11 +48,11 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   isChatOpen: _isChatOpen,
   onToggleChat: _onToggleChat,
   leftOffset = 0,
-  isDarkMode: _isDarkMode = true,
-  onToggleDarkMode: _onToggleDarkMode,
+  isDarkMode = true,
+  onToggleDarkMode,
   viewMode,
   treeType,
-  localNamespaceSearch,
+  searchTerm = "",
   showSystem,
   showRunner,
   showPrivate,
@@ -57,7 +60,6 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   sections,
   onViewModeChange,
   onTreeTypeChange,
-  onNamespaceSearchChange,
   onShowSystemChange,
   onShowRunnerChange,
   onShowPrivateChange,
@@ -65,6 +67,8 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   onToggleExpansion,
   onSectionClick,
   resolveSectionFromElementId,
+  onOpenPalette,
+  onOpenShortcuts,
 }) => {
   const isCatalogMode = useIsCatalogDocumentation();
   const navigationSections = React.useMemo(
@@ -77,25 +81,55 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       new CustomEvent("docs:open-shell", { detail: { resourceId: null } })
     );
   }, []);
-  const namespaceInputRef = React.useRef<HTMLInputElement>(null);
-  const hasNamespaceFilter = localNamespaceSearch.trim().length > 0;
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [filterPopoverPos, setFilterPopoverPos] = React.useState<{
+    left: number;
+    top: number;
+  } | null>(null);
+  const filterAnchorRef = React.useRef<HTMLDivElement>(null);
+  const filterPopoverRef = React.useRef<HTMLDivElement>(null);
+  const hasVisibilityFilter = showSystem || showRunner || showPrivate;
 
-  const handleNamespaceFilterClear = React.useCallback(() => {
-    onNamespaceSearchChange("");
-    namespaceInputRef.current?.focus();
-  }, [onNamespaceSearchChange]);
+  const toggleFilters = React.useCallback(() => {
+    if (filtersOpen) {
+      setFiltersOpen(false);
+      return;
+    }
+    // The sidebar clips horizontal overflow, so the popover is portaled to
+    // the body and anchored to the right of the search row.
+    const rect = filterAnchorRef.current?.getBoundingClientRect();
+    setFilterPopoverPos(
+      rect ? { left: rect.right + 8, top: rect.top } : { left: 0, top: 0 }
+    );
+    setFiltersOpen(true);
+  }, [filtersOpen]);
 
-  const handleNamespaceInputKeyDown = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      e.stopPropagation();
-
-      if (e.key === "Escape" && hasNamespaceFilter) {
-        e.preventDefault();
-        handleNamespaceFilterClear();
+  React.useEffect(() => {
+    if (!filtersOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        !filterAnchorRef.current?.contains(target) &&
+        !filterPopoverRef.current?.contains(target)
+      ) {
+        setFiltersOpen(false);
       }
-    },
-    [handleNamespaceFilterClear, hasNamespaceFilter]
-  );
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFiltersOpen(false);
+    };
+    const handleScroll = () => setFiltersOpen(false);
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [filtersOpen]);
 
   return (
     <nav
@@ -105,203 +139,96 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
     >
       {/* Main Filters */}
       <div className="docs-main-filters">
-        <div
-          className={`docs-namespace-input ${
-            hasNamespaceFilter ? "docs-namespace-input--active" : ""
-          }`}
-        >
-          <label htmlFor="namespace-input">
-            <span className="docs-label-text">Filter by ID</span>
-            <Tooltip
-              content={
-                <div>
-                  <div className="tooltip-title">Search Syntax</div>
-                  <ul className="tooltip-content">
-                    <li>
-                      <span className="keyword">Comma for AND:</span>{" "}
-                      <span className="example">task,resource</span> (items with
-                      both task AND resource)
-                    </li>
-                    <li>
-                      <span className="keyword">Pipe for OR:</span>{" "}
-                      <span className="example">task|resource</span> (items with
-                      task OR resource)
-                    </li>
-                    <li>
-                      <span className="keyword">Exclude with !:</span>{" "}
-                      <span className="example">api,!test</span> (items with api
-                      but NOT test)
-                    </li>
-                    <li>
-                      <span className="keyword">Wildcard with *:</span>{" "}
-                      <span className="example">app.*.create</span> (namespace
-                      wildcard matching)
-                    </li>
-                    <li>
-                      <span className="keyword">Tags search:</span>{" "}
-                      <span className="example">:api,debug</span> (search tags
-                      for api AND debug)
-                    </li>
-                  </ul>
-                </div>
-              }
-              position="right"
-              delay={200}
-            >
-              <button
-                type="button"
-                className="docs-filter-help"
-                aria-label="Filter syntax help"
-                onClick={(event) => event.preventDefault()}
-              >
-                ?
-              </button>
-            </Tooltip>
-          </label>
-          <div className="docs-namespace-input__field">
-            {hasNamespaceFilter && (
-              <button
-                type="button"
-                className="docs-namespace-input__clear"
-                aria-label="Clear ID filter"
-                onClick={handleNamespaceFilterClear}
-              >
-                x
-              </button>
+        <div className="docs-search-row" ref={filterAnchorRef}>
+          <button
+            type="button"
+            className="docs-palette-trigger"
+            onClick={onOpenPalette}
+            title="Search or jump to anything (⌘K)"
+          >
+            <span className="docs-palette-trigger__icon">
+              <DocIcon name="diagnostics" size={14} />
+            </span>
+            <span className="docs-palette-trigger__text">
+              Search or jump to...
+            </span>
+            <kbd className="docs-kbd">⌘K</kbd>
+          </button>
+          <button
+            type="button"
+            className={`docs-filter-button${
+              hasVisibilityFilter ? " docs-filter-button--active" : ""
+            }`}
+            onClick={toggleFilters}
+            aria-expanded={filtersOpen}
+            aria-label="Visibility filters"
+            title="Visibility filters"
+          >
+            <DocIcon name="filter" size={14} />
+            {hasVisibilityFilter && (
+              <span className="docs-filter-button__dot" aria-hidden="true" />
             )}
-            <input
-              ref={namespaceInputRef}
-              id="namespace-input"
-              type="text"
-              placeholder={"Filter by ID..."}
-              value={localNamespaceSearch}
-              onChange={(e) => onNamespaceSearchChange(e.target.value)}
-              onKeyDown={handleNamespaceInputKeyDown}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-          </div>
+          </button>
         </div>
-      </div>
-      <div className="docs-visibility-toggles">
-        <div
-          className="docs-visibility-toggle-row"
-          title="Toggle visibility of system namespace elements"
-        >
-          <label className="docs-switch" htmlFor="show-system-toggle">
-            <span className="docs-switch-copy">
-              <span className="docs-switch-text">
-                <span className="system-label">SYSTEM</span>
-              </span>
-              <Tooltip
-                content="Show elements from the system root namespace such as system.events.* and system.hooks.*."
-                position="right"
-                delay={200}
-              >
-                <button
-                  type="button"
-                  className="docs-filter-help"
-                  aria-label="SYSTEM visibility help"
-                  onClick={(event) => event.preventDefault()}
-                >
-                  ?
-                </button>
-              </Tooltip>
-            </span>
-            <span className="docs-switch-control">
-              <input
-                id="show-system-toggle"
-                className="docs-switch-input"
-                type="checkbox"
-                aria-label="SYSTEM"
-                checked={showSystem}
-                onChange={(e) => onShowSystemChange(e.target.checked)}
-              />
-              <span className="docs-switch-track">
-                <span className="docs-switch-thumb" />
-              </span>
-            </span>
-          </label>
-        </div>
-        <div
-          className="docs-visibility-toggle-row"
-          title="Toggle visibility of runner namespace elements"
-        >
-          <label className="docs-switch" htmlFor="show-runner-toggle">
-            <span className="docs-switch-copy">
-              <span className="docs-switch-text">
-                <span className="runner-label">RUNNER</span>
-              </span>
-              <Tooltip
-                content="Show elements from the runner root namespace such as runner.logger, runner.tags.*, and other built-in Runner surfaces."
-                position="right"
-                delay={200}
-              >
-                <button
-                  type="button"
-                  className="docs-filter-help"
-                  aria-label="RUNNER visibility help"
-                  onClick={(event) => event.preventDefault()}
-                >
-                  ?
-                </button>
-              </Tooltip>
-            </span>
-            <span className="docs-switch-control">
-              <input
-                id="show-runner-toggle"
-                className="docs-switch-input"
-                type="checkbox"
-                aria-label="RUNNER"
-                checked={showRunner}
-                onChange={(e) => onShowRunnerChange(e.target.checked)}
-              />
-              <span className="docs-switch-track">
-                <span className="docs-switch-thumb" />
-              </span>
-            </span>
-          </label>
-        </div>
-        <div
-          className="docs-visibility-toggle-row"
-          title="Toggle visibility of private elements"
-        >
-          <label className="docs-switch" htmlFor="show-private-toggle">
-            <span className="docs-switch-copy">
-              <span className="docs-switch-text">
-                <span className="private-label">PRIVATE</span>
-              </span>
-              <Tooltip
-                content="Show private elements that belong to the current root application, including private tasks, resources, hooks, and tags."
-                position="right"
-                delay={200}
-              >
-                <button
-                  type="button"
-                  className="docs-filter-help"
-                  aria-label="PRIVATE visibility help"
-                  onClick={(event) => event.preventDefault()}
-                >
-                  ?
-                </button>
-              </Tooltip>
-            </span>
-            <span className="docs-switch-control">
-              <input
-                id="show-private-toggle"
-                className="docs-switch-input"
-                type="checkbox"
-                aria-label="PRIVATE"
-                checked={showPrivate}
-                onChange={(e) => onShowPrivateChange(e.target.checked)}
-              />
-              <span className="docs-switch-track">
-                <span className="docs-switch-thumb" />
-              </span>
-            </span>
-          </label>
-        </div>
+        {filtersOpen &&
+          filterPopoverPos &&
+          createPortal(
+            <div
+              ref={filterPopoverRef}
+              className="docs-filter-popover"
+              role="dialog"
+              aria-label="Visibility filters"
+              style={{
+                left: `${filterPopoverPos.left}px`,
+                top: `${filterPopoverPos.top}px`,
+              }}
+            >
+              <label className="docs-filter-option">
+                <input
+                  type="checkbox"
+                  checked={showRunner}
+                  onChange={(e) => onShowRunnerChange(e.target.checked)}
+                />
+                <span className="docs-filter-option__copy">
+                  <span className="docs-filter-option__label">
+                    Show Framework
+                  </span>
+                  <span className="docs-filter-option__description">
+                    Built-in runner.* surfaces like runner.logger
+                  </span>
+                </span>
+              </label>
+              <label className="docs-filter-option">
+                <input
+                  type="checkbox"
+                  checked={showSystem}
+                  onChange={(e) => onShowSystemChange(e.target.checked)}
+                />
+                <span className="docs-filter-option__copy">
+                  <span className="docs-filter-option__label">Show System</span>
+                  <span className="docs-filter-option__description">
+                    system.* root namespace elements
+                  </span>
+                </span>
+              </label>
+              <label className="docs-filter-option">
+                <input
+                  type="checkbox"
+                  checked={showPrivate}
+                  onChange={(e) => onShowPrivateChange(e.target.checked)}
+                />
+                <span className="docs-filter-option__copy">
+                  <span className="docs-filter-option__label">
+                    Show Private Components
+                  </span>
+                  <span className="docs-filter-option__description">
+                    Private elements of the current app
+                  </span>
+                </span>
+              </label>
+            </div>,
+            document.body
+          )}
       </div>
 
       {/* View Mode Controls */}
@@ -314,7 +241,9 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
             onClick={() => onViewModeChange("list")}
             title="List View"
           >
-            <span className="icon">📄</span>
+            <span className="icon">
+              <DocIcon name="list" size={14} />
+            </span>
             <span className="label">List</span>
           </button>
           <button
@@ -324,7 +253,9 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
             onClick={() => onViewModeChange("tree")}
             title="Tree View"
           >
-            <span className="icon">🌳</span>
+            <span className="icon">
+              <DocIcon name="tree" size={14} />
+            </span>
             <span className="label">Tree</span>
           </button>
         </div>
@@ -337,7 +268,9 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
               onClick={() => onTreeTypeChange("namespace")}
               title="By Namespace"
             >
-              <span className="icon">📁</span>
+              <span className="icon">
+                <DocIcon name="folder" size={14} />
+              </span>
               <span className="label">Namespace</span>
             </button>
             <button
@@ -347,7 +280,9 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
               onClick={() => onTreeTypeChange("type")}
               title="By Type"
             >
-              <span className="icon">🏷️</span>
+              <span className="icon">
+                <DocIcon name="tag" size={14} />
+              </span>
               <span className="label">Type</span>
             </button>
           </div>
@@ -365,7 +300,7 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
           onSectionClick={onSectionClick}
           onToggleExpansion={onToggleExpansion}
           resolveSectionFromElementId={resolveSectionFromElementId}
-          searchTerm={localNamespaceSearch}
+          searchTerm={searchTerm}
           className="docs-navigation"
         />
       </div>
@@ -381,8 +316,42 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
             onClick={handleOpenShell}
             title="Open runtime shell (Ctrl+`)"
           >
-            <span className="docs-support-icon">💻</span>
+            <span className="docs-support-icon">
+              <DocIcon name="terminal" size={14} />
+            </span>
             <span className="docs-support-text">Shell</span>
+            <kbd className="docs-kbd">⌃`</kbd>
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="docs-support-link docs-support-link--shortcuts"
+          onClick={onOpenShortcuts}
+          title="Show keyboard shortcuts (?)"
+        >
+          <span className="docs-support-icon">
+            <DocIcon name="command" size={14} />
+          </span>
+          <span className="docs-support-text">Shortcuts</span>
+          <kbd className="docs-kbd">?</kbd>
+        </button>
+
+        {onToggleDarkMode && (
+          <button
+            type="button"
+            className="docs-support-link docs-support-link--theme"
+            onClick={onToggleDarkMode}
+            title={
+              isDarkMode ? "Switch to light theme" : "Switch to dark theme"
+            }
+          >
+            <span className="docs-support-icon">
+              <DocIcon name={isDarkMode ? "sun" : "moon"} size={14} />
+            </span>
+            <span className="docs-support-text">
+              {isDarkMode ? "Light" : "Dark"}
+            </span>
             <span className="docs-support-arrow">→</span>
           </button>
         )}
@@ -391,7 +360,9 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
           href="#docs-support"
           className="docs-support-link docs-support-link--docs"
         >
-          <span className="docs-support-icon">📚</span>
+          <span className="docs-support-icon">
+            <DocIcon name="book" size={14} />
+          </span>
           <span className="docs-support-text">Docs</span>
           <span className="docs-support-arrow">→</span>
         </a>

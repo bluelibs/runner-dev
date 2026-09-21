@@ -1,5 +1,15 @@
 // PrismJS syntax highlighting enhancements
 .markdown-content {
+  a {
+    color: var(--docs-accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  }
+
   // Enhance code blocks with better styling
   pre[class*="language-"] {
     background: var(--docs-code-bg, #2d3748) !important;
@@ -19,16 +29,16 @@
     }
 
     &::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--docs-hover-bg);
       border-radius: 3px;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
+      background: var(--docs-border-secondary);
       border-radius: 3px;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.5);
+        background: var(--docs-text-muted);
       }
     }
 

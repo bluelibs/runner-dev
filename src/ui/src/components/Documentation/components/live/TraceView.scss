@@ -31,20 +31,20 @@
   white-space: nowrap;
 
   &--log {
-    background: rgba(59, 130, 246, 0.12);
-    color: #3b82f6;
+    background: var(--docs-info-bg);
+    color: var(--docs-info);
   }
   &--emission {
-    background: rgba(139, 92, 246, 0.12);
-    color: #8b5cf6;
+    background: var(--docs-purple-bg);
+    color: var(--docs-purple);
   }
   &--error {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: var(--docs-danger-bg);
+    color: var(--docs-error-text);
   }
   &--run {
-    background: rgba(34, 197, 94, 0.12);
-    color: #22c55e;
+    background: var(--docs-success-bg);
+    color: var(--docs-success);
   }
   &--total {
     color: var(--docs-text-muted);
@@ -106,16 +106,16 @@
   z-index: 1;
 
   .trace-view__entry--log & {
-    background: #3b82f6;
+    background: var(--docs-info);
   }
   .trace-view__entry--emission & {
-    background: #8b5cf6;
+    background: var(--docs-purple);
   }
   .trace-view__entry--error & {
-    background: #ef4444;
+    background: var(--docs-danger);
   }
   .trace-view__entry--run & {
-    background: #22c55e;
+    background: var(--docs-success);
   }
 }
 
@@ -161,20 +161,20 @@
   letter-spacing: 0.3px;
 
   &--log {
-    background: rgba(59, 130, 246, 0.12);
-    color: #3b82f6;
+    background: var(--docs-info-bg);
+    color: var(--docs-info);
   }
   &--emission {
-    background: rgba(139, 92, 246, 0.12);
-    color: #8b5cf6;
+    background: var(--docs-purple-bg);
+    color: var(--docs-purple);
   }
   &--error {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: var(--docs-danger-bg);
+    color: var(--docs-error-text);
   }
   &--run {
-    background: rgba(34, 197, 94, 0.12);
-    color: #22c55e;
+    background: var(--docs-success-bg);
+    color: var(--docs-success);
   }
 }
 

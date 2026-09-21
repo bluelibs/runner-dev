@@ -24,7 +24,7 @@ export const DependenciesSection: React.FC<DependenciesSectionProps> = ({
   dependencies,
   emittedEvents = [],
   className = "",
-  title = "🔗 Dependencies & Relations",
+  title = "Dependencies & Relations",
 }) => {
   if (
     dependencies.tasks.length === 0 &&

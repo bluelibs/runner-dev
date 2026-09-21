@@ -12,7 +12,6 @@
   border: 1px solid var(--docs-border-primary);
   border-radius: $border-radius-xl;
   overflow: hidden;
-  box-shadow: var(--docs-shadow-md, #{$shadow-md});
   margin-bottom: $spacing-lg;
   width: 100%;
 }
@@ -21,12 +20,8 @@
 // Tag Card Header
 // -----------------------------------------------------------------------------
 .tag-card__header {
-  // Use panel/background tokens for theme-friendly header
-  background: linear-gradient(
-    180deg,
-    var(--docs-panel-bg),
-    var(--docs-bg-secondary)
-  );
+  background: var(--docs-bg-secondary);
+  border-bottom: 1px solid var(--docs-border-primary);
   color: var(--docs-text-primary);
   padding: $spacing-lg $spacing-xl;
 }
@@ -134,10 +129,10 @@
 .tag-card__total {
   text-align: center;
   padding: $spacing-md $spacing-lg;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: var(--docs-text-on-accent, #fff);
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  color: var(--docs-text-primary);
   border-radius: $border-radius-lg;
-  box-shadow: var(--docs-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.1));
 
   .value {
     display: block;
@@ -190,30 +185,12 @@
     display: block;
   }
 
-  &--tasks .tag-card__stat__value {
-    color: var(--docs-primary);
-  }
-
-  &--resources .tag-card__stat__value {
-    color: var(--docs-success);
-  }
-
-  &--events .tag-card__stat__value {
-    color: var(--docs-warning);
-  }
-
-  &--middlewares .tag-card__stat__value {
-    color: var(--docs-purple);
-  }
-
-  &--hooks .tag-card__stat__value {
-    color: var(--docs-info);
-  }
-
-  &--errors .tag-card__stat__value {
-    color: var(--docs-danger);
-  }
-
+  &--tasks .tag-card__stat__value,
+  &--resources .tag-card__stat__value,
+  &--events .tag-card__stat__value,
+  &--middlewares .tag-card__stat__value,
+  &--hooks .tag-card__stat__value,
+  &--errors .tag-card__stat__value,
   &--handlers .tag-card__stat__value {
     color: var(--docs-text-primary);
   }
@@ -321,57 +298,28 @@
     color: var(--docs-text-primary);
   }
 
-  &--resource {
-    background: var(--docs-success-bg);
-    border-left-color: var(--docs-success);
-  }
-
-  &--task {
-    background: var(--docs-primary-bg);
-    border-left-color: var(--docs-primary);
-  }
-
-  &--middleware {
-    background: var(--docs-purple-bg);
-    border-left-color: var(--docs-purple);
-  }
-
-  &--event {
-    background: var(--docs-warning-bg);
-    border-left-color: var(--docs-warning);
-  }
-
-  &--hook {
-    background: var(--docs-info-bg);
-    border-left-color: var(--docs-info);
-  }
-
+  &--resource,
+  &--task,
+  &--middleware,
+  &--event,
+  &--hook,
   &--error {
-    background: var(--docs-danger-bg);
-    border-left-color: var(--docs-danger);
+    background: var(--docs-bg-secondary);
+    border-left-color: var(--docs-border-secondary);
   }
 
   .title {
     font-weight: 600;
     margin-bottom: $spacing-xs;
+    color: var(--docs-text-primary);
 
-    &--resource {
-      color: var(--docs-success);
-    }
-    &--task {
-      color: var(--docs-primary);
-    }
-    &--middleware {
-      color: var(--docs-purple);
-    }
-    &--event {
-      color: var(--docs-warning);
-    }
-    &--hook {
-      color: var(--docs-info);
-    }
+    &--resource,
+    &--task,
+    &--middleware,
+    &--event,
+    &--hook,
     &--error {
-      color: var(--docs-danger);
+      color: var(--docs-text-primary);
     }
   }
 
@@ -390,10 +338,9 @@
 .tag-card__relation-link {
   text-decoration: none;
   color: inherit;
-  transition: $transition-fast;
+  transition: background-color $transition-fast;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: var(--docs-hover-bg);
   }
 }

@@ -65,9 +65,9 @@
       }
 
       .entry-corr {
-        background: rgba(99, 102, 241, 0.1);
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        color: #6366f1;
+        background: var(--docs-hover-bg);
+        border: 1px solid var(--docs-border-primary);
+        color: var(--docs-text-secondary);
         padding: 2px 6px;
         border-radius: 4px;
         font-size: $font-size-xs;
@@ -79,9 +79,9 @@
           transition: all 0.15s ease;
 
           &:hover {
-            background: #6366f1;
-            color: #fff;
-            border-color: #6366f1;
+            background: var(--docs-active-bg);
+            color: var(--docs-text-primary);
+            border-color: var(--docs-border-secondary);
           }
         }
       }

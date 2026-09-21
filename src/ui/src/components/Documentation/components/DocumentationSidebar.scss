@@ -1,6 +1,143 @@
 @use "../../../styles/variables" as *;
 
 // -----------------------------------------------------------------------------
+// Command palette trigger + label kbd hints
+// -----------------------------------------------------------------------------
+.docs-search-row {
+  display: flex;
+  align-items: stretch;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.docs-palette-trigger {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-md;
+  background: var(--docs-input-bg);
+  color: var(--docs-text-muted);
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: var(--docs-border-secondary);
+    background: var(--docs-hover-bg);
+    color: var(--docs-text-secondary);
+  }
+
+  &__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.docs-filter-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-md;
+  background: var(--docs-input-bg);
+  color: var(--docs-text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    border-color: var(--docs-border-secondary);
+    background: var(--docs-hover-bg);
+    color: var(--docs-text-secondary);
+  }
+
+  &--active {
+    border-color: var(--docs-border-secondary);
+    background: var(--docs-active-bg);
+    color: var(--docs-text-primary);
+  }
+
+  &__dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--docs-text-muted);
+  }
+}
+
+// Portaled to the body so it can open to the right of the sidebar.
+.docs-filter-popover {
+  position: fixed;
+  z-index: 1200;
+  width: 248px;
+  padding: $spacing-sm;
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-lg;
+  background: var(--docs-bg-elevated);
+  box-shadow: var(--docs-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.docs-filter-option {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: var(--docs-hover-bg);
+  }
+
+  input[type="checkbox"] {
+    margin-top: 2px;
+    accent-color: var(--docs-text-secondary);
+    flex-shrink: 0;
+  }
+
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: var(--docs-text-primary);
+  }
+
+  &__description {
+    font-size: $font-size-xs;
+    color: var(--docs-text-muted);
+    line-height: 1.4;
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Documentation Sidebar Styles
 // -----------------------------------------------------------------------------
 .docs-sidebar {
@@ -53,12 +190,12 @@
 
           &:hover {
             background: var(--docs-hover-bg);
-            color: var(--docs-primary);
+            color: var(--docs-text-primary);
           }
 
           &.active {
-            background: var(--docs-primary);
-            color: white;
+            background: var(--docs-active-bg);
+            color: var(--docs-text-primary);
           }
         }
       }
@@ -82,39 +219,28 @@
 
     .docs-support-link {
       align-items: center;
-      background: var(--docs-sidebar-bg);
-      border: 1px solid var(--docs-border-secondary);
-      border-radius: $border-radius-lg;
-      color: var(--docs-text-primary);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: $border-radius-md;
+      color: var(--docs-text-secondary);
       cursor: pointer;
       display: flex;
       gap: $spacing-sm;
-      margin-bottom: $spacing-sm;
-      padding: $spacing-md;
+      margin-bottom: 2px;
+      padding: $spacing-sm $spacing-md;
       text-decoration: none;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: background 0.15s ease, color 0.15s ease;
       position: relative;
-      overflow: hidden;
-
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.1),
-          transparent
-        );
-        transition: left 0.6s ease;
-      }
+      font: inherit;
+      font-size: $font-size-sm;
+      // Buttons shrink-to-fit by default; full width keeps trailing hints
+      // (kbd, arrows) pinned to the right edge on every row.
+      width: 100%;
+      text-align: left;
 
       .docs-support-icon {
-        font-size: 1.2rem;
-        transition: transform 0.3s ease;
+        display: inline-flex;
+        color: var(--docs-text-muted);
       }
 
       .docs-support-text {
@@ -123,66 +249,18 @@
       }
 
       .docs-support-arrow {
-        font-weight: bold;
+        font-weight: 400;
         opacity: 0;
-        transform: translateX(-8px);
-        transition: all 0.3s ease;
+        transition: opacity 0.15s ease;
+        color: var(--docs-text-muted);
       }
 
       &:hover {
         background: var(--docs-hover-bg);
-        border-color: var(--docs-primary);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transform: translateY(-1px);
-
-        &::before {
-          left: 100%;
-        }
-
-        .docs-support-icon {
-          transform: scale(1.1) rotate(5deg);
-        }
+        color: var(--docs-text-primary);
 
         .docs-support-arrow {
           opacity: 1;
-          transform: translateX(0);
-        }
-
-        &.docs-support-link--docs {
-          border-color: #6c8cff;
-          .docs-support-icon {
-            filter: hue-rotate(330deg);
-          }
-        }
-      }
-
-      &:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      &.docs-support-link--docs {
-        &:hover {
-          background: linear-gradient(
-            135deg,
-            var(--docs-hover-bg),
-            rgba(108, 140, 255, 0.08)
-          );
-        }
-      }
-
-      &.docs-support-link--shell {
-        font: inherit;
-        width: 100%;
-        text-align: left;
-
-        &:hover {
-          background: linear-gradient(
-            135deg,
-            var(--docs-hover-bg),
-            rgba(74, 222, 128, 0.08)
-          );
-          border-color: #4ade80;
         }
       }
     }
@@ -190,37 +268,21 @@
 
   .docs-powered-by {
     margin-top: $spacing-md;
-    padding: $spacing-md;
-    border: 1px solid var(--docs-border-secondary);
-    border-radius: $border-radius-lg;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.06) 0%,
-      rgba(255, 255, 255, 0.02) 100%
-    );
+    padding: $spacing-sm $spacing-md;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--docs-text-secondary);
+    color: var(--docs-text-disabled);
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.14em;
     text-decoration: none;
     text-align: center;
     text-transform: uppercase;
-    transition:
-      color 0.2s ease,
-      border-color 0.2s ease,
-      background 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover {
-      color: var(--docs-primary);
-      border-color: rgba(108, 140, 255, 0.32);
-      background: linear-gradient(
-        180deg,
-        rgba(108, 140, 255, 0.12) 0%,
-        rgba(108, 140, 255, 0.04) 100%
-      );
+      color: var(--docs-text-muted);
     }
   }
 

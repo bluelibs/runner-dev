@@ -32,6 +32,33 @@ describe("SchemaRenderer", () => {
     );
   });
 
+  it.each(["Print", "Form", "JSON"])(
+    "uses the shared empty treatment in the %s tab",
+    (tab) => {
+      const { container } = render(
+        React.createElement(SchemaRenderer, { schemaString: null })
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: tab }));
+
+      const empty = container.querySelector(".schema-renderer__empty");
+      expect(empty).not.toBeNull();
+      expect(
+        empty?.querySelector(".structured-data-panel__badge")?.textContent
+      ).toBe("Schema");
+      expect(
+        empty?.querySelector(".structured-data-panel__message")?.textContent
+      ).toBe("No schema defined");
+      // Never the mono code-block surface for an empty state.
+      expect(
+        container.querySelector(
+          ".schema-renderer__empty.schema-renderer__code-block"
+        )
+      ).toBeNull();
+      expect(screen.queryByTestId("json-viewer")).toBeNull();
+    }
+  );
+
   it("shows only the form controls in the form tab", () => {
     render(
       React.createElement(SchemaRenderer, {

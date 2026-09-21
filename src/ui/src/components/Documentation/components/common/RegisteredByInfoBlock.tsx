@@ -1,5 +1,6 @@
 import React from "react";
 import { InfoBlock } from "./ElementCard";
+import { OverviewIdLink, type OverviewIdResource } from "./OverviewIdLink";
 import "./RegisteredByInfoBlock.scss";
 
 type RegisteredByResolver = {
@@ -7,6 +8,11 @@ type RegisteredByResolver = {
     id: string;
     registeredBy?: string | null;
   }) => string | null;
+  getRegisteredByResource?: (node: {
+    id: string;
+    registeredBy?: string | null;
+  }) => OverviewIdResource | null;
+  getResources?: () => OverviewIdResource[];
 };
 
 export interface RegisteredByInfoBlockProps {
@@ -26,13 +32,22 @@ export const RegisteredByInfoBlock: React.FC<RegisteredByInfoBlockProps> = ({
   fallbackLabel = "Registration source unavailable",
   isCurrentRootResource = false,
 }) => {
+  const owner =
+    elementId && introspector?.getRegisteredByResource
+      ? introspector.getRegisteredByResource({
+          id: elementId,
+          registeredBy,
+        })
+      : null;
   const resolvedRegisteredBy =
-    elementId && introspector?.getRegisteredByResourceId
+    owner?.id ??
+    (elementId && introspector?.getRegisteredByResourceId
       ? introspector.getRegisteredByResourceId({
           id: elementId,
           registeredBy,
         })
-      : registeredBy;
+      : registeredBy);
+  const resources = introspector?.getResources?.() ?? [];
 
   return (
     <InfoBlock
@@ -45,12 +60,15 @@ export const RegisteredByInfoBlock: React.FC<RegisteredByInfoBlockProps> = ({
       }
     >
       {resolvedRegisteredBy ? (
-        <a
+        <OverviewIdLink
+          element={
+            owner
+              ? { id: owner.id, registeredBy: owner.registeredBy ?? null }
+              : { id: resolvedRegisteredBy, registeredBy: null }
+          }
+          resources={resources}
           href={`#element-${resolvedRegisteredBy}`}
-          className="registered-by-info__link"
-        >
-          {resolvedRegisteredBy}
-        </a>
+        />
       ) : isCurrentRootResource ? (
         <span className="registered-by-info__fallback">
           Root-level registration

@@ -14,6 +14,7 @@ import {
   ShellResultType,
 } from "./types/SwapType";
 import { CustomGraphQLContext } from "./context";
+import { isCodeExecutionAllowed } from "./codeExecutionGate";
 import { resolvePathInput } from "../utils/path";
 import { promises as fs } from "fs";
 
@@ -206,11 +207,7 @@ export const MutationType = new GraphQLObjectType({
         },
       },
       async resolve(_parent, { code }, ctx: CustomGraphQLContext) {
-        // Basic safeguard: allow only in non-production by default
-        const allowEval =
-          process.env.RUNNER_DEV_EVAL === "1" ||
-          process.env.NODE_ENV !== "production";
-        if (!allowEval) {
+        if (!isCodeExecutionAllowed()) {
           return {
             success: false,
             error: "Eval is disabled in this environment",
@@ -228,7 +225,7 @@ export const MutationType = new GraphQLObjectType({
         "- runtime: live IRuntime (runTask, emitEvent, getResourceValue, getResourceConfig, getHealth, ...)",
         "- console: captured; lines are returned in `logs`",
         "",
-        "Security: shell runs only with RUNNER_DEV_EVAL=1 or NODE_ENV=development.",
+        "Security: shell is disabled in production unless RUNNER_DEV_EVAL=1.",
       ].join("\n"),
       type: new GraphQLNonNull(ShellResultType),
       args: {
@@ -248,12 +245,7 @@ export const MutationType = new GraphQLObjectType({
         { code, resourceId }: { code: string; resourceId?: string | null },
         ctx: CustomGraphQLContext
       ) {
-        // Fail closed: shell runs only with the explicit opt-in flag or in
-        // development. Unset, production, and unexpected values deny.
-        const allowShell =
-          process.env.RUNNER_DEV_EVAL === "1" ||
-          process.env.NODE_ENV === "development";
-        if (!allowShell) {
+        if (!isCodeExecutionAllowed()) {
           return {
             success: false,
             error: "Shell is disabled in this environment",

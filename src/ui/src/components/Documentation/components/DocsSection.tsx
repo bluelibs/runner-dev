@@ -1,6 +1,7 @@
 import React from "react";
 import type { DocsContentPayload } from "../../../../../resources/docsPayload";
 import { MarkdownRenderer } from "../utils/markdownUtils";
+import { DocIcon } from "./common/DocIcon";
 
 export interface DocsSectionProps {
   docsContent: DocsContentPayload;
@@ -21,7 +22,7 @@ type DocsTab = {
 export const DocsSection: React.FC<DocsSectionProps> = ({
   docsContent,
   id = "docs",
-  title = "📚 Docs",
+  title = "Docs",
   description = "Generated Runner framework guides bundled with Runner Dev for quick in-app reference.",
   actions,
 }) => {
@@ -68,7 +69,10 @@ export const DocsSection: React.FC<DocsSectionProps> = ({
     <section id={id} className="docs-section docs-static-guides">
       <div className="docs-static-guides__header">
         <div className="docs-static-guides__intro">
-          <h2>{title}</h2>
+          <h2>
+            <DocIcon name="book" size={18} className="doc-icon--accent" />{" "}
+            {title}
+          </h2>
           <p>{description}</p>
         </div>
         {actions ? (

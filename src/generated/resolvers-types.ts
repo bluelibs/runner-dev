@@ -718,6 +718,22 @@ export type Query = {
   root: Maybe<Resource>;
   /** Effective run options used when starting the application via run(). Includes mode, debug flag, and root resource id. */
   runOptions: RunOptions;
+  /**
+   * Completion options for a shell snippet at a cursor position.
+   * Resolves identifier-only dotted paths (`runtime`, `r.db`) against the
+   * live shell scope without executing anything, so it is side-effect free.
+   * Returns the offset the completed word starts at plus matching options.
+   *
+   * Security: completion is disabled in production unless
+   * RUNNER_DEV_EVAL=1, like the shell itself (yields no options).
+   */
+  shellComplete: ShellCompletion;
+  /**
+   * Whether the REPL shell (and shell completions) can run here.
+   * Same gate as the shell mutation: false only in production
+   * without RUNNER_DEV_EVAL=1.
+   */
+  shellEnabled: Scalars['Boolean']['output'];
   /** List of tasks currently hot-swapped. */
   swappedTasks: Array<SwappedTask>;
   /** Get reverse usage for a tag id. Returns usedBy lists split by kind. */
@@ -826,6 +842,14 @@ export type QueryResourceMiddlewaresArgs = {
 /** Root queries for introspection, live telemetry, and debugging of Runner apps. */
 export type QueryResourcesArgs = {
   idIncludes: InputMaybe<Scalars['ID']['input']>;
+};
+
+
+/** Root queries for introspection, live telemetry, and debugging of Runner apps. */
+export type QueryShellCompleteArgs = {
+  code: Scalars['String']['input'];
+  position: Scalars['Int']['input'];
+  resourceId: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -1198,6 +1222,19 @@ export type RunRecord = {
   rootId: Maybe<Scalars['String']['output']>;
   /** Run end time (milliseconds since epoch) */
   timestampMs: Scalars['Float']['output'];
+};
+
+export type ShellCompletion = {
+  __typename?: 'ShellCompletion';
+  from: Scalars['Float']['output'];
+  options: Array<ShellCompletionOption>;
+};
+
+export type ShellCompletionOption = {
+  __typename?: 'ShellCompletionOption';
+  detail: Maybe<Scalars['String']['output']>;
+  label: Scalars['String']['output'];
+  type: Scalars['String']['output'];
 };
 
 /** Kinds of sources that can emit errors */
@@ -1578,6 +1615,8 @@ export type ResolversTypes = ResolversObject<{
   RunFilterInput: RunFilterInput;
   RunOptions: ResolverTypeWrapper<RunOptions>;
   RunRecord: ResolverTypeWrapper<Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversTypes['BaseElement']> }>;
+  ShellCompletion: ResolverTypeWrapper<ShellCompletion>;
+  ShellCompletionOption: ResolverTypeWrapper<ShellCompletionOption>;
   SourceKindEnum: SourceKindEnum;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   SwapResult: ResolverTypeWrapper<SwapResult>;
@@ -1652,6 +1691,8 @@ export type ResolversParentTypes = ResolversObject<{
   RunFilterInput: RunFilterInput;
   RunOptions: RunOptions;
   RunRecord: Omit<RunRecord, 'nodeResolved'> & { nodeResolved: Maybe<ResolversParentTypes['BaseElement']> };
+  ShellCompletion: ShellCompletion;
+  ShellCompletionOption: ShellCompletionOption;
   String: Scalars['String']['output'];
   SwapResult: SwapResult;
   SwappedTask: SwappedTask;
@@ -2006,6 +2047,8 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType, QueryResourcesArgs>;
   root: Resolver<Maybe<ResolversTypes['Resource']>, ParentType, ContextType>;
   runOptions: Resolver<ResolversTypes['RunOptions'], ParentType, ContextType>;
+  shellComplete: Resolver<ResolversTypes['ShellCompletion'], ParentType, ContextType, RequireFields<QueryShellCompleteArgs, 'code' | 'position'>>;
+  shellEnabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   swappedTasks: Resolver<Array<ResolversTypes['SwappedTask']>, ParentType, ContextType>;
   tag: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<QueryTagArgs, 'id'>>;
   tags: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
@@ -2227,6 +2270,19 @@ export type RunRecordResolvers<ContextType = CustomGraphQLContext, ParentType ex
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ShellCompletionResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ShellCompletion'] = ResolversParentTypes['ShellCompletion']> = ResolversObject<{
+  from: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  options: Resolver<Array<ResolversTypes['ShellCompletionOption']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ShellCompletionOptionResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ShellCompletionOption'] = ResolversParentTypes['ShellCompletionOption']> = ResolversObject<{
+  detail: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  label: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  type: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type SwapResultResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['SwapResult'] = ResolversParentTypes['SwapResult']> = ResolversObject<{
   error: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   success: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -2411,6 +2467,8 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   RunExecutionContextOptions: RunExecutionContextOptionsResolvers<ContextType>;
   RunOptions: RunOptionsResolvers<ContextType>;
   RunRecord: RunRecordResolvers<ContextType>;
+  ShellCompletion: ShellCompletionResolvers<ContextType>;
+  ShellCompletionOption: ShellCompletionOptionResolvers<ContextType>;
   SwapResult: SwapResultResolvers<ContextType>;
   SwappedTask: SwappedTaskResolvers<ContextType>;
   Tag: TagResolvers<ContextType>;

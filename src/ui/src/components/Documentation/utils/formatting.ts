@@ -90,29 +90,35 @@ export const formatFilePath = (filePath: string | null | undefined): string => {
   return parts.join("/");
 };
 
+export const getCoverageColor = (percentage: number): string => {
+  if (percentage >= 100) return "var(--docs-success)";
+  if (percentage >= 80) return "var(--docs-warning)";
+  return "var(--docs-danger)";
+};
+
 export const getSeverityColor = (severity: string): string => {
   switch (severity.toLowerCase()) {
     case "error":
-      return "#e74c3c";
+      return "#d96a63";
     case "warning":
-      return "#f39c12";
+      return "#c9a227";
     case "info":
-      return "#3498db";
+      return "#9aa7bd";
     default:
-      return "#95a5a6";
+      return "#6f7683";
   }
 };
 
 export const getSeverityIcon = (severity: string): string => {
   switch (severity.toLowerCase()) {
     case "error":
-      return "❌";
+      return "error";
     case "warning":
-      return "⚠️";
+      return "warning";
     case "info":
-      return "ℹ️";
+      return "info";
     default:
-      return "📝";
+      return "file";
   }
 };
 

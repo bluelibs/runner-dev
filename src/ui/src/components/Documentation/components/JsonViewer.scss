@@ -11,14 +11,12 @@
   border-radius: $border-radius-md;
   border: 1px solid var(--docs-border-primary);
   max-height: var(--json-viewer-max-height, 320px);
-
-  .json-bracket {
-    margin-left: 12px;
-  }
 }
 
+// Indent is measured in `ch` so each nesting level costs ~4 monospace
+// characters: the guide sits under the opening bracket (2ch), children
+// start one more tab stop in (4ch).
 .json-node {
-  margin-left: $spacing-xs;
   position: relative;
 
   &.expanded > .json-children {
@@ -29,19 +27,20 @@
 .json-toggle {
   cursor: pointer;
   position: absolute;
-  left: -$spacing-xs;
+  left: 0;
   top: 0;
   color: var(--docs-text-muted);
   user-select: none;
 
   &:hover {
-    color: $primary-blue;
+    color: var(--docs-text-primary);
   }
 }
 
 .json-children {
   display: none;
-  padding-left: $spacing-xs;
+  margin-left: 2ch;
+  padding-left: 2ch;
   border-left: 1px dotted var(--docs-text-muted);
 }
 
@@ -50,6 +49,14 @@
   align-items: flex-start;
   min-width: 0;
   flex-wrap: wrap;
+
+  // Expanded containers always start on their own line so their
+  // children indent from the parent guide, not from mid-line after
+  // the key. Short arrays otherwise stay inline and push their
+  // items horizontally while wider objects wrap.
+  > .json-node.expanded {
+    flex-basis: 100%;
+  }
 }
 
 .json-key {
@@ -64,19 +71,24 @@
   overflow-wrap: anywhere;
 
   &--string {
-    color: #22c55e; // green - works well in both themes
+    color: var(--docs-json-string);
   }
 
   &--number {
-    color: #3b82f6; // blue - works well in both themes
+    color: var(--docs-json-number);
   }
 
   &--boolean {
-    color: #a855f7; // purple - works well in both themes
+    color: var(--docs-json-boolean);
   }
 
   &--null {
     color: var(--docs-text-muted);
+  }
+
+  &--undefined {
+    color: var(--docs-text-muted);
+    font-style: italic;
   }
 }
 
@@ -86,5 +98,20 @@
 }
 
 .json-bracket {
-  margin-left: $spacing-xs;
+  &--open {
+    // Room for the absolutely-positioned toggle glyph.
+    margin-left: 2ch;
+  }
+
+  &--close {
+    .json-node.expanded > & {
+      // Align the closing bracket under the opening one. Collapsed
+      // nodes keep `[...] ` tight on one line.
+      margin-left: 2ch;
+    }
+  }
+}
+
+.json-comma {
+  color: var(--docs-text-primary);
 }

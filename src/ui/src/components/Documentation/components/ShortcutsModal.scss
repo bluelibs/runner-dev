@@ -1,0 +1,58 @@
+@use "../../../styles/variables" as *;
+
+.shortcuts-modal__panel {
+  &.base-modal__panel {
+    background: var(--docs-bg-elevated);
+    border: 1px solid var(--docs-border-primary);
+  }
+}
+
+.shortcuts-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.shortcuts-modal__group-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: 0 0 $spacing-sm 0;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--docs-text-muted);
+}
+
+.shortcuts-modal__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcuts-modal__row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-md;
+  font-size: $font-size-sm;
+
+  &:hover {
+    background: var(--docs-hover-bg);
+  }
+}
+
+.shortcuts-modal__keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 72px;
+}
+
+.shortcuts-modal__description {
+  color: var(--docs-text-secondary);
+}

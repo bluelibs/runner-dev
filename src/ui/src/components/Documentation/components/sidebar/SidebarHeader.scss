@@ -25,14 +25,13 @@
     display: flex;
     align-items: center;
     gap: $spacing-xs;
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    color: var(--docs-text-primary);
 
     // Support for documentation sidebar styling
     &--docs {
       font-size: $spacing-lg;
-      color: #ecf0f1;
-      border-bottom: 3px solid $primary-blue;
+      color: var(--docs-text-primary);
+      border-bottom: 1px solid var(--docs-border-primary);
       padding-bottom: $spacing-sm;
       font-weight: 700;
     }
@@ -43,7 +42,7 @@
     font-weight: 500;
 
     .status-thinking {
-      color: #10b981;
+      color: var(--docs-success);
       animation: pulse 2s infinite;
       display: inline-flex;
       align-items: center;
@@ -56,14 +55,14 @@
     }
 
     .status-ready {
-      color: #6b7280;
+      color: var(--docs-text-muted);
       display: inline-flex;
       align-items: center;
       gap: $spacing-xs;
 
       &::before {
         content: "●";
-        color: #10b981;
+        color: var(--docs-success);
       }
     }
   }
@@ -74,9 +73,9 @@
     gap: $spacing-sm;
 
     .sidebar-header__action-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: #fff;
+      background: var(--docs-hover-bg);
+      border: 1px solid var(--docs-border-primary);
+      color: var(--docs-text-secondary);
       border-radius: 6px;
       padding: 4px 8px;
       cursor: pointer;
@@ -84,8 +83,9 @@
       transition: all 0.2s ease;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.12);
-        border-color: rgba(255, 255, 255, 0.4);
+        background: var(--docs-active-bg);
+        border-color: var(--docs-border-secondary);
+        color: var(--docs-text-primary);
         transform: translateY(-1px);
       }
 
@@ -94,9 +94,9 @@
       }
 
       &.active {
-        border-width: 1px;
-        border-color: $primary-blue;
-        border-style: solid;
+        background: var(--docs-active-bg);
+        border: 1px solid var(--docs-border-secondary);
+        color: var(--docs-text-primary);
       }
 
       &.disabled {
@@ -104,8 +104,9 @@
         cursor: not-allowed;
 
         &:hover {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(255, 255, 255, 0.3);
+          background: var(--docs-hover-bg);
+          border-color: var(--docs-border-primary);
+          color: var(--docs-text-secondary);
           transform: none;
         }
       }
@@ -148,7 +149,7 @@
 
   .sidebar-header__title {
     font-size: $spacing-lg;
-    color: #ecf0f1;
+    color: var(--docs-text-primary);
     padding-bottom: 6px;
     font-weight: 700;
   }
@@ -175,21 +176,12 @@
   right: 0;
 
   // Add glass-like blur background for better visibility
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--docs-sidebar-bg) 88%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 
-  // Support for dark mode
-  @media (prefers-color-scheme: dark) {
-    background: rgba(30, 30, 30, 0.9);
-  }
-
   // Add subtle border for better definition
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-
-  @media (prefers-color-scheme: dark) {
-    border-bottom-color: rgba(255, 255, 255, 0.1);
-  }
+  border-bottom: 1px solid var(--docs-border-primary);
 }
 
 // Animations

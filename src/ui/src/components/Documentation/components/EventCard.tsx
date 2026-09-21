@@ -13,8 +13,10 @@ import SchemaRenderer from "./SchemaRenderer";
 import ExecuteModal from "./ExecuteModal";
 import { ElementCard, CardSection, InfoBlock } from "./common/ElementCard";
 import { isSystemElement } from "../utils/isSystemElement";
+import { invokeEventById } from "../utils/invokeElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { OverviewIdLink } from "./common/OverviewIdLink";
 import type { DocumentationMode } from "../../../../../resources/docsPayload";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
@@ -307,13 +309,12 @@ export const EventCard: React.FC<EventCardProps> = ({
             <InfoBlock prefix="event-card" label="Tags:">
               <div className="event-card__tags">
                 {introspector.getTagsByIds(event.tags).map((tag) => (
-                  <a
-                    href={`#element-${tag.id}`}
+                  <OverviewIdLink
                     key={tag.id}
-                    className="clean-button"
-                  >
-                    {formatId(tag.id)}
-                  </a>
+                    element={tag}
+                    resources={introspector.getResources()}
+                    href={`#element-${tag.id}`}
+                  />
                 ))}
               </div>
             </InfoBlock>
@@ -383,7 +384,7 @@ export const EventCard: React.FC<EventCardProps> = ({
               <div className="event-card__participant-section__items">
                 {emitters.map((emitter) => {
                   let className = "event-card__emitter";
-                  let icon = "📤";
+                  let icon = "Event";
 
                   if ("emits" in emitter && Array.isArray(emitter.emits)) {
                     if ("dependsOn" in emitter && "middleware" in emitter) {
@@ -502,40 +503,7 @@ export const EventCard: React.FC<EventCardProps> = ({
           title={event.meta?.title || formatId(event.id)}
           schemaString={event.payloadSchema}
           onClose={() => setIsExecuteOpen(false)}
-          onInvoke={async ({ inputJson }) => {
-            const INVOKE_EVENT_MUTATION = `
-              mutation InvokeEvent($eventId: ID!, $inputJson: String, $evalInput: Boolean) {
-                invokeEvent(eventId: $eventId, inputJson: $inputJson, evalInput: $evalInput) {
-                  success
-                  error
-                  invocationId
-                }
-              }
-            `;
-
-            try {
-              const res = await graphqlRequest<{
-                invokeEvent: {
-                  success: boolean;
-                  error?: string | null;
-                  invocationId?: string | null;
-                };
-              }>(INVOKE_EVENT_MUTATION, {
-                eventId: event.id,
-                inputJson: inputJson?.trim() || undefined,
-                evalInput: false,
-              });
-
-              return {
-                output: res.invokeEvent.success
-                  ? "Event invoked successfully"
-                  : res.invokeEvent.error ?? undefined,
-                error: res.invokeEvent.error ?? undefined,
-              };
-            } catch (e: any) {
-              return { error: e?.message ?? String(e) };
-            }
-          }}
+          onInvoke={({ inputJson }) => invokeEventById(event.id, inputJson)}
         />
       )}
     </ElementCard>

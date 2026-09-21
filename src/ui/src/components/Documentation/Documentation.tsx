@@ -15,6 +15,10 @@ import { createSections } from "./config/documentationSections";
 import { OverviewStatsPanel } from "./components/overview/OverviewStatsPanel";
 import { ModalStackProvider } from "./components/modals";
 import ShellModal from "./components/ShellModal";
+import { CommandPalette } from "./components/CommandPalette";
+import { ShortcutsModal } from "./components/ShortcutsModal";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { buildPaletteEntries, type PaletteEntry } from "./utils/commandPalette";
 import { getHashScrollTargetId } from "./utils/documentationHash";
 import { useRef } from "react";
 import {
@@ -250,6 +254,12 @@ export const Documentation: React.FC<DocumentationProps> = ({
     el?.scrollIntoView({ behavior: "instant", block: "start" });
   };
 
+  // Tab clicks swap sections in place without scrolling; panels mounting
+  // underneath (e.g. Diagnostics) must not yank the viewport via the
+  // layout/diagnostic re-scroll below. Suppressed briefly per switch.
+  const suppressRescrollRef = React.useRef(false);
+  const suppressRescrollTimerRef = React.useRef<number | null>(null);
+
   // Handle hash changes to clear search when navigating to filtered-out elements
   useEffect(() => {
     const scrollToCurrentHash = () => {
@@ -291,7 +301,9 @@ export const Documentation: React.FC<DocumentationProps> = ({
     // Re-scroll after potential layout changes (like diagnostic pane rendering)
     const handleLayoutChange = () => {
       // Add a small delay to ensure layout is complete
-      setTimeout(scrollToCurrentHash, 100);
+      setTimeout(() => {
+        if (!suppressRescrollRef.current) scrollToCurrentHash();
+      }, 100);
     };
 
     // Listen for diagnostic pane tab changes and other layout-affecting events
@@ -299,9 +311,21 @@ export const Documentation: React.FC<DocumentationProps> = ({
       handleLayoutChange();
     };
 
+    const handleSelectSection = () => {
+      suppressRescrollRef.current = true;
+      if (suppressRescrollTimerRef.current !== null) {
+        window.clearTimeout(suppressRescrollTimerRef.current);
+      }
+      suppressRescrollTimerRef.current = window.setTimeout(() => {
+        suppressRescrollRef.current = false;
+        suppressRescrollTimerRef.current = null;
+      }, 350);
+    };
+
     window.addEventListener("hashchange", handleHashChange);
     window.addEventListener("docs:layout-change", handleLayoutChange);
     window.addEventListener("docs:diagnostic-change", handleDiagnosticChange);
+    window.addEventListener("docs:select-section", handleSelectSection);
 
     // Run once on initial mount only
     if (!didInitHashHandlerRef.current) {
@@ -316,6 +340,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
         "docs:diagnostic-change",
         handleDiagnosticChange
       );
+      window.removeEventListener("docs:select-section", handleSelectSection);
     };
   }, [
     filterHook.localNamespaceSearch,
@@ -327,6 +352,14 @@ export const Documentation: React.FC<DocumentationProps> = ({
   // Global runtime shell (live mode only)
   const [isShellOpen, setIsShellOpen] = useState<boolean>(false);
   const [shellResourceId, setShellResourceId] = useState<string | null>(null);
+  const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
+
+  const openGlobalShell = React.useCallback(() => {
+    if (mode === "catalog") return;
+    setShellResourceId(null);
+    setIsShellOpen(true);
+  }, [mode]);
 
   useEffect(() => {
     if (mode === "catalog") return;
@@ -335,30 +368,214 @@ export const Documentation: React.FC<DocumentationProps> = ({
       setShellResourceId(ce?.detail?.resourceId ?? null);
       setIsShellOpen(true);
     };
-    const handleShortcut = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "`") {
-        const target = e.target as HTMLElement | null;
-        if (
-          target &&
-          (target.tagName === "INPUT" ||
-            target.tagName === "TEXTAREA" ||
-            target.tagName === "SELECT" ||
-            target.isContentEditable)
-        ) {
-          return;
-        }
-        e.preventDefault();
-        setShellResourceId(null);
-        setIsShellOpen(true);
-      }
-    };
     window.addEventListener("docs:open-shell", handleOpenShell);
-    window.addEventListener("keydown", handleShortcut);
     return () => {
       window.removeEventListener("docs:open-shell", handleOpenShell);
-      window.removeEventListener("keydown", handleShortcut);
     };
   }, [mode]);
+
+  const navigateToSection = React.useCallback((sectionId: string) => {
+    window.location.hash = `#${sectionId}`;
+  }, []);
+
+  const handlePaletteEntry = React.useCallback(
+    (entry: PaletteEntry) => {
+      if (entry.kind === "element") {
+        window.location.hash = `#element-${entry.id}`;
+        return;
+      }
+      if (entry.kind === "section") {
+        navigateToSection(entry.id);
+        return;
+      }
+      switch (entry.id) {
+        case "open-shell":
+          openGlobalShell();
+          break;
+        case "toggle-theme":
+          toggleDarkMode();
+          break;
+        case "open-stats":
+          openStats();
+          break;
+        case "toggle-system":
+          filterHook.handleShowSystemChange(!filterHook.showSystem);
+          break;
+        case "toggle-runner":
+          filterHook.handleShowRunnerChange(!filterHook.showRunner);
+          break;
+        case "toggle-private":
+          filterHook.handleShowPrivateChange(!filterHook.showPrivate);
+          break;
+        case "open-shortcuts":
+          setIsShortcutsOpen(true);
+          break;
+        default:
+          break;
+      }
+    },
+    [
+      navigateToSection,
+      openGlobalShell,
+      filterHook.handleShowSystemChange,
+      filterHook.handleShowRunnerChange,
+      filterHook.handleShowPrivateChange,
+      filterHook.showSystem,
+      filterHook.showRunner,
+      filterHook.showPrivate,
+    ]
+  );
+
+  const paletteEntries = React.useMemo(
+    () =>
+      buildPaletteEntries({
+        elements: [
+          ...filterHook.tasks.map((item) => ({
+            id: item.id,
+            kind: "task",
+            title: item.meta?.title,
+          })),
+          ...filterHook.resources.map((item) => ({
+            id: item.id,
+            kind: "resource",
+            title: item.meta?.title,
+          })),
+          ...filterHook.events.map((item) => ({
+            id: item.id,
+            kind: "event",
+            title: item.meta?.title,
+          })),
+          ...filterHook.hooks.map((item) => ({
+            id: item.id,
+            kind: "hook",
+            title: item.meta?.title,
+          })),
+          ...filterHook.middlewares.map((item) => ({
+            id: item.id,
+            kind: "middleware",
+            title: item.meta?.title,
+          })),
+          ...filterHook.errors.map((item) => ({
+            id: item.id,
+            kind: "error",
+            title: item.meta?.title,
+          })),
+          ...filterHook.asyncContexts.map((item) => ({
+            id: item.id,
+            kind: "asyncContext",
+            title: item.meta?.title,
+          })),
+          ...filterHook.tags.map((item) => ({
+            id: item.id,
+            kind: "tag",
+            title: item.meta?.title,
+          })),
+        ],
+        sections: sections.map((section) => ({
+          id: section.id,
+          label: section.label,
+          icon: section.icon,
+        })),
+        actions: [
+          ...(mode === "catalog"
+            ? []
+            : [
+                {
+                  id: "open-shell",
+                  label: "Open runtime shell",
+                  icon: "terminal",
+                  shortcut: "⌃`",
+                  keywords: "shell repl console runtime eval",
+                },
+                {
+                  id: "open-stats",
+                  label: "Open performance stats",
+                  icon: "chart",
+                  keywords: "stats metrics performance",
+                },
+              ]),
+          {
+            id: "toggle-theme",
+            label: isDarkMode
+              ? "Switch to light theme"
+              : "Switch to dark theme",
+            icon: isDarkMode ? "sun" : "moon",
+            keywords: "theme dark light mode appearance",
+          },
+          {
+            id: "toggle-system",
+            label: `${filterHook.showSystem ? "Hide" : "Show"} system elements`,
+            icon: "filter",
+            keywords: "filter system namespace visibility",
+          },
+          {
+            id: "toggle-runner",
+            label: `${
+              filterHook.showRunner ? "Hide" : "Show"
+            } framework elements`,
+            icon: "filter",
+            keywords: "filter framework runner namespace visibility",
+          },
+          {
+            id: "toggle-private",
+            label: `${
+              filterHook.showPrivate ? "Hide" : "Show"
+            } private elements`,
+            icon: "filter",
+            keywords: "filter private visibility",
+          },
+          {
+            id: "open-shortcuts",
+            label: "Show keyboard shortcuts",
+            icon: "command",
+            shortcut: "?",
+            keywords: "shortcuts keys help hotkeys",
+          },
+        ],
+      }),
+    [
+      filterHook.tasks,
+      filterHook.resources,
+      filterHook.events,
+      filterHook.hooks,
+      filterHook.middlewares,
+      filterHook.errors,
+      filterHook.asyncContexts,
+      filterHook.tags,
+      filterHook.showSystem,
+      filterHook.showRunner,
+      filterHook.showPrivate,
+      sections,
+      mode,
+      isDarkMode,
+    ]
+  );
+
+  const isOverlayOpen = React.useCallback(
+    () => isPaletteOpen || isShellOpen || isShortcutsOpen || isStatsOpen,
+    [isPaletteOpen, isShellOpen, isShortcutsOpen, isStatsOpen]
+  );
+
+  useGlobalShortcuts({
+    onOpenPalette: React.useCallback(
+      () => setIsPaletteOpen((open) => !open),
+      []
+    ),
+    onOpenShell: openGlobalShell,
+    onOpenShortcuts: React.useCallback(() => setIsShortcutsOpen(true), []),
+    onNavigateSection: navigateToSection,
+    onEscape: React.useCallback(() => {
+      const hash = window.location.hash;
+      if (hash.startsWith("#element-")) {
+        const elementId = hash.substring("#element-".length);
+        const sectionId = resolveSectionFromElementId(elementId);
+        window.location.hash = sectionId ? `#${sectionId}` : "#overview";
+        return true;
+      }
+      return false;
+    }, [resolveSectionFromElementId]),
+    isOverlayOpen,
+  });
 
   // Consider layout busy whenever dragging resizers or debounced widths are catching up
   const isLayoutBusy =
@@ -382,7 +599,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
             onToggleDarkMode={toggleDarkMode}
             viewMode={viewModeHook.viewMode}
             treeType={viewModeHook.treeType}
-            localNamespaceSearch={filterHook.localNamespaceSearch}
+            searchTerm={filterHook.localNamespaceSearch}
             showSystem={filterHook.showSystem}
             showRunner={filterHook.showRunner}
             showPrivate={filterHook.showPrivate}
@@ -390,7 +607,6 @@ export const Documentation: React.FC<DocumentationProps> = ({
             sections={sections}
             onViewModeChange={viewModeHook.handleViewModeChange}
             onTreeTypeChange={viewModeHook.handleTreeTypeChange}
-            onNamespaceSearchChange={filterHook.setLocalNamespaceSearch}
             onShowSystemChange={filterHook.handleShowSystemChange}
             onShowRunnerChange={filterHook.handleShowRunnerChange}
             onShowPrivateChange={filterHook.handleShowPrivateChange}
@@ -398,6 +614,8 @@ export const Documentation: React.FC<DocumentationProps> = ({
             onToggleExpansion={treeHook.handleToggleExpansion}
             onSectionClick={handleSectionClick}
             resolveSectionFromElementId={resolveSectionFromElementId}
+            onOpenPalette={() => setIsPaletteOpen(true)}
+            onOpenShortcuts={() => setIsShortcutsOpen(true)}
           />
 
           {/* Sidebar Resizer */}
@@ -452,6 +670,19 @@ export const Documentation: React.FC<DocumentationProps> = ({
               resourceId={shellResourceId}
             />
           )}
+
+          <CommandPalette
+            isOpen={isPaletteOpen}
+            onClose={() => setIsPaletteOpen(false)}
+            entries={paletteEntries}
+            onSelectEntry={handlePaletteEntry}
+          />
+          <ShortcutsModal
+            isOpen={isShortcutsOpen}
+            onClose={() => setIsShortcutsOpen(false)}
+            sections={sections}
+            shellAvailable={mode !== "catalog"}
+          />
         </div>
       </ModalStackProvider>
     </DocumentationModeProvider>

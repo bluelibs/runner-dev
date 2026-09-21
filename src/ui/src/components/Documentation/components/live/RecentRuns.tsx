@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CodeModal } from "../CodeModal";
+import { DocIcon } from "../common/DocIcon";
 import "./RecentRuns.scss";
 
 interface RunRecord {
@@ -163,7 +164,9 @@ export const RecentRuns: React.FC<RecentRunsProps> = ({
                   <span className="entry-time">
                     {formatTimestamp(run.timestampMs)}
                   </span>
-                  <span className="entry-status">{run.ok ? "✅" : "❌"}</span>
+                  <span className="entry-status">
+                    <DocIcon name={run.ok ? "check" : "x"} size={13} />
+                  </span>
                   <a href={`#element-${run.nodeId}`} className="entry-node">
                     {run.nodeKind}:{run.nodeId}
                   </a>

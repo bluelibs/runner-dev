@@ -67,10 +67,10 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
       console.log(result.invokeTask);
 
       const resultMessage = result.invokeTask.success
-        ? `// ✅ Task executed successfully\n${
+        ? `// OK — task executed successfully\n${
             result.invokeTask.result ? `${result.invokeTask.result}` : ""
           }`
-        : `// ❌ Task failed\n${
+        : `// FAIL — task failed\n${
             result.invokeTask.error ? `${result.invokeTask.error}` : ""
           }`;
 
@@ -153,8 +153,8 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
       });
 
       const resultMessage = result.invokeEvent.success
-        ? `✅ Event invoked successfully`
-        : `❌ Event failed${
+        ? `OK — event invoked successfully`
+        : `FAIL — event failed${
             result.invokeEvent.error ? `: ${result.invokeEvent.error}` : ""
           }`;
 
@@ -162,7 +162,7 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
       setShowEventModal(true);
     } catch (err) {
       setEventResult(
-        `❌ Error: ${
+        `FAIL — error: ${
           err instanceof Error ? err.message : "Failed to invoke event"
         }`
       );
@@ -220,12 +220,12 @@ export const LiveRuns: React.FC<LiveRunsProps> = ({ introspector }) => {
             {taskResult && (
               <div
                 className={`live-runs__result ${
-                  taskResult.includes("✅")
+                  taskResult.includes("// OK")
                     ? "live-runs__result--success"
                     : "live-runs__result--error"
                 }`}
               >
-                {taskResult.includes("✅")
+                {taskResult.includes("// OK")
                   ? "Last run was successful"
                   : "Last run failed"}
               </div>

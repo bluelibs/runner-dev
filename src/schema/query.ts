@@ -1,4 +1,5 @@
 import {
+  GraphQLBoolean,
   GraphQLID,
   GraphQLInt,
   GraphQLList,
@@ -7,6 +8,7 @@ import {
   GraphQLString,
 } from "graphql";
 import type { CustomGraphQLContext } from "./context";
+import { isCodeExecutionAllowed } from "./codeExecutionGate";
 
 import {
   BaseElementInterface,
@@ -489,6 +491,15 @@ export const QueryType = new GraphQLObjectType({
       resolve: (_root, _args, ctx: CustomGraphQLContext) =>
         ctx.swapManager.getSwappedTasks(),
     },
+    shellEnabled: {
+      description: [
+        "Whether the REPL shell (and shell completions) can run here.",
+        "Same gate as the shell mutation: false only in production",
+        "without RUNNER_DEV_EVAL=1.",
+      ].join("\n"),
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: () => isCodeExecutionAllowed(),
+    },
     shellComplete: {
       description: [
         "Completion options for a shell snippet at a cursor position.",
@@ -496,8 +507,8 @@ export const QueryType = new GraphQLObjectType({
         "live shell scope without executing anything, so it is side-effect free.",
         "Returns the offset the completed word starts at plus matching options.",
         "",
-        "Security: completion runs only with RUNNER_DEV_EVAL=1 or",
-        "NODE_ENV=development, like the shell itself (yields no options).",
+        "Security: completion is disabled in production unless",
+        "RUNNER_DEV_EVAL=1, like the shell itself (yields no options).",
       ].join("\n"),
       type: new GraphQLNonNull(ShellCompletionType),
       args: {
@@ -524,11 +535,8 @@ export const QueryType = new GraphQLObjectType({
         }: { code: string; position: number; resourceId?: string | null },
         ctx: CustomGraphQLContext
       ) {
-        // Same fail-closed safeguard as the shell: fail soft when disabled.
-        const allowShell =
-          process.env.RUNNER_DEV_EVAL === "1" ||
-          process.env.NODE_ENV === "development";
-        if (!allowShell) {
+        // Same gate as the shell: fail soft when disabled.
+        if (!isCodeExecutionAllowed()) {
           return { from: position, options: [] };
         }
         return await ctx.swapManager.completeShell(

@@ -39,8 +39,8 @@ export const useDocumentationFilters = (
   );
   const [showRunner, setShowRunner] = useState<boolean>(() =>
     readStoredBoolean(
-      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
-      DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER
+      DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_FRAMEWORK,
+      DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_FRAMEWORK
     )
   );
   const [showPrivate, setShowPrivate] = useState<boolean>(() =>
@@ -182,7 +182,7 @@ export const useDocumentationFilters = (
     setShowRunner(value);
     try {
       localStorage.setItem(
-        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER,
+        DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_FRAMEWORK,
         value ? "1" : "0"
       );
     } catch {
@@ -193,7 +193,7 @@ export const useDocumentationFilters = (
   const resetFilters = () => {
     setLocalNamespaceSearch("");
     handleShowSystemChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_SYSTEM);
-    handleShowRunnerChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_RUNNER);
+    handleShowRunnerChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_FRAMEWORK);
     handleShowPrivateChange(DOCUMENTATION_CONSTANTS.DEFAULTS.SHOW_PRIVATE);
   };
 

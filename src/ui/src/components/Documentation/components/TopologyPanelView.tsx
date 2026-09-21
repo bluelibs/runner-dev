@@ -5,6 +5,7 @@ import type {
   TopologyViewMode,
 } from "../utils/topologyGraph";
 import { TopologyCanvas } from "./TopologyCanvas";
+import { DocIcon } from "./common/DocIcon";
 import { TopologyFocusBar } from "./TopologyFocusBar";
 import { TopologyDetailPanels, TopologySidebar } from "./TopologySidebar";
 import { TopologyToolbar } from "./TopologyToolbar";
@@ -57,7 +58,9 @@ export const TopologyPanelView: React.FC<TopologyPanelViewProps> = ({
       {showHero && (
         <div className="topology-panel__hero">
           <div>
-            <h2>🧭 Topology</h2>
+            <h2>
+              <DocIcon name="topology" size={18} /> Topology
+            </h2>
             <p>
               Explore task blast radius and resource mindmaps. Click any node to
               refocus, or jump to the original docs card when you want the full

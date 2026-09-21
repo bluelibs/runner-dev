@@ -1,19 +1,26 @@
-export const DOCUMENTATION_ICONS = {
-  overview: "📋",
-  docs: "📚",
-  live: "📡",
-  diagnostics: "🔍",
-  topology: "🧭",
-  task: "▶️",
-  resource: "🧱",
-  event: "📡",
-  hook: "🪝",
-  middleware: "🔗",
-  tag: "🏷️",
-  error: "🚨",
-  asyncContext: "🔄",
-  folder: "📁",
-  fallback: "📄",
+import type { DocIconName } from "../components/common/DocIcon";
+
+/**
+ * Icon names for documentation surfaces. Values are `DocIcon` names
+ * (rendered as minimal SVGs); `DocIcon` falls back to raw text for any
+ * unknown string so fixtures and placeholders keep working.
+ */
+export const DOCUMENTATION_ICONS: Record<string, DocIconName> = {
+  overview: "overview",
+  docs: "book",
+  live: "live",
+  diagnostics: "diagnostics",
+  topology: "topology",
+  task: "task",
+  resource: "resource",
+  event: "event",
+  hook: "hook",
+  middleware: "middleware",
+  tag: "tag",
+  error: "error",
+  asyncContext: "asyncContext",
+  folder: "folder",
+  fallback: "file",
 } as const;
 
 export function getDocumentationIcon(kind: string): string {

@@ -19,7 +19,8 @@
 // Middleware Card Header
 // -----------------------------------------------------------------------------
 .middleware-card__header {
-  background: linear-gradient(135deg, $purple, #5a2b99);
+  background: var(--docs-bg-secondary);
+  border-bottom: 1px solid var(--docs-border-primary);
   color: var(--docs-text-primary);
   padding: $spacing-xl;
 }
@@ -92,9 +93,9 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: $border-radius-pill;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: rgba(255, 255, 255, 0.96);
+  background: var(--docs-hover-bg);
+  border: 1px solid var(--docs-border-secondary);
+  color: var(--docs-text-secondary);
   font-size: $font-size-xs;
   font-weight: 700;
   line-height: 1.2;
@@ -140,16 +141,11 @@
   gap: 6px;
   margin-bottom: $spacing-sm;
 
-  &--task {
-    background: rgba(255, 255, 255, 0.25);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-  }
-
+  &--task,
   &--resource {
-    background: rgba(255, 193, 7, 0.3);
-    color: #fff;
-    border: 1px solid rgba(255, 193, 7, 0.6);
+    background: var(--docs-hover-bg);
+    color: var(--docs-text-secondary);
+    border: 1px solid var(--docs-border-secondary);
   }
 }
 
@@ -164,7 +160,8 @@
 }
 
 .middleware-card__global-badge {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -184,22 +181,23 @@
   }
 
   &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--docs-hover-bg);
     border-radius: 2px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--docs-border-secondary);
     border-radius: 2px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.5);
+      background: var(--docs-text-muted);
     }
   }
 }
 
 .middleware-card__tag {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
   padding: $spacing-xs $spacing-sm;
   border-radius: $border-radius-pill;
   font-size: $font-size-xs;
@@ -311,51 +309,38 @@
   padding: $spacing-md;
   border-radius: $border-radius-lg;
   text-align: center;
-  border: 2px solid;
+  border: 1px solid var(--docs-border-primary);
+  background: var(--docs-bg-secondary);
 
-  &--tasks {
-    background: var(--docs-primary-bg);
-    border-color: var(--docs-primary);
-  }
-
-  &--resources {
-    background: var(--docs-success-bg);
-    border-color: var(--docs-success);
-  }
-
+  &--tasks,
+  &--resources,
   &--events {
-    background: var(--docs-warning-bg);
-    border-color: var(--docs-warning);
+    background: var(--docs-bg-secondary);
+    border-color: var(--docs-border-primary);
   }
 
   .value {
     font-size: $font-size-lg;
     font-weight: bold;
     margin-bottom: $spacing-xs;
+    color: var(--docs-text-primary);
 
-    &--tasks {
-      color: var(--docs-primary);
-    }
-    &--resources {
-      color: var(--docs-success);
-    }
+    &--tasks,
+    &--resources,
     &--events {
-      color: var(--docs-warning);
+      color: var(--docs-text-primary);
     }
   }
 
   .label {
     font-size: $font-size-xs;
     font-weight: 500;
+    color: var(--docs-text-secondary);
 
-    &--tasks {
-      color: var(--docs-primary);
-    }
-    &--resources {
-      color: var(--docs-success);
-    }
+    &--tasks,
+    &--resources,
     &--events {
-      color: var(--docs-warning);
+      color: var(--docs-text-secondary);
     }
   }
 }
@@ -476,7 +461,7 @@
       border-radius: 3px;
 
       &:hover {
-        background: #999;
+        background: var(--docs-text-muted);
       }
     }
   }
@@ -586,7 +571,7 @@
       border-radius: 3px;
 
       &:hover {
-        background: #999;
+        background: var(--docs-text-muted);
       }
     }
   }

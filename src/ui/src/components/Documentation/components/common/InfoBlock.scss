@@ -3,15 +3,15 @@
 .info-block {
   .info-block__label {
     font-weight: bold;
-    color: $text-dark;
+    color: var(--docs-text-primary);
   }
 
   .info-block__value {
     font-family: $font-family-mono;
     font-size: $font-size-sm;
-    color: $text-gray;
+    color: var(--docs-text-secondary);
     margin-top: $spacing-xs;
-    background: $light-gray;
+    background: var(--docs-bg-secondary);
     padding: $spacing-sm;
     border-radius: $border-radius-sm;
   }

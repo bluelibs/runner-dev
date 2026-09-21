@@ -4,6 +4,7 @@ import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   formatFilePath,
   formatId,
+  getCoverageColor,
   shouldDisplayConfig,
 } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
@@ -34,6 +35,7 @@ import {
 import { TopologyActionButton } from "./TopologyActionButton";
 import ShellModal from "./ShellModal";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { OverviewIdLink } from "./common/OverviewIdLink";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 import {
@@ -305,12 +307,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               <span
                 style={{
                   fontWeight: 600,
-                  color:
-                    resource.coverage.percentage >= 100
-                      ? "#2e7d32"
-                      : resource.coverage.percentage >= 80
-                      ? "#ef6c00"
-                      : "#c62828",
+                  color: getCoverageColor(resource.coverage.percentage),
                 }}
               >
                 {resource.coverage.percentage}%
@@ -385,13 +382,12 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
             <InfoBlock prefix="resource-card" label="Tags:">
               <div className="resource-card__tags">
                 {introspector.getTagsByIds(resource.tags).map((tag) => (
-                  <a
-                    href={`#element-${tag.id}`}
+                  <OverviewIdLink
                     key={tag.id}
-                    className="clean-button"
-                  >
-                    {formatId(tag.id)}
-                  </a>
+                    element={tag}
+                    resources={introspector.getResources()}
+                    href={`#element-${tag.id}`}
+                  />
                 ))}
               </div>
             </InfoBlock>

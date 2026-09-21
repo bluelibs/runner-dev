@@ -7,54 +7,32 @@
   display: inline-block;
   padding: $spacing-xs $spacing-sm;
   font-size: $font-size-xs;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   border-radius: $border-radius-sm;
-  background: rgba(255, 255, 255, 0.2);
-  color: inherit;
+  background: var(--docs-hover-bg);
+  border: 1px solid var(--docs-border-primary);
+  color: var(--docs-text-secondary);
   line-height: 1;
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
-  backdrop-filter: blur(4px);
 
-  // -- Variants (subtle tint per kind) ----------------------------------------
-  &--task {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  &--resource {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  &--event {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  &--hook {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  &--middleware {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  &--tag {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  &--error {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  &--async-context {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
+  // -- Variants (all monochrome; kind is carried by the label) ------------------
+  &--task,
+  &--resource,
+  &--event,
+  &--hook,
+  &--middleware,
+  &--task-middleware,
+  &--resource-middleware,
+  &--tag,
+  &--error,
+  &--async-context,
   &--system {
-    background: rgba(160, 160, 160, 0.35);
-    color: rgba(255, 255, 255, 0.7);
+    background: var(--docs-hover-bg);
+    color: var(--docs-text-secondary);
     font-weight: 600;
   }
 }

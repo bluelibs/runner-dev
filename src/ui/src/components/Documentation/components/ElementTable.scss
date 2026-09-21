@@ -12,13 +12,17 @@
     color: var(--docs-text-primary);
     margin-bottom: $spacing-md;
     padding-top: $spacing-md;
-    span {
-      margin-right: $spacing-md;
-    }
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
   }
 
   &__icon {
-    font-size: $font-size-xl;
+    display: inline-flex;
+    color: var(--docs-accent);
   }
 
   &__scope-toggles {
@@ -120,12 +124,12 @@
 
   &__header {
     padding: $spacing-sm $spacing-md;
-    background: var(--docs-bg-tertiary);
-    color: var(--docs-text-primary);
+    background: transparent;
+    color: var(--docs-text-muted);
     font-weight: 600;
-    font-size: $font-size-sm;
+    font-size: $font-size-xs;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.06em;
     text-align: left;
     border-bottom: 1px solid var(--docs-border-primary);
 
@@ -141,17 +145,12 @@
     }
 
     &--description {
-      width: 29%;
+      width: 39%;
       min-width: 230px;
     }
 
     &--used-by {
       width: 9%;
-      min-width: 90px;
-    }
-
-    &--visibility {
-      width: 10%;
       min-width: 90px;
       border-top-right-radius: $border-radius-lg;
     }
@@ -238,10 +237,14 @@
   }
 
   &__row {
-    border-bottom: 1px solid var(--docs-border-primary);
+    border-bottom: 1px solid var(--docs-border-subtle);
+
+    &--clickable {
+      cursor: pointer;
+    }
 
     &:hover {
-      background: var(--docs-bg-secondary);
+      background: var(--docs-hover-bg);
     }
 
     &:last-child {
@@ -256,14 +259,11 @@
 
     &--id {
       font-family: $font-family-mono;
-      background: var(--docs-bg-secondary);
-      border-right: 1px solid var(--docs-border-primary);
     }
 
     &--title {
       font-weight: 500;
       color: var(--docs-text-primary);
-      border-right: 1px solid var(--docs-border-primary);
     }
 
     &--description {
@@ -272,48 +272,13 @@
     }
 
     &--used-by {
-      color: var(--docs-text-primary);
+      color: var(--docs-text-muted);
       text-align: right;
       font-family: $font-family-mono;
+      font-variant-numeric: tabular-nums;
       white-space: nowrap;
-      border-left: 1px solid var(--docs-border-primary);
     }
 
-    &--visibility {
-      color: var(--docs-text-primary);
-      text-align: center;
-      font-size: $font-size-sm;
-      white-space: nowrap;
-      border-left: 1px solid var(--docs-border-primary);
-      vertical-align: middle;
-    }
-  }
-
-  &__visibility-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 72px;
-    padding: 4px 10px;
-    border-radius: $border-radius-pill;
-    border: 1px solid transparent;
-    font-size: $font-size-xs;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    line-height: 1.2;
-
-    &--public {
-      background: rgba(16, 185, 129, 0.14);
-      border-color: rgba(16, 185, 129, 0.28);
-      color: #047857;
-    }
-
-    &--private {
-      background: rgba(245, 158, 11, 0.14);
-      border-color: rgba(245, 158, 11, 0.28);
-      color: #b45309;
-    }
   }
 
   &__id-container {
@@ -332,7 +297,7 @@
   }
 
   &__id-link {
-    color: #60a5fa;
+    color: var(--docs-text-primary);
     text-decoration: none;
     display: block;
     min-width: 0;
@@ -344,9 +309,9 @@
     white-space: nowrap;
 
     &:hover {
-      text-decoration: none;
-      color: #93c5fd;
-      background: rgba(96, 165, 250, 0.12);
+      color: var(--docs-accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
 
     &:focus {
@@ -404,9 +369,9 @@
   &__id-expand {
     font: inherit;
     font-family: $font-family-mono;
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.22);
+    color: var(--docs-text-muted);
+    background: var(--docs-hover-bg);
+    border: 1px solid var(--docs-border-secondary);
     border-radius: 999px;
     padding: 0 5px;
     cursor: pointer;
@@ -415,11 +380,14 @@
     transition: color $transition-fast, background-color $transition-fast,
       border-color $transition-fast;
 
+    &[aria-expanded="true"] {
+      margin-right: 2px;
+    }
+
     &:hover {
       text-decoration: none;
-      color: #fbbf24;
-      background: rgba(245, 158, 11, 0.2);
-      border-color: rgba(245, 158, 11, 0.4);
+      color: var(--docs-text-primary);
+      background: var(--docs-active-bg);
     }
 
     &:focus {
@@ -441,6 +409,7 @@
 
     &:hover .element-table__title-text,
     &:focus-visible .element-table__title-text {
+      color: var(--docs-accent);
       text-decoration: underline;
     }
   }
@@ -486,6 +455,22 @@
     text-decoration: none;
   }
 
+  &__private-marker {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: $border-radius-pill;
+    background: var(--docs-hover-bg);
+    border: 1px solid var(--docs-border-primary);
+    color: var(--docs-text-secondary);
+    font-size: $font-size-xs;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+  }
+
   &__action-btn {
     margin-top: $spacing-xs;
     display: inline-flex;
@@ -495,7 +480,7 @@
     font-size: $font-size-xs;
     border-radius: $border-radius-pill;
     border: 1px solid var(--docs-border-secondary);
-    background: rgba(255, 255, 255, 0.04);
+    background: transparent;
     color: var(--docs-text-secondary);
     backdrop-filter: saturate(120%) blur(6px);
     -webkit-backdrop-filter: saturate(120%) blur(6px);
@@ -518,19 +503,10 @@
       outline-offset: 1px;
     }
 
-    &--run {
-      /* hint of primary */
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-    }
-
-    &--emit {
-      /* hint of info */
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-    }
-
+    &--run,
+    &--emit,
     &--shell {
-      /* hint of terminal */
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+      /* monochrome: no per-action tint */
     }
   }
 
@@ -575,8 +551,8 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
-      -webkit-line-clamp: 2;
-      line-clamp: 2;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
     }
 
     &.expanded > * {

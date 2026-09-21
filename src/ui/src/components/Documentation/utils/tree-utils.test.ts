@@ -62,8 +62,8 @@ describe("tree-utils", () => {
 
     expect(tasksFolder?.folderType).toBe("task");
     expect(resourcesFolder?.folderType).toBe("resource");
-    expect(getNodeIcon(tasksFolder!)).toBe("▶️");
-    expect(getNodeIcon(resourcesFolder!)).toBe("🧱");
+    expect(getNodeIcon(tasksFolder!)).toBe("task");
+    expect(getNodeIcon(resourcesFolder!)).toBe("resource");
   });
 
   test("keeps namespace roots expandable when the root is also a concrete element", () => {
@@ -147,13 +147,13 @@ describe("tree-utils", () => {
     expect(resourceFolder?.type).toBe("folder");
     expect(
       getNodeIcon(resourceFolder!, { preferNamespaceFolderIcon: true })
-    ).toBe("📁");
-    expect(getNodeIcon(resourceFolder!)).toBe("🧱");
+    ).toBe("folder");
+    expect(getNodeIcon(resourceFolder!)).toBe("resource");
 
     expect(tasksFolder?.type).toBe("folder");
     expect(tasksFolder?.folderType).toBe("task");
     expect(getNodeIcon(tasksFolder!, { preferNamespaceFolderIcon: true })).toBe(
-      "▶️"
+      "task"
     );
   });
 
@@ -178,13 +178,13 @@ describe("tree-utils", () => {
     );
 
     expect(systemNode?.folderType).toBe("resource");
-    expect(getNodeIcon(systemNode!)).toBe("🧱");
+    expect(getNodeIcon(systemNode!)).toBe("resource");
     expect(errorsFolder?.folderType).toBe("error");
-    expect(getNodeIcon(errorsFolder!)).toBe("🚨");
+    expect(getNodeIcon(errorsFolder!)).toBe("error");
     expect(errorNode?.type).toBe("error");
-    expect(getNodeIcon(errorNode!)).toBe("🚨");
+    expect(getNodeIcon(errorNode!)).toBe("error");
     expect(asyncContextNode?.type).toBe("async-context");
-    expect(getNodeIcon(asyncContextNode!)).toBe("🔄");
+    expect(getNodeIcon(asyncContextNode!)).toBe("asyncContext");
   });
 
   test("uses typed icons for non-resource namespace folders such as asyncContexts", () => {
@@ -200,6 +200,6 @@ describe("tree-utils", () => {
     expect(asyncContextsFolder?.folderType).toBe("async-context");
     expect(
       getNodeIcon(asyncContextsFolder!, { preferNamespaceFolderIcon: true })
-    ).toBe("🔄");
+    ).toBe("asyncContext");
   });
 });

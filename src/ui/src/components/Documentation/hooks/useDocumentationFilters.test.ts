@@ -459,15 +459,15 @@ describe("useDocumentationFilters", () => {
     const { result } = renderHook(() => useDocumentationFilters(introspector));
 
     expect(result.current.tasks.map((item) => item.id)).toEqual([
-      "runner.tasks.health",
       "app.runner.tasks.health",
     ]);
 
     act(() => {
-      result.current.handleShowRunnerChange(false);
+      result.current.handleShowRunnerChange(true);
     });
 
     expect(result.current.tasks.map((item) => item.id)).toEqual([
+      "runner.tasks.health",
       "app.runner.tasks.health",
     ]);
   });
@@ -486,7 +486,7 @@ describe("useDocumentationFilters", () => {
       localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM)
     ).toBe("1");
     expect(
-      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER)
+      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_FRAMEWORK)
     ).toBe("0");
     expect(
       localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE)
@@ -500,14 +500,14 @@ describe("useDocumentationFilters", () => {
     });
 
     expect(result.current.showSystem).toBe(false);
-    expect(result.current.showRunner).toBe(true);
+    expect(result.current.showRunner).toBe(false);
     expect(result.current.showPrivate).toBe(false);
     expect(
       localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_SYSTEM)
     ).toBe("0");
     expect(
-      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_RUNNER)
-    ).toBe("1");
+      localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_FRAMEWORK)
+    ).toBe("0");
     expect(
       localStorage.getItem(DOCUMENTATION_CONSTANTS.STORAGE_KEYS.SHOW_PRIVATE)
     ).toBe("0");

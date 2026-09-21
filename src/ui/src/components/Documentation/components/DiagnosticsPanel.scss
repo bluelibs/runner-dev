@@ -10,17 +10,27 @@
 .diagnostics-panel {
   display: flex;
   gap: $spacing-lg;
+  align-items: flex-start;
 
-  // visible scroll bar::after
+  // Fixed scrollable Linear-style box for the detail column.
   &__content {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 1px solid var(--docs-border-primary);
+    border-radius: $border-radius-lg;
+    background: var(--docs-card-bg);
+    padding: $spacing-lg;
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
   }
 
   &__tabs {
     display: flex;
     flex-direction: column;
     gap: $spacing-xs;
-    min-width: 200px;
+    flex: 0 0 200px;
+    min-width: 0;
   }
 
   &__tab {
@@ -131,7 +141,7 @@
 .diagnostics-panel__tabs {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid $border-gray;
+  border-right: 1px solid var(--docs-border-primary);
   margin-right: $spacing-lg;
   margin-bottom: 0;
   gap: 0;
@@ -154,7 +164,7 @@
   justify-content: flex-start;
 
   &--active {
-    background: $primary-blue;
+    background: var(--docs-active-bg);
     color: var(--docs-text-primary);
   }
 
@@ -207,15 +217,15 @@
   border-left: 4px solid;
 
   &--error {
-    border-left-color: $danger-red;
+    border-left-color: var(--docs-danger);
   }
 
   &--warning {
-    border-left-color: $warning-orange;
+    border-left-color: var(--docs-warning);
   }
 
   &--info {
-    border-left-color: $info-blue;
+    border-left-color: var(--docs-info);
   }
 
   &--clickable {
@@ -258,7 +268,9 @@
 }
 
 .diagnostics-panel__severity-badge {
-  color: white;
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
+  border: 1px solid var(--docs-border-secondary);
   padding: 2px $spacing-sm;
   border-radius: $spacing-sm;
   font-size: $font-size-xs;
@@ -266,15 +278,15 @@
   text-transform: uppercase;
 
   &--error {
-    background: $danger-red;
+    color: var(--docs-error-text);
   }
 
   &--warning {
-    background: $warning-orange;
+    color: var(--docs-warning-text);
   }
 
   &--info {
-    background: $info-blue;
+    color: var(--docs-info);
   }
 }
 
@@ -336,15 +348,15 @@
     font-weight: 400;
 
     &--orphan {
-      border-left-color: $purple;
+      border-left-color: var(--docs-purple);
     }
 
     &--unused {
-      border-left-color: $warning-orange;
+      border-left-color: var(--docs-warning);
     }
 
     &--conflict {
-      border-left-color: $danger-red;
+      border-left-color: var(--docs-danger);
     }
 
     .title {
@@ -387,16 +399,17 @@
 // -----------------------------------------------------------------------------
 .diagnostics-panel__conflict-item {
   .diagnostics-panel__conflict-link {
-    color: $primary-blue;
+    color: var(--docs-text-secondary);
     text-decoration: none;
     font-weight: 400;
 
     &:hover {
+      color: var(--docs-text-primary);
       text-decoration: underline;
     }
 
     &:visited {
-      color: $primary-blue;
+      color: var(--docs-text-secondary);
     }
   }
 }
@@ -451,16 +464,16 @@
 
   button {
     padding: $spacing-sm $font-size-md;
-    border: 1px solid $primary-blue;
+    border: 1px solid var(--docs-border-primary);
     background: transparent;
-    color: $primary-blue;
+    color: var(--docs-text-secondary);
     border-radius: $border-radius-sm;
     cursor: pointer;
     font-size: $font-size-base;
     transition: $transition-fast;
 
     &:hover {
-      background: $primary-blue;
+      background: var(--docs-hover-bg);
       color: var(--docs-text-primary);
     }
   }
@@ -470,73 +483,73 @@
 // Summary Card Color Variants
 // -----------------------------------------------------------------------------
 .diagnostics-panel__summary-card--errors {
-  border-color: #{$danger-red}20;
-  border-left-color: $danger-red;
+  border-color: var(--docs-border-primary);
+  border-left-color: var(--docs-danger);
 
   h4 {
-    color: $danger-red;
+    color: var(--docs-error-text);
   }
 
   .diagnostics-panel__summary-card__value {
-    color: $danger-red;
+    color: var(--docs-error-text);
   }
 }
 
 .diagnostics-panel__summary-card--warnings {
-  border-color: #{$warning-orange}20;
-  border-left-color: $warning-orange;
+  border-color: var(--docs-border-primary);
+  border-left-color: var(--docs-warning);
 
   h4 {
-    color: $warning-orange;
+    color: var(--docs-warning-text);
   }
 
   .diagnostics-panel__summary-card__value {
-    color: $warning-orange;
+    color: var(--docs-warning-text);
   }
 }
 
 .diagnostics-panel__summary-card--orphans {
-  border-color: #{$purple}20;
-  border-left-color: $purple;
+  border-color: var(--docs-border-primary);
+  border-left-color: var(--docs-purple);
 
   h4 {
-    color: $purple;
+    color: var(--docs-purple);
   }
 
   .diagnostics-panel__summary-card__value {
-    color: $purple;
+    color: var(--docs-purple);
   }
 }
 
 .diagnostics-panel__summary-card--unused {
-  border-color: #{$warning-orange}20;
-  border-left-color: $warning-orange;
+  border-color: var(--docs-border-primary);
+  border-left-color: var(--docs-warning);
 
   h4 {
-    color: $warning-orange;
+    color: var(--docs-warning-text);
   }
 
   .diagnostics-panel__summary-card__value {
-    color: $warning-orange;
+    color: var(--docs-warning-text);
   }
 }
 
 .diagnostics-panel__summary-card--conflicts {
-  border-color: #{$danger-red}20;
-  border-left-color: $danger-red;
+  border-color: var(--docs-border-primary);
+  border-left-color: var(--docs-danger);
 
   h4 {
-    color: $danger-red;
+    color: var(--docs-error-text);
   }
 
   .diagnostics-panel__summary-card__value {
-    color: $danger-red;
+    color: var(--docs-error-text);
   }
 }
 
 .diagnostics-panel__summary-card--total {
-  border-color: #{$text-gray}20;
-  border-left-color: $text-gray;
+  border-color: var(--docs-border-primary);
+  border-left-color: var(--docs-text-muted);
 
   h4 {
     color: var(--docs-text-muted);
@@ -548,14 +561,14 @@
 }
 
 .diagnostics-panel__summary-card--info {
-  border-color: #{$info-blue}20;
-  border-left-color: $info-blue;
+  border-color: var(--docs-border-primary);
+  border-left-color: var(--docs-info);
 
   h4 {
-    color: $info-blue;
+    color: var(--docs-info);
   }
 
   .diagnostics-panel__summary-card__value {
-    color: $info-blue;
+    color: var(--docs-info);
   }
 }

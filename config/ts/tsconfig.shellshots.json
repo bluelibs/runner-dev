@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../.tmp-shell",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": ["../../src/__tests__/dummy/shellshots.server.ts"],
+  "exclude": []
+}

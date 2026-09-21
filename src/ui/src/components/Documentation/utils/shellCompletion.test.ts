@@ -52,6 +52,9 @@ describe("createShellCompletionSource", () => {
         { label: "root", type: "property", detail: undefined },
       ],
     });
+    // No `validFor`: every keystroke refetches from the server, which
+    // filters by the live prefix. Client-side reuse froze stale lists.
+    expect(result).not.toHaveProperty("validFor");
   });
 
   it("yields nothing without options", async () => {

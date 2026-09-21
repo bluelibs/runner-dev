@@ -10,6 +10,7 @@ import {
   MAX_POLL_INTERVAL_MS,
 } from "../hooks/useLiveStream";
 import type { ConnectionMode } from "../hooks/useLiveStream";
+import { DocIcon } from "./common/DocIcon";
 
 interface LivePanelProps {
   detailed?: boolean;
@@ -24,10 +25,10 @@ const CONNECTION_BADGES: Record<
   ConnectionMode,
   { label: string; icon: string; className: string }
 > = {
-  sse: { label: "SSE", icon: "⚡", className: "connection-badge--sse" },
+  sse: { label: "SSE", icon: "live", className: "connection-badge--sse" },
   polling: {
     label: "Polling",
-    icon: "🔄",
+    icon: "asyncContext",
     className: "connection-badge--polling",
   },
 };
@@ -62,7 +63,9 @@ export const LivePanel: React.FC<LivePanelProps> = ({
     return (
       <div className="live-panel live-panel--error">
         <div className="live-error">
-          <span>❌ Error loading live data: {error}</span>
+          <span>
+            <DocIcon name="error" size={14} /> Error loading live data: {error}
+          </span>
           <button onClick={() => refresh()}>Retry</button>
         </div>
       </div>
@@ -72,7 +75,9 @@ export const LivePanel: React.FC<LivePanelProps> = ({
   if (!liveData) {
     return (
       <div className="live-panel live-panel--loading">
-        <div className="live-loading">📡 Loading live data...</div>
+        <div className="live-loading">
+          <DocIcon name="live" size={14} /> Loading live data...
+        </div>
       </div>
     );
   }
@@ -84,7 +89,7 @@ export const LivePanel: React.FC<LivePanelProps> = ({
           className={`connection-badge ${badge.className}`}
           title={`Connected via ${badge.label}`}
         >
-          {badge.icon} {badge.label}
+          <DocIcon name={badge.icon} size={13} /> {badge.label}
         </span>
 
         <button

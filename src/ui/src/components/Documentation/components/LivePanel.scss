@@ -150,15 +150,15 @@
   user-select: none;
 
   &--sse {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: var(--docs-success-bg);
+    color: var(--docs-success);
+    border: 1px solid var(--docs-success-border);
   }
 
   &--polling {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: var(--docs-warning-bg);
+    color: var(--docs-warning-text);
+    border: 1px solid transparent;
   }
 }
 

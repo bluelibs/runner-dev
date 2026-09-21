@@ -4,6 +4,7 @@ import type {
   TopologyGraphEdge,
   TopologyGraphNode,
 } from "../utils/topologyGraph";
+import { DocIcon } from "./common/DocIcon";
 import { TopologyNavigator } from "./TopologyNavigator";
 import {
   buildRelationGroups,
@@ -184,7 +185,9 @@ function TopologyRelationPanel({
                   onClick={() => onSelect(node)}
                   title={node.description || node.subtitle}
                 >
-                  <span className="icon">{node.icon}</span>
+                  <span className="icon">
+                    <DocIcon name={node.icon} size={13} />
+                  </span>
                   <span className="label">{node.label}</span>
                 </button>
               ))}

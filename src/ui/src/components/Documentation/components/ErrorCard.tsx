@@ -13,6 +13,7 @@ import { SchemaRenderer } from "./SchemaRenderer";
 import { ElementKindBadge, SystemBadge } from "./common/ElementKindBadge";
 import { isSystemElement } from "../utils/isSystemElement";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
+import { OverviewIdLink } from "./common/OverviewIdLink";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface ErrorCardProps {
@@ -148,13 +149,12 @@ export const ErrorCard: React.FC<ErrorCardProps> = ({
                     <div className="value">
                       <div className="error-card__tags">
                         {introspector.getTagsByIds(error.tags).map((tag) => (
-                          <a
-                            href={`#element-${tag.id}`}
+                          <OverviewIdLink
                             key={tag.id}
-                            className="clean-button"
-                          >
-                            {formatId(tag.id)}
-                          </a>
+                            element={tag}
+                            resources={introspector.getResources()}
+                            href={`#element-${tag.id}`}
+                          />
                         ))}
                       </div>
                     </div>

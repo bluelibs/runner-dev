@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { getSeverityIcon, formatId } from "../utils/formatting";
+import { DocIcon } from "./common/DocIcon";
 import "./DiagnosticsPanel.scss";
 export interface DiagnosticsPanelProps {
   introspector: Introspector;
@@ -67,14 +68,15 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   const renderSummaryCard = (
     title: string,
     count: number,
-    _color: string,
     icon: string,
     description: string,
     className?: string
   ) => (
     <div className={`diagnostics-panel__summary-card ${className || ""}`}>
       <div className="diagnostics-panel__summary-card__header">
-        <span className="icon">{icon}</span>
+        <span className="icon">
+          <DocIcon name={icon} size={15} />
+        </span>
         <h4>{title}</h4>
       </div>
       <div className="diagnostics-panel__summary-card__value">{count}</div>
@@ -101,7 +103,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
         {...wrapperProps}
       >
         <div className="diagnostics-panel__item-content">
-          <span className="icon">{getSeverityIcon(diagnostic.severity)}</span>
+          <span className="icon">
+            <DocIcon name={getSeverityIcon(diagnostic.severity)} size={15} />
+          </span>
           <div className="main">
             <div className="diagnostics-panel__item-header">
               <span
@@ -130,7 +134,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             )}
           </div>
           {diagnostic.nodeId && (
-            <div className="diagnostics-panel__click-indicator">🔗</div>
+            <div className="diagnostics-panel__click-indicator">
+              <DocIcon name="link" size={14} />
+            </div>
           )}
         </div>
       </ItemWrapper>
@@ -141,19 +147,22 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
     items: any[],
     title: string,
     icon: string,
-    _color: string,
     getItemId: (item: any) => string,
     getItemTitle?: (item: any) => string,
     className?: string
   ) => (
     <div className="diagnostics-panel__special-section">
       <h4>
-        <span className="icon">{icon}</span>
+        <span className="icon">
+          <DocIcon name={icon} size={15} />
+        </span>
         {title} ({items.length})
       </h4>
       {items.length === 0 ? (
         <div className="diagnostics-panel__empty-state">
-          <div className="celebration">🎉</div>
+          <div className="celebration">
+            <DocIcon name="check" size={18} />
+          </div>
           No {title.toLowerCase()} found. Great job!
         </div>
       ) : (
@@ -183,7 +192,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 </div>
                 <div className="id">{safeId}</div>
                 {hasId && (
-                  <div className="diagnostics-panel__click-indicator">🔗</div>
+                  <div className="diagnostics-panel__click-indicator">
+                    <DocIcon name="link" size={14} />
+                  </div>
                 )}
               </Wrapper>
             );
@@ -199,39 +210,34 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
         {renderSummaryCard(
           "Errors",
           errorCount,
-          "#dc3545",
-          "❌",
+          "error",
           "Critical issues",
           "diagnostics-panel__summary-card--errors"
         )}
         {renderSummaryCard(
           "Warnings",
           warningCount,
-          "#ffc107",
-          "⚠️",
+          "warning",
           "Potential problems",
           "diagnostics-panel__summary-card--warnings"
         )}
         {renderSummaryCard(
           "Orphan Events",
           orphanEvents.length,
-          "#6f42c1",
-          "👻",
+          "event",
           "Events with no listeners",
           "diagnostics-panel__summary-card--orphans"
         )}
         {renderSummaryCard(
           "Unused Middleware",
           unusedMiddleware.length,
-          "#fd7e14",
-          "🔗",
+          "middleware",
           "Middleware not in use",
           "diagnostics-panel__summary-card--unused"
         )}
         {renderSummaryCard(
           "Overridden Elements",
           overriddenElements.length,
-          "#17a2b8",
           "O",
           "Nodes shadowed by overrides",
           "diagnostics-panel__summary-card--info"
@@ -239,7 +245,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
         {renderSummaryCard(
           "Unused Errors",
           unusedErrors.length,
-          "#6c757d",
           "E",
           "Errors never referenced",
           "diagnostics-panel__summary-card--unused"
@@ -278,32 +283,28 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               {renderSummaryCard(
                 "Total Issues",
                 diagnostics.length,
-                "#6c757d",
-                "📊",
+                "chart",
                 "All diagnostic items",
                 "diagnostics-panel__summary-card--total"
               )}
               {renderSummaryCard(
                 "Errors",
                 errorCount,
-                "#dc3545",
-                "❌",
+                "error",
                 "Critical issues requiring attention",
                 "diagnostics-panel__summary-card--errors"
               )}
               {renderSummaryCard(
                 "Warnings",
                 warningCount,
-                "#ffc107",
-                "⚠️",
+                "warning",
                 "Potential problems to review",
                 "diagnostics-panel__summary-card--warnings"
               )}
               {renderSummaryCard(
                 "Information",
                 infoCount,
-                "#17a2b8",
-                "ℹ️",
+                "info",
                 "Informational messages",
                 "diagnostics-panel__summary-card--info"
               )}
@@ -328,7 +329,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 .map(renderDiagnosticItem)}
               {errorCount === 0 && (
                 <div className="diagnostics-panel__success-state">
-                  <div className="icon">✅</div>
+                  <div className="icon">
+                    <DocIcon name="check" size={20} />
+                  </div>
                   <h4>No Errors Found!</h4>
                   <p>Your application has no critical errors.</p>
                 </div>
@@ -345,7 +348,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 .map(renderDiagnosticItem)}
               {warningCount === 0 && (
                 <div className="diagnostics-panel__success-state">
-                  <div className="icon">👍</div>
+                  <div className="icon">
+                    <DocIcon name="check" size={20} />
+                  </div>
                   <h4>No Warnings!</h4>
                   <p>No potential issues detected.</p>
                 </div>
@@ -358,8 +363,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           renderSpecialItems(
             orphanEvents,
             "Orphan Events",
-            "👻",
-            "#6f42c1",
+            "event",
             (item) => item.id,
             (item) => `${formatId(item.id)} (No listeners)`,
             "diagnostics-panel__special-section__item--orphan"
@@ -369,8 +373,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           renderSpecialItems(
             unemittedEvents,
             "Unemitted Events",
-            "📤",
-            "#fd7e14",
+            "event",
             (item) => item.id,
             (item) => `${formatId(item.id)} (No emitters)`,
             "diagnostics-panel__special-section__item--unused"
@@ -380,8 +383,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           renderSpecialItems(
             unusedMiddleware,
             "Unused Middleware",
-            "🔗",
-            "#6c757d",
+            "middleware",
             (item) => item.id,
             (item) => `${formatId(item.id)} (Not used)`,
             "diagnostics-panel__special-section__item--unused"
@@ -395,7 +397,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             </h4>
             {overriddenElements.length === 0 ? (
               <div className="diagnostics-panel__empty-state">
-                <div className="celebration">🎉</div>
+                <div className="celebration">
+                  <DocIcon name="check" size={18} />
+                </div>
                 No overridden elements found. Great job!
               </div>
             ) : (
@@ -433,7 +437,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             unusedErrors,
             "Unused Errors",
             "E",
-            "#6c757d",
             (item) => item.id,
             (item) => `${formatId(item.id)} (Not thrown)`,
             "diagnostics-panel__special-section__item--unused"

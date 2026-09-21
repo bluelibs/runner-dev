@@ -22,6 +22,7 @@ import {
   type TopologyCanvasSize,
 } from "./topologyViewport.utils";
 import { TopologyDescriptionTooltip } from "./TopologyDescriptionTooltip";
+import { DocIcon } from "./common/DocIcon";
 
 export interface TopologyCanvasProps {
   graph: TopologyGraphProjection;
@@ -520,7 +521,9 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
             onKeyDown={handleNodeKeyDown(node)}
           >
             <div className="topology-panel__node-header">
-              <span className="topology-panel__node-icon">{node.icon}</span>
+              <span className="topology-panel__node-icon">
+                <DocIcon name={node.icon} size={16} />
+              </span>
               <TopologyDescriptionTooltip
                 description={node.description}
                 label={node.label}

@@ -2,6 +2,7 @@ import React from "react";
 import { formatId } from "../utils/formatting";
 import type { TopologyGraphNode } from "../utils/topologyGraph";
 import { MarkdownRenderer } from "../utils/markdownUtils";
+import { DocIcon } from "./common/DocIcon";
 import { buildTopologyNavigatorEntries } from "./topologyNavigator.utils";
 
 export interface TopologyNavigatorProps {
@@ -162,7 +163,7 @@ export const TopologyNavigator: React.FC<TopologyNavigatorProps> = ({
                         `topology-panel__kind--${node.kind}`,
                       ].join(" ")}
                     >
-                      {node.icon}
+                      <DocIcon name={node.icon} size={13} />
                     </span>
                   </div>
                   <div className="topology-panel__navigator-item-content">

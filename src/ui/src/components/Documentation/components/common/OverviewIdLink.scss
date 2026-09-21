@@ -52,9 +52,9 @@
     font: inherit;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New", monospace;
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.22);
+    color: var(--docs-text-muted);
+    background: var(--docs-hover-bg);
+    border: 1px solid var(--docs-border-secondary);
     border-radius: 999px;
     padding: 0 5px;
     cursor: pointer;
@@ -63,11 +63,14 @@
     transition: color 120ms ease, background-color 120ms ease,
       border-color 120ms ease;
 
+    &[aria-expanded="true"] {
+      margin-right: 2px;
+    }
+
     &:hover {
       text-decoration: none;
-      color: #fbbf24;
-      background: rgba(245, 158, 11, 0.2);
-      border-color: rgba(245, 158, 11, 0.4);
+      color: var(--docs-text-primary);
+      background: var(--docs-active-bg);
     }
 
     &:focus {
@@ -82,5 +85,12 @@
     flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
+    color: var(--docs-accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
   }
 }

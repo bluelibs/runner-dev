@@ -63,7 +63,12 @@
   }
 }
 
-.schema-renderer__form--empty {
+// Shared "No schema defined" treatment for Print/Form/JSON: neutral
+// panel surface (never the mono code block), one height everywhere.
+.schema-renderer__empty {
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: $border-radius-lg;
   min-height: 120px;
 }
 
@@ -99,8 +104,7 @@
   gap: $spacing-xs;
 
   &:before {
-    content: "📦";
-    font-size: 12px;
+    content: "";
   }
 }
 
@@ -122,11 +126,6 @@
 
     &:hover {
       background: var(--docs-primary);
-      transform: translateY(-1px);
-    }
-
-    &:active {
-      transform: translateY(0);
     }
   }
 }

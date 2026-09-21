@@ -245,6 +245,8 @@ When working inside `@bluelibs/runner-dev`, start here:
 - Live telemetry: logs, emissions, errors, runs, and correlation-driven inspection
 - Swap tooling: controlled runtime task replacement and restoration
 - Runtime shell: per-resource (`r` is the live value) and global (`runtime` access) REPL via UI and the `shell` mutation; shares the `eval` production guard
+- Docs UX: `⌘K` command palette (fuzzy element/section/action search), `?` shortcuts overlay, `g`-section jumps, `/` sidebar filter focus, `Esc` back navigation
+- Docs UX: `⌘K` command palette (fuzzy element/section/action search), `?` shortcuts overlay, `g`-section jumps, `/` sidebar filter focus, `Esc` back navigation
 
 ## Current Compatibility Notes
 

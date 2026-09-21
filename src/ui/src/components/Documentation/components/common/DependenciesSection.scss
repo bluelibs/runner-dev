@@ -43,54 +43,29 @@
   border-radius: $border-radius-lg;
   border-left: 4px solid;
   display: block;
+  background: var(--docs-bg-secondary);
+  border-left-color: var(--docs-border-secondary);
 
-  &--task {
-    background: var(--docs-primary-bg);
-    border-left-color: var(--docs-primary);
-  }
-
-  &--hook {
-    background: var(--docs-info-bg);
-    border-left-color: var(--docs-info);
-  }
-
-  &--resource {
-    background: var(--docs-success-bg);
-    border-left-color: var(--docs-success);
-  }
-
-  &--error {
-    background: var(--docs-error-bg);
-    border-left-color: var(--docs-error);
-  }
-
+  &--task,
+  &--hook,
+  &--resource,
+  &--error,
   &--event {
-    background: var(--docs-warning-bg);
-    border-left-color: var(--docs-warning);
+    background: var(--docs-bg-secondary);
+    border-left-color: var(--docs-border-secondary);
   }
 
   .title {
     font-weight: 600;
     margin-bottom: $spacing-xs;
+    color: var(--docs-text-primary);
 
-    &--task {
-      color: var(--docs-primary);
-    }
-
-    &--hook {
-      color: var(--docs-info);
-    }
-
-    &--resource {
-      color: var(--docs-success);
-    }
-
-    &--error {
-      color: var(--docs-error);
-    }
-
+    &--task,
+    &--hook,
+    &--resource,
+    &--error,
     &--event {
-      color: var(--docs-warning);
+      color: var(--docs-text-primary);
     }
   }
 
@@ -113,38 +88,12 @@
   position: relative;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-decoration: none;
-
-    &.dependencies-section__item--task {
-      background: var(--docs-primary-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-primary-light);
-    }
-
-    &.dependencies-section__item--hook {
-      background: var(--docs-info-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-info-light);
-    }
-
-    &.dependencies-section__item--resource {
-      background: var(--docs-success-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-success-light);
-    }
-
-    &.dependencies-section__item--error {
-      background: var(--docs-error-hover-bg);
-      box-shadow: 0 4px 12px var(--docs-error-light);
-    }
-
-    &.dependencies-section__item--event {
-      background: var(--docs-warning-bg);
-      box-shadow: 0 4px 12px var(--docs-warning-light);
-    }
+    background: var(--docs-hover-bg);
   }
 
   &:focus {
-    outline: 2px solid var(--docs-primary);
+    outline: 2px solid var(--docs-focus-ring);
     outline-offset: 2px;
   }
 
@@ -154,7 +103,7 @@
 
   // Add a subtle click indicator
   &::after {
-    content: "🔗";
+    content: "→";
     position: absolute;
     top: 50%;
     right: $spacing-sm;

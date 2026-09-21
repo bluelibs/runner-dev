@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { TreeNode, getElementType, getNodeIcon } from "../utils/tree-utils";
 import { TreeType } from "../hooks/useViewMode";
 import { isSystemElement } from "../utils/isSystemElement";
+import { DocIcon } from "./common/DocIcon";
 import "./NavigationView.scss";
 
 export type NavigationMode = "list" | "tree";
@@ -109,10 +110,29 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
       }
     };
 
+    // Tab clicks swap sections without a hash assignment (replaceState has
+    // no hashchange event), so they announce themselves separately.
+    const syncFocusToSelectedSection = (event: Event) => {
+      const sectionId = (event as CustomEvent<string>).detail;
+      if (!sectionId) return;
+      if (sectionId === "overview") {
+        setFocusedNodeId("home");
+      } else if (sections.some((s) => s.id === sectionId)) {
+        setFocusedNodeId(sectionId);
+      }
+    };
+
     // Sync on mount and on every subsequent hash change
     syncFocusToHash();
     window.addEventListener("hashchange", syncFocusToHash);
-    return () => window.removeEventListener("hashchange", syncFocusToHash);
+    window.addEventListener("docs:select-section", syncFocusToSelectedSection);
+    return () => {
+      window.removeEventListener("hashchange", syncFocusToHash);
+      window.removeEventListener(
+        "docs:select-section",
+        syncFocusToSelectedSection
+      );
+    };
   }, [mode, nodes, sections, resolveSectionFromElementId]);
 
   // Handle keyboard navigation for both modes
@@ -294,9 +314,12 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             )}
 
             <span className="nav-node-icon">
-              {getNodeIcon(node, {
-                preferNamespaceFolderIcon: treeType === "namespace",
-              })}
+              <DocIcon
+                name={getNodeIcon(node, {
+                  preferNamespaceFolderIcon: treeType === "namespace",
+                })}
+                size={14}
+              />
             </span>
 
             <span className="nav-node-label">
@@ -355,7 +378,9 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
             role="listitem"
           >
             <div className="nav-content">
-              <span className="icon">🏠</span>
+              <span className="icon">
+                <DocIcon name="home" size={15} />
+              </span>
               <span className="text">Home</span>
             </div>
           </a>
@@ -373,7 +398,9 @@ export const NavigationView: React.FC<NavigationViewProps> = ({
               role="listitem"
             >
               <div className="nav-content">
-                <span className="icon">{section.icon}</span>
+                <span className="icon">
+                  <DocIcon name={section.icon} size={15} />
+                </span>
                 <span className="text">{section.label}</span>
               </div>
               {section.count !== null && (

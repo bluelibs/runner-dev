@@ -54,6 +54,7 @@ jest.mock("@codemirror/lang-javascript", () => ({
 jest.mock("@codemirror/autocomplete", () => ({
   autocompletion: () => ({}),
   acceptCompletion: jest.fn(() => true),
+  startCompletion: jest.fn(),
 }));
 
 jest.mock("../utils/shellCompletion", () => ({
@@ -121,6 +122,17 @@ function renderShell(resourceId: string | null) {
   );
 }
 
+// The modal queries shell availability on open before any run attempt.
+function mockEnabledGate() {
+  mockedRequest.mockResolvedValueOnce({ shellEnabled: true });
+}
+
+function mutationCalls() {
+  return mockedRequest.mock.calls.filter(([query]) =>
+    String(query).includes("mutation Shell")
+  );
+}
+
 describe("ShellModal", () => {
   beforeEach(() => {
     mockedRequest.mockReset();
@@ -161,6 +173,7 @@ describe("ShellModal", () => {
   });
 
   it("runs a snippet and appends the result to the transcript", async () => {
+    mockEnabledGate();
     mockedRequest.mockResolvedValueOnce(shellResponse());
     renderShell("app.db");
 
@@ -182,6 +195,7 @@ describe("ShellModal", () => {
   });
 
   it("renders errors and restores snippets", async () => {
+    mockEnabledGate();
     mockedRequest.mockResolvedValueOnce(
       shellResponse({ success: false, error: "boom", result: null })
     );
@@ -204,6 +218,7 @@ describe("ShellModal", () => {
   });
 
   it("shows captured console logs above the result", async () => {
+    mockEnabledGate();
     mockedRequest.mockResolvedValueOnce(
       shellResponse({ result: "done", logs: ["hi 42"] })
     );
@@ -219,7 +234,7 @@ describe("ShellModal", () => {
   });
 
   it("surfaces transport errors as entries", async () => {
-    mockedRequest.mockRejectedValueOnce(new Error("network down"));
+    mockedRequest.mockRejectedValue(new Error("network down"));
     renderShell(null);
 
     fireEvent.change(screen.getByLabelText("Shell input"), {
@@ -231,20 +246,22 @@ describe("ShellModal", () => {
   });
 
   it("runs on Ctrl+Enter and ignores empty snippets", async () => {
+    mockEnabledGate();
     mockedRequest.mockResolvedValueOnce(shellResponse());
     renderShell(null);
 
     fireEvent.keyDown(window, { key: "Enter", ctrlKey: true });
-    expect(mockedRequest).not.toHaveBeenCalled();
+    expect(mutationCalls()).toHaveLength(0);
 
     fireEvent.change(screen.getByLabelText("Shell input"), {
       target: { value: "40 + 2" },
     });
     fireEvent.keyDown(window, { key: "Enter", ctrlKey: true });
-    await waitFor(() => expect(mockedRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mutationCalls()).toHaveLength(1));
   });
 
   it("runs on Enter inside the editor", async () => {
+    mockEnabledGate();
     mockedRequest.mockResolvedValueOnce(shellResponse());
     renderShell(null);
 
@@ -252,7 +269,7 @@ describe("ShellModal", () => {
     fireEvent.change(input, { target: { value: "1 + 1" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    await waitFor(() => expect(mockedRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mutationCalls()).toHaveLength(1));
     expect(mockedRequest).toHaveBeenCalledWith(
       expect.stringContaining("mutation Shell"),
       { code: "1 + 1", resourceId: null }
@@ -260,6 +277,7 @@ describe("ShellModal", () => {
   });
 
   it("runs on Enter even with a completion open", async () => {
+    mockEnabledGate();
     mockedRequest.mockResolvedValueOnce(shellResponse());
     renderShell(null);
 
@@ -270,14 +288,15 @@ describe("ShellModal", () => {
     input.parentElement?.appendChild(tooltip);
 
     fireEvent.keyDown(input, { key: "Enter" });
-    await waitFor(() => expect(mockedRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mutationCalls()).toHaveLength(1));
   });
 
   it("accepts an open completion on Tab", () => {
-    const { acceptCompletion } = jest.requireMock(
+    const { acceptCompletion, startCompletion } = jest.requireMock(
       "@codemirror/autocomplete"
-    ) as { acceptCompletion: jest.Mock };
+    ) as { acceptCompletion: jest.Mock; startCompletion: jest.Mock };
     acceptCompletion.mockClear();
+    startCompletion.mockClear();
     renderShell(null);
 
     const input = screen.getByLabelText("Shell input");
@@ -288,11 +307,109 @@ describe("ShellModal", () => {
 
     fireEvent.keyDown(input, { key: "Tab" });
     expect(acceptCompletion).toHaveBeenCalledTimes(1);
-    expect(mockedRequest).not.toHaveBeenCalled();
+    expect(startCompletion).not.toHaveBeenCalled();
+    expect(mutationCalls()).toHaveLength(0);
 
     tooltip.remove();
     fireEvent.keyDown(input, { key: "Tab" });
     expect(acceptCompletion).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens suggestions on Tab when no completion is open", () => {
+    const { acceptCompletion, startCompletion } = jest.requireMock(
+      "@codemirror/autocomplete"
+    ) as { acceptCompletion: jest.Mock; startCompletion: jest.Mock };
+    acceptCompletion.mockClear();
+    startCompletion.mockClear();
+    renderShell(null);
+
+    const input = screen.getByLabelText("Shell input");
+    fireEvent.change(input, { target: { value: "run" } });
+
+    // fireEvent returns false when the event was default-prevented, so
+    // Tab never falls through to CodeMirror's indent (spaces).
+    const defaultAllowed = fireEvent.keyDown(input, { key: "Tab" });
+    expect(defaultAllowed).toBe(false);
+    expect(startCompletion).toHaveBeenCalledTimes(1);
+    expect(acceptCompletion).not.toHaveBeenCalled();
+    expect(mutationCalls()).toHaveLength(0);
+  });
+
+  it("swallows Tab and refreshes when accept fails with a list open", () => {
+    const { acceptCompletion, startCompletion } = jest.requireMock(
+      "@codemirror/autocomplete"
+    ) as { acceptCompletion: jest.Mock; startCompletion: jest.Mock };
+    acceptCompletion.mockClear();
+    acceptCompletion.mockReturnValueOnce(false);
+    startCompletion.mockClear();
+    renderShell(null);
+
+    const input = screen.getByLabelText("Shell input");
+    fireEvent.change(input, { target: { value: "ru" } });
+    const tooltip = document.createElement("div");
+    tooltip.className = "cm-tooltip-autocomplete";
+    input.parentElement?.appendChild(tooltip);
+
+    const defaultAllowed = fireEvent.keyDown(input, { key: "Tab" });
+    expect(defaultAllowed).toBe(false);
+    expect(acceptCompletion).toHaveBeenCalledTimes(1);
+    expect(startCompletion).toHaveBeenCalledTimes(1);
+    expect(mutationCalls()).toHaveLength(0);
+  });
+
+  it("recalls previous snippets with ArrowUp/ArrowDown", async () => {
+    mockEnabledGate();
+    mockedRequest.mockResolvedValueOnce(shellResponse());
+    mockedRequest.mockResolvedValueOnce(shellResponse());
+    renderShell(null);
+
+    const input = screen.getByLabelText("Shell input") as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: "first" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(mutationCalls()).toHaveLength(1));
+
+    fireEvent.change(input, { target: { value: "second" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(mutationCalls()).toHaveLength(2));
+
+    fireEvent.change(input, { target: { value: "draft" } });
+    expect(fireEvent.keyDown(input, { key: "ArrowUp" })).toBe(false);
+    expect(input.value).toBe("second");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(input.value).toBe("first");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(input.value).toBe("second");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(input.value).toBe("draft");
+  });
+
+  it("leaves arrow keys alone without history", () => {
+    renderShell(null);
+
+    const input = screen.getByLabelText("Shell input") as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: "x" } });
+    expect(fireEvent.keyDown(input, { key: "ArrowUp" })).toBe(true);
+    expect(fireEvent.keyDown(input, { key: "ArrowDown" })).toBe(true);
+    expect(input.value).toBe("x");
+  });
+
+  it("lets an open completion own the arrow keys", async () => {
+    mockEnabledGate();
+    mockedRequest.mockResolvedValueOnce(shellResponse());
+    renderShell(null);
+
+    const input = screen.getByLabelText("Shell input") as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: "r" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(mutationCalls()).toHaveLength(1));
+
+    const tooltip = document.createElement("div");
+    tooltip.className = "cm-tooltip-autocomplete";
+    input.parentElement?.appendChild(tooltip);
+    fireEvent.change(input, { target: { value: "draft" } });
+
+    expect(fireEvent.keyDown(input, { key: "ArrowUp" })).toBe(true);
+    expect(input.value).toBe("draft");
   });
 
   it("focuses the editor input on open", async () => {
@@ -308,10 +425,10 @@ describe("ShellModal", () => {
     const input = screen.getByLabelText("Shell input");
     fireEvent.change(input, { target: { value: "1 + 1" } });
     fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
-    expect(mockedRequest).not.toHaveBeenCalled();
+    expect(mutationCalls()).toHaveLength(0);
 
     fireEvent.keyDown(window, { key: "Enter" });
-    expect(mockedRequest).not.toHaveBeenCalled();
+    expect(mutationCalls()).toHaveLength(0);
   });
 
   it("disables Run while the editor is empty", () => {
@@ -321,10 +438,42 @@ describe("ShellModal", () => {
     ).toBe(true);
   });
 
+  it("checks shell availability on open", async () => {
+    mockEnabledGate();
+    renderShell(null);
+
+    await waitFor(() =>
+      expect(mockedRequest).toHaveBeenCalledWith(
+        expect.stringContaining("query ShellEnabled")
+      )
+    );
+  });
+
+  it("shows a disabled notice and blocks runs when the shell is unavailable", async () => {
+    mockedRequest.mockResolvedValueOnce({ shellEnabled: false });
+    renderShell(null);
+
+    await screen.findByText(/Shell is disabled in production/);
+    expect(screen.getByText(/RUNNER_DEV_EVAL=1/)).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Shell input"), {
+      target: { value: "1 + 1" },
+    });
+    const runButton = screen.getByTitle(
+      "Shell is disabled in this environment"
+    ) as HTMLButtonElement;
+    expect(runButton.disabled).toBe(true);
+
+    fireEvent.click(runButton);
+    fireEvent.keyDown(window, { key: "Enter", ctrlKey: true });
+    expect(mutationCalls()).toHaveLength(0);
+  });
+
   it("copies entry output to the clipboard", async () => {
     const { copyToClipboard } = jest.requireMock("./chat/ChatUtils") as {
       copyToClipboard: jest.Mock;
     };
+    mockEnabledGate();
     mockedRequest.mockResolvedValueOnce(shellResponse({ result: "copy-me" }));
     renderShell(null);
 

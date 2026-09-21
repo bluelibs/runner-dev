@@ -94,6 +94,14 @@ type ShellCompleteQueryData = {
   };
 };
 
+function assertShellEnabledData(
+  data: unknown
+): asserts data is { shellEnabled: boolean } {
+  if (!data || typeof data !== "object" || !("shellEnabled" in data)) {
+    throw new Error("Expected shellEnabled data object");
+  }
+}
+
 function assertShellData(data: unknown): asserts data is ShellMutationData {
   if (!data || typeof data !== "object" || !("shell" in data)) {
     throw new Error("Expected shell data object");
@@ -780,6 +788,77 @@ describe("Swap GraphQL Integration", () => {
           assertShellData(responseData);
           expect(responseData.shell.success).toBe(false);
           expect(responseData.shell.error).toContain("Shell is disabled");
+        }
+      } finally {
+        restoreShellEnv(previousEnv);
+      }
+    });
+
+    test("should allow shell by default when the env is unset", async () => {
+      const mutation = `
+        mutation Shell($code: String!) {
+          shell(code: $code) {
+            success
+            error
+            result
+          }
+        }
+      `;
+
+      const previousEnv = captureShellEnv();
+      delete process.env.RUNNER_DEV_EVAL;
+      delete process.env.NODE_ENV;
+
+      try {
+        const response = await apolloServer.executeOperation(
+          { query: mutation, variables: { code: "1 + 1" } },
+          { contextValue: context }
+        );
+
+        expect(response.body.kind).toBe("single");
+        if (response.body.kind === "single") {
+          const responseData = response.body.singleResult.data;
+          assertShellData(responseData);
+          expect(responseData.shell.success).toBe(true);
+          expect(responseData.shell.result).toContain("2");
+        }
+      } finally {
+        restoreShellEnv(previousEnv);
+      }
+    });
+
+    test("should expose the shell gate through shellEnabled", async () => {
+      const query = `
+        query ShellEnabled {
+          shellEnabled
+        }
+      `;
+
+      const previousEnv = captureShellEnv();
+      try {
+        process.env.RUNNER_DEV_EVAL = "1";
+        const enabledResponse = await apolloServer.executeOperation(
+          { query },
+          { contextValue: context }
+        );
+        expect(enabledResponse.body.kind).toBe("single");
+        if (enabledResponse.body.kind === "single") {
+          const responseData = enabledResponse.body.singleResult.data;
+          assertShellEnabledData(responseData);
+          expect(responseData.shellEnabled).toBe(true);
+        }
+
+        process.env.RUNNER_DEV_EVAL = "0";
+        process.env.NODE_ENV = "production";
+        const disabledResponse = await apolloServer.executeOperation(
+          { query },
+          { contextValue: context }
+        );
+        expect(disabledResponse.body.kind).toBe("single");
+        if (disabledResponse.body.kind === "single") {
+          const responseData = disabledResponse.body.singleResult.data;
+          assertShellEnabledData(responseData);
+          expect(responseData.shellEnabled).toBe(false);
         }
       } finally {
         restoreShellEnv(previousEnv);

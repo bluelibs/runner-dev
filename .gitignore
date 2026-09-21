@@ -18,3 +18,4 @@ yarn.lock
 .vscode
 .aider*
 /.agents
+.tmp-shell/

@@ -9,6 +9,7 @@ import { HookTargetEvents } from "./hook/HookTargetEvents";
 import { DependenciesSection } from "./common/DependenciesSection";
 import "./common/DependenciesSection.scss";
 import { ElementCard } from "./common/ElementCard";
+import { DocIcon } from "./common/DocIcon";
 import { isSystemElement } from "../utils/isSystemElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 
@@ -32,7 +33,12 @@ export const HookCard: React.FC<HookCardProps> = ({ hook, introspector }) => {
       isSystem={isSystemElement(hook)}
       title={
         <>
-          {isGlobalHook ? "🌐" : "🪝"} {hook.meta?.title || formatId(hook.id)}
+          <DocIcon
+            name={isGlobalHook ? "globe" : "hook"}
+            size={16}
+            className="doc-icon--accent"
+          />{" "}
+          {hook.meta?.title || formatId(hook.id)}
           {isGlobalHook && (
             <span className="hook-card__global-badge">GLOBAL</span>
           )}

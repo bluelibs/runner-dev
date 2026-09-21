@@ -88,8 +88,8 @@
   width: 18px;
   height: 18px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--docs-hover-bg);
+  border: 1px solid var(--docs-border-primary);
   cursor: pointer;
   opacity: 0.5;
   transition: all 0.15s ease;
@@ -100,7 +100,7 @@
     width: 10px;
     height: 10px;
     display: block;
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: var(--docs-text-muted);
     -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
     -webkit-mask-repeat: no-repeat;
@@ -115,14 +115,14 @@
   &:hover,
   &:focus-visible {
     opacity: 1;
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--docs-active-bg);
+    border-color: var(--docs-border-secondary);
   }
 
   &.code-modal__copy-btn--copied {
     opacity: 1;
-    background: rgba(16, 185, 129, 0.15);
-    border-color: rgba(16, 185, 129, 0.3);
+    background: var(--docs-success-bg);
+    border-color: var(--docs-success);
 
     &::before {
       -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>');
@@ -227,7 +227,7 @@
 
 .code-modal__error {
   margin-left: auto;
-  color: var(--docs-error);
+  color: var(--docs-error-text);
   font-size: $font-size-sm;
 }
 

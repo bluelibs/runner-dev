@@ -3,22 +3,17 @@
 
   // Common styles for both modes
   .nav-search-highlight {
-    background-color: #ffeb3b;
+    background-color: var(--docs-active-bg);
     padding: 0 2px;
     border-radius: 2px;
-    color: #333;
+    color: inherit;
   }
 
   .nav-node-icon,
   .nav-content .icon {
-    font-variant-emoji: text;
-    filter: grayscale(1) saturate(0);
-  }
-
-  .nav-node--focused .nav-node-icon,
-  .nav-link--focused .icon {
-    font-variant-emoji: emoji;
-    filter: none;
+    display: inline-flex;
+    align-items: center;
+    color: var(--docs-accent);
   }
 }
 
@@ -33,9 +28,6 @@
   }
 
   .nav-node {
-    --nav-folder-accent-rgb: 96, 165, 250;
-    --nav-folder-accent: #60a5fa;
-
     display: flex;
     align-items: center;
     padding: 4px 8px;
@@ -52,9 +44,10 @@
     }
 
     &--focused {
-      background-color: rgba(var(--primary-rgb), 0.15);
-      border-color: rgba(var(--primary-rgb), 0.3);
-      box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+      background-color: var(--docs-accent-soft);
+      border-color: color-mix(in srgb, var(--docs-accent) 30%, transparent);
+      box-shadow: 0 0 0 2px
+        color-mix(in srgb, var(--docs-accent) 12%, transparent);
     }
 
     &--leaf {
@@ -63,50 +56,7 @@
       }
     }
 
-    &--folder-resource {
-      --nav-folder-accent-rgb: 52, 211, 153;
-      --nav-folder-accent: #34d399;
-    }
-
-    &--folder-error {
-      --nav-folder-accent-rgb: 239, 68, 68;
-      --nav-folder-accent: #ef4444;
-    }
-
-    &--folder-async-context {
-      --nav-folder-accent-rgb: 6, 182, 212;
-      --nav-folder-accent: #06b6d4;
-    }
-
-    &--folder-task {
-      --nav-folder-accent-rgb: 96, 165, 250;
-      --nav-folder-accent: #60a5fa;
-    }
-
-    &--folder-event {
-      --nav-folder-accent-rgb: 244, 114, 182;
-      --nav-folder-accent: #f472b6;
-    }
-
-    &--folder-hook {
-      --nav-folder-accent-rgb: 250, 204, 21;
-      --nav-folder-accent: #facc15;
-    }
-
-    &--folder-middleware {
-      --nav-folder-accent-rgb: 192, 132, 252;
-      --nav-folder-accent: #c084fc;
-    }
-
-    &--folder-tag {
-      --nav-folder-accent-rgb: 251, 146, 60;
-      --nav-folder-accent: #fb923c;
-    }
-
-    &--folder-mixed {
-      --nav-folder-accent-rgb: 148, 163, 184;
-      --nav-folder-accent: #94a3b8;
-    }
+    // Monochrome tree: every folder shares the same neutral count pill.
   }
 
   .nav-expander {
@@ -141,40 +91,31 @@
   .nav-expander-icon {
     font-size: 10px;
     transition: transform 0.15s ease;
-    color: var(--text-secondary);
+    color: var(--docs-text-muted);
   }
 
   .nav-node-icon {
     margin-right: 6px;
     font-size: 14px;
     flex-shrink: 0;
-
-    .nav-node[class*="nav-node--folder-"] & {
-      color: var(--nav-folder-accent);
-      filter: saturate(1.15);
-    }
   }
 
   .nav-node-label {
     flex: 1;
     font-size: 13px;
-    color: var(--text-primary);
+    color: var(--docs-text-secondary);
     word-break: break-word;
     display: inline-flex;
     align-items: center;
     gap: 4px;
 
-    .nav-node[class*="nav-node--folder-"] & {
-      color: var(--nav-folder-accent);
-    }
-
     .system-label {
       font-size: 10px;
       padding: 1px 6px;
       border-radius: 10px;
-      background: rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--docs-hover-bg);
+      color: var(--docs-text-muted);
+      border: 1px solid var(--docs-border-primary);
       text-transform: uppercase;
       letter-spacing: 0.4px;
     }
@@ -183,8 +124,8 @@
   .nav-node-count {
     margin-left: 6px;
     padding: 2px 6px;
-    background-color: rgba(var(--nav-folder-accent-rgb), 0.12);
-    color: var(--nav-folder-accent);
+    background-color: var(--docs-hover-bg);
+    color: var(--docs-text-muted);
     border-radius: 10px;
     font-size: 11px;
     font-weight: 600;
@@ -212,33 +153,20 @@
     padding: 9px 12px;
     margin: 1px 0;
     text-decoration: none;
-    color: var(--text-primary);
+    color: var(--docs-text-secondary);
     border-radius: 6px;
     transition: all 0.15s ease;
     border: 1px solid transparent;
     outline: none;
     background: transparent;
 
-    // Intentionally no background change on hover in list mode
-
-    &--focused {
-      background-color: rgba(var(--primary-rgb), 0.15);
-      border-color: rgba(var(--primary-rgb), 0.3);
-      // box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+    &:hover {
+      background-color: var(--docs-hover-bg);
     }
 
-    &--home {
-      background-color: rgba(var(--success-rgb), 0.08);
-
-      &:hover {
-        background-color: rgba(var(--success-rgb), 0.15);
-      }
-
-      &.nav-link--focused {
-        background-color: rgba(var(--success-rgb), 0.2);
-        border-color: rgba(var(--success-rgb), 0.3);
-        box-shadow: 0 0 0 2px rgba(var(--success-rgb), 0.1);
-      }
+    &--focused {
+      background-color: var(--docs-accent-soft);
+      border-color: color-mix(in srgb, var(--docs-accent) 25%, transparent);
     }
   }
 
@@ -261,8 +189,8 @@
 
   .nav-badge {
     padding: 3px 8px;
-    background-color: rgba(var(--primary-rgb), 0.1);
-    color: var(--primary);
+    background-color: var(--docs-hover-bg);
+    color: var(--docs-text-muted);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;

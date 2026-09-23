@@ -19,12 +19,32 @@ import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
 import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
 import { createLiveStreamHandler } from "./routeHandlers/createLiveStreamHandler";
 import { createRequestCorrelationMiddleware } from "./routeHandlers/requestCorrelation";
+import {
+  DEFAULT_BIND_HOST,
+  createLoopbackHostGuard,
+  isLoopbackBindHost,
+} from "./routeHandlers/loopbackHostGuard";
+import { isCodeExecutionAllowed } from "../schema/codeExecutionGate";
 import voyagerHtml from "./templates/voyager.html";
 
 export interface ServerConfig {
   port?: number;
+  /**
+   * Interface to listen on. Defaults to 127.0.0.1 (this machine only, with a
+   * Host header check against DNS rebinding). Set e.g. "0.0.0.0" to expose
+   * the server on the network.
+   */
   host?: string;
   apollo?: StartStandaloneServerOptions<CustomGraphQLContext>;
+}
+
+function networkExposureWarning(host: string): string {
+  return (
+    `Code execution endpoints (shell, eval, swapTask, evalInput) are reachable ` +
+    `from the network: the server listens on ${host} and code execution is ` +
+    `enabled (RUNNER_DEV_EVAL=1 or NODE_ENV=development/test). Only do this on ` +
+    `a trusted network, or omit "host" to listen on ${DEFAULT_BIND_HOST}.`
+  );
 }
 
 /** The resolved value exposed by the server resource. */
@@ -63,12 +83,21 @@ export const serverResource = defineResource({
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
     });
     const port = config.port ?? 1337;
-    const host = config.host;
+    const host = config.host ?? DEFAULT_BIND_HOST;
     const _apolloConfig = config.apollo ?? {};
 
     await server.start();
 
     const app = express();
+
+    // Guard first so every route, including http-tagged task routes added
+    // later, sits behind it. An explicit non-loopback host is an opt-in to
+    // network exposure, where a loopback-only Host check would not make sense.
+    if (isLoopbackBindHost(host)) {
+      app.use(createLoopbackHostGuard());
+    } else if (isCodeExecutionAllowed()) {
+      logger.warn(networkExposureWarning(host));
+    }
 
     // Wrap every incoming request in an AsyncLocalStorage context with a fresh
     // correlationId so that all logs / emissions / errors within the request
@@ -119,9 +148,11 @@ export const serverResource = defineResource({
     const uiDir =
       candidateUiDirs.find((dir) => fs.existsSync(dir)) || candidateUiDirs[0];
 
-    // Compute base URL and expose via token replacement in JS
+    // Compute base URL and expose via token replacement in JS. The default
+    // loopback bind still advertises "localhost" so the UI origin and API URL
+    // match (clients resolve it to 127.0.0.1 via happy eyeballs).
     const baseHost =
-      host && host !== "0.0.0.0" && host !== "::" ? host : "localhost";
+      config.host && host !== "0.0.0.0" && host !== "::" ? host : "localhost";
     const baseUrl = `http://${baseHost}:${port}`;
     process.env.API_URL = process.env.API_URL || baseUrl;
 
@@ -169,9 +200,7 @@ export const serverResource = defineResource({
       }
     };
 
-    const httpServer = host
-      ? await app.listen(port, host, listenCallback)
-      : await app.listen(port, listenCallback);
+    const httpServer = await app.listen(port, host, listenCallback);
 
     httpServer.on("error", (err: Error) => {
       logger.error("Server error", {

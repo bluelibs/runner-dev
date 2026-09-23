@@ -5,9 +5,10 @@ export const DEFAULT_SHELL_TIMEOUT_MS = 30_000;
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 /**
- * Reads the shell timeout from `RUNNER_DEV_SHELL_TIMEOUT_MS` (unset or blank
- * means the 30s default). Malformed values throw instead of silently falling
- * back, so a typo never quietly changes how long snippets may run.
+ * Reads the timeout for server-side code runs (`shell` and `eval`) from
+ * `RUNNER_DEV_SHELL_TIMEOUT_MS` (unset or blank means the 30s default).
+ * Malformed values throw instead of silently falling back, so a typo never
+ * quietly changes how long snippets may run.
  */
 export function resolveShellTimeoutMs(
   rawValue: string | undefined = process.env[SHELL_TIMEOUT_ENV_VAR]
@@ -24,10 +25,14 @@ export function resolveShellTimeoutMs(
   return parsed;
 }
 
-export function shellTimeoutMessage(timeoutMs: number): string {
+/** `feature` names the operation that timed out, e.g. "Shell" or "Eval". */
+export function executionTimeoutMessage(
+  feature: string,
+  timeoutMs: number
+): string {
   return (
-    `Shell execution timed out after ${timeoutMs} ms. ` +
-    `The snippet may still be running on the server: JavaScript cannot cancel it. ` +
+    `${feature} execution timed out after ${timeoutMs} ms. ` +
+    `The code may still be running on the server: JavaScript cannot cancel it. ` +
     `Set ${SHELL_TIMEOUT_ENV_VAR} to allow longer runs.`
   );
 }
@@ -37,7 +42,8 @@ export type ShellTimeoutOutcome<T> =
   | { timedOut: true };
 
 /**
- * Races a running snippet against a deadline so the shell always answers.
+ * Races a running snippet against a deadline so `shell` and `eval` always
+ * answer.
  *
  * This only bounds how long the caller waits: the snippet itself keeps
  * running after the deadline. A synchronous infinite loop (`while (true) {}`)

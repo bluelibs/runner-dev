@@ -5,8 +5,8 @@ import {
   DEFAULT_SHELL_TIMEOUT_MS,
   SHELL_TIMEOUT_ENV_VAR,
   raceShellTimeout,
+  executionTimeoutMessage,
   resolveShellTimeoutMs,
-  shellTimeoutMessage,
 } from "../../resources/shell.timeout";
 import {
   MAX_SHELL_RESULT_CHARS,
@@ -63,8 +63,8 @@ describe("raceShellTimeout", () => {
   });
 
   test("explains that the snippet may still be running", () => {
-    const message = shellTimeoutMessage(50);
-    expect(message).toContain("timed out after 50 ms");
+    const message = executionTimeoutMessage("Shell", 50);
+    expect(message).toContain("Shell execution timed out after 50 ms");
     expect(message).toContain("may still be running");
     expect(message).toContain(SHELL_TIMEOUT_ENV_VAR);
   });
@@ -122,7 +122,7 @@ describe("SwapManager.shell limits", () => {
         `console.log("started");\nawait new Promise(() => {});`
       );
       expect(res.success).toBe(false);
-      expect(res.error).toBe(shellTimeoutMessage(50));
+      expect(res.error).toBe(executionTimeoutMessage("Shell", 50));
       expect(res.logs).toEqual(["started"]);
       expect(res.executionTimeMs).toBeGreaterThanOrEqual(45);
       expect(res.invocationId).toBeTruthy();

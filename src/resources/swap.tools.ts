@@ -314,7 +314,10 @@ export function serializeResult(value: any): string {
   }
 }
 
-/** Upper bound for a serialized shell result sent back over GraphQL. */
+/**
+ * Upper bound for a serialized `shell` or `eval` result sent back over
+ * GraphQL.
+ */
 export const MAX_SHELL_RESULT_CHARS = 256 * 1024;
 
 /**
@@ -339,6 +342,15 @@ export function truncateWithMarker(text: string, maxChars: number): string {
  */
 export function serializeShellResult(value: any): string {
   return truncateWithMarker(serializeShellValue(value), MAX_SHELL_RESULT_CHARS);
+}
+
+/**
+ * Serialize an `eval` result with task-result semantics (`serializeResult`)
+ * under the same cap as shell results: eval runs arbitrary code, so its
+ * result can be just as large.
+ */
+export function serializeEvalResult(value: unknown): string {
+  return truncateWithMarker(serializeResult(value), MAX_SHELL_RESULT_CHARS);
 }
 
 function serializeShellValue(value: any): string {

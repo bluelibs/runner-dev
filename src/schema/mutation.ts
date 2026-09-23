@@ -228,6 +228,7 @@ export const MutationType = new GraphQLObjectType({
         "  - introspector: Introspector API for tasks/hooks/resources/middleware/events",
         "",
         "Security: eval runs only with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test (disabled when NODE_ENV is unset).",
+        "Runs share the shell limits: capped by RUNNER_DEV_SHELL_TIMEOUT_MS (default 30000) and results are truncated past 256 KB.",
       ].join("\n"),
       type: new GraphQLNonNull(EvalResultType),
       args: {

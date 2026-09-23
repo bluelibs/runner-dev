@@ -5,7 +5,6 @@ import {
   formatFilePath,
   formatId,
   getCoverageColor,
-  shouldDisplayConfig,
 } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
@@ -26,7 +25,7 @@ import { invokeTaskById } from "../utils/invokeElement";
 import { TopologyActionButton } from "./TopologyActionButton";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 import { OverviewIdLink } from "./common/OverviewIdLink";
-import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
+import { MiddlewareUsagesSection } from "./common/MiddlewareUsagesSection";
 import type { DocumentationMode } from "../../../../../resources/docsPayload";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
@@ -462,59 +461,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         </div>
       )}
 
-      {middlewareUsages.length > 0 && (
-        <div className="task-card__middleware">
-          <h4 className="task-card__middleware__title">
-            Middleware Configuration
-          </h4>
-          <div className="task-card__middleware__items">
-            {middlewareUsages.map((usage) => (
-              <div key={usage.id} className="task-card__middleware__item">
-                <div className="task-card__middleware__item-header">
-                  <a
-                    href={`#element-${usage.id}`}
-                    className="task-card__middleware-link"
-                  >
-                    <div className="title">
-                      {usage.node.meta?.title || formatId(usage.id)}
-                    </div>
-                    <div className="id">{usage.id}</div>
-                  </a>
-                  {usage.origin === "subtree" && (
-                    <span
-                      className="task-card__middleware__badge"
-                      title={
-                        usage.subtreeOwnerId
-                          ? `Applied by subtree policy from ${usage.subtreeOwnerId}`
-                          : "Applied by subtree policy"
-                      }
-                    >
-                      Subtree Policy
-                    </span>
-                  )}
-                </div>
-                {usage.origin === "subtree" && usage.subtreeOwnerId && (
-                  <div className="task-card__middleware__source">
-                    Source:{" "}
-                    <a href={`#element-${usage.subtreeOwnerId}`}>
-                      {formatId(usage.subtreeOwnerId)}
-                    </a>
-                  </div>
-                )}
-                {shouldDisplayConfig(usage.config) && (
-                  <div>
-                    <div className="config-title">Configuration:</div>
-                    <StructuredConfigBlock
-                      value={usage.config}
-                      className="config-block"
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <MiddlewareUsagesSection usages={middlewareUsages} />
 
       <TagsSection
         element={task}

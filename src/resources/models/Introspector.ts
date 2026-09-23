@@ -885,24 +885,24 @@ export class Introspector {
     return this.hooks.filter((l) => this.idsContainLike(l.events, eventId));
   }
 
+  getResourcesUsingMiddleware(middlewareId: string): Resource[] {
+    return this.resources.filter((resource) =>
+      this.idsContainLike(resource.middleware, middlewareId)
+    );
+  }
+
+  // A middleware wraps the nodes it is applied to, so it reports the events
+  // those wrapped nodes emit themselves: tasks/hooks for task middleware,
+  // resources for resource middleware. Tasks and hooks that merely depend on
+  // a wrapped resource run outside the resource middleware and never count.
   getMiddlewareEmittedEvents(middlewareId: string): Event[] {
-    const emittedIds = new Set<string>();
-    for (const t of this.getTaskLikesUsingMiddleware(middlewareId)) {
-      for (const e of ensureStringArray(t.emits)) {
-        emittedIds.add(e);
-      }
-    }
-    // Resource middlewares are used by resources, not tasks; without this
-    // their `emits` field is always empty.
-    for (const r of this.resources) {
-      if (!this.idsContainLike(r.middleware, middlewareId)) continue;
-      for (const e of ensureStringArray(r.emits)) {
-        emittedIds.add(e);
-      }
-      for (const e of this.getEmittedEventsForResource(r.id)) {
-        emittedIds.add(e.id);
-      }
-    }
+    const wrappedNodes: Array<Task | Hook | Resource> = [
+      ...this.getTaskLikesUsingMiddleware(middlewareId),
+      ...this.getResourcesUsingMiddleware(middlewareId),
+    ];
+    const emittedIds = new Set(
+      wrappedNodes.flatMap((node) => ensureStringArray(node.emits))
+    );
     return this.events.filter((e) => emittedIds.has(e.id));
   }
 

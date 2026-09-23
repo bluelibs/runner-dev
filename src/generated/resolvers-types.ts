@@ -589,7 +589,7 @@ export type Middleware = BaseElement & {
   coverage: Maybe<CoverageInfo>;
   /** Raw coverage report contents from the project (entire file), or null if not available. */
   coverageContents: Maybe<Scalars['String']['output']>;
-  /** Events emitted by task/hook nodes that use this middleware */
+  /** Events emitted by the nodes this middleware wraps: tasks/hooks for task middleware, resources for resource middleware. Tasks/hooks that only depend on a wrapped resource are not included. */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
@@ -1039,7 +1039,7 @@ export type ResourceMiddleware = BaseElement & {
   coverage: Maybe<CoverageInfo>;
   /** Raw coverage report contents from the project (entire file), or null if not available. */
   coverageContents: Maybe<Scalars['String']['output']>;
-  /** Events emitted by task/hook nodes that use this middleware */
+  /** Events emitted by the nodes this middleware wraps: tasks/hooks for task middleware, resources for resource middleware. Tasks/hooks that only depend on a wrapped resource are not included. */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
@@ -1443,7 +1443,7 @@ export type TaskMiddleware = BaseElement & {
   coverage: Maybe<CoverageInfo>;
   /** Raw coverage report contents from the project (entire file), or null if not available. */
   coverageContents: Maybe<Scalars['String']['output']>;
-  /** Events emitted by task/hook nodes that use this middleware */
+  /** Events emitted by the nodes this middleware wraps: tasks/hooks for task middleware, resources for resource middleware. Tasks/hooks that only depend on a wrapped resource are not included. */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;

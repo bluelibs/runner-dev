@@ -9,6 +9,7 @@ import { coverage } from "./resources/coverage.resource";
 import { exportDocs } from "./exportDocs";
 
 export type { ServerConfig, ServerInstance } from "./resources/server.resource";
+export type { LiveStreamRegistry } from "./resources/routeHandlers/liveStreamRegistry";
 export type { CustomGraphQLContext } from "./schema/context";
 export type {
   CoverageDetails,

@@ -37,7 +37,7 @@
     "qa": "npm run lint:fix && npm run typecheck && npm run build && npm run test:qa && npm run typedoc",
     "coverage:ai": "jest --config config/jest/jest.config.js --coverage --coverageReporters=text-summary",
     "codegen": "graphql-codegen --config config/codegen.ts",
-    "prebuild": "ts-node --project config/ts/tsconfig.json scripts/sync-version.ts && npm run codegen",
+    "prebuild": "npm run skills:pack:restore && ts-node --project config/ts/tsconfig.json scripts/sync-version.ts && npm run codegen",
     "play": "concurrently -k -n UI,SRV -c blue,green \"npm:build:ui:watch\" \"npm:play:server\"",
     "play:cli": "npm run play:server",
     "play:export": "ts-node --project config/ts/tsconfig.json src/__tests__/dummy/exportPlayCatalog.ts",

@@ -43,6 +43,25 @@ function runPackScript(root: string, mode: "materialize" | "restore") {
   );
 }
 
+/** Runs the pack script expecting it to fail, and returns its stderr. */
+function packScriptFailure(root: string, mode: "materialize" | "restore") {
+  try {
+    execFileSync(
+      process.execPath,
+      [path.join(root, "scripts", "pack-npm-skills.mjs"), mode],
+      { encoding: "utf8", stdio: ["ignore", "ignore", "pipe"] }
+    );
+  } catch (error) {
+    // Not `instanceof Error`: Jest runs tests in another realm than the one
+    // child_process creates its errors in.
+    if (typeof error === "object" && error !== null && "stderr" in error) {
+      return String(error.stderr);
+    }
+    throw error;
+  }
+  throw new Error(`pack-npm-skills ${mode} succeeded but was expected to fail`);
+}
+
 function listPackedFiles(): string[] {
   const output = execFileSync(
     "npm",
@@ -95,6 +114,67 @@ describe("npm packaging", () => {
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  // The links are tracked in git: a pack that failed after materialize left
+  // copies behind that a later commit would record in their place.
+  test("this checkout's skill references are symlinks", () => {
+    for (const { link, target } of SKILL_LINKS) {
+      expect({
+        link,
+        target: fs.readlinkSync(path.join(repoRoot, link)),
+      }).toEqual({ link, target });
+    }
+  });
+
+  // prebuild runs restore, so it must not touch links that are already right.
+  test("restore leaves correct links untouched", () => {
+    const root = createSkillFixture();
+    try {
+      const inodesBefore = SKILL_LINKS.map(
+        ({ link }) => fs.lstatSync(path.join(root, link)).ino
+      );
+      runPackScript(root, "restore");
+      const inodesAfter = SKILL_LINKS.map(
+        ({ link }) => fs.lstatSync(path.join(root, link)).ino
+      );
+      expect(inodesAfter).toEqual(inodesBefore);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  // An edit made to a leftover copy would otherwise vanish on the next build.
+  test("restore refuses to delete a copy that no longer equals its source", () => {
+    const root = createSkillFixture();
+    try {
+      runPackScript(root, "materialize");
+      const editedGuide = path.join(
+        root,
+        "skills/core/references/readmes/COMPACT_GUIDE.md"
+      );
+      fs.writeFileSync(editedGuide, "# guide, edited in the copy\n");
+
+      const stderr = packScriptFailure(root, "restore");
+
+      expect(stderr).toContain(
+        "skills/core/references/readmes is a copy that differs from readmes"
+      );
+      expect(fs.readFileSync(editedGuide, "utf8")).toBe(
+        "# guide, edited in the copy\n"
+      );
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("every build first restores links a failed pack left as copies", () => {
+    const manifest: { scripts: Record<string, string> } = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
+    );
+    expect(manifest.scripts.prebuild).toMatch(
+      /^npm run skills:pack:restore && /
+    );
   });
 
   test("ships the changelog and every file the README links to", () => {

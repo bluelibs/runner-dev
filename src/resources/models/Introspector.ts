@@ -309,11 +309,8 @@ export class Introspector {
         middleware.tags,
         tagIds
       );
-      const middlewareWithEmits = middleware as Middleware & {
-        emits?: string[] | null;
-      };
-      middlewareWithEmits.emits = this.canonicalizeReferenceArray(
-        middlewareWithEmits.emits,
+      middleware.emits = this.canonicalizeReferenceArray(
+        middleware.emits,
         eventIds
       );
       middleware.usedByTasks = this.canonicalizeReferenceArray(

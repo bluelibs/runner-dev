@@ -604,19 +604,10 @@ function getTraversalRelations(
   }
 
   if (descriptor.kind === "middleware") {
-    const middleware = element as Middleware & { emits?: string[] | null };
     appendRegisteredByRelation(introspector, element, relations);
-    relations.push({
-      kind: "used-by",
-      targets: resolveMany(introspector, [
-        ...middleware.usedByTasks,
-        ...middleware.usedByResources,
-      ]),
-    });
-    relations.push({
-      kind: "emits",
-      targets: resolveMany(introspector, middleware.emits ?? []),
-    });
+    relations.push(
+      ...getMiddlewareRelations(introspector, element as Middleware)
+    );
     return dedupeRelations(relations);
   }
 
@@ -659,6 +650,34 @@ function getTraversalRelations(
   }
 
   return relations;
+}
+
+/**
+ * A middleware's own neighborhood, the same in both lenses: the nodes it
+ * wraps (`used-by`) and the events it emits itself through its own event
+ * dependencies (`emits`). The wrapped nodes' events are reached one hop
+ * later through those nodes. GraphQL `Middleware.emits` and the card's
+ * "Events Emitted by Usage" aggregate exactly those wrapped-node events, so
+ * folding them in here would draw emit edges the middleware never fires and
+ * place those events a hop too shallow in the blast radius.
+ */
+function getMiddlewareRelations(
+  introspector: Introspector,
+  middleware: Middleware
+): TraversalRelation[] {
+  return [
+    {
+      kind: "used-by",
+      targets: resolveMany(introspector, [
+        ...middleware.usedByTasks,
+        ...middleware.usedByResources,
+      ]),
+    },
+    {
+      kind: "emits",
+      targets: resolveMany(introspector, ensureStringArray(middleware.emits)),
+    },
+  ];
 }
 
 /** Every element carrying the tag, whatever its kind. */
@@ -737,18 +756,9 @@ function getImpactRelations(
   }
 
   if (descriptor.kind === "middleware") {
-    const middleware = element as Middleware & { emits?: string[] | null };
-    relations.push({
-      kind: "used-by",
-      targets: resolveMany(introspector, [
-        ...middleware.usedByTasks,
-        ...middleware.usedByResources,
-      ]),
-    });
-    relations.push({
-      kind: "emits",
-      targets: resolveMany(introspector, middleware.emits ?? []),
-    });
+    relations.push(
+      ...getMiddlewareRelations(introspector, element as Middleware)
+    );
     return dedupeRelations(relations);
   }
 

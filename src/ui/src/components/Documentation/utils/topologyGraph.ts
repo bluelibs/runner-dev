@@ -967,13 +967,16 @@ function resolveFocus(
   focusId?: string | null,
   focusKind?: TopologyFocusKind | null
 ): TopologyFocus {
-  if (focusId && focusKind) {
-    return { kind: focusKind, id: focusId };
-  }
-
   if (focusId) {
+    // Canonicalize: a hand-written hash may name the focus by a short id
+    // that the introspector resolves by suffix, while traversal records
+    // nodes under canonical ids. A raw id would let a cycle back to the
+    // focus re-record it as a child of its own neighbor.
     const descriptor = resolveNodeDescriptor(introspector, focusId);
-    if (descriptor) return { kind: descriptor.kind, id: descriptor.id };
+    if (descriptor && (!focusKind || descriptor.kind === focusKind)) {
+      return { kind: descriptor.kind, id: descriptor.id };
+    }
+    if (focusKind) return { kind: focusKind, id: focusId };
   }
 
   const fallback = getDefaultTopologyFocus(introspector);

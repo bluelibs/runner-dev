@@ -724,14 +724,14 @@ export type Query = {
    * live shell scope without executing anything, so it is side-effect free.
    * Returns the offset the completed word starts at plus matching options.
    *
-   * Security: completion is disabled in production unless
-   * RUNNER_DEV_EVAL=1, like the shell itself (yields no options).
+   * Security: completion shares the shell gate (RUNNER_DEV_EVAL=1 or
+   * NODE_ENV=development/test) and yields no options when disabled.
    */
   shellComplete: ShellCompletion;
   /**
    * Whether the REPL shell (and shell completions) can run here.
-   * Same gate as the shell mutation: false only in production
-   * without RUNNER_DEV_EVAL=1.
+   * Same gate as the shell mutation: true only with RUNNER_DEV_EVAL=1
+   * or NODE_ENV=development/test (false when NODE_ENV is unset).
    */
   shellEnabled: Scalars['Boolean']['output'];
   /** List of tasks currently hot-swapped. */

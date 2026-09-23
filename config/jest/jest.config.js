@@ -47,9 +47,11 @@ module.exports = {
       rootDir: rootDir,
       displayName: "jsdom",
       testEnvironment: "jsdom",
+      // Every React (.tsx) UI test belongs here: the node project only matches
+      // *.test.ts, so a narrower whitelist would silently skip new .tsx suites.
       testMatch: [
         "<rootDir>/src/ui/src/components/Documentation/components/chat/**/*.test.ts",
-        "<rootDir>/src/ui/src/components/Documentation/components/ElementTable.test.tsx",
+        "<rootDir>/src/ui/**/*.test.tsx",
       ],
       // setupFiles: [path.join(rootDir, "config/jest/symbolMetadata.setup.js")],
       transform: {

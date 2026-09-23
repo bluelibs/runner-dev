@@ -13,6 +13,26 @@ function createCompilerOptions(ts: TypeScriptModule): CompilerOptions {
   };
 }
 
+type CompilerLoad =
+  | { success: true; ts: TypeScriptModule }
+  | { success: false; error: string };
+
+/**
+ * Loads the compiler for a compile helper. A missing or incompatible
+ * typescript is not a compile error in the user's snippet, so its message is
+ * returned as is instead of behind "Compilation failed:".
+ */
+function loadCompiler(): CompilerLoad {
+  try {
+    return { success: true, ts: loadTypeScript() };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 function idsMatch(candidateId: string, referenceId: string): boolean {
   return candidateId === referenceId || candidateId.endsWith(`.${referenceId}`);
 }
@@ -90,8 +110,9 @@ export function compileRunFunction(
       };
     }
 
-    // Try TypeScript compilation first
-    const ts = loadTypeScript();
+    const compiler = loadCompiler();
+    if (!compiler.success) return compiler;
+    const { ts } = compiler;
     const result = ts.transpile(wrappedCode, createCompilerOptions(ts));
 
     // Create and validate the function
@@ -231,8 +252,10 @@ function compileShellWrapper(
 ):
   | { success: true; func: (deps: any) => any }
   | { success: false; error: string } {
+  const compiler = loadCompiler();
+  if (!compiler.success) return compiler;
+  const { ts } = compiler;
   try {
-    const ts = loadTypeScript();
     // NB: ts.transpile() never reports syntax errors (best-effort emit), so
     // syntactic diagnostics are required to reject invalid snippets.
     const transpiled = ts.transpileModule(wrappedCode, {

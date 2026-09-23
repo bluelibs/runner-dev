@@ -6,19 +6,26 @@ module.exports = {
   testEnvironment: "node",
   rootDir: rootDir,
   testMatch: ["<rootDir>/src/**/*.test.ts"],
+  // UI tests live next to their components. Jest never instruments test files,
+  // so matching them here only adds them as 0%-covered "source" and skews the
+  // global numbers; exclude them explicitly.
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
     "!src/**/__tests__/**",
+    "!src/**/*.test.{ts,tsx}",
   ],
   coverageDirectory: "<rootDir>/coverage",
   coverageReporters: ["text", "lcov", "html"],
+  // A ratchet toward the 100% goal: the measured global numbers, rounded down,
+  // from when CI started enforcing coverage. Raise them as coverage improves;
+  // never lower them or exclude source files to make a run pass.
   coverageThreshold: {
     global: {
-      statements: 100,
-      branches: 100,
-      functions: 100,
-      lines: 100,
+      statements: 52,
+      branches: 40,
+      functions: 50,
+      lines: 54,
     },
   },
   projects: [

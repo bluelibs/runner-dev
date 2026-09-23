@@ -2,13 +2,11 @@
 
 name: CI
 
+# Least privilege by default; only the Pages deploy job asks for more.
 permissions:
   contents: read
-  pages: write
-  id-token: write
-# Controls when the workflow will run
+
 on:
-  # all branches
   push:
     branches:
       - main
@@ -16,57 +14,88 @@ on:
     branches:
       - main
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build-and-test:
-    # The type of runner that the job will run on
+    name: Lint, typecheck, build and test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    strategy:
+      fail-fast: false
+      matrix:
+        # Mirrors package.json "engines" (>=22): @bluelibs/runner and
+        # npm-skills both require Node 22+, so older lines are unsupported.
+        node-version: [22, 24]
+
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Sets up Node.js environment
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "20" # Specify the Node.js version you want to use
-          cache: "npm" # Caches npm dependencies
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
 
-      # Install dependencies
+      # The second install pulls the Linux-native rollup/sass binaries that npm
+      # can drop when the lockfile was generated on another platform.
       - name: Install dependencies
         run: |
           npm install
           npm install @rollup/rollup-linux-x64-gnu sass-embedded-linux-x64
 
-      # Run tests with enforced 100% coverage
-      - name: Run tests with coverage enforcement
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Builds, then runs Jest with --coverage so the coverageThreshold in
+      # config/jest/jest.config.js actually gates the run.
+      - name: Build and test with coverage thresholds
         run: npm run test:ci
 
+      # Audit results do not depend on the Node version; run them once.
       - name: Audit backend, frontend tooling, and a fresh release scaffold
+        if: matrix.node-version == 22
         run: |
           npm run audit
           npm run audit:scaffold
 
-      # Generate documentation (only on main branch)
+  deploy-docs:
+    name: Deploy API docs to GitHub Pages
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Generate documentation
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: npm run typedoc
 
       - name: Setup Pages
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
           path: "./docs"
 
-      # Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         id: deployment
         uses: actions/deploy-pages@v4

@@ -28,7 +28,7 @@
     "coverage": "jest --config config/jest/jest.config.js --verbose --coverage",
     "test:clean": "jest --config config/jest/jest.config.js --clearCache",
     "testonly": "npm test",
-    "test:ci": "npm run build && npm run test",
+    "test:ci": "npm run build && npm run test -- --coverage --coverageReporters=text-summary",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepublishOnly": "node scripts/check-runner-dependency.mjs && npm run build",
     "typedoc": "typedoc --options config/typedoc/typedoc.json",

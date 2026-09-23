@@ -244,7 +244,9 @@ When working inside `@bluelibs/runner-dev`, start here:
 - MCP: the fastest AI-native access path when the app is already running
 - Live telemetry: logs, emissions, errors, runs, and correlation-driven inspection
 - Swap tooling: controlled runtime task replacement and restoration
-- Runtime shell: per-resource (`r` is the live value) and global (`runtime` access) REPL via UI and the `shell` mutation; shares the `eval` production guard
+- Runtime shell: per-resource (`r` is the live value) and global (`runtime` access) REPL via UI and the `shell` mutation
+- Code-execution gate: `eval`, `shell`, `shellComplete`, `swapTask`, `editFile` and `evalInput: true` run only with `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test` (closed when `NODE_ENV` is unset); `query { codeExecutionEnabled }` reports it, and the docs source viewer stays read-only with an enable hint when it is closed. `eval`/`shell` share `RUNNER_DEV_SHELL_TIMEOUT_MS` (default 30000) and a 256 KB result cap
+- `typescript` is an optional peer (5 or 6): loading runner-dev never needs it, but `swapTask`, `eval` and `shell` return an install hint without it
 - Docs UX: `⌘K` command palette (fuzzy element/section/action search), `?` shortcuts overlay, `g`-section jumps, `/` sidebar filter focus, `Esc` back navigation
 - Docs UX: `⌘K` command palette (fuzzy element/section/action search), `?` shortcuts overlay, `g`-section jumps, `/` sidebar filter focus, `Esc` back navigation
 
@@ -273,6 +275,6 @@ Assume current Runner reality, not old examples:
 
 ## Scaffold dependency checks
 
-New projects target Runner 6.6 and Vitest 4.1.11+ and require Node.js 22.12+ or 24+. Run `npm run audit` in generated projects to check production and development dependencies. Before a release, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`; the latter verifies a fresh project against the packed local release, including its build and tests. The repository audit covers backend dependencies and frontend tooling. Do not suppress audit findings or use `--omit=dev` for this check.
+New projects target Runner 6.6 and Vitest 4.1.11+ and require Node.js 22.12+ or 24+. Run `npm run audit` in generated projects to check production and development dependencies. Before a release, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`; the latter verifies a fresh project against the packed local release, including its build and tests. The repository audit covers backend dependencies and frontend tooling. Do not suppress audit findings or use `--omit=dev` for this check. `npm run check:runtime-deps` (run by CI after the build and by `npm pack` after a clean build) fails when `dist` requires a package that is not a dependency or peer, or when loading the package entry pulls in an optional peer such as `typescript`.
 
 Runner 6.6 durable apps must register `resources.durable` (also exported as `durableSupportResource`) from `@bluelibs/runner/node` alongside the durable runtime; the workflow tag alone does not register the required runtime tags, events, and lifecycle hook.

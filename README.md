@@ -342,7 +342,7 @@ This command creates a new Runner project with:
 
 Run `npm run audit` in the generated project to check all dependencies, including development tools. Install-time audit reporting stays enabled.
 
-Before releasing runner-dev, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`. The scaffold check installs the packed release into a fresh project, audits its full dependency tree, and runs its build and tests. The repository audit also covers the bundled frontend tooling. A scoped Lodash override keeps the existing GraphQL codegen plugins on patched Lodash 4.18.1+ despite their older minor-version constraint.
+Before releasing runner-dev, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`. The scaffold check installs the packed release into a fresh project, audits its full dependency tree, and runs its build and tests. The repository audit also covers the bundled frontend tooling. `npm run check:runtime-deps` (run by CI after the build, and by `npm pack` after a clean build) fails when `dist` requires a package that is not a dependency or peer, or when loading the package entry pulls in an optional peer such as `typescript`. A scoped Lodash override keeps the existing GraphQL codegen plugins on patched Lodash 4.18.1+ despite their older minor-version constraint.
 
 Flags for `new`:
 
@@ -922,6 +922,8 @@ export const app = r
   .build();
 ```
 
+`swapTask`, `eval` and `shell` compile code with the `typescript` package. It is an optional peer dependency (TypeScript 5 or 6), so loading runner-dev never needs it; install it in your project (`npm install --save-dev typescript@6`) to use those features. Without it they return `Install typescript 5 or 6 to use swapTask, eval and shell: ...` instead of running. TypeScript 7's native compiler does not expose the `transpileModule` API they use and is reported as incompatible.
+
 ### GraphQL API
 
 #### Queries
@@ -1136,6 +1138,16 @@ query RecentDebugLogs {
 - Intended for development/debugging environments only
 - Swapped functions have access to the same context as original functions
 
+#### Code-execution gate
+
+Every server-side operation that runs code or writes source files shares one gate. It is open only when the server starts with `RUNNER_DEV_EVAL=1`, or with `NODE_ENV` set to exactly `development` or `test`. An unset `NODE_ENV`, `production`, `staging` or any other value keeps it closed.
+
+- Gated: `eval`, `shell`, `shellComplete` (returns no options), `swapTask`, `invokeTask`/`invokeEvent` with `evalInput: true`, and `editFile`. Writing a source file counts as code execution because a watcher (`tsx watch`, nodemon) reloads and runs it.
+- When closed, they return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.`
+- Still allowed: every query, `invokeTask`/`invokeEvent` with plain JSON input, `unswapTask` and `unswapAllTasks`.
+- `query { codeExecutionEnabled }` reports the gate (`shellEnabled` is the same value). The docs UI uses it: with the gate closed, the source viewer stays read-only and says how to enable editing, and the shell shows the same hint.
+- `shell` and `eval` runs are bounded by `RUNNER_DEV_SHELL_TIMEOUT_MS` (default `30000`, a whole number from 1 to 2147483647; invalid values fail the run before any code executes). A timed-out run returns an error, but the code keeps running because JavaScript cannot cancel it, and a synchronous infinite loop blocks the server. Results over 256 KB (262144 characters) are cut and end with `… [truncated N chars]`.
+
 #### Best Practices
 
 - Use descriptive debug messages in swapped functions
@@ -1335,15 +1347,15 @@ The system automatically handles complex JavaScript types:
 
 For advanced debugging, the system provides an `eval` mutation to execute arbitrary JavaScript/TypeScript code on the server.
 
-**Security Warning**: This feature is powerful and executes code with the same privileges as the application. It is intended for development environments only and is disabled by default in production. To enable it, set the environment variable `RUNNER_DEV_EVAL=1`.
+**Security Warning**: This feature is powerful and executes code with the same privileges as the application. It is intended for development environments only and sits behind the [code-execution gate](#code-execution-gate): it runs only with `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`, and is disabled when `NODE_ENV` is unset. Runs share the shell's timeout (`RUNNER_DEV_SHELL_TIMEOUT_MS`) and 256 KB result cap.
 
 #### `eval` Mutation
 
 **Execute arbitrary code:**
 
 ```graphql
-mutation EvalCode($code: String!, $inputJson: String, $evalInput: Boolean) {
-  eval(code: $code, inputJson: $inputJson, evalInput: $evalInput) {
+mutation EvalCode($code: String!) {
+  eval(code: $code) {
     success
     error
     result # JSON string
@@ -1352,9 +1364,7 @@ mutation EvalCode($code: String!, $inputJson: String, $evalInput: Boolean) {
 }
 ```
 
-- `code`: The JavaScript/TypeScript code to execute.
-- `inputJson`: Optional input string, parsed as JSON by default.
-- `evalInput`: If `true`, `inputJson` is evaluated as a JavaScript expression.
+- `code`: The JavaScript/TypeScript code to execute. Pass the full signature, `async function run(deps) { ... }`; `deps` holds `store`, `introspector`, `globals`, `taskRunner` and `eventManager`.
 
 **Example:**
 
@@ -1375,7 +1385,7 @@ The `shell` mutation runs a JavaScript/TypeScript snippet against the live runti
 - `resourceId` (optional): binds `r` to that resource's initialized value (exact or suffix match); without it, `r` is `null`.
 - `runtime`: the live runtime (`runTask`, `emitEvent`, `getResourceValue`, `getResourceConfig`, `getHealth`, …).
 
-Like `eval`, the shell is disabled in production unless `RUNNER_DEV_EVAL=1`.
+Like `eval`, the shell sits behind the [code-execution gate](#code-execution-gate) (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`) and shares its timeout and result cap.
 
 ```graphql
 mutation {

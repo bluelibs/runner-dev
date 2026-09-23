@@ -53,6 +53,8 @@ The current `Query` type exposes:
 - `live: Live!`
 - `diagnostics: [Diagnostic!]!`
 - `swappedTasks: [SwappedTask!]!`
+- `codeExecutionEnabled: Boolean!`
+- `shellEnabled: Boolean!`
 - `shellComplete(code: String!, position: Int!, resourceId: ID): ShellCompletion!`
 
 ### Common Query Filters
@@ -87,9 +89,11 @@ The current `Mutation` type exposes:
 
 - `swapTask` replaces a task's `run()` implementation at runtime.
 - `invokeTask` supports `pure: true` to bypass middleware.
-- `editFile` accepts structured paths such as `workspace:src/index.ts`.
-- `eval` is guarded and disabled in production unless `RUNNER_DEV_EVAL=1`.
-- `shell` runs REPL-style snippets with `r` (resource value) and `runtime` in scope, captures `console` into `logs`, and shares the `eval` production guard.
+- Code-execution gate: `eval`, `shell`, `shellComplete`, `swapTask`, `editFile`, and `invokeTask`/`invokeEvent` with `evalInput: true` run only with `RUNNER_DEV_EVAL=1` or `NODE_ENV` exactly `development`/`test` (closed when `NODE_ENV` is unset). When closed they return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.` (`shellComplete` returns no options). `codeExecutionEnabled` reports the gate; `shellEnabled` is the same value.
+- `editFile` accepts structured paths such as `workspace:src/index.ts`. It is gated because a written source file runs as soon as a watcher reloads it.
+- `eval` and `shell` runs are bounded by `RUNNER_DEV_SHELL_TIMEOUT_MS` (default 30000) and results are cut past 256 KB with `… [truncated N chars]`.
+- `swapTask`, `eval` and `shell` compile code with `typescript`, an optional peer dependency (5 or 6). Without it they fail with `Install typescript 5 or 6 to use swapTask, eval and shell: ...`.
+- `shell` runs REPL-style snippets with `r` (resource value) and `runtime` in scope and captures `console` into `logs`.
 - `shellComplete` lists member completions for a snippet at a cursor offset by walking the live shell scope (side-effect free); the shell editor uses it for as-you-type autocomplete.
 
 ## Core Types

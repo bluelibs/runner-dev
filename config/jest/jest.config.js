@@ -34,7 +34,6 @@ module.exports = {
       displayName: "node",
       testEnvironment: "node",
       testMatch: ["<rootDir>/src/**/*.test.ts"],
-      // setupFiles: [path.join(rootDir, "config/jest/symbolMetadata.setup.js")],
       testPathIgnorePatterns: [
         "<rootDir>/src/ui/src/components/Documentation/components/chat/",
       ],
@@ -60,7 +59,6 @@ module.exports = {
         "<rootDir>/src/ui/src/components/Documentation/components/chat/**/*.test.ts",
         "<rootDir>/src/ui/**/*.test.tsx",
       ],
-      // setupFiles: [path.join(rootDir, "config/jest/symbolMetadata.setup.js")],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",

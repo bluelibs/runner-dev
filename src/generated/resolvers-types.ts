@@ -169,6 +169,8 @@ export type EmissionEntry = {
   eventResolved: Maybe<Event>;
   /** Stringified JSON if object */
   payload: Maybe<Scalars['String']['output']>;
+  /** Strictly increasing position of this entry in the live store, shared by logs, emissions, errors and runs and never reused; pass it as `afterSequence` to page forward. An opaque ordering key rather than a count: values are seeded from the wall clock so they keep increasing across process restarts. */
+  sequence: Scalars['Float']['output'];
   /** Emission time (milliseconds since epoch) */
   timestampMs: Scalars['Float']['output'];
 };
@@ -229,6 +231,8 @@ export type ErrorEntry = {
   data: Maybe<Scalars['String']['output']>;
   /** Error message */
   message: Scalars['String']['output'];
+  /** Strictly increasing position of this entry in the live store, shared by logs, emissions, errors and runs and never reused; pass it as `afterSequence` to page forward. An opaque ordering key rather than a count: values are seeded from the wall clock so they keep increasing across process restarts. */
+  sequence: Scalars['Float']['output'];
   /** Id of the source that emitted the error */
   sourceId: Scalars['ID']['output'];
   /** Kind of source (task/hook/resource/middleware/internal) */
@@ -406,6 +410,7 @@ export type HookFileContentsArgs = {
 
 
 export type HookRunsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -442,9 +447,9 @@ export type Live = {
   __typename?: 'Live';
   /** CPU-related statistics */
   cpu: CpuStats;
-  /** Event emissions with optional timestamp cursor, filters and last N */
+  /** Event emissions with optional cursor (afterSequence or afterTimestamp), filters and last N */
   emissions: Array<EmissionEntry>;
-  /** Errors captured with optional timestamp cursor, filters and last N */
+  /** Errors captured with optional cursor (afterSequence or afterTimestamp), filters and last N */
   errors: Array<ErrorEntry>;
   /** Event loop statistics */
   eventLoop: EventLoopStats;
@@ -452,17 +457,18 @@ export type Live = {
   gc: GcStats;
   /** Per-resource health report. Only includes resources with a health() probe defined. */
   healthReport: Maybe<ResourceHealthReport>;
-  /** Live logs with optional timestamp cursor, filters and last N */
+  /** Live logs with optional cursor (afterSequence or afterTimestamp), filters and last N */
   logs: Array<LogEntry>;
   /** Process memory usage */
   memory: MemoryStats;
-  /** Execution run records with optional timestamp cursor, filters and last N */
+  /** Execution run records with optional cursor (afterSequence or afterTimestamp), filters and last N */
   runs: Array<RunRecord>;
 };
 
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type LiveEmissionsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<EmissionFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -471,6 +477,7 @@ export type LiveEmissionsArgs = {
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type LiveErrorsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<ErrorFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -491,6 +498,7 @@ export type LiveGcArgs = {
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type LiveLogsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<LogFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -499,6 +507,7 @@ export type LiveLogsArgs = {
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type LiveRunsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -514,6 +523,8 @@ export type LogEntry = {
   level: LogLevelEnum;
   /** Log message */
   message: Scalars['String']['output'];
+  /** Strictly increasing position of this entry in the live store, shared by logs, emissions, errors and runs and never reused; pass it as `afterSequence` to page forward. An opaque ordering key rather than a count: values are seeded from the wall clock so they keep increasing across process restarts. */
+  sequence: Scalars['Float']['output'];
   /** Source id */
   sourceId: Maybe<Scalars['String']['output']>;
   /** Log creation time (milliseconds since epoch) */
@@ -1220,6 +1231,8 @@ export type RunRecord = {
   parentId: Maybe<Scalars['String']['output']>;
   /** Root caller id that initiated the chain */
   rootId: Maybe<Scalars['String']['output']>;
+  /** Strictly increasing position of this entry in the live store, shared by logs, emissions, errors and runs and never reused; pass it as `afterSequence` to page forward. An opaque ordering key rather than a count: values are seeded from the wall clock so they keep increasing across process restarts. */
+  sequence: Scalars['Float']['output'];
   /** Run end time (milliseconds since epoch) */
   timestampMs: Scalars['Float']['output'];
 };
@@ -1394,6 +1407,7 @@ export type TaskFileContentsArgs = {
 
 
 export type TaskRunsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -1783,6 +1797,7 @@ export type EmissionEntryResolvers<ContextType = CustomGraphQLContext, ParentTyp
   eventId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   eventResolved: Resolver<Maybe<ResolversTypes['Event']>, ParentType, ContextType>;
   payload: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1808,6 +1823,7 @@ export type ErrorEntryResolvers<ContextType = CustomGraphQLContext, ParentType e
   correlationId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   data: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   message: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   sourceId: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   sourceKind: Resolver<ResolversTypes['SourceKindEnum'], ParentType, ContextType>;
   sourceResolved: Resolver<Maybe<ResolversTypes['BaseElement']>, ParentType, ContextType>;
@@ -1933,6 +1949,7 @@ export type LogEntryResolvers<ContextType = CustomGraphQLContext, ParentType ext
   data: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   level: Resolver<ResolversTypes['LogLevelEnum'], ParentType, ContextType>;
   message: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   sourceId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2266,6 +2283,7 @@ export type RunRecordResolvers<ContextType = CustomGraphQLContext, ParentType ex
   ok: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   parentId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   rootId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

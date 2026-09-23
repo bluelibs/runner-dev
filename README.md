@@ -35,7 +35,7 @@ const app = r
     dev, // if you are fine with defaults or
     dev.with({
       port: 1337, // default,
-      maxEntries: 10000, // how many logs to keep in the store.
+      maxEntries: 10000, // default: entries kept per live category (a positive integer)
     }),
   ])
   .build();
@@ -132,7 +132,7 @@ export const app = r
     // You can omit .with() if you are fine with defaults.
     dev.with({
       port: 1337, // default
-      maxEntries: 1000, // default
+      maxEntries: 10000, // default: logs, emissions, errors and runs kept each
     }),
     // rest of your app.
   ])

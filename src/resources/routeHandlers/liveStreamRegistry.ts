@@ -9,13 +9,21 @@ export class LiveStreamRegistry {
   private shuttingDown = false;
 
   /**
-   * Registers a stream by the function that ends it. Returns false once
-   * shutdown has begun: the caller must then end the stream right away.
+   * True once `endAll` ran. A stream handler checks it before writing any
+   * header, because a stream opened now would never be ended.
    */
-  add(endStream: () => void): boolean {
-    if (this.shuttingDown) return false;
+  get isShuttingDown(): boolean {
+    return this.shuttingDown;
+  }
+
+  /** Registers a stream by the function that ends it. */
+  add(endStream: () => void): void {
+    if (this.shuttingDown) {
+      throw new Error(
+        "LiveStreamRegistry.add called after shutdown began; check isShuttingDown first."
+      );
+    }
     this.openStreams.add(endStream);
-    return true;
   }
 
   /** Forgets a stream that ended on its own (client disconnect). */

@@ -27,13 +27,16 @@ function createSubscriptionTrackingLive() {
   return { liveStub, listeners };
 }
 
-/** Minimal SSE response: records frames, `end` calls and event handlers. */
+/** Minimal SSE response: records headers, frames, `end` calls and handlers. */
 function createMockStream() {
+  const headers: Record<string, string> = {};
   const written: string[] = [];
   const handlers: Record<string, Listener[]> = {};
   const end = jest.fn();
   const mock = {
-    setHeader: () => {},
+    setHeader: (name: string, value: string) => {
+      headers[name] = value;
+    },
     flushHeaders: () => {},
     write: (chunk: string) => {
       written.push(chunk);
@@ -52,6 +55,7 @@ function createMockStream() {
     req: {} as Request,
     // A partial stand-in: the handler only uses the members above.
     res: mock as unknown as Response,
+    headers,
     written,
     end,
     emit,
@@ -63,15 +67,18 @@ describe("LiveStreamRegistry", () => {
     const registry = new LiveStreamRegistry();
     const first: jest.Mock<void, []> = jest.fn(() => registry.delete(first));
     const second: jest.Mock<void, []> = jest.fn(() => registry.delete(second));
-    expect(registry.add(first)).toBe(true);
-    expect(registry.add(second)).toBe(true);
+    registry.add(first);
+    registry.add(second);
+    expect(registry.isShuttingDown).toBe(false);
 
     registry.endAll();
 
     expect(first).toHaveBeenCalledTimes(1);
     expect(second).toHaveBeenCalledTimes(1);
     expect(registry.size).toBe(0);
-    expect(registry.add(jest.fn())).toBe(false);
+    expect(registry.isShuttingDown).toBe(true);
+    // A stream registered now would never be ended: that is a caller bug.
+    expect(() => registry.add(jest.fn())).toThrow("check isShuttingDown first");
   });
 });
 
@@ -114,16 +121,20 @@ describe("createLiveStreamHandler on server shutdown", () => {
     expect(end).not.toHaveBeenCalled();
   });
 
-  test("ends a stream that arrives after shutdown began", () => {
+  // Its connection outlived server.close(), so keep-alive would hold
+  // shutdown open, and a reconnecting EventSource could hold it forever.
+  test("ends a stream that arrives after shutdown began and closes its connection", () => {
     const { liveStub, listeners } = createSubscriptionTrackingLive();
     const streams = new LiveStreamRegistry();
     streams.endAll();
-    const { req, res, written, end } = createMockStream();
+    const { req, res, headers, written, end } = createMockStream();
 
     createLiveStreamHandler({ live: liveStub, streams })(req, res);
 
+    expect(headers.Connection).toBe("close");
     expect(end).toHaveBeenCalledTimes(1);
     expect(written).toEqual([]);
     expect(listeners.size).toBe(0);
+    expect(streams.size).toBe(0);
   });
 });

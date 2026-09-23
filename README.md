@@ -877,7 +877,7 @@ Delivery guarantees:
 - Retention caps every guarantee: each category keeps only its latest `maxEntries` entries, so an entry evicted before a reader reaches it is skipped without any signal. Sequences jump (they are clock-seeded and shared by all four categories), so a gap in them does not reveal the loss either. A single category can overflow within one 100 ms push window (a burst larger than `maxEntries`) or while the stream is paused on backpressure; raise `maxEntries` if that matters.
 - On connect, the stream sends a `health` event and then replays the entries already in the store. After a reconnect, drop anything at or below the last `sequence` you saw.
 - The stream respects backpressure: while the socket buffer is full it pauses telemetry, health and heartbeat frames until the socket drains, instead of buffering without limit.
-- When the server shuts down (`runtime.dispose()`, Ctrl+C), it ends every open stream, so a connected client never holds up shutdown. `EventSource` then retries on its own.
+- When the server shuts down (`runtime.dispose()`, Ctrl+C), it ends every open stream, and a stream requested while it is closing gets an empty response that closes its connection, so a connected client does not hold up shutdown. `EventSource` then retries on its own, on a new connection.
 
 **JavaScript client example:**
 

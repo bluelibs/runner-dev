@@ -28,7 +28,7 @@ runner-dev schema sdl --entry-file src/main.ts
 The `dev` resource serves, on port 1337 by default:
 
 - `POST /graphql` — the API described here
-- `GET /live/stream` — Server-Sent Events: `telemetry` (`{ logs, emissions, errors, runs }` deltas, each entry with its `sequence`) and `health` events, plus a `: heartbeat` comment every 15s; the server ends open streams when it shuts down
+- `GET /live/stream` — Server-Sent Events: `telemetry` (`{ logs, emissions, errors, runs }` deltas, each entry with its `sequence`) and `health` events, plus a `: heartbeat` comment every 15s; the server ends open streams when it shuts down, and a stream requested while it is closing gets an empty response that closes its connection
 - `GET /docs` — the docs UI; `GET /docs/data` — its JSON payload
 - `GET /voyager` — GraphQL Voyager; `GET /` redirects there
 

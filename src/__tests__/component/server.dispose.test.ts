@@ -1,6 +1,6 @@
 import http from "node:http";
 import { once } from "node:events";
-import type { AddressInfo } from "node:net";
+import { connect, type AddressInfo, type Socket } from "node:net";
 import { startServer } from "./serverHarness";
 
 /** Opens the live stream and resolves once its first frame arrived. */
@@ -23,6 +23,43 @@ async function openLiveStream(port: number) {
   return { request, ended };
 }
 
+/** Resolves once `condition` holds, checking every few milliseconds. */
+async function waitUntil(condition: () => boolean): Promise<void> {
+  while (!condition()) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
+/**
+ * Sends a request without its final blank line and waits until the server
+ * has read it, so the request is still arriving when shutdown begins: such a
+ * connection is busy, and `server.close()` leaves it open.
+ */
+async function startUnfinishedRequest(httpServer: http.Server, path: string) {
+  const { port } = httpServer.address() as AddressInfo;
+  const accepted = new Promise<Socket>((resolve) =>
+    httpServer.once("connection", resolve)
+  );
+  const client = connect(port, "127.0.0.1");
+  const head = `GET ${path} HTTP/1.1\r\nHost: localhost:${port}\r\n`;
+  client.write(head);
+  const serverSide = await accepted;
+  await waitUntil(() => serverSide.bytesRead >= Buffer.byteLength(head));
+
+  let received = "";
+  client.on("data", (chunk) => (received += chunk.toString()));
+  const closedByServer = once(client, "end");
+  return {
+    client,
+    finish: () => client.write("\r\n"),
+    responseHead: async () => {
+      await waitUntil(() => received.includes("\r\n\r\n"));
+      return received.slice(0, received.indexOf("\r\n\r\n")).toLowerCase();
+    },
+    closedByServer,
+  };
+}
+
 describe("server shutdown", () => {
   test("ends open live streams instead of waiting on them forever", async () => {
     const { runtime, server } = await startServer({ port: 0 });
@@ -39,6 +76,35 @@ describe("server shutdown", () => {
       expect(server.httpServer.listening).toBe(false);
     } finally {
       stream.request.destroy();
+    }
+  });
+
+  // close() has already dropped idle sockets when this request completes,
+  // so a keep-alive answer would hold shutdown for Node's keep-alive
+  // timeout, and an EventSource reconnecting on that socket would hold it
+  // for as long as it keeps retrying.
+  test("closes the connection of a stream requested while shutting down", async () => {
+    const { runtime, server } = await startServer({ port: 0 });
+    const request = await startUnfinishedRequest(
+      server.httpServer,
+      "/live/stream"
+    );
+
+    try {
+      const disposed = runtime.dispose();
+      // close() runs right after the open streams are ended.
+      await waitUntil(() => !server.httpServer.listening);
+      const finishedAt = Date.now();
+      request.finish();
+
+      const head = await request.responseHead();
+      expect(head).toContain("connection: close");
+      expect(head).not.toContain("keep-alive");
+      await request.closedByServer;
+      await disposed;
+      expect(Date.now() - finishedAt).toBeLessThan(1_000);
+    } finally {
+      request.client.destroy();
     }
   });
 });

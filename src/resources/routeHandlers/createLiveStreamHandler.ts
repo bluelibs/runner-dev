@@ -80,6 +80,23 @@ function advanceCursors(cursors: SequenceCursors, page: TelemetryPage): void {
   }
 }
 
+/**
+ * Answers a stream requested after shutdown began. `server.close()` already
+ * ran, so this request's connection outlived it (the request was still
+ * arriving or queued), and nothing will close that socket later. The usual
+ * `Connection: keep-alive` would hold `close()` for the keep-alive timeout,
+ * and an `EventSource` reconnecting on the same socket would hold it
+ * indefinitely. `Connection: close` makes Node destroy the socket after this
+ * empty stream; an `EventSource` then retries on a new connection, which the
+ * closed server refuses until it is back.
+ */
+function endStreamRequestedDuringShutdown(res: Response): void {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "close");
+  res.end();
+}
+
 // ---------------------------------------------------------------------------
 // SSE route handler factory
 // ---------------------------------------------------------------------------
@@ -102,9 +119,16 @@ export interface LiveStreamDeps {
  *    and resumes on `drain`, so a slow client never grows memory unbounded.
  * 6. Cleans up all timers and subscriptions on client disconnect, and ends
  *    the stream (with the same cleanup) when the server shuts down.
+ * 7. Answers a stream requested after shutdown began with an empty stream
+ *    that closes its connection.
  */
 export function createLiveStreamHandler({ live, streams }: LiveStreamDeps) {
   return (_req: Request, res: Response) => {
+    if (streams?.isShuttingDown) {
+      endStreamRequestedDuringShutdown(res);
+      return;
+    }
+
     // --- SSE headers ---------------------------------------------------------
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
@@ -225,12 +249,7 @@ export function createLiveStreamHandler({ live, streams }: LiveStreamDeps) {
     res.on("drain", resumeAfterDrain);
     res.on("close", cleanup);
     res.on("error", cleanup);
-
-    if (streams && !streams.add(endStream)) {
-      // The server began shutting down while this request was in flight.
-      endStream();
-      return;
-    }
+    streams?.add(endStream);
 
     // --- Initial push --------------------------------------------------------
 

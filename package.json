@@ -45,10 +45,11 @@
     "demo:query": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js query 'query { tasks { id } }' --format pretty",
     "demo:overview": "ENDPOINT=http://localhost:31337/graphql node dist/cli.js overview --details 5",
     "postinstall": "npm-skills extract --skip-production --override",
-    "prepack": "npm run build && npm run skills:pack:materialize",
+    "prepack": "npm run clean && npm run build && npm run check:runtime-deps && npm run skills:pack:materialize",
     "postpack": "npm run skills:pack:restore",
     "audit": "npm audit",
-    "audit:scaffold": "node scripts/audit-scaffold.mjs"
+    "audit:scaffold": "node scripts/audit-scaffold.mjs",
+    "check:runtime-deps": "node scripts/check-runtime-deps.mjs"
   },
   "bin": {
     "runner-dev": "dist/cli.js"

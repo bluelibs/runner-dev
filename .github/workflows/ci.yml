@@ -54,6 +54,11 @@ jobs:
       - name: Build and test with coverage thresholds
         run: npm run test:ci
 
+      # Fails when dist requires a package consumers do not install, or loads
+      # an optional peer (typescript) eagerly from the package entry.
+      - name: Check runtime dependencies of the build
+        run: npm run check:runtime-deps
+
       # Audit results do not depend on the Node version; run them once.
       - name: Audit backend, frontend tooling, and a fresh release scaffold
         if: matrix.node-version == 22

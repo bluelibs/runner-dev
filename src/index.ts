@@ -29,6 +29,9 @@ export type {
   InvokeEventResult,
   InvokeResult,
   ISwapManager,
+  ShellCompletion,
+  ShellCompletionOption,
+  ShellResult,
   SwapResult,
   SwappedTask,
 } from "./resources/swap.resource";

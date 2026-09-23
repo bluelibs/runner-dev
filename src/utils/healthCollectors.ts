@@ -127,22 +127,3 @@ export function getHealthSnapshot(gcWindowMs = 30_000): HealthSnapshot {
     gc,
   };
 }
-
-// ---------------------------------------------------------------------------
-// Timestamp helpers
-// ---------------------------------------------------------------------------
-
-/** Extract the latest `timestampMs` from one or more arrays of timestamped entries. */
-export function latestTimestamp(
-  ...arrays: Array<{ timestampMs: number }[]>
-): number | undefined {
-  let max: number | undefined;
-  for (const arr of arrays) {
-    for (const entry of arr) {
-      if (max === undefined || entry.timestampMs > max) {
-        max = entry.timestampMs;
-      }
-    }
-  }
-  return max;
-}

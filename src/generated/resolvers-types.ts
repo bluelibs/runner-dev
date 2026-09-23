@@ -668,6 +668,8 @@ export type MiddlewareResourceUsage = {
   config: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   node: Resource;
+  origin: Maybe<Scalars['String']['output']>;
+  subtreeOwnerId: Maybe<Scalars['ID']['output']>;
 };
 
 export type MiddlewareTaskUsage = {
@@ -1082,6 +1084,8 @@ export type ResourceMiddlewareUsage = {
   config: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   node: ResourceMiddleware;
+  origin: Maybe<Scalars['String']['output']>;
+  subtreeOwnerId: Maybe<Scalars['ID']['output']>;
 };
 
 export type ResourceSubtreeIdentityRequirement = {
@@ -2030,6 +2034,8 @@ export type MiddlewareResourceUsageResolvers<ContextType = CustomGraphQLContext,
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   node: Resolver<ResolversTypes['Resource'], ParentType, ContextType>;
+  origin: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  subtreeOwnerId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2183,6 +2189,8 @@ export type ResourceMiddlewareUsageResolvers<ContextType = CustomGraphQLContext,
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   node: Resolver<ResolversTypes['ResourceMiddleware'], ParentType, ContextType>;
+  origin: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  subtreeOwnerId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

@@ -5,6 +5,8 @@ import type {
   Task,
   Hook,
   Middleware,
+  MiddlewareUsage,
+  MiddlewareUsageOrigin,
   Tag,
   Error as ErrorModel,
   AsyncContext as AsyncContextModel,
@@ -49,6 +51,15 @@ export type InterceptorOwnersSnapshot = {
 
 type TaskInterceptorRecord = {
   ownerResourceId?: string;
+};
+
+/** One middleware application, resolved to the node on the other side. */
+export type ResolvedMiddlewareUsage<TNode> = {
+  id: string;
+  config: string | null;
+  origin: MiddlewareUsageOrigin;
+  subtreeOwnerId: string | null;
+  node: TNode;
 };
 
 export type SerializedIntrospector = {
@@ -236,15 +247,11 @@ export class Introspector {
         task.middleware,
         middlewareIds
       );
-      task.middlewareDetailed = Array.isArray(task.middlewareDetailed)
-        ? task.middlewareDetailed.map((entry) => ({
-            ...entry,
-            id: this.resolveCanonicalId(entry.id, middlewareIds),
-            subtreeOwnerId: entry.subtreeOwnerId
-              ? this.resolveCanonicalId(entry.subtreeOwnerId, resourceIds)
-              : null,
-          }))
-        : task.middlewareDetailed;
+      task.middlewareDetailed = this.normalizeMiddlewareUsages(
+        task.middlewareDetailed,
+        middlewareIds,
+        resourceIds
+      );
       this.normalizeMetaTags(task, tagIds);
     }
 
@@ -280,12 +287,11 @@ export class Introspector {
         resource.middleware,
         middlewareIds
       );
-      resource.middlewareDetailed = Array.isArray(resource.middlewareDetailed)
-        ? resource.middlewareDetailed.map((entry) => ({
-            ...entry,
-            id: this.resolveCanonicalId(entry.id, middlewareIds),
-          }))
-        : resource.middlewareDetailed;
+      resource.middlewareDetailed = this.normalizeMiddlewareUsages(
+        resource.middlewareDetailed,
+        middlewareIds,
+        resourceIds
+      );
       resource.overrides = this.canonicalizeReferenceArray(
         resource.overrides,
         taskHookResourceMiddlewareIds
@@ -354,6 +360,21 @@ export class Introspector {
       );
       this.normalizeMetaTags(asyncContext, tagIds);
     }
+  }
+
+  private normalizeMiddlewareUsages(
+    usages: MiddlewareUsage[] | undefined,
+    middlewareIds: string[],
+    resourceIds: string[]
+  ): MiddlewareUsage[] | undefined {
+    if (!Array.isArray(usages)) return usages;
+    return usages.map((usage) => ({
+      ...usage,
+      id: this.resolveCanonicalId(usage.id, middlewareIds),
+      subtreeOwnerId: usage.subtreeOwnerId
+        ? this.resolveCanonicalId(usage.subtreeOwnerId, resourceIds)
+        : null,
+    }));
   }
 
   public finalizeDerivedState(): void {
@@ -906,158 +927,99 @@ export class Introspector {
     return this.events.filter((e) => emittedIds.has(e.id));
   }
 
-  getMiddlewareUsagesForTask(taskId: string): Array<{
-    id: string;
-    config: string | null;
-    origin: "local" | "subtree";
-    subtreeOwnerId: string | null;
-    node: Middleware;
-  }> {
-    const task = this.taskMap.get(taskId);
-    if (!task) {
-      const resolvedTask = this.getTask(taskId);
-      if (!resolvedTask) return [];
-      return this.getMiddlewareUsagesForTask(resolvedTask.id);
-    }
-    const detailed = task.middlewareDetailed ?? [];
-    return detailed
-      .map((d) => {
-        const node = this.getMiddleware(d.id);
-        return {
-          id: node?.id ?? d.id,
-          config: d.config ?? null,
-          origin: d.origin ?? "local",
-          subtreeOwnerId: d.subtreeOwnerId ?? null,
-          node,
-        };
-      })
-      .filter(
-        (
-          x
-        ): x is {
-          id: string;
-          config: string | null;
-          origin: "local" | "subtree";
-          subtreeOwnerId: string | null;
-          node: Middleware;
-        } => Boolean(x.node)
-      );
+  getMiddlewareUsagesForTask(
+    taskId: string
+  ): ResolvedMiddlewareUsage<Middleware>[] {
+    const task = this.getTask(taskId);
+    return task ? this.resolveAppliedMiddlewares(task.middlewareDetailed) : [];
   }
 
   getMiddlewareUsagesForResource(
     resourceId: string
-  ): Array<{ id: string; config: string | null; node: Middleware }> {
-    const res = this.resourceMap.get(resourceId);
-    if (!res) {
-      const resolvedResource = this.getResource(resourceId);
-      if (!resolvedResource) return [];
-      return this.getMiddlewareUsagesForResource(resolvedResource.id);
-    }
-    const detailed = res.middlewareDetailed ?? [];
-    return detailed
-      .map((d) => {
-        const node = this.getMiddleware(d.id);
-        return {
-          id: node?.id ?? d.id,
-          config: d.config ?? null,
-          node,
-        };
-      })
-      .filter(
-        (x): x is { id: string; config: string | null; node: Middleware } =>
-          Boolean(x.node)
-      );
+  ): ResolvedMiddlewareUsage<Middleware>[] {
+    const resource = this.getResource(resourceId);
+    return resource
+      ? this.resolveAppliedMiddlewares(resource.middlewareDetailed)
+      : [];
   }
 
-  getTasksUsingMiddlewareDetailed(middlewareId: string): Array<{
-    id: string;
-    config: string | null;
-    origin: "local" | "subtree";
-    subtreeOwnerId: string | null;
-    node: Task | Hook;
-  }> {
-    const result: Array<{
-      id: string;
-      config: string | null;
-      origin: "local" | "subtree";
-      subtreeOwnerId: string | null;
-      node: Task | Hook;
-    }> = [];
-    const addFrom = (
-      arr: Array<
-        | Task
-        | (Hook & {
-            middleware?: string[] | null;
-            middlewareDetailed?: Array<{
-              id: string;
-              config?: string | null;
-              origin?: "local" | "subtree" | null;
-              subtreeOwnerId?: string | null;
-            }> | null;
-          })
-      >
-    ) => {
-      for (const tl of arr) {
-        const middleware = "middleware" in tl ? tl.middleware ?? [] : [];
-        if (!this.idsContainLike(middleware, middlewareId)) {
-          continue;
-        }
+  // Snapshots exported before provenance tracking carry only id/config;
+  // such usages were always declared locally.
+  private resolveAppliedMiddlewares(
+    usages: MiddlewareUsage[] | undefined
+  ): ResolvedMiddlewareUsage<Middleware>[] {
+    return (usages ?? []).flatMap((usage) => {
+      const node = this.getMiddleware(usage.id);
+      if (!node) return [];
+      return [
+        {
+          id: node.id,
+          config: usage.config ?? null,
+          origin: usage.origin ?? "local",
+          subtreeOwnerId: usage.subtreeOwnerId ?? null,
+          node,
+        },
+      ];
+    });
+  }
 
-        const detailed =
-          "middlewareDetailed" in tl ? tl.middlewareDetailed : [];
-        const usage = (detailed || []).find((m) =>
-          this.idsMatch(
-            this.resolveCanonicalId(
-              m.id,
-              this.middlewares.map((entry) => entry.id)
-            ),
-            middlewareId
-          )
-        );
-
-        result.push({
-          id: tl.id,
-          config: usage?.config ?? null,
-          origin: usage?.origin ?? "local",
-          subtreeOwnerId: usage?.subtreeOwnerId
-            ? this.resolveCanonicalId(
-                usage.subtreeOwnerId,
-                this.resources.map((entry) => entry.id)
-              )
-            : null,
-          node: tl,
-        });
-      }
-    };
-    addFrom(this.tasks);
-    addFrom(this.hooks as Array<Hook & { middleware?: string[] | null }>);
-    return result;
+  getTasksUsingMiddlewareDetailed(
+    middlewareId: string
+  ): ResolvedMiddlewareUsage<Task | Hook>[] {
+    const taskLikes: Array<Task | (Hook & Partial<Task>)> = [
+      ...this.tasks,
+      ...this.hooks,
+    ];
+    return taskLikes
+      .filter((taskLike) =>
+        this.idsContainLike(taskLike.middleware, middlewareId)
+      )
+      .map((taskLike) =>
+        this.describeMiddlewareUser(
+          taskLike,
+          taskLike.middlewareDetailed,
+          middlewareId
+        )
+      );
   }
 
   getResourcesUsingMiddlewareDetailed(
     middlewareId: string
-  ): Array<{ id: string; config: string | null; node: Resource }> {
-    const result: Array<{
-      id: string;
-      config: string | null;
-      node: Resource;
-    }> = [];
-    for (const r of this.resources) {
-      if (this.idsContainLike(r.middleware, middlewareId)) {
-        const conf =
-          (r.middlewareDetailed || []).find((m) =>
-            this.idsMatch(
-              this.resolveCanonicalId(
-                m.id,
-                this.middlewares.map((entry) => entry.id)
-              ),
-              middlewareId
-            )
-          )?.config ?? null;
-        result.push({ id: r.id, config: conf ?? null, node: r });
-      }
-    }
-    return result;
+  ): ResolvedMiddlewareUsage<Resource>[] {
+    return this.getResourcesUsingMiddleware(middlewareId).map((resource) =>
+      this.describeMiddlewareUser(
+        resource,
+        resource.middlewareDetailed,
+        middlewareId
+      )
+    );
+  }
+
+  private describeMiddlewareUser<TNode extends { id: string }>(
+    node: TNode,
+    usages: MiddlewareUsage[] | null | undefined,
+    middlewareId: string
+  ): ResolvedMiddlewareUsage<TNode> {
+    const middlewareIds = this.middlewares.map((entry) => entry.id);
+    const usage = (usages ?? []).find((entry) =>
+      this.idsMatch(
+        this.resolveCanonicalId(entry.id, middlewareIds),
+        middlewareId
+      )
+    );
+
+    return {
+      id: node.id,
+      config: usage?.config ?? null,
+      origin: usage?.origin ?? "local",
+      subtreeOwnerId: usage?.subtreeOwnerId
+        ? this.resolveCanonicalId(
+            usage.subtreeOwnerId,
+            this.resources.map((entry) => entry.id)
+          )
+        : null,
+      node,
+    };
   }
 
   getEmittedEventsForResource(resourceId: string): Event[] {

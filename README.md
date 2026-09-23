@@ -21,7 +21,7 @@ npm install -g @bluelibs/runner-dev
 npx @bluelibs/runner-dev
 ```
 
-Requirements: Node.js 22+ (`engines: ">=22"`, the same floor as Runner 6.6) and `@bluelibs/runner` ^6.6.0 as a peer dependency. `typescript` 5 or 6 is an optional peer, needed only for `swapTask`, `eval` and `shell` (see [Hot-Swapping](#hot-swapping-debugging-system)).
+Requirements: Node.js 22+ (`engines: ">=22"`, the same floor as Runner 6.6) and `@bluelibs/runner` ^6.6.0 as a peer dependency. `typescript` is an optional peer (`>=5.0.0`, so any installed version is accepted at install time); only `swapTask`, `eval` and `shell` need it, and they need TypeScript 5 or 6 (see [Hot-Swapping](#hot-swapping-debugging-system)).
 
 For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
 Runner-Dev also publishes its own skill from `skills/core`. Treat `README.md`, `skills/core/SKILL.md`, `skills/core/references/README.md` and `skills/core/references/readmes/COMPACT_GUIDE.md` as one documentation unit and keep them aligned (together with `readmes/API_REFERENCE.md`). `skills/core/references/README.md` and `skills/core/references/readmes/` are symlinks to this `README.md` and to `readmes/`, so edit the originals and leave the links in place. The docs UI now includes a topology view for blast-radius and resource mindmap exploration. Release notes live in [CHANGELOG.md](CHANGELOG.md).
@@ -1046,7 +1046,7 @@ export const app = r
 
 Swapping runs code on the server, so it needs the [code-execution gate](#code-execution-gate) open: start the app with `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`.
 
-`swapTask`, `eval` and `shell` compile code with the `typescript` package. It is an optional peer dependency (TypeScript 5 or 6), so loading runner-dev never needs it; install it in your project (`npm install --save-dev typescript@6`) to use those features. Without it they return `Install typescript 5 or 6 to use swapTask, eval and shell: ...` instead of running. TypeScript 7's native compiler does not expose the `transpileModule` API they use and is reported as incompatible.
+`swapTask`, `eval` and `shell` compile code with the `typescript` package. It is an optional peer dependency, so loading runner-dev never needs it, and the peer range has no upper bound so npm installs runner-dev next to any TypeScript version; install it in your project (`npm install --save-dev typescript@6`) to use those features. Without it they return `Install typescript 5 or 6 to use swapTask, eval and shell: ...` instead of running. TypeScript 7's native compiler does not expose the `transpileModule` API they use: with it installed they return an incompatibility error that suggests `typescript@6`.
 
 ### GraphQL API
 

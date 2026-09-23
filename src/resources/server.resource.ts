@@ -1,4 +1,4 @@
-import { resources, defineResource } from "@bluelibs/runner";
+import { resources, defineResource, type Logger } from "@bluelibs/runner";
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
 import type { StartStandaloneServerOptions } from "@apollo/server/standalone";
@@ -21,20 +21,25 @@ import { createLiveStreamHandler } from "./routeHandlers/createLiveStreamHandler
 import { createRequestCorrelationMiddleware } from "./routeHandlers/requestCorrelation";
 import {
   DEFAULT_BIND_HOST,
-  createLoopbackHostGuard,
-  isLoopbackBindHost,
-} from "./routeHandlers/loopbackHostGuard";
+  createHostGuard,
+  isLoopbackAddress,
+} from "./routeHandlers/hostGuard";
 import { isCodeExecutionAllowed } from "../schema/codeExecutionGate";
 import voyagerHtml from "./templates/voyager.html";
 
 export interface ServerConfig {
   port?: number;
   /**
-   * Interface to listen on. Defaults to 127.0.0.1 (this machine only, with a
-   * Host header check against DNS rebinding). Set e.g. "0.0.0.0" to expose
-   * the server on the network.
+   * Interface to listen on. Defaults to 127.0.0.1 (this machine only). Set
+   * e.g. "0.0.0.0" to expose the server on the network.
    */
   host?: string;
+  /**
+   * DNS names requests may address the server by, besides `localhost`, IP
+   * addresses and `host` itself. Every other Host header gets a 403 (DNS
+   * rebinding guard), whatever interface the server listens on.
+   */
+  allowedHosts?: string[];
   apollo?: StartStandaloneServerOptions<CustomGraphQLContext>;
 }
 
@@ -45,6 +50,22 @@ function networkExposureWarning(host: string): string {
     `enabled (RUNNER_DEV_EVAL=1 or NODE_ENV=development/test). Only do this on ` +
     `a trusted network, or omit "host" to listen on ${DEFAULT_BIND_HOST}.`
   );
+}
+
+/**
+ * Warns once the socket is bound. The bound address, not the configured
+ * string, decides: Node accepts many spellings of loopback (`127.1`,
+ * `0:0:0:0:0:0:0:1`), and only the resolved address says which one it is.
+ */
+function warnWhenCodeExecutionIsExposed(
+  httpServer: http.Server,
+  host: string,
+  logger: Logger
+): void {
+  const address = httpServer.address();
+  if (address === null || typeof address === "string") return;
+  if (isLoopbackAddress(address.address) || !isCodeExecutionAllowed()) return;
+  logger.warn(networkExposureWarning(host));
 }
 
 /** The resolved value exposed by the server resource. */
@@ -91,13 +112,12 @@ export const serverResource = defineResource({
     const app = express();
 
     // Guard first so every route, including http-tagged task routes added
-    // later, sits behind it. An explicit non-loopback host is an opt-in to
-    // network exposure, where a loopback-only Host check would not make sense.
-    if (isLoopbackBindHost(host)) {
-      app.use(createLoopbackHostGuard());
-    } else if (isCodeExecutionAllowed()) {
-      logger.warn(networkExposureWarning(host));
-    }
+    // later, sits behind it. It runs on every bind: a network bind is still
+    // reachable from the developer's own browser (e.g. a Docker port
+    // published on 127.0.0.1), which is exactly where DNS rebinding strikes.
+    app.use(
+      createHostGuard({ allowedHosts: [host, ...(config.allowedHosts ?? [])] })
+    );
 
     // Wrap every incoming request in an AsyncLocalStorage context with a fresh
     // correlationId so that all logs / emissions / errors within the request
@@ -200,7 +220,10 @@ export const serverResource = defineResource({
       }
     };
 
-    const httpServer = await app.listen(port, host, listenCallback);
+    const httpServer = app.listen(port, host, listenCallback);
+    httpServer.once("listening", () =>
+      warnWhenCodeExecutionIsExposed(httpServer, host, logger)
+    );
 
     httpServer.on("error", (err: Error) => {
       logger.error("Server error", {

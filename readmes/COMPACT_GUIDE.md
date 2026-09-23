@@ -40,6 +40,7 @@ export const app = r
       port: 1337, // default
       maxEntries: 10000, // default, per live category; must be a positive integer
       // host: "0.0.0.0", // only to expose it on a network; default is 127.0.0.1
+      // allowedHosts: ["devbox.lan"], // DNS names to accept besides localhost and IP addresses
     }),
   ])
   .build();
@@ -99,8 +100,8 @@ Notes:
 
 ## Security Defaults
 
-- The server listens on `127.0.0.1` unless `host` is set. While bound to loopback, requests whose `Host` header is not `localhost`, `127.0.0.1` or `[::1]` get `403` (DNS-rebinding guard); hosts-file aliases for 127.0.0.1 are refused too.
-- To reach it from Docker, a remote box or a LAN, set `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`). That skips the Host check, there is no auth, and the server logs a startup warning when code execution is also enabled.
+- The server listens on `127.0.0.1` unless `host` is set. On every bind, requests whose `Host` header is a DNS name other than `localhost`, the configured `host` or an `allowedHosts` entry get `403` (DNS-rebinding guard); IP addresses always pass, while hosts-file aliases and `*.localhost` names are refused unless listed.
+- To reach it from Docker, a remote box or a LAN, set `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`), plus `allowedHosts: ["devbox.lan"]` for access by DNS name. There is no auth, and the server logs a startup warning when the bound address is not loopback and code execution is also enabled.
 - Code-execution gate: `eval`, `shell`, `shellComplete`, `swapTask`, `editFile` and `evalInput: true` on `invokeTask`/`invokeEvent` run only with `RUNNER_DEV_EVAL=1` or `NODE_ENV` exactly `development`/`test`. An unset `NODE_ENV` (plain `node`, `tsx watch`, a scaffolded `npm run dev`) keeps it closed. Closed calls return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.`
 - Probe it with `query { codeExecutionEnabled }`; `shellEnabled` is the same value.
 - Not gated: queries (including `fileContents` of registered elements), plain-JSON `invokeTask`/`invokeEvent`, `unswapTask`, `unswapAllTasks`.
@@ -181,7 +182,7 @@ Notes:
 - Keep `ALLOW_MUTATIONS=false` unless you intentionally need write access.
 - Set `HEADERS` if the GraphQL endpoint requires auth.
 - `SNAPSHOT_FILE` enables read-only MCP over an exported catalog without starting the app.
-- If `graphql_ping` fails, check that the app is running, the port is correct, and `HEADERS` is valid JSON. A `403` mentioning DNS rebinding means the endpoint's host is not `localhost`/`127.0.0.1`/`[::1]` while the server is loopback-bound.
+- If `graphql_ping` fails, check that the app is running, the port is correct, and `HEADERS` is valid JSON. A `403` mentioning DNS rebinding means the endpoint's host is a DNS name the server does not accept: use `localhost` or an IP address, or add the name to `allowedHosts`.
 
 ## First Things To Inspect
 
@@ -256,7 +257,7 @@ When working inside `@bluelibs/runner-dev`, start here:
 - `src/resources/models/Introspector.ts` and related store initialization for topology; `src/resources/models/middlewareUsages.ts` for middleware subtree provenance
 - `src/mcp/tools/*` and `src/mcp/projectOverview.ts` for MCP tools
 - `src/resources/live.resource.ts`, `src/resources/live/*` (sequence clock, cursor queries) and telemetry resources for live data; `src/resources/routeHandlers/createLiveStreamHandler.ts` for SSE
-- `src/schema/codeExecutionGate.ts` for the code-execution gate and `src/resources/routeHandlers/loopbackHostGuard.ts` for the loopback bind and Host check
+- `src/schema/codeExecutionGate.ts` for the code-execution gate and `src/resources/routeHandlers/hostGuard.ts` for the Host check and loopback detection
 - `src/ui/src/components/Documentation/*` for docs/chat UI behavior
 - `src/ui/src/components/Documentation/components/TopologyPanel.tsx` and `src/ui/src/components/Documentation/utils/topologyGraph.ts` for topology graph projections and rendering
 - `src/resources/swap.resource.ts` and `src/resources/swap.tools.ts` for hot-swapping surfaces; `shell.timeout.ts`, `shell.console.ts` and `typescript.runtime.ts` next to them for run limits, console capture and the lazy `typescript` load

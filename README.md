@@ -38,6 +38,7 @@ const app = r
     dev.with({
       port: 1337, // default,
       host: "127.0.0.1", // default: this machine only; see "Network and code-execution defaults"
+      allowedHosts: [], // extra DNS names requests may use besides localhost and IP addresses
       maxEntries: 10000, // default: entries kept per live category (a positive integer)
     }),
   ])
@@ -67,7 +68,7 @@ const app = r
 - GraphQL server: deep graph navigation over your app’s topology and live data
 - CLI with scaffolding, query-ing capabilities on a live endpoint or via dry-run mode.
 - MCP server: allow your AI to do introspection for you.
-- Safe defaults: the server listens on `127.0.0.1` with a Host header check, and code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) stays off unless you opt in.
+- Safe defaults: the server listens on `127.0.0.1`, a Host header check guards every bind against DNS rebinding, and code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) stays off unless you opt in.
 
 ## Runner 6.0 Migration Notes
 
@@ -112,7 +113,7 @@ const app = r
 
 Register `resources.durable` (also exported as `durableSupportResource`) from `@bluelibs/runner/node` alongside durable runtime resources. It registers the durable runtime/workflow tags, events, and lifecycle hook; registering only `durableWorkflowTag` is insufficient.
 
-Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](CHANGELOG.md) first: code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) is now off unless `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`, the server listens on `127.0.0.1` by default (set `host: "0.0.0.0"` for Docker or remote access), and requests with a foreign `Host` header get `403`.
+Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](CHANGELOG.md) first: code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) is now off unless `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`, the server listens on `127.0.0.1` by default (set `host: "0.0.0.0"` for Docker or remote access), and requests whose `Host` header is a DNS name other than `localhost` or an `allowedHosts` entry get `403`.
 
 ## Table of Contents
 
@@ -168,8 +169,8 @@ Inside the UI, you can:
 runner-dev exposes introspection and, when enabled, code execution, so its defaults are conservative:
 
 - **Loopback bind.** Without a `host`, the server listens on `127.0.0.1` only. URLs are still printed as `http://localhost:<port>`.
-- **Host header check.** While the bind address is loopback (the default, or an explicit `127.x.x.x`, `localhost` or `::1`), every route answers `403` unless the request's `Host` names `localhost`, `127.0.0.1` or `[::1]`; a missing Host header is refused too. This blocks DNS-rebinding attacks from web pages. A hosts-file alias for 127.0.0.1 or a `*.localhost` name is rejected as well. The 403 body is GraphQL-shaped (`{ "errors": [{ "message": "Forbidden: ..." }] }`) and explains how to expose the server.
-- **Exposing it on purpose.** For Docker port mapping, a remote dev box or a LAN, set an explicit host: `dev.with({ host: "0.0.0.0" })`, or `resources.server.with({ host: "0.0.0.0" })` when you register the resources yourself. That skips the Host check. If the code-execution gate is also open, the server logs a warning at startup that code execution is reachable from the network. There is no authentication, so only do this on a trusted network.
+- **Host header check, on every bind.** Every route answers `403` unless the request's `Host` names `localhost`, an IP address (`127.0.0.1`, `[::1]`, `192.168.1.50`, ...), the configured `host`, or a name listed in `allowedHosts`; a missing Host header is refused too. This blocks DNS-rebinding attacks from web pages: a rebinding page always arrives with its own DNS name in the `Host` header, including when the server listens on `0.0.0.0` and a published Docker port is reachable on the developer's `127.0.0.1`. A hosts-file alias, a `*.localhost` name or a service such as `127.0.0.1.nip.io` is rejected unless you list it. The 403 body is GraphQL-shaped (`{ "errors": [{ "message": "Forbidden: ..." }] }`) and names the `allowedHosts` entry that would let the request through.
+- **Exposing it on purpose.** For Docker port mapping, a remote dev box or a LAN, set an explicit host: `dev.with({ host: "0.0.0.0" })`, or `resources.server.with({ host: "0.0.0.0" })` when you register the resources yourself. Browsing by IP address or `localhost` works as is; to use a DNS name (a LAN name, a Docker Compose service name), list it: `dev.with({ host: "0.0.0.0", allowedHosts: ["devbox.lan"] })`. If the server ends up listening on a non-loopback address and the code-execution gate is also open, it logs a warning at startup that code execution is reachable from the network. There is no authentication, so only do this on a trusted network.
 - **Code execution is opt-in.** `eval`, `shell`, `shellComplete`, `swapTask`, `editFile` and `evalInput: true` on `invokeTask`/`invokeEvent` run only when the server starts with `RUNNER_DEV_EVAL=1`, or with `NODE_ENV` exactly `development` or `test`. An unset `NODE_ENV` keeps them off. Details: [Code-execution gate](#code-execution-gate).
 
 Queries and plain-JSON `invokeTask`/`invokeEvent` are not gated. With a non-loopback host, anyone who can reach the port can read the app's topology and registered source files and run its tasks with JSON input.
@@ -1265,7 +1266,7 @@ Every server-side operation that runs code or writes source files shares one gat
 - Still allowed: every query, `invokeTask`/`invokeEvent` with plain JSON input, `unswapTask` and `unswapAllTasks`.
 - `query { codeExecutionEnabled }` reports the gate (`shellEnabled` is the same value). The docs UI uses it: with the gate closed, the source viewer stays read-only and says how to enable editing, and the shell shows the same hint.
 - `shell` and `eval` runs are bounded by `RUNNER_DEV_SHELL_TIMEOUT_MS` (default `30000`, a whole number from 1 to 2147483647; invalid values fail the run before any code executes). A timed-out run returns `<Shell|Eval> execution timed out after N ms. The code may still be running …`: JavaScript cannot cancel it, and a synchronous infinite loop blocks the server. Results over 256 KB (262144 characters) are cut and end with `… [truncated N chars]`.
-- The gate controls what the server may do, not who can reach it. Keep the default loopback bind unless you need network access; with an explicit non-loopback `host` and the gate open, the server logs a startup warning (see [Network and code-execution defaults](#network-and-code-execution-defaults)).
+- The gate controls what the server may do, not who can reach it. Keep the default loopback bind unless you need network access; when the server listens on a non-loopback address with the gate open, it logs a startup warning (see [Network and code-execution defaults](#network-and-code-execution-defaults)).
 
 #### Best Practices
 

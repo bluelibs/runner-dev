@@ -11,10 +11,14 @@ import z from "zod";
 
 const MAX_ENTRIES_MESSAGE =
   "maxEntries must be a positive integer: the number of entries kept per live telemetry category.";
+const ALLOWED_HOST_MESSAGE =
+  'allowedHosts entries are hostnames without scheme or port, e.g. "devbox.lan".';
 
 export type DevConfig = {
   port?: number;
   host?: string;
+  /** DNS names, besides localhost and IP addresses, requests may use. */
+  allowedHosts?: string[];
   maxEntries?: number;
 };
 
@@ -28,6 +32,16 @@ export const dev = defineResource({
   configSchema: z.object({
     port: z.number().min(1).max(65535).optional(),
     host: z.string().min(1).optional(),
+    // A scheme or port would never equal a Host hostname, so such an entry
+    // would silently allow nothing; reject it where it is written.
+    allowedHosts: z
+      .array(
+        z
+          .string()
+          .min(1, ALLOWED_HOST_MESSAGE)
+          .regex(/^[^:/\s]+$/, ALLOWED_HOST_MESSAGE)
+      )
+      .optional(),
     // Validated here, at the config boundary, so a bad value names the
     // setting instead of failing later inside the live store's buffers.
     maxEntries: z
@@ -42,6 +56,7 @@ export const dev = defineResource({
     serverResource.with({
       port: config.port,
       host: config.host,
+      allowedHosts: config.allowedHosts,
     }),
     graphql,
     swapManager,

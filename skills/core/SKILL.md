@@ -23,7 +23,7 @@ Use this skill when the task involves:
 - the runtime shell (REPL), the `⌘K` command palette, keyboard shortcuts, or the docs tables (search-first filters, sorting, detail pager)
 - MCP helpers (`graphql_query`, `graphql_mutation`, `graphql_introspect`, `graphql_schema_sdl`, `graphql_ping`, `project_overview`), GraphQL tooling, introspection resources, or chat context wiring
 - live telemetry (including `sequence`/`afterSequence` cursors and SSE streaming), hot-swapping, CLI surfaces, or other runner-dev tooling
-- security defaults: the code-execution gate (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`), the loopback bind with its Host header check, and the `host` option for deliberate network exposure
+- security defaults: the code-execution gate (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`), the loopback bind, the Host header check on every bind (`allowedHosts` for extra DNS names), and the `host` option for deliberate network exposure
 - agent-facing documentation that must stay aligned with `readmes/COMPACT_GUIDE.md` and `README.md`
 - GraphQL schema and MCP contract work grounded in `./references/readmes/API_REFERENCE.md`
 

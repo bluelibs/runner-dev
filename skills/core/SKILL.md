@@ -13,13 +13,15 @@ Use `./references/readmes/API_REFERENCE.md` when the task needs the current Grap
 
 Reference layout:
 
-- `./references/README.md` mirrors the repo root `README.md`
-- `./references/readmes/` mirrors the repo `readmes/` directory, including `COMPACT_GUIDE.md` and `API_REFERENCE.md`
+- `./references/README.md` mirrors the repo root `README.md` (a symlink in the repository)
+- `./references/readmes/` mirrors the repo `readmes/` directory, including `COMPACT_GUIDE.md` and `API_REFERENCE.md` (a symlink in the repository, copied in when the package is packed)
+- When editing in the repository, change the originals and keep the links; `README.md`, this file, `./references/README.md` and `./references/readmes/COMPACT_GUIDE.md` are one documentation unit and change together
 
 Use this skill when the task involves:
 
 - docs UI behavior, `/docs/data`, in-app documentation delivery, or the topology graph / blast-radius / mindmap views
-- MCP helpers, GraphQL tooling, introspection resources, or chat context wiring
+- the runtime shell (REPL), the `⌘K` command palette, keyboard shortcuts, or the docs tables (search-first filters, sorting, detail pager)
+- MCP helpers (`graphql_query`, `graphql_mutation`, `graphql_introspect`, `graphql_schema_sdl`, `graphql_ping`, `project_overview`), GraphQL tooling, introspection resources, or chat context wiring
 - live telemetry, hot-swapping, CLI surfaces, or other runner-dev tooling
 - agent-facing documentation that must stay aligned with `readmes/COMPACT_GUIDE.md` and `README.md`
 - GraphQL schema and MCP contract work grounded in `./references/readmes/API_REFERENCE.md`

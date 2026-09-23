@@ -22,7 +22,7 @@ npx @bluelibs/runner-dev
 ```
 
 For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
-Runner-Dev also publishes its own skill from `skills/core`; keep `README.md`, `skills/core/SKILL.md`, and `skills/core/references/readmes/COMPACT_GUIDE.md` aligned when those docs change. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
+Runner-Dev also publishes its own skill from `skills/core`. Treat `README.md`, `skills/core/SKILL.md`, `skills/core/references/README.md` and `skills/core/references/readmes/COMPACT_GUIDE.md` as one documentation unit and keep them aligned (together with `readmes/API_REFERENCE.md`). `skills/core/references/README.md` and `skills/core/references/readmes/` are symlinks to this `README.md` and to `readmes/`, so edit the originals and leave the links in place. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
 
 ```ts
 import { r } from "@bluelibs/runner";
@@ -143,7 +143,7 @@ export const app = r
 
 Once your application is running with the `dev` resource, you can access the visual DevTools UI:
 
-Open [http://localhost:1337](http://localhost:1337) in your browser.
+Open [http://localhost:1337/docs](http://localhost:1337/docs) in your browser. The server root (`/`) redirects to the GraphQL Voyager view at `/voyager`, and GraphQL itself is served at `/graphql`.
 
 Inside the UI, you can:
 
@@ -286,16 +286,20 @@ SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json npx -y @bluelibs/runner-dev mcp
 Optional environment variables:
 
 - `SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json` to serve MCP from an exported static snapshot instead of a live endpoint
-- `ALLOW_MUTATIONS=true` to enable `graphql.mutation`
+- `ALLOW_MUTATIONS=true` to enable `graphql_mutation`
 - `HEADERS='{"Authorization":"Bearer token"}'` to pass extra headers
+- `GRAPHQL_ENDPOINT` is accepted as an alias for `ENDPOINT`
 
 Available tools once connected:
 
-- `graphql.query` — run read-only queries against the live endpoint or snapshot
-- `graphql.mutation` — run mutations (requires `ALLOW_MUTATIONS=true`, live endpoint only)
-- `graphql.introspect` — fetch schema
-- `graphql.ping` — source check for the configured endpoint or snapshot
-- `project.overview` — dynamic Markdown overview aggregated from the configured source
+- `graphql_query` — run read-only queries against the live endpoint or snapshot
+- `graphql_mutation` — run mutations (requires `ALLOW_MUTATIONS=true`, live endpoint only). Code-executing mutations (`eval`, `shell`, `swapTask`, `editFile`, `evalInput`) still need the server's [code-execution gate](#code-execution-gate) open.
+- `graphql_introspect` — fetch the schema as introspection JSON
+- `graphql_schema_sdl` — fetch the schema as SDL (more compact than the introspection JSON)
+- `graphql_ping` — source check for the configured endpoint or snapshot
+- `project_overview` — dynamic Markdown overview aggregated from the configured source
+
+The server also exposes the schema as MCP resources: `graphql://schema` (introspection JSON) and `graphql://schema.sdl` (SDL).
 
 ### CLI usage (direct)
 
@@ -447,7 +451,8 @@ runner-dev query 'query { tasks { id } }' \
 # Notes
 # - Dry‑run compiles your entry, builds the Runner Store in-memory, and executes the query against
 #   an in-memory GraphQL schema. No HTTP server is started.
-# - TypeScript only. Requires ts-node at runtime. If missing, you'll be prompted to install it.
+# - A .ts entry needs a TypeScript runtime in your project: tsx (tried first) or ts-node.
+#   Without one, the command fails with install hints. A compiled .js entry works too.
 # - Selection logic:
 #   - If --entry-file is provided, dry‑run mode is used (no server).
 #   - Otherwise, remote mode is used via --endpoint or ENDPOINT/GRAPHQL_ENDPOINT.
@@ -858,11 +863,11 @@ export const createUser = r
 - Emit logs:
 
 ```ts
-import { globals, r } from "@bluelibs/runner";
+import { r, resources } from "@bluelibs/runner";
 
 export const logSomething = r
   .task("logSomething")
-  .dependencies({ logger: globals.resources.logger })
+  .dependencies({ logger: resources.logger })
   .run(async (_i, { logger }) => {
     logger.info("Hello world!");
   })
@@ -900,7 +905,7 @@ The hot-swapping system enables:
 
 ### Quick Setup
 
-Add the swap manager to your app:
+The `dev` resource already registers the swap manager. To wire the pieces yourself instead:
 
 ```ts
 import { r } from "@bluelibs/runner";
@@ -916,7 +921,8 @@ export const app = r
     // Add the swap manager for hot-swapping
     dev.swapManager,
 
-    // GraphQL server with swap mutations
+    // GraphQL schema and server with swap mutations (the server depends on both)
+    dev.graphql,
     dev.server.with({ port: 1337 }),
   ])
   .build();

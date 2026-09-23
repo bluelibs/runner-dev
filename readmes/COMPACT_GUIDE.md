@@ -45,8 +45,9 @@ export const app = r
 
 Expected endpoints after the app starts:
 
-- UI: `http://localhost:1337`
+- Docs UI: `http://localhost:1337/docs` (the root `/` redirects to Voyager)
 - GraphQL: `http://localhost:1337/graphql`
+- Voyager: `http://localhost:1337/voyager`
 - Live stream: `http://localhost:1337/live/stream`
 - Docs payload: `http://localhost:1337/docs/data`
 
@@ -138,11 +139,21 @@ ENDPOINT=http://localhost:1337/graphql npx -y @bluelibs/runner-dev mcp
 SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json npx -y @bluelibs/runner-dev mcp
 ```
 
+Tools (names use underscores):
+
+- `graphql_ping` — check the configured endpoint or snapshot
+- `project_overview` — Markdown topology and recent-telemetry summary
+- `graphql_query` — read-only queries
+- `graphql_schema_sdl` — schema as SDL (compact); `graphql_introspect` — schema as introspection JSON
+- `graphql_mutation` — mutations, only with `ALLOW_MUTATIONS=true` against a live endpoint; code-executing mutations also need the server's code-execution gate open
+
+Resources: `graphql://schema` (introspection JSON) and `graphql://schema.sdl`.
+
 First checks, in order:
 
-1. `graphql.ping`
-2. `project.overview`
-3. `graphql.query`
+1. `graphql_ping`
+2. `project_overview`
+3. `graphql_query`
 
 Shell equivalents:
 
@@ -157,14 +168,14 @@ Notes:
 - Keep `ALLOW_MUTATIONS=false` unless you intentionally need write access.
 - Set `HEADERS` if the GraphQL endpoint requires auth.
 - `SNAPSHOT_FILE` enables read-only MCP over an exported catalog without starting the app.
-- If `graphql.ping` fails, check that the app is running, the port is correct, and `HEADERS` is valid JSON.
+- If `graphql_ping` fails, check that the app is running, the port is correct, and `HEADERS` is valid JSON.
 
 ## First Things To Inspect
 
 If the app is running:
 
 - Start from `/docs/data` when the question is about what the docs UI or AI sees.
-- Use `project.overview` for a fast topology summary.
+- Use `project_overview` for a fast topology summary.
 - Use GraphQL for focused reads, not giant dumps.
 - Use live telemetry only with narrow limits such as `last: 10`.
 
@@ -244,10 +255,9 @@ When working inside `@bluelibs/runner-dev`, start here:
 - MCP: the fastest AI-native access path when the app is already running
 - Live telemetry: logs, emissions, errors, runs, and correlation-driven inspection
 - Swap tooling: controlled runtime task replacement and restoration
-- Runtime shell: per-resource (`r` is the live value) and global (`runtime` access) REPL via UI and the `shell` mutation
+- Runtime shell: per-resource (`r` is the live value) and global (`runtime` access) REPL via UI and the `shell` mutation; `shellComplete` powers as-you-type completion and `shellEnabled` reports whether the shell can run
 - Code-execution gate: `eval`, `shell`, `shellComplete`, `swapTask`, `editFile` and `evalInput: true` run only with `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test` (closed when `NODE_ENV` is unset); `query { codeExecutionEnabled }` reports it, and the docs source viewer stays read-only with an enable hint when it is closed. `eval`/`shell` share `RUNNER_DEV_SHELL_TIMEOUT_MS` (default 30000) and a 256 KB result cap
 - `typescript` is an optional peer (5 or 6): loading runner-dev never needs it, but `swapTask`, `eval` and `shell` return an install hint without it
-- Docs UX: `⌘K` command palette (fuzzy element/section/action search), `?` shortcuts overlay, `g`-section jumps, `/` sidebar filter focus, `Esc` back navigation
 - Docs UX: `⌘K` command palette (fuzzy element/section/action search), `?` shortcuts overlay, `g`-section jumps, `/` sidebar filter focus, `Esc` back navigation
 
 ## Current Compatibility Notes

@@ -18,10 +18,19 @@ export type {
 } from "./resources/coverage.resource";
 export type {
   EmissionEntry,
+  EmissionQueryOptions,
   ErrorEntry,
+  ErrorQueryOptions,
+  ErrorSourceKind,
   Live,
+  LiveCursorOptions,
+  LiveEntryStamp,
+  LiveRecordKind,
   LogEntry,
   LogLevel,
+  LogQueryOptions,
+  RunNodeKind,
+  RunQueryOptions,
   RunRecord,
 } from "./resources/live.resource";
 export type {
@@ -39,6 +48,7 @@ export {
   Introspector,
   type InterceptorOwnersSnapshot,
   type MiddlewareInterceptorOwnerSnapshot,
+  type ResolvedMiddlewareUsage,
   type SerializedIntrospector,
 } from "./resources/models/Introspector";
 export type { ExportDocsOptions, ExportDocsResult } from "./exportDocs";

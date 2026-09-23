@@ -239,31 +239,57 @@ export function mapStoreHookToHookModel(
   );
 }
 
-function hasRegisterId(entry: unknown): boolean {
+/** `register` / `overrides` as declared: a static list or a (config, mode) fn. */
+type DeclaredEntries =
+  | readonly unknown[]
+  | ((config: never, mode: never) => unknown)
+  | null
+  | undefined;
+
+// Runner only accepts definitions (or `.with()` / override wrappers) that
+// carry a string id, so anything else cannot be a registered element.
+function hasDeclaredEntryId(entry: unknown): entry is { id: string } {
   return (
-    entry !== null &&
     (typeof entry === "object" || typeof entry === "function") &&
-    (entry as { id?: unknown }).id != null
+    entry !== null &&
+    "id" in entry &&
+    typeof entry.id === "string"
   );
 }
 
-function invokeRegisterFn(
+function invokeDeclarationFn(
   fn: (config: never, mode: never) => unknown,
   resourceConfig: unknown,
-  mode: unknown
-): any[] {
+  mode: Store["mode"]
+): readonly unknown[] {
   try {
     const result = fn(resourceConfig as never, mode as never);
-    if (!Array.isArray(result)) return [];
-    // Mappers dereference entry.id; drop malformed entries rather than
-    // aborting init on user-composed edge cases.
-    return result.filter(hasRegisterId);
+    return Array.isArray(result) ? result : [];
   } catch {
     // Mode-sensitive register/overrides fns can throw for the introspected
     // mode. Runner already resolved the real graph; introspection degrades
     // to an empty declared list rather than aborting init.
     return [];
   }
+}
+
+/**
+ * Reads declared register/overrides ids. Static lists and fn results go
+ * through the same filter, so null or id-less entries (hand-built
+ * definitions Runner itself would reject) are skipped consistently instead
+ * of aborting introspection init.
+ */
+function readDeclaredEntryIds(
+  declared: DeclaredEntries,
+  resourceConfig: unknown,
+  mode: Store["mode"]
+): string[] {
+  const entries = Array.isArray(declared)
+    ? declared
+    : typeof declared === "function"
+    ? invokeDeclarationFn(declared, resourceConfig, mode)
+    : [];
+  return entries.filter(hasDeclaredEntryId).map((entry) => entry.id);
 }
 
 export function mapStoreResourceToResourceModel(
@@ -273,17 +299,16 @@ export function mapStoreResourceToResourceModel(
 ): Resource {
   const introspectorMode = store?.mode ?? ("dev" as Store["mode"]);
 
-  const register = Array.isArray(resource.register)
-    ? resource.register
-    : typeof resource.register === "function"
-    ? invokeRegisterFn(resource.register, resourceConfig, introspectorMode)
-    : [];
-
-  const overrides = Array.isArray(resource.overrides)
-    ? resource.overrides
-    : typeof resource.overrides === "function"
-    ? invokeRegisterFn(resource.overrides, resourceConfig, introspectorMode)
-    : [];
+  const registers = readDeclaredEntryIds(
+    resource.register,
+    resourceConfig,
+    introspectorMode
+  );
+  const overrides = readDeclaredEntryIds(
+    resource.overrides,
+    resourceConfig,
+    introspectorMode
+  );
 
   const depsObj = normalizeDependencies(resource?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
@@ -327,10 +352,8 @@ export function mapStoreResourceToResourceModel(
       config,
       middleware: middlewareDetailed.map((m) => m.id),
       middlewareDetailed,
-      overrides: overrides.flatMap((override) =>
-        override ? [override.id.toString()] : []
-      ),
-      registers: register.map((r) => r.id.toString()) as string[],
+      overrides,
+      registers,
       isolation,
       subtree,
       hasInit,

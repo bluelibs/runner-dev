@@ -190,4 +190,33 @@ describe("mapStoreResourceToResourceModel", () => {
     expect(mapped.registers).toEqual(["ok-task"]);
     expect(mapped.overrides).toEqual(["ok-override"]);
   });
+
+  // Runner rejects these shapes at run(), so they only reach the mapper via
+  // hand-built definitions; the static form must degrade like the fn form.
+  test("drops static register/overrides entries without an id", () => {
+    const resource = fakeResource({
+      register: [
+        null,
+        "bare-string",
+        { id: "ok-task" },
+        { noId: true },
+        { id: 7 },
+      ],
+      overrides: [{}, null, undefined, { id: "ok-override" }],
+    });
+
+    const mapped = mapStoreResourceToResourceModel(resource);
+
+    expect(mapped.registers).toEqual(["ok-task"]);
+    expect(mapped.overrides).toEqual(["ok-override"]);
+  });
+
+  test("reads missing register/overrides declarations as empty", () => {
+    const mapped = mapStoreResourceToResourceModel(
+      fakeResource({ register: undefined, overrides: undefined })
+    );
+
+    expect(mapped.registers).toEqual([]);
+    expect(mapped.overrides).toEqual([]);
+  });
 });

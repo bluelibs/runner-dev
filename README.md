@@ -335,7 +335,7 @@ This command creates a new Runner project with:
 
 - Complete TypeScript setup with `tsx watch` for development
 - Runner 6.6 and Vitest 4.1.11+ for the generated runtime and smoke tests
-- Node.js 20.19+, 22.12+, or 24+
+- Node.js 22.12+ or 24+ (Runner 6.6 needs Node 22+, and the generated Vitest/Vite toolchain needs 22.12+)
 - Package.json with all necessary dependencies
 - Basic project structure with main.ts entry point
 - README and .gitignore files

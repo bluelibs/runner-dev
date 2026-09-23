@@ -4,7 +4,7 @@ export function packageJson(projectName: string) {
     version: "0.1.0",
     private: true,
     type: "commonjs",
-    engines: { node: "^20.19.0 || ^22.12.0 || >=24.0.0" },
+    engines: { node: "^22.12.0 || >=24.0.0" },
     scripts: {
       dev: "tsx watch src/main.ts",
       start: "node --enable-source-maps dist/main.js",

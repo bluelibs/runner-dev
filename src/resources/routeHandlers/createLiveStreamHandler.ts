@@ -1,9 +1,7 @@
 import type { Request, Response } from "express";
-import type { Live } from "../live.resource";
-import {
-  getHealthSnapshot,
-  latestTimestamp,
-} from "../../utils/healthCollectors";
+import type { Live, LiveEntryStamp } from "../live.resource";
+import { getHealthSnapshot } from "../../utils/healthCollectors";
+import type { LiveStreamRegistry } from "./liveStreamRegistry";
 
 /** Debounce interval (ms) for batching rapid record notifications into a single SSE push. */
 const DEBOUNCE_MS = 100;
@@ -15,6 +13,12 @@ const HEARTBEAT_INTERVAL_MS = 15_000;
 const MAX_ENTRIES_PER_PUSH = 1_000;
 /** Maximum pages drained per push so bursts can't stall the tick forever. */
 const MAX_PAGES_PER_PUSH = 10;
+
+const TELEMETRY_CATEGORIES = ["logs", "emissions", "errors", "runs"] as const;
+type TelemetryCategory = (typeof TELEMETRY_CATEGORIES)[number];
+type TelemetryPage = Record<TelemetryCategory, LiveEntryStamp[]>;
+/** Last delivered `sequence` per category; 0 means "from the beginning". */
+type SequenceCursors = Record<TelemetryCategory, number>;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -30,12 +34,77 @@ function safeStringify(value: unknown): string | null {
   }
 }
 
+/** Reads the next page of every category after its own cursor. */
+function readTelemetryPage(
+  live: Live,
+  cursors: SequenceCursors
+): TelemetryPage {
+  const page = (category: TelemetryCategory) => ({
+    afterSequence: cursors[category],
+    last: MAX_ENTRIES_PER_PUSH,
+  });
+  return {
+    logs: live
+      .getLogs(page("logs"))
+      .map((l) => ({ ...l, data: safeStringify(l.data) })),
+    emissions: live
+      .getEmissions(page("emissions"))
+      .map((e) => ({ ...e, payload: safeStringify(e.payload) })),
+    errors: live
+      .getErrors(page("errors"))
+      .map((e) => ({ ...e, data: safeStringify(e.data) })),
+    runs: live.getRuns(page("runs")),
+  };
+}
+
+function isEmptyPage(page: TelemetryPage): boolean {
+  return TELEMETRY_CATEGORIES.every((category) => page[category].length === 0);
+}
+
+function hasFullCategory(page: TelemetryPage): boolean {
+  return TELEMETRY_CATEGORIES.some(
+    (category) => page[category].length >= MAX_ENTRIES_PER_PUSH
+  );
+}
+
+/**
+ * Moves each cursor to the last entry its own category delivered. Pages come
+ * back in ascending sequence order, so the last entry holds the maximum.
+ */
+function advanceCursors(cursors: SequenceCursors, page: TelemetryPage): void {
+  for (const category of TELEMETRY_CATEGORIES) {
+    const entries = page[category];
+    if (entries.length > 0) {
+      cursors[category] = entries[entries.length - 1].sequence;
+    }
+  }
+}
+
+/**
+ * Answers a stream requested after shutdown began. `server.close()` already
+ * ran, so this request's connection outlived it (the request was still
+ * arriving or queued), and nothing will close that socket later. The usual
+ * `Connection: keep-alive` would hold `close()` for the keep-alive timeout,
+ * and an `EventSource` reconnecting on the same socket would hold it
+ * indefinitely. `Connection: close` makes Node destroy the socket after this
+ * empty stream; an `EventSource` then retries on a new connection, which the
+ * closed server refuses until it is back.
+ */
+function endStreamRequestedDuringShutdown(res: Response): void {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "close");
+  res.end();
+}
+
 // ---------------------------------------------------------------------------
 // SSE route handler factory
 // ---------------------------------------------------------------------------
 
 export interface LiveStreamDeps {
   live: Live;
+  /** Open streams of the server, ended when it shuts down. */
+  streams?: LiveStreamRegistry;
 }
 
 /**
@@ -46,10 +115,20 @@ export interface LiveStreamDeps {
  * 2. Debounces rapid bursts (100 ms) to avoid flooding the connection.
  * 3. Pushes system health snapshots every 2 s on a separate cadence.
  * 4. Sends heartbeat comments every 15 s to keep proxies from closing idle connections.
- * 5. Cleans up all timers and subscriptions on client disconnect.
+ * 5. Respects socket backpressure: pauses when a write reports a full buffer
+ *    and resumes on `drain`, so a slow client never grows memory unbounded.
+ * 6. Cleans up all timers and subscriptions on client disconnect, and ends
+ *    the stream (with the same cleanup) when the server shuts down.
+ * 7. Answers a stream requested after shutdown began with an empty stream
+ *    that closes its connection.
  */
-export function createLiveStreamHandler({ live }: LiveStreamDeps) {
+export function createLiveStreamHandler({ live, streams }: LiveStreamDeps) {
   return (_req: Request, res: Response) => {
+    if (streams?.isShuttingDown) {
+      endStreamRequestedDuringShutdown(res);
+      return;
+    }
+
     // --- SSE headers ---------------------------------------------------------
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
@@ -57,29 +136,47 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
     res.setHeader("X-Accel-Buffering", "no"); // nginx
     res.flushHeaders();
 
-    // Independent cursor per category: each getter has its own 1,000-entry
-    // window, so advancing every category with one shared maximum would skip
-    // undelivered entries in the categories lagging behind. Start from the
-    // beginning so the initial push picks up existing entries.
-    const cursors = { logs: 0, emissions: 0, errors: 0, runs: 0 };
+    // Independent sequence cursor per category: each getter pages on its own,
+    // so advancing every category with one shared maximum would skip
+    // undelivered entries in the categories lagging behind. Sequences are
+    // unique, so a page cut can never split entries the way equal
+    // millisecond timestamps could. Starting at 0 replays existing entries.
+    const cursors: SequenceCursors = {
+      logs: 0,
+      emissions: 0,
+      errors: 0,
+      runs: 0,
+    };
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let awaitingDrain = false;
     let closed = false;
 
     // --- Write helpers -------------------------------------------------------
 
-    /** Write a single SSE frame. */
-    const sendEvent = (eventName: string, data: unknown) => {
-      if (closed) return;
+    /**
+     * Hands one frame to the socket. Returns false when it was NOT written
+     * (connection closed, or paused until the socket drains).
+     */
+    const writeFrame = (frame: string): boolean => {
+      if (closed || awaitingDrain) return false;
       try {
-        res.write(`event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`);
+        // `false` means the frame was buffered but the socket is saturated:
+        // hold further writes until it drains instead of queueing more.
+        if (!res.write(frame)) awaitingDrain = true;
+        return true;
       } catch {
         cleanup();
+        return false;
       }
     };
 
+    const sendEvent = (eventName: string, data: unknown): boolean =>
+      writeFrame(`event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`);
+
     /** Debounced notification handler — batches rapid record calls. */
     const onRecordNotification = () => {
-      if (closed || debounceTimer) return;
+      // While paused, the drain handler resumes from the unchanged cursors.
+      if (closed || awaitingDrain || debounceTimer) return;
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
         pushDelta();
@@ -88,97 +185,52 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
 
     /** Read new telemetry entries since the cursors, serialize, and push. */
     const pushDelta = () => {
-      if (closed) return;
-
       // Drain full pages so a burst larger than one page doesn't stall
       // behind the cursor until the next record arrives.
-      for (let page = 0; page < MAX_PAGES_PER_PUSH && !closed; page++) {
-        const logs = live
-          .getLogs({
-            afterTimestamp: cursors.logs,
-            last: MAX_ENTRIES_PER_PUSH,
-          })
-          .map((l) => ({ ...l, data: safeStringify(l.data) }));
-        const emissions = live
-          .getEmissions({
-            afterTimestamp: cursors.emissions,
-            last: MAX_ENTRIES_PER_PUSH,
-          })
-          .map((e) => ({ ...e, payload: safeStringify(e.payload) }));
-        const errors = live
-          .getErrors({
-            afterTimestamp: cursors.errors,
-            last: MAX_ENTRIES_PER_PUSH,
-          })
-          .map((e) => ({ ...e, data: safeStringify(e.data) }));
-        const runs = live.getRuns({
-          afterTimestamp: cursors.runs,
-          last: MAX_ENTRIES_PER_PUSH,
-        });
+      for (let pageIndex = 0; pageIndex < MAX_PAGES_PER_PUSH; pageIndex++) {
+        if (closed || awaitingDrain) return;
 
-        if (
-          logs.length + emissions.length + errors.length + runs.length ===
-          0
-        ) {
-          return;
-        }
+        const page = readTelemetryPage(live, cursors);
+        if (isEmptyPage(page)) return;
+        // Cursors move only past what actually reached the socket.
+        if (!sendEvent("telemetry", page)) return;
+        advanceCursors(cursors, page);
 
-        // Advance each cursor only from its own delivered records. Cursors
-        // are timestamp-based, so a page cut splitting entries that share
-        // one millisecond timestamp skips the remainder sharing that stamp.
-        const latestLogs = latestTimestamp(logs);
-        if (latestLogs !== undefined) cursors.logs = latestLogs;
-        const latestEmissions = latestTimestamp(emissions);
-        if (latestEmissions !== undefined) cursors.emissions = latestEmissions;
-        const latestErrors = latestTimestamp(errors);
-        if (latestErrors !== undefined) cursors.errors = latestErrors;
-        const latestRuns = latestTimestamp(runs);
-        if (latestRuns !== undefined) cursors.runs = latestRuns;
-
-        sendEvent("telemetry", { logs, emissions, errors, runs });
-
-        const pageIsFull =
-          logs.length >= MAX_ENTRIES_PER_PUSH ||
-          emissions.length >= MAX_ENTRIES_PER_PUSH ||
-          errors.length >= MAX_ENTRIES_PER_PUSH ||
-          runs.length >= MAX_ENTRIES_PER_PUSH;
-        if (!pageIsFull) return;
+        if (!hasFullCategory(page)) return;
       }
 
       // The loop only exits here via the page cap with a full last page, so
       // more backlog may remain. Schedule another bounded drain through the
       // debounce path (cleared on cleanup) instead of waiting for records.
-      if (!closed) onRecordNotification();
+      onRecordNotification();
+    };
+
+    const resumeAfterDrain = () => {
+      if (!awaitingDrain) return;
+      awaitingDrain = false;
+      pushDelta();
     };
 
     // --- Subscriptions & timers ----------------------------------------------
 
     const unsubscribe = live.onRecord(onRecordNotification);
 
+    // Health samples and heartbeats are skipped while paused: the next ones
+    // carry fresher data and a saturated socket is anything but idle.
     const healthTimer = setInterval(() => {
-      if (!closed) sendEvent("health", getHealthSnapshot());
+      sendEvent("health", getHealthSnapshot());
     }, HEALTH_INTERVAL_MS);
 
     const heartbeatTimer = setInterval(() => {
-      if (!closed) res.write(": heartbeat\n\n");
+      writeFrame(": heartbeat\n\n");
     }, HEARTBEAT_INTERVAL_MS);
-
-    // --- Initial push --------------------------------------------------------
-
-    sendEvent("health", getHealthSnapshot());
-    pushDelta(); // push any pre-existing entries
-
-    // Categories that had nothing stay at 0; advance them to now so future
-    // pushes are incremental.
-    for (const key of ["logs", "emissions", "errors", "runs"] as const) {
-      if (cursors[key] === 0) cursors[key] = Date.now() - 1;
-    }
 
     // --- Cleanup on disconnect -----------------------------------------------
 
     const cleanup = () => {
       if (closed) return;
       closed = true;
+      streams?.delete(endStream);
       unsubscribe();
       clearInterval(healthTimer);
       clearInterval(heartbeatTimer);
@@ -188,7 +240,20 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
       }
     };
 
+    /** Server shutdown: stop every timer, then finish the response. */
+    function endStream() {
+      cleanup();
+      res.end();
+    }
+
+    res.on("drain", resumeAfterDrain);
     res.on("close", cleanup);
     res.on("error", cleanup);
+    streams?.add(endStream);
+
+    // --- Initial push --------------------------------------------------------
+
+    sendEvent("health", getHealthSnapshot());
+    pushDelta(); // push any pre-existing entries
   };
 }

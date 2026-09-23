@@ -26,6 +26,11 @@ import type {
 import { BaseElementInterface } from "./AllType";
 import { EventType } from "./EventType";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
+import {
+  liveCursorArgs,
+  liveSequenceField,
+  toLiveCursorOptions,
+} from "./liveCursorArgs";
 import * as os from "node:os";
 import {
   getEventLoopMeanNs,
@@ -106,6 +111,7 @@ export const LogEntryType = new GraphQLObjectType<
 >({
   name: "LogEntry",
   fields: () => ({
+    sequence: liveSequenceField,
     timestampMs: {
       description: "Log creation time (milliseconds since epoch)",
       type: new GraphQLNonNull(GraphQLFloat),
@@ -145,6 +151,7 @@ export const EmissionEntryType = new GraphQLObjectType<
 >({
   name: "EmissionEntry",
   fields: () => ({
+    sequence: liveSequenceField,
     timestampMs: {
       description: "Emission time (milliseconds since epoch)",
       type: new GraphQLNonNull(GraphQLFloat),
@@ -202,6 +209,7 @@ export const ErrorEntryType = new GraphQLObjectType<
 >({
   name: "ErrorEntry",
   fields: () => ({
+    sequence: liveSequenceField,
     timestampMs: {
       description: "Error time (milliseconds since epoch)",
       type: new GraphQLNonNull(GraphQLFloat),
@@ -432,116 +440,79 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
     },
     logs: {
       description:
-        "Live logs with optional timestamp cursor, filters and last N",
+        "Live logs with optional cursor (afterSequence or afterTimestamp), filters and last N",
       args: {
-        afterTimestamp: { type: GraphQLFloat },
-        last: { type: GraphQLInt },
+        ...liveCursorArgs,
         filter: { type: LogFilterInput },
       },
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(LogEntryType))
       ),
-      resolve: (_root, args: LiveLogsArgs, ctx) => {
-        if (
-          args.last == null &&
-          (args.filter == null || Object.keys(args.filter).length === 0)
-        ) {
-          // Preserve backward-compat fast-path when only afterTimestamp is used
-          return ctx.live.getLogs(args.afterTimestamp ?? undefined);
-        }
-        return ctx.live.getLogs({
-          afterTimestamp: args.afterTimestamp ?? undefined,
-          last: args.last ?? undefined,
+      resolve: (_root, args: LiveLogsArgs, ctx) =>
+        ctx.live.getLogs({
+          ...toLiveCursorOptions(args),
           levels: args.filter?.levels ?? undefined,
           messageIncludes: args.filter?.messageIncludes ?? undefined,
           correlationIds: args.filter?.correlationIds ?? undefined,
-        });
-      },
+        }),
     },
     emissions: {
       description:
-        "Event emissions with optional timestamp cursor, filters and last N",
+        "Event emissions with optional cursor (afterSequence or afterTimestamp), filters and last N",
       args: {
-        afterTimestamp: { type: GraphQLFloat },
-        last: { type: GraphQLInt },
+        ...liveCursorArgs,
         filter: { type: EmissionFilterInput },
       },
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(EmissionEntryType))
       ),
-      resolve: (_root, args: LiveEmissionsArgs, ctx) => {
-        if (
-          args.last == null &&
-          (args.filter == null || Object.keys(args.filter).length === 0)
-        ) {
-          return ctx.live.getEmissions(args.afterTimestamp ?? undefined);
-        }
-        return ctx.live.getEmissions({
-          afterTimestamp: args.afterTimestamp ?? undefined,
-          last: args.last ?? undefined,
+      resolve: (_root, args: LiveEmissionsArgs, ctx) =>
+        ctx.live.getEmissions({
+          ...toLiveCursorOptions(args),
           eventIds: args.filter?.eventIds ?? undefined,
           emitterIds: args.filter?.emitterIds ?? undefined,
           correlationIds: args.filter?.correlationIds ?? undefined,
-        });
-      },
+        }),
     },
     errors: {
       description:
-        "Errors captured with optional timestamp cursor, filters and last N",
+        "Errors captured with optional cursor (afterSequence or afterTimestamp), filters and last N",
       args: {
-        afterTimestamp: { type: GraphQLFloat },
-        last: { type: GraphQLInt },
+        ...liveCursorArgs,
         filter: { type: ErrorFilterInput },
       },
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(ErrorEntryType))
       ),
-      resolve: (_root, args: LiveErrorsArgs, ctx) => {
-        if (
-          args.last == null &&
-          (args.filter == null || Object.keys(args.filter).length === 0)
-        ) {
-          return ctx.live.getErrors(args.afterTimestamp ?? undefined);
-        }
-        return ctx.live.getErrors({
-          afterTimestamp: args.afterTimestamp ?? undefined,
-          last: args.last ?? undefined,
+      resolve: (_root, args: LiveErrorsArgs, ctx) =>
+        ctx.live.getErrors({
+          ...toLiveCursorOptions(args),
           sourceKinds: args.filter?.sourceKinds ?? undefined,
           sourceIds: args.filter?.sourceIds ?? undefined,
           messageIncludes: args.filter?.messageIncludes ?? undefined,
           correlationIds: args.filter?.correlationIds ?? undefined,
-        });
-      },
+        }),
     },
     runs: {
       description:
-        "Execution run records with optional timestamp cursor, filters and last N",
+        "Execution run records with optional cursor (afterSequence or afterTimestamp), filters and last N",
       args: {
-        afterTimestamp: { type: GraphQLFloat },
-        last: { type: GraphQLInt },
+        ...liveCursorArgs,
         filter: { type: RunFilterInput },
       },
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(RunRecordType))
       ),
-      resolve: (_root, args: LiveRunsArgs, ctx) => {
-        if (
-          args.last == null &&
-          (args.filter == null || Object.keys(args.filter).length === 0)
-        ) {
-          return ctx.live.getRuns(args.afterTimestamp ?? undefined);
-        }
-        return ctx.live.getRuns({
-          afterTimestamp: args.afterTimestamp ?? undefined,
-          last: args.last ?? undefined,
+      resolve: (_root, args: LiveRunsArgs, ctx) =>
+        ctx.live.getRuns({
+          ...toLiveCursorOptions(args),
           nodeKinds: args.filter?.nodeKinds ?? undefined,
           nodeIds: args.filter?.nodeIds ?? undefined,
           ok: args.filter?.ok ?? undefined,
           parentIds: args.filter?.parentIds ?? undefined,
           rootIds: args.filter?.rootIds ?? undefined,
           correlationIds: args.filter?.correlationIds ?? undefined,
-        });
-      },
+        }),
     },
     healthReport: {
       description:
@@ -567,13 +538,15 @@ function safeStringify(value: unknown): string {
 // Enums and filter inputs
 export const LogLevelEnum = new GraphQLEnumType({
   name: "LogLevelEnum",
-  description: "Supported log levels",
+  description:
+    "Supported log levels. Runner's logger emits trace, debug, info, warn, error and critical; fatal and log only come from entries recorded directly through Live.recordLog.",
   values: {
     trace: { value: "trace" },
     debug: { value: "debug" },
     info: { value: "info" },
     warn: { value: "warn" },
     error: { value: "error" },
+    critical: { value: "critical" },
     fatal: { value: "fatal" },
     log: { value: "log" },
   },

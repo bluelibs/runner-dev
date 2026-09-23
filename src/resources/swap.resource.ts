@@ -4,14 +4,22 @@ import {
   compileRunFunction,
   compileShellFunction,
   completeShellScope,
-  createCapturedConsole,
   extractCompletionTarget,
   getTaskStoreElement,
   getTaskDependencies,
   serializeResult,
+  serializeEvalResult,
   serializeShellResult,
   deserializeInput,
 } from "./swap.tools";
+import { createCapturedConsole } from "./shell.console";
+import {
+  executionTimeoutMessage,
+  raceShellTimeout,
+  resolveShellTimeoutMs,
+  startShellDeadline,
+  type ShellDeadline,
+} from "./shell.timeout";
 import { randomUUID } from "crypto";
 
 export interface SwapResult {
@@ -704,6 +712,8 @@ export const swapManager = defineResource({
         const invocationId = randomUUID();
         const startTime = Date.now();
         try {
+          // Resolved first so a malformed setting fails before any code runs.
+          const timeoutMs = resolveShellTimeoutMs();
           // Compile provided code to an async function run(input, deps)
           const compileResult = compileRunFunction(code);
           if (!compileResult.success) {
@@ -719,10 +729,23 @@ export const swapManager = defineResource({
             eventManager,
           };
 
-          // Execute compiled function
+          // Execute compiled function, bounded like the shell so a hung
+          // snippet cannot hold the request open forever.
           let result: unknown;
           try {
-            result = await compileResult.func(dependencies);
+            const outcome = await raceShellTimeout(
+              Promise.resolve(compileResult.func(dependencies)),
+              timeoutMs
+            );
+            if (outcome.timedOut) {
+              return {
+                success: false,
+                error: executionTimeoutMessage("Eval", timeoutMs),
+                executionTimeMs: Date.now() - startTime,
+                invocationId,
+              };
+            }
+            result = outcome.value;
           } catch (execError) {
             const executionTimeMs = Date.now() - startTime;
             return {
@@ -737,8 +760,7 @@ export const swapManager = defineResource({
             };
           }
 
-          // Serialize result
-          const serializedResult = serializeResult(result);
+          const serializedResult = serializeEvalResult(result);
           const executionTimeMs = Date.now() - startTime;
 
           return {
@@ -766,13 +788,31 @@ export const swapManager = defineResource({
       ): Promise<ShellResult> {
         const invocationId = randomUUID();
         const startTime = Date.now();
+        let deadline: ShellDeadline | null = null;
 
         try {
+          // Resolved first so a malformed setting fails before any code runs.
+          const timeoutMs = resolveShellTimeoutMs();
+          // The budget starts before `r` is bound: binding a lazy resource
+          // runs its init, which can hang just like a snippet.
+          deadline = startShellDeadline(timeoutMs);
+          const binding = await deadline.race(resolveShellResource(resourceId));
+          if (binding.timedOut) {
+            return {
+              success: false,
+              error: `Resource '${resourceId}' did not finish initializing. ${executionTimeoutMessage(
+                "Shell",
+                timeoutMs
+              )}`,
+              executionTimeMs: Date.now() - startTime,
+              invocationId,
+            };
+          }
           const {
             value: r,
             resolvedId: resolvedResourceId,
             error: resourceError,
-          } = await resolveShellResource(resourceId);
+          } = binding.value;
           if (resourceError) {
             return {
               success: false,
@@ -799,7 +839,20 @@ export const swapManager = defineResource({
 
           let result: unknown;
           try {
-            result = await compileResult.func(dependencies);
+            const outcome = await deadline.race(
+              Promise.resolve(compileResult.func(dependencies))
+            );
+            if (outcome.timedOut) {
+              return {
+                success: false,
+                error: executionTimeoutMessage("Shell", timeoutMs),
+                // Snapshot: the still-running snippet may keep logging.
+                logs: [...captured.logs],
+                executionTimeMs: Date.now() - startTime,
+                invocationId,
+              };
+            }
+            result = outcome.value;
           } catch (execError) {
             const executionTimeMs = Date.now() - startTime;
             return {
@@ -835,6 +888,8 @@ export const swapManager = defineResource({
             executionTimeMs,
             invocationId,
           };
+        } finally {
+          deadline?.clear();
         }
       },
 

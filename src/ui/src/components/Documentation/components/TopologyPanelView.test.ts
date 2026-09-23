@@ -256,10 +256,13 @@ describe("TopologyPanelView", () => {
         ]
       )
     );
+    // Filters hide task.hidden from the canvas, not from the impact counts;
+    // the contract partner (task.emit) is listed apart from Affected.
     expect(stats.get("Affected")).toBe("3");
-    expect(stats.get("Direct")).toBe("1");
+    expect(stats.get("Direct")).toBe("2");
     expect(stats.get("Transitive")).toBe("1");
-    expect(stats.get("Contract")).toBe("1");
+    expect(stats.get("Contract partners")).toBe("1");
+    expect(stats.get("Hidden by filters")).toBe("1");
     expect(screen.queryByText("Visible")).toBeNull();
   });
 

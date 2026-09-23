@@ -11,6 +11,12 @@ import { AsyncContextCard } from "./AsyncContextCard";
 import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { LivePanel } from "./LivePanel";
 import { ElementTable } from "./ElementTable";
+import {
+  DEFAULT_ELEMENT_TABLE_VIEW,
+  getVisibleTableElements,
+  type ElementTableView,
+} from "./elementTable.utils";
+import { buildDetailPager } from "./detailPager.utils";
 import { DocsSection } from "./DocsSection";
 import { TopologyPanel } from "./TopologyPanel";
 import type {
@@ -242,6 +248,21 @@ export const DocumentationMainContent: React.FC<
     )
   );
 
+  // Table sort/search lives here, not in ElementTable (which unmounts while
+  // a detail card shows), so the detail pager walks the rows in the order
+  // the reader saw them and "Back to list" restores them. Another section
+  // starts from a fresh table (state adjusted during render, React's
+  // documented pattern for resetting state on a prop change).
+  const [tableView, setTableView] = React.useState<ElementTableView>(
+    DEFAULT_ELEMENT_TABLE_VIEW
+  );
+  const [tableViewSection, setTableViewSection] = React.useState(activeSection);
+  if (tableViewSection !== activeSection) {
+    setTableViewSection(activeSection);
+    setTableView(DEFAULT_ELEMENT_TABLE_VIEW);
+  }
+  const tableViewProps = { view: tableView, onViewChange: setTableView };
+
   // Tab clicks swap the section in place without a hash jump; this flag
   // tells the scroll-into-view pass below to stand down for that switch.
   const suppressHashScrollRef = React.useRef(false);
@@ -371,10 +392,10 @@ export const DocumentationMainContent: React.FC<
     introspector,
   ]);
 
-  // Ordered neighbors for the detail pager: readers cycle within the
-  // section's own list instead of going back and forth to the list.
-  // A filtered-out detail still pages to the first/last list entry.
-  const detailNeighbors = React.useMemo(() => {
+  // Ordered neighbors for the detail pager: readers cycle through the
+  // section's rows as the table showed them (same sort and search) instead
+  // of going back and forth to the list.
+  const detailPager = React.useMemo(() => {
     if (!detailElement) return null;
     const listForSection = (): Array<{ id: string }> => {
       switch (activeSection) {
@@ -398,22 +419,15 @@ export const DocumentationMainContent: React.FC<
           return [];
       }
     };
-    const list = listForSection();
-    if (list.length === 0) return null;
-    const index = list.findIndex((item) => item.id === selectedElementId);
-    const previous = index <= 0 ? list[list.length - 1] : list[index - 1];
-    const next =
-      index < 0 || index === list.length - 1 ? list[0] : list[index + 1];
-    return {
-      previous,
-      next,
-      position: index < 0 ? null : index + 1,
-      total: list.length,
-    };
+    const visibleRows = getVisibleTableElements(listForSection(), tableView, {
+      middlewareTypeFilters: activeSection === "middlewares",
+    });
+    return buildDetailPager(visibleRows, selectedElementId);
   }, [
     detailElement,
     activeSection,
     selectedElementId,
+    tableView,
     tasks,
     resources,
     events,
@@ -881,30 +895,30 @@ export const DocumentationMainContent: React.FC<
               </span>
             </div>
             {renderDetailCard()}
-            {detailNeighbors && (
+            {detailPager && (
               <nav
                 className="docs-detail__pager"
                 aria-label="Walk through elements"
               >
                 <a
-                  href={`#element-${detailNeighbors.previous.id}`}
+                  href={`#element-${detailPager.previous.id}`}
                   className="docs-detail__back"
-                  title={detailNeighbors.previous.id}
+                  title={detailPager.previous.id}
                   aria-label="View previous element"
                   onClick={handlePagerNavigate}
                 >
                   <DocIcon name="arrow-left" size={14} />
                   <span>Previous</span>
                 </a>
-                {detailNeighbors.position !== null && (
+                {detailPager.position !== null && (
                   <span className="docs-detail__position">
-                    {detailNeighbors.position} of {detailNeighbors.total}
+                    {detailPager.position} of {detailPager.total}
                   </span>
                 )}
                 <a
-                  href={`#element-${detailNeighbors.next.id}`}
+                  href={`#element-${detailPager.next.id}`}
                   className="docs-detail__back"
-                  title={detailNeighbors.next.id}
+                  title={detailPager.next.id}
                   aria-label="View next element"
                   onClick={handlePagerNavigate}
                 >
@@ -920,6 +934,7 @@ export const DocumentationMainContent: React.FC<
               <ElementTable
                 elements={tasks}
                 resources={resources}
+                {...tableViewProps}
                 title="Tasks Overview"
                 icon={getDocumentationIcon("tasks")}
                 id="tasks"
@@ -940,6 +955,7 @@ export const DocumentationMainContent: React.FC<
               <ElementTable
                 elements={resources}
                 resources={resources}
+                {...tableViewProps}
                 title="Resources Overview"
                 icon={getDocumentationIcon("resources")}
                 id="resources"
@@ -960,6 +976,7 @@ export const DocumentationMainContent: React.FC<
               <ElementTable
                 elements={events}
                 resources={resources}
+                {...tableViewProps}
                 title="Events Overview"
                 icon={getDocumentationIcon("events")}
                 id="events"
@@ -980,6 +997,7 @@ export const DocumentationMainContent: React.FC<
               <ElementTable
                 elements={hooks}
                 resources={resources}
+                {...tableViewProps}
                 title="Hooks Overview"
                 icon={getDocumentationIcon("hooks")}
                 id="hooks"
@@ -990,6 +1008,7 @@ export const DocumentationMainContent: React.FC<
               <ElementTable
                 elements={errors}
                 resources={resources}
+                {...tableViewProps}
                 title="Errors Overview"
                 icon={getDocumentationIcon("errors")}
                 id="errors"
@@ -1000,6 +1019,7 @@ export const DocumentationMainContent: React.FC<
               <ElementTable
                 elements={asyncContexts}
                 resources={resources}
+                {...tableViewProps}
                 title="Async Contexts Overview"
                 icon={getDocumentationIcon("asyncContexts")}
                 id="asyncContexts"
@@ -1010,6 +1030,7 @@ export const DocumentationMainContent: React.FC<
               <ElementTable
                 elements={middlewares}
                 resources={resources}
+                {...tableViewProps}
                 title="Middleware Overview"
                 icon={getDocumentationIcon("middlewares")}
                 id="middlewares"
@@ -1021,6 +1042,7 @@ export const DocumentationMainContent: React.FC<
               <ElementTable
                 elements={tags}
                 resources={resources}
+                {...tableViewProps}
                 title="Tags Overview"
                 icon={getDocumentationIcon("tags")}
                 id="tags"

@@ -1,4 +1,4 @@
-import { resources, defineResource } from "@bluelibs/runner";
+import { resources, defineResource, type Logger } from "@bluelibs/runner";
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
 import type { StartStandaloneServerOptions } from "@apollo/server/standalone";
@@ -18,13 +18,72 @@ import { printSchema } from "graphql/utilities/printSchema";
 import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
 import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
 import { createLiveStreamHandler } from "./routeHandlers/createLiveStreamHandler";
+import { LiveStreamRegistry } from "./routeHandlers/liveStreamRegistry";
 import { createRequestCorrelationMiddleware } from "./routeHandlers/requestCorrelation";
+import {
+  DEFAULT_BIND_HOST,
+  createHostGuard,
+  isLoopbackAddress,
+} from "./routeHandlers/hostGuard";
+import { isCodeExecutionAllowed } from "../schema/codeExecutionGate";
+import { allowedHostsSchema } from "./allowedHosts.schema";
+import { closeHttpServer } from "./httpServerShutdown";
 import voyagerHtml from "./templates/voyager.html";
+import z from "zod";
 
 export interface ServerConfig {
   port?: number;
+  /**
+   * Interface to listen on. Defaults to 127.0.0.1 (this machine only). Set
+   * e.g. "0.0.0.0" to expose the server on the network.
+   */
   host?: string;
+  /**
+   * DNS names requests may address the server by, besides `localhost`, IP
+   * addresses and `host` itself. Every other Host header gets a 403 (DNS
+   * rebinding guard), whatever interface the server listens on.
+   */
+  allowedHosts?: string[];
   apollo?: StartStandaloneServerOptions<CustomGraphQLContext>;
+}
+
+/**
+ * `resources.server.with(...)` is a documented entry point next to
+ * `dev.with(...)`, so it rejects the same `allowedHosts` entries. The other
+ * fields are only type-checked, as before.
+ */
+const serverConfigSchema: z.ZodType<ServerConfig> = z.object({
+  port: z.number().optional(),
+  host: z.string().optional(),
+  allowedHosts: allowedHostsSchema,
+  apollo: z
+    .custom<StartStandaloneServerOptions<CustomGraphQLContext>>()
+    .optional(),
+});
+
+function networkExposureWarning(host: string): string {
+  return (
+    `Code execution endpoints (shell, eval, swapTask, evalInput) are reachable ` +
+    `from the network: the server listens on ${host} and code execution is ` +
+    `enabled (RUNNER_DEV_EVAL=1 or NODE_ENV=development/test). Only do this on ` +
+    `a trusted network, or omit "host" to listen on ${DEFAULT_BIND_HOST}.`
+  );
+}
+
+/**
+ * Warns once the socket is bound. The bound address, not the configured
+ * string, decides: Node accepts many spellings of loopback (`127.1`,
+ * `0:0:0:0:0:0:0:1`), and only the resolved address says which one it is.
+ */
+function warnWhenCodeExecutionIsExposed(
+  httpServer: http.Server,
+  host: string,
+  logger: Logger
+): void {
+  const address = httpServer.address();
+  if (address === null || typeof address === "string") return;
+  if (isLoopbackAddress(address.address) || !isCodeExecutionAllowed()) return;
+  logger.warn(networkExposureWarning(host));
 }
 
 /** The resolved value exposed by the server resource. */
@@ -42,6 +101,8 @@ export const serverResource = defineResource({
       "Express server with GraphQL endpoint, Voyager UI, and static file serving for the Runner-Dev application",
   },
   register: [coverage],
+  configSchema: serverConfigSchema,
+  context: () => ({ liveStreams: new LiveStreamRegistry() }),
   dependencies: {
     store: resources.store,
     logger: resources.logger,
@@ -53,7 +114,8 @@ export const serverResource = defineResource({
   },
   async init(
     config: ServerConfig,
-    { store, logger, introspector, live, swapManager, graphql, coverage }
+    { store, logger, introspector, live, swapManager, graphql, coverage },
+    { liveStreams }
   ): Promise<ServerInstance> {
     logger = logger.with({
       source: serverResource.id,
@@ -63,12 +125,20 @@ export const serverResource = defineResource({
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
     });
     const port = config.port ?? 1337;
-    const host = config.host;
+    const host = config.host ?? DEFAULT_BIND_HOST;
     const _apolloConfig = config.apollo ?? {};
 
     await server.start();
 
     const app = express();
+
+    // Guard first so every route, including http-tagged task routes added
+    // later, sits behind it. It runs on every bind: a network bind is still
+    // reachable from the developer's own browser (e.g. a Docker port
+    // published on 127.0.0.1), which is exactly where DNS rebinding strikes.
+    app.use(
+      createHostGuard({ allowedHosts: [host, ...(config.allowedHosts ?? [])] })
+    );
 
     // Wrap every incoming request in an AsyncLocalStorage context with a fresh
     // correlationId so that all logs / emissions / errors within the request
@@ -98,7 +168,10 @@ export const serverResource = defineResource({
     );
 
     // SSE endpoint for live telemetry streaming
-    app.get("/live/stream", createLiveStreamHandler({ live }));
+    app.get(
+      "/live/stream",
+      createLiveStreamHandler({ live, streams: liveStreams })
+    );
 
     // Voyager UI at /voyager (simple CDN-based standalone page)
     app.get("/voyager", (_req: Request, res: Response) => {
@@ -119,13 +192,17 @@ export const serverResource = defineResource({
     const uiDir =
       candidateUiDirs.find((dir) => fs.existsSync(dir)) || candidateUiDirs[0];
 
-    // Compute base URL and expose via token replacement in JS
+    // Advertised in the startup logs only. The default loopback bind still
+    // says "localhost" (clients resolve it to 127.0.0.1 via happy eyeballs).
     const baseHost =
-      host && host !== "0.0.0.0" && host !== "::" ? host : "localhost";
+      config.host && host !== "0.0.0.0" && host !== "::" ? host : "localhost";
     const baseUrl = `http://${baseHost}:${port}`;
-    process.env.API_URL = process.env.API_URL || baseUrl;
 
-    app.use(createUiStaticRouter(uiDir));
+    // The docs UI is served by this server, so by default it calls the API
+    // on the origin it was loaded from. A URL baked in here would be wrong
+    // for any browser that reaches the server under another name or port
+    // (a LAN address, a remapped Docker port). API_URL stays an override.
+    app.use(createUiStaticRouter(uiDir, { apiUrl: process.env.API_URL ?? "" }));
 
     // Optional SPA fallback
     // app.get(/^(?!\/graphql|\/voyager|\/docs).*/, (_req, res) => {
@@ -169,9 +246,10 @@ export const serverResource = defineResource({
       }
     };
 
-    const httpServer = host
-      ? await app.listen(port, host, listenCallback)
-      : await app.listen(port, listenCallback);
+    const httpServer = app.listen(port, host, listenCallback);
+    httpServer.once("listening", () =>
+      warnWhenCodeExecutionIsExposed(httpServer, host, logger)
+    );
 
     httpServer.on("error", (err: Error) => {
       logger.error("Server error", {
@@ -182,11 +260,13 @@ export const serverResource = defineResource({
 
     return { apolloServer: server, httpServer, app };
   },
-  async dispose(instance: ServerInstance) {
+  async dispose(instance: ServerInstance, _config, _deps, { liveStreams }) {
     console.log("Disposing server");
     await instance.apolloServer.stop();
-    await new Promise<void>((resolve) =>
-      instance.httpServer.close(() => resolve())
-    );
+    // close() waits for every open connection, and an event stream never
+    // finishes by itself: end them first or shutdown hangs while a docs tab
+    // shows the Live panel.
+    liveStreams.endAll();
+    await closeHttpServer(instance.httpServer);
   },
 });

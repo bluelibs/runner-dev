@@ -120,4 +120,23 @@ describe("RecentLogs", () => {
     expect(link.getAttribute("href")).toBe("#element-server");
     expect(link.getAttribute("title")).toBe("server");
   });
+
+  it("styles Runner's critical level like errors", () => {
+    render(
+      React.createElement(RecentLogs, {
+        introspector: createIntrospectorMock(),
+        logs: [
+          {
+            timestampMs: Date.now(),
+            level: "critical",
+            message: "Reactor meltdown",
+          },
+        ],
+      })
+    );
+
+    expect(screen.getByText("critical").className).toBe(
+      "recent-logs__level recent-logs__level--error"
+    );
+  });
 });

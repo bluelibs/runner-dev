@@ -5,7 +5,6 @@ import {
   formatFilePath,
   formatId,
   getCoverageColor,
-  shouldDisplayConfig,
 } from "../utils/formatting";
 import { CodeModal } from "./CodeModal";
 import {
@@ -37,6 +36,7 @@ import ShellModal from "./ShellModal";
 import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 import { OverviewIdLink } from "./common/OverviewIdLink";
 import { StructuredConfigBlock } from "./common/StructuredConfigBlock";
+import { MiddlewareUsagesSection } from "./common/MiddlewareUsagesSection";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 import {
   ResourceLifecycleMethodsSection,
@@ -480,36 +480,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         </div>
       )}
 
-      {middlewareUsages.length > 0 && (
-        <div className="resource-card__middleware">
-          <h4 className="resource-card__middleware__title">
-            Middleware Configuration
-          </h4>
-          <div className="resource-card__middleware__items">
-            {middlewareUsages.map((usage) => (
-              <a
-                key={usage.id}
-                href={`#element-${usage.id}`}
-                className="resource-card__middleware__item resource-card__middleware-link"
-              >
-                <div className="title">
-                  {usage.node.meta?.title || formatId(usage.id)}
-                </div>
-                <div className="id">{usage.id}</div>
-                {shouldDisplayConfig(usage.config) && (
-                  <div>
-                    <div className="config-title">Configuration:</div>
-                    <StructuredConfigBlock
-                      value={usage.config}
-                      className="config-block"
-                    />
-                  </div>
-                )}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      <MiddlewareUsagesSection usages={middlewareUsages} />
 
       <TagsSection
         element={resource}

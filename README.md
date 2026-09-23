@@ -21,8 +21,10 @@ npm install -g @bluelibs/runner-dev
 npx @bluelibs/runner-dev
 ```
 
+Requirements: Node.js 22+ (`engines: ">=22"`, the same floor as Runner 6.6) and `@bluelibs/runner` ^6.6.0 as a peer dependency. `typescript` is an optional peer declared as `*`, so npm installs runner-dev next to any TypeScript version, including prereleases such as `typescript@next`, and never replaces yours; only `swapTask`, `eval` and `shell` need it, and they need TypeScript 5 or 6 (see [Hot-Swapping](#hot-swapping-debugging-system)).
+
 For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
-Runner-Dev also publishes its own skill from `skills/core`; keep `README.md`, `skills/core/SKILL.md`, and `skills/core/references/readmes/COMPACT_GUIDE.md` aligned when those docs change. The docs UI now includes a topology view for blast-radius and resource mindmap exploration.
+Runner-Dev also publishes its own skill from `skills/core`. Treat `README.md`, `skills/core/SKILL.md`, `skills/core/references/README.md` and `skills/core/references/readmes/COMPACT_GUIDE.md` as one documentation unit and keep them aligned (together with `readmes/API_REFERENCE.md`). `skills/core/references/README.md` and `skills/core/references/readmes/` are symlinks to this `README.md` and to `readmes/`, so edit the originals and leave the links in place; `npm pack` copies both in for the published package, since npm drops symlinks, and puts the links back afterwards. If a pack fails or is interrupted in between, the next `npm run build` restores them (or run `npm run skills:pack:restore`); a copy that no longer matches its original is left in place with an error, so move any edits made to it into the original first. The docs UI now includes a topology view for blast-radius and resource mindmap exploration. Release notes live in [CHANGELOG.md](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md).
 
 ```ts
 import { r } from "@bluelibs/runner";
@@ -35,7 +37,9 @@ const app = r
     dev, // if you are fine with defaults or
     dev.with({
       port: 1337, // default,
-      maxEntries: 10000, // how many logs to keep in the store.
+      host: "127.0.0.1", // default: this machine only; see "Network and code-execution defaults"
+      allowedHosts: [], // extra DNS names requests may use besides localhost and IP addresses (exact hostnames, no port or wildcard)
+      maxEntries: 10000, // default: entries kept per live category (a positive integer)
     }),
   ])
   .build();
@@ -46,8 +50,9 @@ const app = r
 - Fully-featured UI with AI assistance to explore your app, call tasks, emit events, diagnostics, logs and more.
 - Runtime shell (REPL) in the UI and via the `shell` GraphQL mutation: per-resource shells bind `r` to the live resource value, plus a global shell with full `runtime` access.
 - Static catalog export via `exportDocs(app, { output?, overwrite? })` for a standalone frozen docs site under `./runner-dev-catalog` by default.
-- Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters.
+- Overview tables across UI sections now include sortable and searchable columns (`ID`, `Title`, `Description`, `Used By`) with per-element usage counters, keyboard-reachable sorting, and a detail pager that follows the table's order (see [Docs UI tables and blast radius](#docs-ui-tables-and-blast-radius)).
 - Overview tables mark private elements with a tag under the title (visibility derived from Runner resource `isolate()` boundaries).
+- Task and resource cards show where each middleware comes from: middleware applied by an owner's `subtree(...)` policy gets a `Subtree Policy` badge and a `Source:` link to the owning resource.
 - Introspector: programmatic API to inspect tasks, hooks, resources, events, middleware, and diagnostics (including file paths, contents)
 - Task introspection includes runtime `interceptorCount` / `hasInterceptors` (registered via `taskDependency.intercept(...)` in resource init).
 - Resource introspection includes `isolation` (`deny`, `only`, `exports`, `exportsMode`) from `.isolate(...)`.
@@ -58,11 +63,12 @@ const app = r
 - Event introspection includes `transactional`, `parallel`, optional `eventLane { laneId }`, and optional `rpcLane { laneId }`.
 - Task introspection includes optional `rpcLane { laneId }`.
 - Tag pages distinguish between directly tagged elements and tag handlers (elements that depend on the tag id).
-- Live: in-memory logs and event emissions
-- Live File Previews and Saving.
+- Live: in-memory logs, event emissions, errors and task/hook runs, with a `sequence` cursor that pages and streams the retained entries without gaps
+- Live File Previews and Saving (saving needs the [code-execution gate](#code-execution-gate) open).
 - GraphQL server: deep graph navigation over your app’s topology and live data
 - CLI with scaffolding, query-ing capabilities on a live endpoint or via dry-run mode.
 - MCP server: allow your AI to do introspection for you.
+- Safe defaults: the server listens on `127.0.0.1`, a Host header check guards every bind against DNS rebinding, and code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) stays off unless you opt in.
 
 ## Runner 6.0 Migration Notes
 
@@ -107,16 +113,20 @@ const app = r
 
 Register `resources.durable` (also exported as `durableSupportResource`) from `@bluelibs/runner/node` alongside durable runtime resources. It registers the durable runtime/workflow tags, events, and lifecycle hook; registering only `durableWorkflowTag` is insufficient.
 
+Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md) first: code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) is now off unless `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`, the server listens on `127.0.0.1` by default (set `host: "0.0.0.0"` for Docker or remote access), and requests whose `Host` header is a DNS name other than `localhost` or an `allowedHosts` entry get `403`.
+
 ## Table of Contents
 
 - [Quickstart Guide](#quickstart)
+- [Network and Code-Execution Defaults](#network-and-code-execution-defaults)
 - [Model Context Protocol (MCP) Server](#cli-usage-mcp-server)
 - [CLI Tooling & Scaffolding](#cli-usage-direct)
 - [Live Telemetry & Correlation](#live-telemetry)
 - [Hot-Swapping Debugging System](#hot-swapping-debugging-system)
 - [GraphQL API Examples](#graphql-api-examples)
 - [API Reference](readmes/API_REFERENCE.md)
-- [Contributing & Local Dev](CONTRIBUTING.md)
+- [Changelog](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md)
+- [Contributing & Local Dev](https://github.com/bluelibs/runner-dev/blob/main/CONTRIBUTING.md)
 
 ## Quickstart
 
@@ -132,7 +142,7 @@ export const app = r
     // You can omit .with() if you are fine with defaults.
     dev.with({
       port: 1337, // default
-      maxEntries: 1000, // default
+      maxEntries: 10000, // default: logs, emissions, errors and runs kept each
     }),
     // rest of your app.
   ])
@@ -143,16 +153,45 @@ export const app = r
 
 Once your application is running with the `dev` resource, you can access the visual DevTools UI:
 
-Open [http://localhost:1337](http://localhost:1337) in your browser.
+Open [http://localhost:1337/docs](http://localhost:1337/docs) in your browser. The server root (`/`) redirects to the GraphQL Voyager view at `/voyager`, and GraphQL itself is served at `/graphql`.
 
 Inside the UI, you can:
 
 - Explore the resource graph.
 - Manually invoke tasks with custom inputs.
 - Inspect live logs and event emissions in real-time.
-- View and edit files directly via the browser.
-- Open a runtime shell per resource (`Shell` button, `r` is the live resource value) or a global shell from the sidebar (``Ctrl+` ``) with full `runtime` access.
+- View source files, and edit them when the [code-execution gate](#code-execution-gate) is open (otherwise the viewer is read-only and shows how to enable editing).
+- Open a runtime shell per resource (`Shell` button, `r` is the live resource value) or a global shell from the sidebar (``Ctrl+` ``) with full `runtime` access. The shell also needs the code-execution gate.
 - Press `⌘K`/`Ctrl+K` for the command palette (fuzzy-jump to any element, section, or action) and `?` for the full keyboard shortcut map (`g` + key section jumps, `/` focuses the sidebar filter, `Esc` walks back).
+
+### Network and code-execution defaults
+
+runner-dev exposes introspection and, when enabled, code execution, so its defaults are conservative:
+
+- **Loopback bind.** Without a `host`, the server listens on `127.0.0.1` only. URLs are still printed as `http://localhost:<port>`.
+- **Host header check, on every bind.** Every route answers `403` unless the request's `Host` names `localhost`, an IP address (`127.0.0.1`, `[::1]`, `192.168.1.50`, ...), the configured `host`, or a name listed in `allowedHosts`; a missing Host header is refused too. This blocks DNS-rebinding attacks from web pages: a rebinding page always arrives with its own DNS name in the `Host` header, including when the server listens on `0.0.0.0` and a published Docker port is reachable on the developer's `127.0.0.1`. A hosts-file alias, a `*.localhost` name or a service such as `127.0.0.1.nip.io` is rejected unless you list it. The 403 body is GraphQL-shaped (`{ "errors": [{ "message": "Forbidden: ..." }] }`) and names the `allowedHosts` entry that would let the request through.
+- **Exposing it on purpose.** For Docker port mapping, a remote dev box or a LAN, set an explicit host: `dev.with({ host: "0.0.0.0" })`, or `resources.server.with({ host: "0.0.0.0" })` when you register the resources yourself. Browsing by IP address or `localhost` works as is; to use a DNS name (a LAN name, a Docker Compose service name), list it: `dev.with({ host: "0.0.0.0", allowedHosts: ["devbox.lan"] })`. Entries are exact hostnames: `dev` and `resources.server` both reject a scheme, port or wildcard (`*.lan`, `.lan`) at `.with()`, so list each subdomain on its own. A Unicode name such as `bücher.lan` matches the punycode form browsers send. If the server ends up listening on a non-loopback address and the code-execution gate is also open, it logs a warning at startup that code execution is reachable from the network. There is no authentication, so only do this on a trusted network.
+- **The docs UI follows the address you use.** The served UI calls the API on the origin it was loaded from, so `http://192.168.1.50:1337/docs`, a remapped Docker port (`-p 8080:1337`, then `http://localhost:8080/docs`) or a DNS name you listed in `allowedHosts` (such as `http://devbox.lan:1337/docs`) works without extra UI setup. An unlisted DNS name gets `403` from the Host header check before the UI loads. Set the `API_URL` environment variable on the server only when the API lives at another address.
+- **Code execution is opt-in.** `eval`, `shell`, `shellComplete`, `swapTask`, `editFile` and `evalInput: true` on `invokeTask`/`invokeEvent` run only when the server starts with `RUNNER_DEV_EVAL=1`, or with `NODE_ENV` exactly `development` or `test`. An unset `NODE_ENV` keeps them off. Details: [Code-execution gate](#code-execution-gate).
+
+Queries and plain-JSON `invokeTask`/`invokeEvent` are not gated. With a non-loopback host, anyone who can reach the port can read the app's topology and registered source files and run its tasks with JSON input.
+
+### Docs UI tables and blast radius
+
+Overview tables are search-first, but they stay out of the way of keyboard shortcuts:
+
+- The ID search is focused automatically only after pointer navigation or on a fresh page load. After keyboard navigation (`g` chains, picking from the palette with the keyboard, `Esc` back to a list) focus stays on the page, so the next shortcut still works. `Esc` in any field blurs it back to shortcut mode.
+- ID and Title filters are fuzzy: case-insensitive, whitespace-separated tokens in any order. A token matches when it appears as a contiguous substring. Tokens of 3 or more characters may also match as a subsequence whose characters fall within a window of at most twice the token length (`crus` finds `createUser`); shorter tokens never fuzzy-match. Description and Used By filters are plain substring matches. The `⌘K` palette keeps its own, looser ranking.
+- Sorting works from the keyboard: the four sort buttons share one Tab stop on the ID column, just before the ID search (Shift+Tab from the search reaches it). ArrowLeft/ArrowRight (wrapping), Home and End move between columns, and Enter/Space cycles ascending, descending, unsorted.
+- The detail pager (previous/next) walks the rows in the table's current sort, search and middleware scope, and is hidden only when there is nowhere else to go: the list is empty, or its only row is the element shown. An element the list does not contain (filtered out, opened from the palette) pages to the list's first and last rows. Going list → detail → back keeps the sort and search; switching sections resets them.
+
+The topology view's blast lens answers "what changes if this element changes?":
+
+- **Affected** = **Direct** (depth 1) + **Transitive** (deeper) downstream nodes.
+- **Contract partners** (event emitters, error throwers, async-context providers) are counted and listed separately and are not part of Affected. They are recorded from the focus and not expanded, unless a real downstream edge also reaches them within the radius; then they count as affected at that depth and are expanded.
+- Counts cover the whole downstream set even when sidebar filters or the navigator search hide nodes. The hero shows a **Hidden by filters** stat, the fullscreen subtitle reads like `Blast radius · 4 affected (2 hidden by filters) within 3 hops · 2 contract partners`, and each impact-panel group shows its true count plus an `N hidden by filters` note.
+- A tag's blast radius includes the elements that depend on the tag and every element carrying it (tasks, hooks, resources, events, task and resource middleware, errors), and follows them further downstream.
+- A middleware's `emits` edges are the events the middleware emits itself through its own event dependencies. Events of the nodes it wraps show up one hop later, under those nodes. This differs on purpose from GraphQL `Middleware.emits` (see [the middleware example](#graphql-api-examples)).
 
 ### Static Catalog Export
 
@@ -286,16 +325,20 @@ SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json npx -y @bluelibs/runner-dev mcp
 Optional environment variables:
 
 - `SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json` to serve MCP from an exported static snapshot instead of a live endpoint
-- `ALLOW_MUTATIONS=true` to enable `graphql.mutation`
+- `ALLOW_MUTATIONS=true` to enable `graphql_mutation`
 - `HEADERS='{"Authorization":"Bearer token"}'` to pass extra headers
+- `GRAPHQL_ENDPOINT` is accepted as an alias for `ENDPOINT`
 
 Available tools once connected:
 
-- `graphql.query` — run read-only queries against the live endpoint or snapshot
-- `graphql.mutation` — run mutations (requires `ALLOW_MUTATIONS=true`, live endpoint only)
-- `graphql.introspect` — fetch schema
-- `graphql.ping` — source check for the configured endpoint or snapshot
-- `project.overview` — dynamic Markdown overview aggregated from the configured source
+- `graphql_query` — run read-only queries against the live endpoint or snapshot
+- `graphql_mutation` — run mutations (requires `ALLOW_MUTATIONS=true`, live endpoint only). Code-executing mutations (`eval`, `shell`, `swapTask`, `editFile`, `evalInput`) still need the server's [code-execution gate](#code-execution-gate) open.
+- `graphql_introspect` — fetch the schema as introspection JSON
+- `graphql_schema_sdl` — fetch the schema as SDL (more compact than the introspection JSON)
+- `graphql_ping` — source check for the configured endpoint or snapshot
+- `project_overview` — dynamic Markdown overview aggregated from the configured source
+
+The server also exposes the schema as MCP resources: `graphql://schema` (introspection JSON) and `graphql://schema.sdl` (SDL).
 
 ### CLI usage (direct)
 
@@ -335,14 +378,16 @@ This command creates a new Runner project with:
 
 - Complete TypeScript setup with `tsx watch` for development
 - Runner 6.6 and Vitest 4.1.11+ for the generated runtime and smoke tests
-- Node.js 20.19+, 22.12+, or 24+
+- Node.js 22.12+ or 24+ (Runner 6.6 needs Node 22+, and the generated Vitest/Vite toolchain needs 22.12+)
 - Package.json with all necessary dependencies
 - Basic project structure with main.ts entry point
 - README and .gitignore files
 
 Run `npm run audit` in the generated project to check all dependencies, including development tools. Install-time audit reporting stays enabled.
 
-Before releasing runner-dev, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`. The scaffold check installs the packed release into a fresh project, audits its full dependency tree, and runs its build and tests. The repository audit also covers the bundled frontend tooling. A scoped Lodash override keeps the existing GraphQL codegen plugins on patched Lodash 4.18.1+ despite their older minor-version constraint.
+The generated `npm run dev` (`tsx watch`) does not set `NODE_ENV`, so the docs UI shell, file editing, `swapTask` and `eval` stay off until you start it with `RUNNER_DEV_EVAL=1 npm run dev` or `NODE_ENV=development npm run dev` (see [Code-execution gate](#code-execution-gate)).
+
+Before releasing runner-dev, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`. The scaffold check installs the packed release into a fresh project, audits its full dependency tree, and runs its build and tests. The repository audit also covers the bundled frontend tooling. `npm run check:runtime-deps` (run by CI after the build, and by `npm pack` after a clean build) fails when `dist` requires a package that is not a dependency or peer, or when loading the package entry pulls in an optional peer such as `typescript`. A scoped Lodash override keeps the existing GraphQL codegen plugins on patched Lodash 4.18.1+ despite their older minor-version constraint.
 
 Flags for `new`:
 
@@ -447,7 +492,8 @@ runner-dev query 'query { tasks { id } }' \
 # Notes
 # - Dry‑run compiles your entry, builds the Runner Store in-memory, and executes the query against
 #   an in-memory GraphQL schema. No HTTP server is started.
-# - TypeScript only. Requires ts-node at runtime. If missing, you'll be prompted to install it.
+# - A .ts entry needs a TypeScript runtime in your project: tsx (tried first) or ts-node.
+#   Without one, the command fails with install hints. A compiled .js entry works too.
 # - Selection logic:
 #   - If --entry-file is provided, dry‑run mode is used (no server).
 #   - Otherwise, remote mode is used via --endpoint or ENDPOINT/GRAPHQL_ENDPOINT.
@@ -601,6 +647,35 @@ query {
 }
 ```
 
+`Middleware.emits` lists the events emitted by the nodes the middleware wraps: tasks and hooks for task middleware, the wrapped resources' own `emits` for resource middleware. Tasks and hooks that only depend on a wrapped resource are not included. The topology view's middleware `emits` edges answer a different question (what the middleware emits itself), see [Docs UI tables and blast radius](#docs-ui-tables-and-blast-radius).
+
+- Where does a task's or resource's middleware come from?
+
+```graphql
+query {
+  tasks {
+    id
+    middlewareResolvedDetailed {
+      id
+      origin # "local" or "subtree"
+      subtreeOwnerId # the resource whose subtree(...) policy applied it
+    }
+  }
+  resources {
+    id
+    middlewareResolvedDetailed {
+      id
+      origin
+      subtreeOwnerId
+    }
+  }
+}
+```
+
+Every `identityChecker` gate a subtree `tasks.identity` requirement adds to a task is reported with `origin: "subtree"` and the owner that declared the requirement, even when another owner also lists `identityChecker` in its `tasks.middleware`. When Runner rejects a task's stack (a subtree middleware conflicting with a task-local one, which Runner reports only when the task runs), introspection lists the task's own middleware, all with `origin: "local"`.
+
+Resource middleware carries the same provenance as task middleware. An owner's own `subtree({ resources: { middleware } })` also applies to the owner itself, so it shows up there with `origin: "subtree"` and the owner as `subtreeOwnerId`. `Middleware.usedByResourcesDetailed` / `ResourceMiddleware.usedByDetailed` expose the same two fields from the middleware side.
+
 - Events and hooks
 
 ```graphql
@@ -621,35 +696,44 @@ query {
 
 ## Live Telemetry
 
-The `live` resource records:
+The `live` resource records, in memory:
 
-- Logs emitted via `globals.events.log`
-- All event emissions (via an internal global `on: "*"` hook)
+- Logs written through Runner's logger (`resources.logger`), including `critical` ones
+- All event emissions (via an event manager interceptor)
+- Errors and runs of tasks and hooks (via the telemetry interceptors that `dev` registers)
+
+Each category keeps the latest `maxEntries` entries (default 10000, set through `dev.with({ maxEntries })`, which must be a positive integer). Older entries are evicted without notice, including entries a cursor or stream has not read yet: `afterSequence` then resumes at the oldest entry still kept. Readers that must see every entry have to stay within the last `maxEntries` entries of each category; raise `maxEntries` for high-volume apps.
+
+Every entry has a `sequence`: a number that is strictly increasing across all four categories and never reused, so it identifies one entry store-wide. It is an ordering key, not a count: it is seeded from the wall clock (about `Date.now() * 1000`), so it keeps increasing across restarts. Use it as the cursor when paging.
 
 GraphQL (basic):
 
 ```graphql
 query {
   live {
-    logs(afterTimestamp: 0) {
+    logs(last: 50) {
+      sequence
       timestampMs
       level
       message
       data # stringified JSON if object, otherwise null
     }
-    emissions(afterTimestamp: 0) {
+    emissions(last: 50) {
+      sequence
       timestampMs
       eventId
       emitterId
       payload # stringified JSON if object, otherwise null
     }
-    errors(afterTimestamp: 0) {
+    errors(last: 50) {
+      sequence
       timestampMs
       sourceId
       sourceKind
       message
     }
-    runs(afterTimestamp: 0) {
+    runs(last: 50) {
+      sequence
       timestampMs
       nodeId
       nodeKind
@@ -663,7 +747,28 @@ query {
 }
 ```
 
-Filter by timestamp (ms) to retrieve only recent entries.
+Window semantics of `last`:
+
+- Without a cursor, `last: N` returns the **most recent** N matching entries.
+- With a cursor (`afterSequence` or `afterTimestamp`), `last: N` returns the **oldest** N matching entries after the cursor, so you can page forward without skipping anything.
+- Results are always in ascending order (oldest first).
+
+To follow new entries, pass the last `sequence` you received as `afterSequence` (exclusive) and repeat until a page comes back shorter than `last`:
+
+```graphql
+query NextLogs($after: Float!) {
+  live {
+    logs(afterSequence: $after, last: 100) {
+      sequence
+      timestampMs
+      level
+      message
+    }
+  }
+}
+```
+
+`afterTimestamp` (milliseconds since epoch, exclusive) still works, but entries that share one millisecond can straddle a page cut and be skipped; use `afterSequence` when every entry matters. `Task.runs` and `Hook.runs` accept the same `afterSequence`, `afterTimestamp` and `last` arguments.
 
 GraphQL (with filters and last):
 
@@ -693,7 +798,8 @@ query {
       sourceKind
       message
     }
-    runs(afterTimestamp: 0, last: 5, filter: { ok: true, nodeKinds: [TASK] }) {
+    # The 5 most recent successful task runs (no cursor, so `last` counts back from the newest).
+    runs(last: 5, filter: { ok: true, nodeKinds: [TASK] }) {
       nodeId
       durationMs
       ok
@@ -765,20 +871,34 @@ The endpoint pushes two event types:
 
 A heartbeat comment (`: heartbeat`) is sent every 15s to keep the connection alive through proxies.
 
+Delivery guarantees:
+
+- Telemetry entries carry their `sequence`. The stream keeps one sequence cursor per category, so bursts, including many entries in the same millisecond, arrive in full and in order as long as they are still retained when the push runs. Large backlogs are drained in bounded pushes (up to 10 pages of 1000 entries per category per push, then the next push continues).
+- Retention caps every guarantee: each category keeps only its latest `maxEntries` entries, so an entry evicted before a reader reaches it is skipped without any signal. Sequences jump (they are clock-seeded and shared by all four categories), so a gap in them does not reveal the loss either. A single category can overflow within one 100 ms push window (a burst larger than `maxEntries`) or while the stream is paused on backpressure; raise `maxEntries` if that matters.
+- On connect, the stream sends a `health` event and then replays the entries already in the store. After a reconnect, drop anything at or below the last `sequence` you saw.
+- The stream respects backpressure: while the socket buffer is full it pauses telemetry, health and heartbeat frames until the socket drains, instead of buffering without limit.
+- When the server shuts down (`runtime.dispose()`, Ctrl+C), it ends every open stream, and a stream requested while it is closing gets an empty response that closes its connection. Any connection still open 3 seconds after the server stopped listening is cut, so no client holds up shutdown longer than that. `EventSource` then retries on its own, on a new connection.
+
 **JavaScript client example:**
 
 ```js
+const lastSeen = { logs: 0, emissions: 0, errors: 0, runs: 0 };
 const es = new EventSource("http://localhost:1337/live/stream");
 es.addEventListener("telemetry", (e) => {
-  const { logs, emissions, errors, runs } = JSON.parse(e.data);
-  // merge into your state
+  const page = JSON.parse(e.data);
+  for (const category of Object.keys(lastSeen)) {
+    // Skip entries a reconnect replays.
+    const fresh = page[category].filter((x) => x.sequence > lastSeen[category]);
+    if (fresh.length) lastSeen[category] = fresh[fresh.length - 1].sequence;
+    // merge `fresh` into your state
+  }
 });
 es.addEventListener("health", (e) => {
   const { memory, cpu, eventLoop, gc } = JSON.parse(e.data);
 });
 ```
 
-The built-in Live Panel UI automatically uses SSE when available and falls back to configurable-interval polling (500ms–10s slider) when SSE is not supported.
+The built-in Live Panel UI uses SSE when available and falls back to polling at a configurable interval (500ms–10s slider) when SSE is unavailable or fails. It keeps one sequence cursor per category, shared by SSE and polling, so polling continues from where the stream stopped. Each poll tick re-queries the categories that are behind (pages of 100, at most 10 requests per tick), and replayed or overlapping entries are dropped.
 
 **Programmatic notification hook:** The `Live` interface exposes `onRecord(callback)` which fires synchronously whenever a `record*` method is called, returning an unsubscribe function. This is the mechanism the SSE endpoint uses internally.
 
@@ -800,9 +920,10 @@ The built-in Live Panel UI automatically uses SSE when available and falls back 
   - Read a recent run to discover a correlation id, then filter logs by it:
 
 ```graphql
-query TraceByCorrelation($ts: Float, $cid: String!) {
+query TraceByCorrelation($cid: String!) {
   live {
-    runs(afterTimestamp: $ts, last: 10) {
+    # No cursor: the 10 most recent runs.
+    runs(last: 10) {
       nodeId
       parentId
       rootId
@@ -858,11 +979,11 @@ export const createUser = r
 - Emit logs:
 
 ```ts
-import { globals, r } from "@bluelibs/runner";
+import { r, resources } from "@bluelibs/runner";
 
 export const logSomething = r
   .task("logSomething")
-  .dependencies({ logger: globals.resources.logger })
+  .dependencies({ logger: resources.logger })
   .run(async (_i, { logger }) => {
     logger.info("Hello world!");
   })
@@ -881,7 +1002,7 @@ export const logSomething = r
 - Deep “resolved” fields for easy graph traversal
 - File-aware enhancements (`filePath`, `fileContents`, etc.)
 
-For full details on development, testing, and codegen, see [CONTRIBUTING.md](CONTRIBUTING.md).
+For full details on development, testing, and codegen, see [CONTRIBUTING.md](https://github.com/bluelibs/runner-dev/blob/main/CONTRIBUTING.md).
 
 ## Hot-Swapping Debugging System
 
@@ -900,7 +1021,7 @@ The hot-swapping system enables:
 
 ### Quick Setup
 
-Add the swap manager to your app:
+The `dev` resource already registers the swap manager. To wire the pieces yourself instead:
 
 ```ts
 import { r } from "@bluelibs/runner";
@@ -916,11 +1037,16 @@ export const app = r
     // Add the swap manager for hot-swapping
     dev.swapManager,
 
-    // GraphQL server with swap mutations
+    // GraphQL schema and server with swap mutations (the server depends on both)
+    dev.graphql,
     dev.server.with({ port: 1337 }),
   ])
   .build();
 ```
+
+Swapping runs code on the server, so it needs the [code-execution gate](#code-execution-gate) open: start the app with `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`.
+
+`swapTask`, `eval` and `shell` compile code with the `typescript` package. It is an optional peer dependency, so loading runner-dev never needs it, and its range is `*` so npm installs runner-dev next to whatever TypeScript your project has, prereleases included (any narrower range excludes prereleases and makes npm refuse with ERESOLVE); install it in your project (`npm install --save-dev typescript@6`) to use those features. Without it they return `Install typescript 5 or 6 to use swapTask, eval and shell: ...` instead of running. TypeScript 7's native compiler does not expose the `transpileModule` API they use: with it installed they return an incompatibility error that suggests `typescript@6`.
 
 ### GraphQL API
 
@@ -1136,6 +1262,17 @@ query RecentDebugLogs {
 - Intended for development/debugging environments only
 - Swapped functions have access to the same context as original functions
 
+#### Code-execution gate
+
+Every server-side operation that runs code or writes source files shares one gate. It is open only when the server starts with `RUNNER_DEV_EVAL=1`, or with `NODE_ENV` set to exactly `development` or `test`. An unset `NODE_ENV`, `production`, `staging` or any other value keeps it closed. Plain `node dist/main.js` and `tsx watch` (including a scaffolded project's `npm run dev`) do not set `NODE_ENV`, so start them with `RUNNER_DEV_EVAL=1` or `NODE_ENV=development` when you want these features.
+
+- Gated: `eval`, `shell`, `shellComplete` (returns no options), `swapTask`, `invokeTask`/`invokeEvent` with `evalInput: true`, and `editFile`. Writing a source file counts as code execution because a watcher (`tsx watch`, nodemon) reloads and runs it.
+- When closed, they return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.`
+- Still allowed: every query, `invokeTask`/`invokeEvent` with plain JSON input, `unswapTask` and `unswapAllTasks`.
+- `query { codeExecutionEnabled }` reports the gate (`shellEnabled` is the same value). The docs UI uses it: with the gate closed, the source viewer stays read-only and says how to enable editing, and the shell shows the same hint.
+- `shell` and `eval` runs are bounded by `RUNNER_DEV_SHELL_TIMEOUT_MS` (default `30000`, a whole number from 1 to 2147483647; invalid values fail the run before any code executes). A timed-out run returns `<Shell|Eval> execution timed out after N ms. The code may still be running …`: JavaScript cannot cancel it, and a synchronous infinite loop blocks the server. For `shell`, the budget also covers initializing a lazy `resourceId`; an init that does not finish in time returns `Resource '<id>' did not finish initializing. Shell execution timed out after N ms. …`. Results over 256 KB (262144 characters) are cut and end with `… [truncated N chars]`.
+- The gate controls what the server may do, not who can reach it. Keep the default loopback bind unless you need network access; when the server listens on a non-loopback address with the gate open, it logs a startup warning (see [Network and code-execution defaults](#network-and-code-execution-defaults)).
+
 #### Best Practices
 
 - Use descriptive debug messages in swapped functions
@@ -1196,7 +1333,7 @@ mutation {
 
 #### JavaScript Input Evaluation
 
-For advanced debugging scenarios, use `evalInput: true` to evaluate JavaScript expressions instead of parsing JSON:
+For advanced debugging scenarios, use `evalInput: true` to evaluate JavaScript expressions instead of parsing JSON. This runs code on the server, so it needs the [code-execution gate](#code-execution-gate) open; plain JSON input works either way:
 
 ```graphql
 mutation {
@@ -1330,20 +1467,21 @@ The system automatically handles complex JavaScript types:
 - Supports complex expressions, function calls, Date objects, calculations
 - Full access to JavaScript runtime and built-in objects
 - Perfect for AI-driven testing with dynamic inputs
+- Refused with `success: false` while the [code-execution gate](#code-execution-gate) is closed
 
 ### Arbitrary Code Evaluation
 
 For advanced debugging, the system provides an `eval` mutation to execute arbitrary JavaScript/TypeScript code on the server.
 
-**Security Warning**: This feature is powerful and executes code with the same privileges as the application. It is intended for development environments only and is disabled by default in production. To enable it, set the environment variable `RUNNER_DEV_EVAL=1`.
+**Security Warning**: This feature is powerful and executes code with the same privileges as the application. It is intended for development environments only and sits behind the [code-execution gate](#code-execution-gate): it runs only with `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`, and is disabled when `NODE_ENV` is unset. Runs share the shell's timeout (`RUNNER_DEV_SHELL_TIMEOUT_MS`) and 256 KB result cap.
 
 #### `eval` Mutation
 
 **Execute arbitrary code:**
 
 ```graphql
-mutation EvalCode($code: String!, $inputJson: String, $evalInput: Boolean) {
-  eval(code: $code, inputJson: $inputJson, evalInput: $evalInput) {
+mutation EvalCode($code: String!) {
+  eval(code: $code) {
     success
     error
     result # JSON string
@@ -1352,9 +1490,7 @@ mutation EvalCode($code: String!, $inputJson: String, $evalInput: Boolean) {
 }
 ```
 
-- `code`: The JavaScript/TypeScript code to execute.
-- `inputJson`: Optional input string, parsed as JSON by default.
-- `evalInput`: If `true`, `inputJson` is evaluated as a JavaScript expression.
+- `code`: The JavaScript/TypeScript code to execute. Pass the full signature, `async function run(deps) { ... }`; `deps` holds `store`, `introspector`, `globals`, `taskRunner` and `eventManager`.
 
 **Example:**
 
@@ -1372,10 +1508,12 @@ mutation {
 The `shell` mutation runs a JavaScript/TypeScript snippet against the live runtime, like a REPL. Bare expressions auto-return (`r`, `await runtime.runTask("...")`); multi-statement snippets use `return`. `console` output is captured and returned in `logs`.
 
 - `code`: the snippet to execute.
-- `resourceId` (optional): binds `r` to that resource's initialized value (exact or suffix match); without it, `r` is `null`.
+- `resourceId` (optional): binds `r` to that resource's initialized value (exact or suffix match); without it, `r` is `null`. Under `run(app, { lazy: true })` a resource that is not initialized yet is initialized first, and that init counts toward the run's timeout.
 - `runtime`: the live runtime (`runTask`, `emitEvent`, `getResourceValue`, `getResourceConfig`, `getHealth`, …).
 
-Like `eval`, the shell is disabled in production unless `RUNNER_DEV_EVAL=1`.
+Like `eval`, the shell sits behind the [code-execution gate](#code-execution-gate) (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`) and shares its timeout and result cap. `query { shellEnabled }` (the same value as `codeExecutionEnabled`) tells a client whether it can run here.
+
+Captured `console` output is bounded too: at most 200 lines or 20000 characters per run. A line longer than the remaining budget is cut with the same `… [truncated N chars]` marker, and a single `log limit reached` line marks where further output was dropped. `console.dir`, `table`, `trace`, `assert` and `count` are captured (formatted like Node's own console); `time*` and `group*` output is not captured.
 
 ```graphql
 mutation {
@@ -1392,7 +1530,7 @@ In the UI, every resource card and resources overview row has a `Shell` action, 
 
 ### Use Cases
 
-- **Production Debugging**: Add logging to specific functions without restarts
+- **Live Debugging**: Add logging to specific functions without restarts (on a production box only with an explicit `RUNNER_DEV_EVAL=1` opt-in)
 - **A/B Testing**: Compare different function implementations live
 - **Performance Monitoring**: Inject performance measurements
 - **Error Investigation**: Add error handling and detailed logging

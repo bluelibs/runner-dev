@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { Extension } from "@codemirror/state";
+import { Extension, type Range } from "@codemirror/state";
 import {
   ViewPlugin,
   DecorationSet,
@@ -20,6 +20,7 @@ import {
 import type { LineCoverage } from "../../../../../resources/coverage.resource";
 import { BaseModal } from "./modals";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
+import { useCodeExecutionEnabled } from "../hooks/useCodeExecutionEnabled";
 
 export interface CodeModalProps {
   title: string;
@@ -50,7 +51,7 @@ function createLineCoverageExtension(lines: LineCoverage[]): Extension {
       }
 
       buildDecorations(view: EditorView): DecorationSet {
-        const builder = [];
+        const builder: Range<Decoration>[] = [];
 
         lines.forEach((lineCoverage) => {
           const lineNum = lineCoverage.line; // CM6 doc.line() is 1-indexed
@@ -160,15 +161,21 @@ export const CodeModal: React.FC<CodeModalProps> = ({
     setBaseline(next);
   }, [code, isOpen]);
 
-  const canEdit =
+  const editRequested =
     !isCatalogMode &&
     enableEdit &&
     typeof saveOnFile === "string" &&
     saveOnFile.length > 0;
+  // editFile shares the server's code-execution gate: a saved source file is
+  // live code under a watcher. Only a confirmed "disabled" locks the editor.
+  const codeExecutionEnabled = useCodeExecutionEnabled(isOpen && editRequested);
+  const isEditingDisabledByServer =
+    editRequested && codeExecutionEnabled === false;
+  const canEdit = editRequested && !isEditingDisabledByServer;
 
   // Prepare CodeMirror extensions based on coverage data
   const codeMirrorExtensions = React.useMemo(() => {
-    const extensions = [javascript({ typescript: true })];
+    const extensions: Extension[] = [javascript({ typescript: true })];
 
     // Add line coverage highlighting if coverage data is available
     if (showCoverage && coverageData?.lines) {
@@ -277,6 +284,13 @@ export const CodeModal: React.FC<CodeModalProps> = ({
       ariaLabel={`Code viewer: ${title}`}
     >
       <div className="code-modal__content">
+        {isEditingDisabledByServer && (
+          <div className="code-modal__disabled-note" role="status">
+            Editing is disabled on this server. Start it with{" "}
+            <code>RUNNER_DEV_EVAL=1</code> or <code>NODE_ENV=development</code>{" "}
+            to enable it.
+          </div>
+        )}
         {showCoverage && coverageData && (
           <div className="code-modal__coverage-section">
             <CoverageVisualization

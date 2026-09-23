@@ -1,5 +1,37 @@
-import * as ts from "typescript";
+import type { CompilerOptions } from "typescript";
+import { types as utilTypes } from "node:util";
 import type { Store } from "@bluelibs/runner";
+import { loadTypeScript, type TypeScriptModule } from "./typescript.runtime";
+
+function createCompilerOptions(ts: TypeScriptModule): CompilerOptions {
+  return {
+    target: ts.ScriptTarget.ES2020,
+    module: ts.ModuleKind.CommonJS,
+    strict: true,
+    noImplicitAny: false,
+    skipLibCheck: true,
+  };
+}
+
+type CompilerLoad =
+  | { success: true; ts: TypeScriptModule }
+  | { success: false; error: string };
+
+/**
+ * Loads the compiler for a compile helper. A missing or incompatible
+ * typescript is not a compile error in the user's snippet, so its message is
+ * returned as is instead of behind "Compilation failed:".
+ */
+function loadCompiler(): CompilerLoad {
+  try {
+    return { success: true, ts: loadTypeScript() };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 function idsMatch(candidateId: string, referenceId: string): boolean {
   return candidateId === referenceId || candidateId.endsWith(`.${referenceId}`);
@@ -45,15 +77,6 @@ export function compileRunFunction(
       };
     }
 
-    // First, try to compile as TypeScript
-    const compilerOptions: ts.CompilerOptions = {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.CommonJS,
-      strict: true,
-      noImplicitAny: false,
-      skipLibCheck: true,
-    };
-
     // Wrap code in a function if it's not already
     let wrappedCode = code.trim();
     if (
@@ -87,8 +110,10 @@ export function compileRunFunction(
       };
     }
 
-    // Try TypeScript compilation first
-    const result = ts.transpile(wrappedCode, compilerOptions);
+    const compiler = loadCompiler();
+    if (!compiler.success) return compiler;
+    const { ts } = compiler;
+    const result = ts.transpile(wrappedCode, createCompilerOptions(ts));
 
     // Create and validate the function
     // The result should be a function declaration, so we need to evaluate it and extract the function
@@ -200,8 +225,10 @@ export function compileShellFunction(
   // the captured `console` shadows the global one.
   const params =
     "{ r, resourceId, runtime, store, introspector, globals, taskRunner, eventManager, console }";
+  // Newlines around the expression keep a trailing `// comment` from
+  // swallowing the closing paren (`r // check` must still return `r`).
   const expressionAttempt = compileShellWrapper(
-    `async function run(${params}) { return (${trimmed}); }`
+    `async function run(${params}) { return (\n${trimmed}\n); }`
   );
   if (expressionAttempt.success) {
     return expressionAttempt;
@@ -225,19 +252,14 @@ function compileShellWrapper(
 ):
   | { success: true; func: (deps: any) => any }
   | { success: false; error: string } {
+  const compiler = loadCompiler();
+  if (!compiler.success) return compiler;
+  const { ts } = compiler;
   try {
-    const compilerOptions: ts.CompilerOptions = {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.CommonJS,
-      strict: true,
-      noImplicitAny: false,
-      skipLibCheck: true,
-    };
-
     // NB: ts.transpile() never reports syntax errors (best-effort emit), so
     // syntactic diagnostics are required to reject invalid snippets.
     const transpiled = ts.transpileModule(wrappedCode, {
-      compilerOptions,
+      compilerOptions: createCompilerOptions(ts),
       reportDiagnostics: true,
     });
     const syntaxError = (transpiled.diagnostics ?? []).find(
@@ -272,51 +294,6 @@ function compileShellWrapper(
       }`,
     };
   }
-}
-
-export interface CapturedConsole {
-  console: Console;
-  logs: string[];
-}
-
-const MAX_SHELL_LOG_LINES = 200;
-const MAX_SHELL_LOG_CHARS = 20000;
-
-function formatShellLogValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  try {
-    const serialized = serializeShellResult(value);
-    return serialized === undefined ? String(value) : serialized;
-  } catch {
-    return String(value);
-  }
-}
-
-/**
- * Creates a console shim that captures log lines for shell responses while
- * still forwarding everything to the real server console.
- */
-export function createCapturedConsole(): CapturedConsole {
-  const logs: string[] = [];
-  const push = (level: string, args: unknown[]) => {
-    if (logs.length >= MAX_SHELL_LOG_LINES) return;
-    const line = args.map(formatShellLogValue).join(" ");
-    const stamped = level === "log" ? line : `[${level}] ${line}`;
-    const currentChars = logs.reduce((sum, entry) => sum + entry.length, 0);
-    if (currentChars + stamped.length > MAX_SHELL_LOG_CHARS) return;
-    logs.push(stamped);
-  };
-
-  const realConsole = globalThis.console;
-  const captured = Object.create(realConsole) as Console;
-  (["log", "info", "warn", "error", "debug"] as const).forEach((level) => {
-    (captured as any)[level] = (...args: unknown[]) => {
-      push(level, args);
-      (realConsole[level] as (...a: unknown[]) => void)(...args);
-    };
-  });
-
-  return { console: captured, logs };
 }
 
 /**
@@ -357,7 +334,25 @@ export function serializeResult(value: any): string {
 }
 
 /**
- * Serialize a shell result for display.
+ * Upper bound for a serialized `shell` or `eval` result sent back over
+ * GraphQL.
+ */
+export const MAX_SHELL_RESULT_CHARS = 256 * 1024;
+
+/**
+ * Cuts `text` to `maxChars` and says so: a silent cut would make a partial
+ * value look complete.
+ */
+export function truncateWithMarker(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  const omittedChars = text.length - maxChars;
+  return `${text.slice(0, maxChars)}… [truncated ${omittedChars} chars]`;
+}
+
+/**
+ * Serialize a shell result for display, capped at `MAX_SHELL_RESULT_CHARS`
+ * so one huge value cannot balloon the response (the cap bounds the payload,
+ * not the serialization work itself).
  *
  * Unlike task results (where class instances collapse to `[ClassName]`),
  * shell output keeps values inspectable: class instances serialize through
@@ -365,6 +360,19 @@ export function serializeResult(value: any): string {
  * structures degrade to `[Circular]` instead of throwing.
  */
 export function serializeShellResult(value: any): string {
+  return truncateWithMarker(serializeShellValue(value), MAX_SHELL_RESULT_CHARS);
+}
+
+/**
+ * Serialize an `eval` result with task-result semantics (`serializeResult`)
+ * under the same cap as shell results: eval runs arbitrary code, so its
+ * result can be just as large.
+ */
+export function serializeEvalResult(value: unknown): string {
+  return truncateWithMarker(serializeResult(value), MAX_SHELL_RESULT_CHARS);
+}
+
+function serializeShellValue(value: any): string {
   if (value === undefined) return "undefined";
   if (typeof value === "string") return value;
 
@@ -533,6 +541,19 @@ function describeShellValue(value: unknown): string | undefined {
 }
 
 /**
+ * Objects completion may look into. Proxies are excluded without touching
+ * them: even `Object.keys` or a descriptor lookup fires their traps, which
+ * can run arbitrary code (ORM clients, lazy loaders) during completion.
+ */
+function isInspectableObject(value: unknown): value is object {
+  return (
+    value !== null &&
+    (typeof value === "object" || typeof value === "function") &&
+    !utilTypes.isProxy(value)
+  );
+}
+
+/**
  * Reads a property without ever invoking a getter: follows data descriptors
  * up the prototype chain and reports accessors without reading them.
  */
@@ -541,7 +562,7 @@ function readShellDataProperty(
   key: string
 ): { found: boolean; accessor: boolean; value?: unknown } {
   let current: object | null = owner;
-  while (current !== null) {
+  while (current !== null && !utilTypes.isProxy(current)) {
     const descriptor = Object.getOwnPropertyDescriptor(current, key);
     if (descriptor) {
       // Accessors are reported but never read: invoking a getter could
@@ -558,7 +579,7 @@ function readShellDataProperty(
 
 /**
  * Lists completion options for a target against a shell scope. Never calls
- * functions or invokes getters, and caps output.
+ * functions, invokes getters, or touches Proxies, and caps output.
  */
 export function completeShellScope(
   scope: Record<string, unknown>,
@@ -566,23 +587,17 @@ export function completeShellScope(
 ): ShellCompletionOption[] {
   let base: unknown = scope;
   for (const segment of target.objectPath) {
-    if (
-      base === null ||
-      (typeof base !== "object" && typeof base !== "function")
-    ) {
+    if (!isInspectableObject(base)) {
       return [];
     }
-    // Accessors stop traversal: descending further would invoke the getter.
-    const segmentRead = readShellDataProperty(base as object, segment);
+    // Accessors are leaves: descending further would invoke the getter.
+    const segmentRead = readShellDataProperty(base, segment);
     if (!segmentRead.found || segmentRead.accessor) {
       return [];
     }
     base = segmentRead.value;
   }
-  if (
-    base === null ||
-    (typeof base !== "object" && typeof base !== "function")
-  ) {
+  if (!isInspectableObject(base)) {
     return [];
   }
 
@@ -610,12 +625,16 @@ export function completeShellScope(
   };
 
   for (const key of Object.keys(base)) {
-    pushKey(key, base as object);
+    pushKey(key, base);
   }
   // Walk the full prototype chain so inherited methods complete too, while
   // still skipping the Object.prototype noise (toString, hasOwnProperty…).
   let proto: object | null = Object.getPrototypeOf(base);
-  while (proto !== null && proto !== Object.prototype) {
+  while (
+    proto !== null &&
+    proto !== Object.prototype &&
+    !utilTypes.isProxy(proto)
+  ) {
     for (const key of Object.getOwnPropertyNames(proto)) {
       if (HIDDEN_PROTO_KEYS.has(key)) continue;
       pushKey(key, proto);

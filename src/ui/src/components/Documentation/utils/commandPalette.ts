@@ -133,17 +133,64 @@ export function scoreEntry(entry: PaletteEntry, query: string): number {
   return total;
 }
 
+/** Tokens shorter than this must appear verbatim (no subsequence fallback). */
+const MIN_FUZZY_TOKEN_LENGTH = 3;
+/** A subsequence may spread over at most this many times its own length. */
+const MAX_FUZZY_SPAN_RATIO = 2;
+
 /**
- * Boolean fuzzy match of a free-text query against one haystack, using the
- * same token scoring as the palette: every whitespace-separated token must
- * match (exact, prefix, word-boundary, substring, or subsequence). Empty
- * queries match everything.
+ * Length of the shortest haystack window holding `needle` as a subsequence,
+ * or Infinity when there is none. Greedy matching from each start gives that
+ * start's shortest window; if a start cannot complete, later ones cannot.
+ */
+function shortestSubsequenceSpan(needle: string, haystack: string): number {
+  let shortest = Number.POSITIVE_INFINITY;
+  for (
+    let start = haystack.indexOf(needle[0]);
+    start !== -1;
+    start = haystack.indexOf(needle[0], start + 1)
+  ) {
+    let needleIndex = 1;
+    let cursor = start + 1;
+    while (needleIndex < needle.length && cursor < haystack.length) {
+      if (haystack[cursor] === needle[needleIndex]) needleIndex++;
+      cursor++;
+    }
+    if (needleIndex < needle.length) break;
+    shortest = Math.min(shortest, cursor - start);
+  }
+  return shortest;
+}
+
+/**
+ * Table filter token match. A loose subsequence fallback makes short tokens
+ * match nearly every long dotted id ("log" hides in p-l-atf-o-rm.confi-g),
+ * which turns a filter into noise. So: a contiguous substring always
+ * matches; otherwise only tokens of 3+ characters may match as a
+ * subsequence, and only when the matched characters sit close together
+ * (within 2x the token length). That keeps abbreviations like "crus" →
+ * createUser or "zlst" → z-last, and rejects characters scattered across
+ * segments. The palette keeps its own looser ranking (scoreToken).
+ */
+function matchesFilterToken(token: string, haystack: string): boolean {
+  if (haystack.includes(token)) return true;
+  if (token.length < MIN_FUZZY_TOKEN_LENGTH) return false;
+  return (
+    shortestSubsequenceSpan(token, haystack) <=
+    token.length * MAX_FUZZY_SPAN_RATIO
+  );
+}
+
+/**
+ * Case-insensitive fuzzy filter of a free-text query against one haystack:
+ * every whitespace-separated token must match (see matchesFilterToken), in
+ * any order. Empty queries match everything.
  */
 export function matchesFuzzyText(query: string, text: string): boolean {
   const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return true;
   const haystack = text.toLowerCase();
-  return tokens.every((token) => scoreToken(token, haystack) >= 0);
+  return tokens.every((token) => matchesFilterToken(token, haystack));
 }
 
 function entryLength(entry: PaletteEntry): number {

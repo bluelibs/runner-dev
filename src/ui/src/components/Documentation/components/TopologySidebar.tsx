@@ -9,6 +9,8 @@ import { DocIcon } from "./common/DocIcon";
 import { TopologyNavigator } from "./TopologyNavigator";
 import {
   buildRelationGroups,
+  formatHiddenByFilters,
+  groupImpactNodes,
   type TopologyRelationGroup,
 } from "./topologyPanel.utils";
 
@@ -78,15 +80,13 @@ export const TopologyDetailPanels: React.FC<TopologyDetailPanelsProps> = ({
       ),
     [edges, nodesById, selectedNode?.id]
   );
+  // Stable across renders so the impact panel's grouping memo can hit.
+  const nodes = React.useMemo(() => [...nodesById.values()], [nodesById]);
 
   return (
     <section className="topology-panel__details">
       {view === "blast" && (
-        <TopologyImpactPanel
-          nodes={[...nodesById.values()]}
-          focusId={selectedNode.id}
-          onSelect={onSelect}
-        />
+        <TopologyImpactPanel nodes={nodes} onSelect={onSelect} />
       )}
       <div className="topology-panel__detail-card">
         <div className="topology-panel__detail-header">
@@ -168,41 +168,12 @@ export const TopologyDetailPanels: React.FC<TopologyDetailPanelsProps> = ({
 
 function TopologyImpactPanel({
   nodes,
-  focusId,
   onSelect,
 }: {
   nodes: TopologyGraphNode[];
-  focusId: string;
   onSelect: (node: TopologyGraphNode) => void;
 }) {
-  const groups = React.useMemo(() => {
-    const byLabel = (left: TopologyGraphNode, right: TopologyGraphNode) =>
-      left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
-    const affected = nodes.filter(
-      (node) => node.id !== focusId && node.isVisible
-    );
-    return [
-      {
-        title: "Direct",
-        hint: "Behaves differently if the focus changes",
-        nodes: affected
-          .filter((node) => !node.terminal && node.depth <= 1)
-          .sort(byLabel),
-      },
-      {
-        title: "Transitive",
-        hint: "Affected further down the chain",
-        nodes: affected
-          .filter((node) => !node.terminal && node.depth > 1)
-          .sort(byLabel),
-      },
-      {
-        title: "Shared contract",
-        hint: "Must still conform: emitters, throwers, providers",
-        nodes: affected.filter((node) => node.terminal).sort(byLabel),
-      },
-    ].filter((group) => group.nodes.length > 0);
-  }, [nodes, focusId]);
+  const groups = React.useMemo(() => groupImpactNodes(nodes), [nodes]);
 
   return (
     <div className="topology-panel__detail-card topology-panel__detail-card--relations">
@@ -219,10 +190,10 @@ function TopologyImpactPanel({
                 className="topology-panel__relation-group-title"
                 title={group.hint}
               >
-                {group.title} ({group.nodes.length})
+                {group.title} ({group.visibleNodes.length + group.hiddenCount})
               </div>
               <div className="topology-panel__relation-group-items">
-                {group.nodes.map((node) => (
+                {group.visibleNodes.map((node) => (
                   <button
                     key={node.id}
                     type="button"
@@ -236,6 +207,11 @@ function TopologyImpactPanel({
                     <span className="label">{node.label}</span>
                   </button>
                 ))}
+                {group.hiddenCount > 0 && (
+                  <span className="topology-panel__relation-hidden-note">
+                    {formatHiddenByFilters(group.hiddenCount)}
+                  </span>
+                )}
               </div>
             </div>
           ))}

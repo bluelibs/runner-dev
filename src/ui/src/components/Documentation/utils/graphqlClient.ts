@@ -215,6 +215,16 @@ export interface ShellEnabledResult {
   shellEnabled: boolean;
 }
 
+export const CODE_EXECUTION_ENABLED_QUERY = `
+  query CodeExecutionEnabled {
+    codeExecutionEnabled
+  }
+`;
+
+export interface CodeExecutionEnabledResult {
+  codeExecutionEnabled: boolean;
+}
+
 export const SHELL_COMPLETE_QUERY = `
   query ShellComplete($code: String!, $position: Int!, $resourceId: ID) {
     shellComplete(code: $code, position: $position, resourceId: $resourceId) {

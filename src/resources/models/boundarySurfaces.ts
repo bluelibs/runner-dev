@@ -10,26 +10,22 @@ function buildResourceMap(resources: Resource[]): ResourceById {
   return map;
 }
 
-function collectBoundaryResourceIds(
-  ownerId: string,
+function collectBoundaryResources(
+  owner: Resource,
   resourcesById: ResourceById,
-  visited: Set<string> = new Set()
-): Set<string> {
-  if (visited.has(ownerId)) {
+  visited: Map<string, Resource> = new Map()
+): Map<string, Resource> {
+  if (visited.has(owner.id)) {
     // One resource can appear through multiple registration paths in the
     // serialized graph; traversal only needs each subtree once.
     return visited;
   }
 
-  visited.add(ownerId);
-  const owner = resourcesById.get(ownerId);
-  if (!owner) {
-    return visited;
-  }
-
+  visited.set(owner.id, owner);
   for (const registeredId of owner.registers) {
-    if (resourcesById.has(registeredId)) {
-      collectBoundaryResourceIds(registeredId, resourcesById, visited);
+    const registeredResource = resourcesById.get(registeredId);
+    if (registeredResource) {
+      collectBoundaryResources(registeredResource, resourcesById, visited);
     }
   }
 
@@ -37,14 +33,16 @@ function collectBoundaryResourceIds(
 }
 
 function collectBoundaryElementIds(
-  ownerId: string,
+  owner: Resource,
   resourcesById: ResourceById
 ): Set<string> {
   const elementIds = new Set<string>();
 
-  for (const resourceId of collectBoundaryResourceIds(ownerId, resourcesById)) {
-    const resource = resourcesById.get(resourceId);
-    for (const registeredId of resource?.registers ?? []) {
+  for (const resource of collectBoundaryResources(
+    owner,
+    resourcesById
+  ).values()) {
+    for (const registeredId of resource.registers) {
       elementIds.add(registeredId);
     }
   }
@@ -56,101 +54,138 @@ function sortedIds(ids: Set<string>): string[] {
   return Array.from(ids).sort((left, right) => left.localeCompare(right));
 }
 
-function collectEffectiveExports(
-  ownerId: string,
-  resourcesById: ResourceById,
-  cache: Map<string, string[]>,
-  visiting: Set<string> = new Set()
-): { exports: string[]; complete: boolean } {
-  const cached = cache.get(ownerId);
-  if (cached) {
-    return { exports: cached, complete: true };
+/** Tarjan bookkeeping for a "list" owner whose export cycle is unresolved. */
+type CycleFrame = {
+  visitOrder: number;
+  lowestReachableOrder: number;
+  stackDepth: number;
+};
+
+/**
+ * Resolves effective exports for every owner in one shared pass.
+ *
+ * A "list" owner re-exports the effective exports of every resource it
+ * lists, so exports can form cycles. Every owner in one strongly-connected
+ * export cycle reaches the same set, so the cycle is resolved once with
+ * Tarjan's algorithm and the result is shared by all its members. This keeps
+ * each owner's exports expanded once, instead of re-walking the cycle for
+ * every path into it (factorial on dense cycles).
+ */
+class EffectiveExportsResolver {
+  private readonly resolved = new Map<string, string[]>();
+  private readonly framesOnStack = new Map<string, CycleFrame>();
+  private readonly cycleStack: string[] = [];
+  private nextVisitOrder = 0;
+
+  constructor(private readonly resourcesById: ResourceById) {}
+
+  resolve(owner: Resource): Set<string> {
+    return new Set(this.visit(owner));
   }
 
-  if (visiting.has(ownerId)) {
-    // Exports form a cycle back to a resource already being resolved up the
-    // stack. It contributes nothing new to this set union, so break the
-    // recursion instead of aborting all boundary computation (and with it
-    // live init and snapshot loading). Marked incomplete so the partial
-    // result is never cached.
-    return { exports: [], complete: false };
-  }
-
-  const owner = resourcesById.get(ownerId);
-  if (!owner) {
-    return { exports: [], complete: true };
-  }
-
-  const exportsMode = owner.isolation?.exportsMode ?? "unset";
-  if (exportsMode === "none") {
-    const none: string[] = [];
-    cache.set(ownerId, none);
-    return { exports: none, complete: true };
-  }
-
-  if (exportsMode === "unset") {
-    const allElements = sortedIds(
-      collectBoundaryElementIds(ownerId, resourcesById)
-    );
-    cache.set(ownerId, allElements);
-    return { exports: allElements, complete: true };
-  }
-
-  visiting.add(ownerId);
-  const exports = new Set<string>();
-  let complete = true;
-  for (const exportedId of owner.isolation?.exports ?? []) {
-    exports.add(exportedId);
-
-    if (!resourcesById.has(exportedId)) {
-      continue;
+  private visit(owner: Resource): Iterable<string> {
+    const resolved = this.resolved.get(owner.id);
+    if (resolved) {
+      return resolved;
     }
 
-    const nested = collectEffectiveExports(
-      exportedId,
-      resourcesById,
-      cache,
-      visiting
-    );
-    if (!nested.complete) {
-      complete = false;
+    const isolation = owner.isolation;
+    if (!isolation || isolation.exportsMode === "unset") {
+      return this.remember(
+        owner.id,
+        collectBoundaryElementIds(owner, this.resourcesById)
+      );
     }
-    for (const nestedExport of nested.exports) {
-      exports.add(nestedExport);
-    }
-  }
-  visiting.delete(ownerId);
 
-  const result = sortedIds(exports);
-  // Only cache cycle-free results: a value computed while a cycle was cut
-  // beneath it depends on traversal order.
-  if (complete) {
-    cache.set(ownerId, result);
+    if (isolation.exportsMode === "none") {
+      return this.remember(owner.id, new Set());
+    }
+
+    return this.visitListedExports(owner.id, isolation.exports);
   }
-  return { exports: result, complete };
+
+  private visitListedExports(
+    ownerId: string,
+    listedExports: string[]
+  ): Set<string> {
+    const frame: CycleFrame = {
+      visitOrder: this.nextVisitOrder,
+      lowestReachableOrder: this.nextVisitOrder,
+      stackDepth: this.cycleStack.length,
+    };
+    this.nextVisitOrder += 1;
+    this.framesOnStack.set(ownerId, frame);
+    this.cycleStack.push(ownerId);
+
+    const exports = new Set<string>();
+    for (const exportedId of listedExports) {
+      exports.add(exportedId);
+      const exportedOwner = this.resourcesById.get(exportedId);
+      if (!exportedOwner) {
+        continue;
+      }
+
+      const pendingFrame = this.framesOnStack.get(exportedId);
+      if (pendingFrame) {
+        // Back into the cycle being resolved: the cycle root unions this
+        // owner's exports, so only the link needs recording here.
+        frame.lowestReachableOrder = Math.min(
+          frame.lowestReachableOrder,
+          pendingFrame.visitOrder
+        );
+        continue;
+      }
+
+      for (const nestedExport of this.visit(exportedOwner)) {
+        exports.add(nestedExport);
+      }
+      // Still pending after the visit: the exported owner belongs to the
+      // same cycle, which is only complete once its root finishes.
+      const nestedFrame = this.framesOnStack.get(exportedId);
+      if (nestedFrame) {
+        frame.lowestReachableOrder = Math.min(
+          frame.lowestReachableOrder,
+          nestedFrame.lowestReachableOrder
+        );
+      }
+    }
+
+    if (frame.lowestReachableOrder === frame.visitOrder) {
+      this.resolveCycle(frame, exports);
+    }
+    return exports;
+  }
+
+  private resolveCycle(rootFrame: CycleFrame, exports: Set<string>): void {
+    const result = sortedIds(exports);
+    for (const memberId of this.cycleStack.splice(rootFrame.stackDepth)) {
+      this.framesOnStack.delete(memberId);
+      this.resolved.set(memberId, result);
+    }
+  }
+
+  private remember(ownerId: string, exports: Set<string>): string[] {
+    const result = sortedIds(exports);
+    this.resolved.set(ownerId, result);
+    return result;
+  }
 }
 
 export function buildBoundarySurfaces(
   resources: Resource[]
 ): BoundarySurface[] {
   const resourcesById = buildResourceMap(resources);
-  const effectiveExportsCache = new Map<string, string[]>();
+  const effectiveExportsResolver = new EffectiveExportsResolver(resourcesById);
   const boundaryElementsCache = new Map<string, Set<string>>();
 
   return resources
     .map((resource) => {
       const boundaryElements =
         boundaryElementsCache.get(resource.id) ??
-        collectBoundaryElementIds(resource.id, resourcesById);
+        collectBoundaryElementIds(resource, resourcesById);
       boundaryElementsCache.set(resource.id, boundaryElements);
 
-      const effectiveExports = new Set(
-        collectEffectiveExports(
-          resource.id,
-          resourcesById,
-          effectiveExportsCache
-        ).exports
-      );
+      const effectiveExports = effectiveExportsResolver.resolve(resource);
       const privateDefinitions = Array.from(boundaryElements).filter(
         (elementId) => !effectiveExports.has(elementId)
       );

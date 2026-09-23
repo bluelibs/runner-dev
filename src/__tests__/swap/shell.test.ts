@@ -4,7 +4,6 @@ import type { ISwapManager } from "../../resources/swap.resource";
 import {
   compileShellFunction,
   completeShellScope,
-  createCapturedConsole,
   extractCompletionTarget,
   serializeShellResult,
 } from "../../resources/swap.tools";
@@ -181,6 +180,18 @@ describe("compileShellFunction", () => {
   test("rejects invalid code", () => {
     const compiled = compileShellFunction("this is not valid {{{");
     expect(compiled.success).toBe(false);
+  });
+
+  test("auto-returns expressions that end with a line comment", async () => {
+    const withComment = compileShellFunction("r // check");
+    expect(withComment.success).toBe(true);
+    if (!withComment.success) return;
+    await expect(withComment.func({ r: "value" })).resolves.toBe("value");
+
+    const arithmetic = compileShellFunction("1 + 2 // note");
+    expect(arithmetic.success).toBe(true);
+    if (!arithmetic.success) return;
+    await expect(arithmetic.func({})).resolves.toBe(3);
   });
 });
 
@@ -465,24 +476,5 @@ describe("completeShellScope", () => {
     const labels = options.map((o) => o.label);
     expect(labels).toContain("set");
     expect(labels).not.toContain("hasOwnProperty");
-  });
-});
-
-describe("createCapturedConsole", () => {
-  test("captures lines and forwards to the real console", () => {
-    const logged: unknown[][] = [];
-    const originalLog = globalThis.console.log;
-    globalThis.console.log = (...args: unknown[]) => {
-      logged.push(args);
-    };
-    try {
-      const captured = createCapturedConsole();
-      captured.console.log("hello", { n: 1 });
-      expect(captured.logs).toHaveLength(1);
-      expect(captured.logs[0]).toContain("hello");
-      expect(logged).toHaveLength(1);
-    } finally {
-      globalThis.console.log = originalLog;
-    }
   });
 });

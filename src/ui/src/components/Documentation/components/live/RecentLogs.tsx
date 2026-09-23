@@ -54,7 +54,7 @@ const levelName = (
   level: string
 ): "error" | "warn" | "info" | "debug" | "trace" | "default" => {
   const l = level.toLowerCase();
-  if (l === "fatal" || l === "error") return "error";
+  if (l === "critical" || l === "fatal" || l === "error") return "error";
   if (l === "warn" || l === "warning") return "warn";
   if (l === "info") return "info";
   if (l === "debug") return "debug";

@@ -20,6 +20,12 @@ const NEVER_MATCHING_ENTRIES = [
   "devbox.lan:1337",
   "",
   "dev box",
+  // The guard compares exact names, so wildcard or subdomain syntax and
+  // lists match nothing, and userinfo never reaches the Host header.
+  "*.lan",
+  ".lan",
+  "user@devbox",
+  "devbox,other",
 ];
 
 describe.each(ENTRY_POINTS)("$name allowedHosts", ({ configure }) => {
@@ -27,14 +33,14 @@ describe.each(ENTRY_POINTS)("$name allowedHosts", ({ configure }) => {
     "rejects entry %p with a clear message",
     (entry) => {
       expect(() => configure([entry])).toThrow(
-        "allowedHosts entries are hostnames without scheme or port"
+        "allowedHosts entries are exact hostnames without scheme, port or wildcard"
       );
     }
   );
 
-  test("accepts hostnames and Compose service names", () => {
+  test("accepts hostnames, Compose service names and Unicode names", () => {
     expect(() =>
-      configure(["devbox.lan", "DevBox.LAN", "app", "my_service"])
+      configure(["devbox.lan", "DevBox.LAN", "app", "my_service", "bücher.lan"])
     ).not.toThrow();
   });
 });

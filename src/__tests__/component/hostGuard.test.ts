@@ -31,6 +31,8 @@ describe("normalizeHostname", () => {
     ["DevBox.LAN", "devbox.lan"],
     [" app ", "app"],
     ["[::1]", "::1"],
+    ["::", "::"],
+    ["Bücher.lan", "xn--bcher-kva.lan"],
   ])("%p -> %p", (hostname, expected) => {
     expect(normalizeHostname(hostname)).toBe(expected);
   });
@@ -84,19 +86,24 @@ describe("isLoopbackAddress", () => {
 
 describe("createHostGuard", () => {
   const app = express();
-  app.use(createHostGuard({ allowedHosts: ["DevBox.lan"] }));
+  app.use(createHostGuard({ allowedHosts: ["DevBox.lan", "bücher.lan"] }));
   app.get("/ping", (_req, res) => {
     res.send("pong");
   });
 
-  test.each(["localhost", "127.0.0.2:1337", "[::1]:1337", "devbox.lan:1337"])(
-    "lets Host %p through",
-    async (hostHeader) => {
-      const response = await request(app).get("/ping").set("Host", hostHeader);
-      expect(response.status).toBe(200);
-      expect(response.text).toBe("pong");
-    }
-  );
+  // A browser sends "bücher.lan" in punycode, so the Unicode entry must match
+  // that form.
+  test.each([
+    "localhost",
+    "127.0.0.2:1337",
+    "[::1]:1337",
+    "devbox.lan:1337",
+    "xn--bcher-kva.lan:1337",
+  ])("lets Host %p through", async (hostHeader) => {
+    const response = await request(app).get("/ping").set("Host", hostHeader);
+    expect(response.status).toBe(200);
+    expect(response.text).toBe("pong");
+  });
 
   test("rejects foreign Host headers with a clear 403", async () => {
     const response = await request(app)

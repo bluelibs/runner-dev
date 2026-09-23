@@ -1,4 +1,5 @@
 import { BlockList, isIP, isIPv6 } from "node:net";
+import { domainToASCII } from "node:url";
 import type { NextFunction, Request, Response } from "express";
 
 /** Bind address used when no host is configured: this machine only. */
@@ -16,12 +17,19 @@ const LOOPBACK_ADDRESSES = new BlockList();
 LOOPBACK_ADDRESSES.addSubnet("127.0.0.0", 8, "ipv4");
 LOOPBACK_ADDRESSES.addAddress("::1", "ipv6");
 
-/** Lowercased hostname without IPv6 brackets: `[::1]` -> `::1`. */
+/**
+ * Hostname in the form a Host header carries it: lowercased, without IPv6
+ * brackets (`[::1]` -> `::1`), and in punycode (`bücher.lan` ->
+ * `xn--bcher-kva.lan`), because browsers send internationalized names that
+ * way.
+ */
 export function normalizeHostname(hostname: string): string {
   const value = hostname.trim().toLowerCase();
-  return value.startsWith("[") && value.endsWith("]")
-    ? value.slice(1, -1)
-    : value;
+  const unbracketed =
+    value.startsWith("[") && value.endsWith("]") ? value.slice(1, -1) : value;
+  // domainToASCII returns "" for what is not a domain, such as an IPv6
+  // literal; those keep their own spelling.
+  return domainToASCII(unbracketed) || unbracketed;
 }
 
 /**

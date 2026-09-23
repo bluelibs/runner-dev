@@ -8,7 +8,16 @@ describe("buildDetailPager", () => {
   it("has no pager when there is nowhere else to go", () => {
     expect(buildDetailPager(rows(), "a")).toBeNull();
     expect(buildDetailPager(rows("a"), "a")).toBeNull();
-    expect(buildDetailPager(rows("b"), "a")).toBeNull();
+  });
+
+  it("pages an unlisted element to a lone other row", () => {
+    // The table filter narrowed to one row while another element is shown.
+    expect(buildDetailPager(rows("b"), "a")).toEqual({
+      previous: { id: "b" },
+      next: { id: "b" },
+      position: null,
+      total: 1,
+    });
   });
 
   it("links both neighbors with a position counter", () => {

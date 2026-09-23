@@ -9,15 +9,17 @@ export interface DetailPager<T extends { id: string }> {
 /**
  * Previous/next neighbors for the detail view, cycling through `list` (the
  * section's rows in the table's current order). An element the list does
- * not contain (filtered out, deep-linked) pages to the list's edges. With
- * one row or none there is nowhere to page to, so there is no pager: a
- * lone "1 of 1" Previous/Next would only link back to itself.
+ * not contain (filtered out, deep-linked) pages to the list's edges, even
+ * when the list holds a single row. There is no pager only when there is
+ * nowhere else to go: an empty list, or a lone row that is the shown
+ * element (a "1 of 1" Previous/Next would only link back to itself).
  */
 export function buildDetailPager<T extends { id: string }>(
   list: T[],
   selectedId: string | null
 ): DetailPager<T> | null {
-  if (list.length <= 1) return null;
+  const onlyShowsItself = list.length === 1 && list[0].id === selectedId;
+  if (list.length === 0 || onlyShowsItself) return null;
   const index = list.findIndex((item) => item.id === selectedId);
   const lastIndex = list.length - 1;
   return {

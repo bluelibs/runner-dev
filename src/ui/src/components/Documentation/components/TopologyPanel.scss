@@ -1490,6 +1490,18 @@
   }
 }
 
+// Counted-but-filtered nodes: sized like a chip, visibly not clickable.
+.topology-panel__relation-hidden-note {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--topology-border);
+  color: var(--docs-text-muted);
+  font-size: $font-size-xs;
+  font-style: italic;
+}
+
 .topology-panel__legend {
   display: grid;
   gap: 8px;

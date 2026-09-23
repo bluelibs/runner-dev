@@ -16,7 +16,7 @@ export const liveCursorArgs = {
     type: GraphQLFloat,
   },
   afterSequence: {
-    description: `Exclusive sequence cursor: only entries whose \`sequence\` is strictly greater. Pass the last received entry's \`sequence\` to page forward without gaps. ${WINDOW_SEMANTICS}`,
+    description: `Exclusive sequence cursor: only entries whose \`sequence\` is strictly greater. Pass the last received entry's \`sequence\` to page forward without gaps over the retained entries: each category keeps only its latest maxEntries, and an entry evicted before it is read is skipped without a signal. ${WINDOW_SEMANTICS}`,
     type: GraphQLFloat,
   },
   last: {

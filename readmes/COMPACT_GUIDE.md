@@ -192,7 +192,7 @@ If the app is running:
 - Start from `/docs/data` when the question is about what the docs UI or AI sees.
 - Use `project_overview` for a fast topology summary.
 - Use GraphQL for focused reads, not giant dumps.
-- Use live telemetry only with narrow limits such as `last: 10`. Without a cursor, `last: N` is the most recent N; with `afterSequence`/`afterTimestamp` it is the oldest N after the cursor. Page with `afterSequence: <last seen sequence>`, which never skips entries.
+- Use live telemetry only with narrow limits such as `last: 10`. Without a cursor, `last: N` is the most recent N; with `afterSequence`/`afterTimestamp` it is the oldest N after the cursor. Page with `afterSequence: <last seen sequence>`, which never skips a retained entry; entries evicted past `maxEntries` per category before you read them are skipped silently.
 
 Minimal topology query:
 
@@ -272,7 +272,7 @@ When working inside `@bluelibs/runner-dev`, start here:
 - Resource boundaries: GraphQL queries for declared exports, effective exports, and private definitions
 - MCP: the fastest AI-native access path when the app is already running
 - Live telemetry: logs, emissions, errors, runs, and correlation-driven inspection
-- Live telemetry cursors: every entry has a store-wide, strictly increasing `sequence`; `afterSequence` (live lists, `Task.runs`, `Hook.runs`) pages losslessly. `/live/stream` keeps a sequence cursor per category, delivers same-millisecond bursts in full, replays the store on connect, and pauses while the socket is backpressured
+- Live telemetry cursors: every entry has a store-wide, strictly increasing `sequence`; `afterSequence` (live lists, `Task.runs`, `Hook.runs`) pages without gaps over the retained entries. `/live/stream` keeps a sequence cursor per category, delivers same-millisecond bursts in full, replays the store on connect, pauses while the socket is backpressured, and ends its streams on server shutdown. Retention caps all of it: each category keeps its latest `maxEntries`, and an entry evicted before it is read is skipped with no gap signal
 - Middleware provenance: `TaskMiddlewareUsage`, `ResourceMiddlewareUsage` and the middleware-side usage types expose `origin` (`local`/`subtree`) and `subtreeOwnerId`; the task and resource cards show a `Subtree Policy` badge and a `Source:` link
 - Middleware `emits`: in GraphQL, the events emitted by the wrapped nodes (tasks/hooks for task middleware, the wrapped resources' own emits for resource middleware, never their consumers'); in the topology lenses, an `emits` edge is an event the middleware emits itself
 - Swap tooling: controlled runtime task replacement and restoration

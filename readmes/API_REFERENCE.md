@@ -19,7 +19,7 @@ runner-dev schema sdl --entry-file src/main.ts
 - Resource docs now include `isolation`, `subtree`, cooldown/ready/health flags, and resolved registrations.
 - Boundary queries expose declared exports, effective exports through exported resources, and private definitions.
 - Task docs include durable workflow metadata, RPC lane summary, and runtime interceptor ownership.
-- Live telemetry includes logs, event emissions, errors, runs, process stats, and per-resource health reports. Every entry carries a store-wide `sequence` cursor for lossless paging.
+- Live telemetry includes logs, event emissions, errors, runs, process stats, and per-resource health reports. Every entry carries a store-wide `sequence` cursor that pages the retained entries without gaps (each category keeps its latest `maxEntries`; older entries are evicted silently, even unread ones).
 - Task and resource middleware usages carry subtree provenance (`origin`, `subtreeOwnerId`).
 - Mutations cover task swapping, unswapping, task/event invocation, file editing, guarded eval, and the runtime shell. Everything that runs code or writes files sits behind one code-execution gate.
 
@@ -349,7 +349,7 @@ Useful when debugging `taskDependency.intercept(...)` and middleware interceptor
 
 Cursor arguments (shared by the four lists and by `Task.runs` / `Hook.runs`):
 
-- `afterSequence: Float` — exclusive; only entries whose `sequence` is greater. Pass the last received entry's `sequence` to page forward without gaps.
+- `afterSequence: Float` — exclusive; only entries whose `sequence` is greater. Pass the last received entry's `sequence` to page forward without gaps, as long as the reader keeps within the last `maxEntries` entries of the category: an entry evicted before it is read is skipped without a signal, and paging resumes at the oldest entry still kept.
 - `afterTimestamp: Float` — exclusive, milliseconds since epoch. Entries sharing one millisecond can straddle a page cut, so prefer `afterSequence` when every entry matters.
 - `last: Int` — with a cursor, the oldest N entries after it (page forward); without a cursor, the most recent N. Results are always oldest first.
 

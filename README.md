@@ -63,7 +63,7 @@ const app = r
 - Event introspection includes `transactional`, `parallel`, optional `eventLane { laneId }`, and optional `rpcLane { laneId }`.
 - Task introspection includes optional `rpcLane { laneId }`.
 - Tag pages distinguish between directly tagged elements and tag handlers (elements that depend on the tag id).
-- Live: in-memory logs, event emissions, errors and task/hook runs, with a lossless `sequence` cursor for paging and streaming
+- Live: in-memory logs, event emissions, errors and task/hook runs, with a `sequence` cursor that pages and streams the retained entries without gaps
 - Live File Previews and Saving (saving needs the [code-execution gate](#code-execution-gate) open).
 - GraphQL server: deep graph navigation over your app’s topology and live data
 - CLI with scaffolding, query-ing capabilities on a live endpoint or via dry-run mode.
@@ -700,7 +700,7 @@ The `live` resource records, in memory:
 - All event emissions (via an event manager interceptor)
 - Errors and runs of tasks and hooks (via the telemetry interceptors that `dev` registers)
 
-Each category keeps the latest `maxEntries` entries (default 10000, set through `dev.with({ maxEntries })`, which must be a positive integer).
+Each category keeps the latest `maxEntries` entries (default 10000, set through `dev.with({ maxEntries })`, which must be a positive integer). Older entries are evicted without notice, including entries a cursor or stream has not read yet: `afterSequence` then resumes at the oldest entry still kept. Readers that must see every entry have to stay within the last `maxEntries` entries of each category; raise `maxEntries` for high-volume apps.
 
 Every entry has a `sequence`: a number that is strictly increasing across all four categories and never reused, so it identifies one entry store-wide. It is an ordering key, not a count: it is seeded from the wall clock (about `Date.now() * 1000`), so it keeps increasing across restarts. Use it as the cursor when paging.
 
@@ -871,7 +871,8 @@ A heartbeat comment (`: heartbeat`) is sent every 15s to keep the connection ali
 
 Delivery guarantees:
 
-- Telemetry entries carry their `sequence`. The stream keeps one sequence cursor per category, so bursts of any size, including many entries in the same millisecond, arrive in full and in order. Large backlogs are drained in bounded pushes (up to 10 pages of 1000 entries per category per push, then the next push continues).
+- Telemetry entries carry their `sequence`. The stream keeps one sequence cursor per category, so bursts, including many entries in the same millisecond, arrive in full and in order as long as they are still retained when the push runs. Large backlogs are drained in bounded pushes (up to 10 pages of 1000 entries per category per push, then the next push continues).
+- Retention caps every guarantee: each category keeps only its latest `maxEntries` entries, so an entry evicted before a reader reaches it is skipped without any signal. Sequences jump (they are clock-seeded and shared by all four categories), so a gap in them does not reveal the loss either. A single category can overflow within one 100 ms push window (a burst larger than `maxEntries`) or while the stream is paused on backpressure; raise `maxEntries` if that matters.
 - On connect, the stream sends a `health` event and then replays the entries already in the store. After a reconnect, drop anything at or below the last `sequence` you saw.
 - The stream respects backpressure: while the socket buffer is full it pauses telemetry, health and heartbeat frames until the socket drains, instead of buffering without limit.
 - When the server shuts down (`runtime.dispose()`, Ctrl+C), it ends every open stream, so a connected client never holds up shutdown. `EventSource` then retries on its own.

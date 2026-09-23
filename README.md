@@ -1270,7 +1270,7 @@ Every server-side operation that runs code or writes source files shares one gat
 - When closed, they return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.`
 - Still allowed: every query, `invokeTask`/`invokeEvent` with plain JSON input, `unswapTask` and `unswapAllTasks`.
 - `query { codeExecutionEnabled }` reports the gate (`shellEnabled` is the same value). The docs UI uses it: with the gate closed, the source viewer stays read-only and says how to enable editing, and the shell shows the same hint.
-- `shell` and `eval` runs are bounded by `RUNNER_DEV_SHELL_TIMEOUT_MS` (default `30000`, a whole number from 1 to 2147483647; invalid values fail the run before any code executes). A timed-out run returns `<Shell|Eval> execution timed out after N ms. The code may still be running …`: JavaScript cannot cancel it, and a synchronous infinite loop blocks the server. Results over 256 KB (262144 characters) are cut and end with `… [truncated N chars]`.
+- `shell` and `eval` runs are bounded by `RUNNER_DEV_SHELL_TIMEOUT_MS` (default `30000`, a whole number from 1 to 2147483647; invalid values fail the run before any code executes). A timed-out run returns `<Shell|Eval> execution timed out after N ms. The code may still be running …`: JavaScript cannot cancel it, and a synchronous infinite loop blocks the server. For `shell`, the budget also covers initializing a lazy `resourceId`; an init that does not finish in time returns `Resource '<id>' did not finish initializing. Shell execution timed out after N ms. …`. Results over 256 KB (262144 characters) are cut and end with `… [truncated N chars]`.
 - The gate controls what the server may do, not who can reach it. Keep the default loopback bind unless you need network access; when the server listens on a non-loopback address with the gate open, it logs a startup warning (see [Network and code-execution defaults](#network-and-code-execution-defaults)).
 
 #### Best Practices
@@ -1508,7 +1508,7 @@ mutation {
 The `shell` mutation runs a JavaScript/TypeScript snippet against the live runtime, like a REPL. Bare expressions auto-return (`r`, `await runtime.runTask("...")`); multi-statement snippets use `return`. `console` output is captured and returned in `logs`.
 
 - `code`: the snippet to execute.
-- `resourceId` (optional): binds `r` to that resource's initialized value (exact or suffix match); without it, `r` is `null`.
+- `resourceId` (optional): binds `r` to that resource's initialized value (exact or suffix match); without it, `r` is `null`. Under `run(app, { lazy: true })` a resource that is not initialized yet is initialized first, and that init counts toward the run's timeout.
 - `runtime`: the live runtime (`runTask`, `emitEvent`, `getResourceValue`, `getResourceConfig`, `getHealth`, …).
 
 Like `eval`, the shell sits behind the [code-execution gate](#code-execution-gate) (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`) and shares its timeout and result cap. `query { shellEnabled }` (the same value as `codeExecutionEnabled`) tells a client whether it can run here.

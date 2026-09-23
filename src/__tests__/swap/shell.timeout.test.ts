@@ -7,6 +7,7 @@ import {
   raceShellTimeout,
   executionTimeoutMessage,
   resolveShellTimeoutMs,
+  startShellDeadline,
 } from "../../resources/shell.timeout";
 import {
   MAX_SHELL_RESULT_CHARS,
@@ -15,6 +16,10 @@ import {
 } from "../../resources/swap.tools";
 import { createDummyApp } from "../dummy/dummyApp";
 import { withEnv, withEnvAsync } from "./withEnv";
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 describe("resolveShellTimeoutMs", () => {
   test.each([undefined, "", "   "])("defaults for %p", (rawValue) => {
@@ -60,6 +65,29 @@ describe("raceShellTimeout", () => {
     await expect(
       raceShellTimeout(Promise.reject(new Error("boom")), 1000)
     ).rejects.toThrow("boom");
+  });
+
+  test("shares one deadline across steps instead of restarting it", async () => {
+    jest.useFakeTimers();
+    const deadline = startShellDeadline(50);
+    try {
+      const first = deadline.race(delay(30));
+      await jest.advanceTimersByTimeAsync(30);
+      await expect(first).resolves.toEqual({
+        timedOut: false,
+        value: undefined,
+      });
+
+      const second = deadline.race(new Promise<never>(() => undefined));
+      // 20 ms more reaches the shared deadline; a fresh one would need 50.
+      await jest.advanceTimersByTimeAsync(20);
+      await expect(
+        Promise.race([second, Promise.resolve("still pending")])
+      ).resolves.toEqual({ timedOut: true });
+    } finally {
+      deadline.clear();
+      jest.useRealTimers();
+    }
   });
 
   test("explains that the snippet may still be running", () => {
@@ -144,5 +172,69 @@ describe("SwapManager.shell limits", () => {
     expect(res.result).toBe(
       `${"z".repeat(MAX_SHELL_RESULT_CHARS)}… [truncated 10 chars]`
     );
+  });
+});
+
+describe("SwapManager.shell binding a lazily initialized resource", () => {
+  const initDelayMs = 60;
+  let swapManager: ISwapManager;
+
+  // Stands in for a client connecting to an unreachable host without its own
+  // connect timeout.
+  const hangingDb = defineResource({
+    id: "test-shell-hanging-db",
+    init: () => new Promise<never>(() => undefined),
+  });
+  const slowDb = defineResource({
+    id: "test-shell-slow-db",
+    async init() {
+      await delay(initDelayMs);
+      return { connected: true };
+    },
+  });
+
+  beforeAll(async () => {
+    // Lazy mode leaves both resources uninitialized until the shell binds them.
+    const runtime = await run(
+      createDummyApp([
+        hangingDb,
+        slowDb,
+        resources.introspector,
+        resources.swapManager,
+      ]),
+      { lazy: true }
+    );
+    swapManager = await runtime.getLazyResourceValue(resources.swapManager);
+  });
+
+  test("answers with a timeout when the resource init never settles", () =>
+    withEnvAsync({ [SHELL_TIMEOUT_ENV_VAR]: "50" }, async () => {
+      const res = await swapManager.shell("r", "test-shell-hanging-db");
+      expect(res.success).toBe(false);
+      expect(res.error).toBe(
+        `Resource 'test-shell-hanging-db' did not finish initializing. ${executionTimeoutMessage(
+          "Shell",
+          50
+        )}`
+      );
+      expect(res.logs).toBeUndefined();
+      expect(res.invocationId).toBeTruthy();
+    }));
+
+  test("spends one budget on the init and the snippet together", () =>
+    withEnvAsync({ [SHELL_TIMEOUT_ENV_VAR]: "100" }, async () => {
+      // Each step fits in 100 ms alone; together they take at least 120.
+      const res = await swapManager.shell(
+        `await new Promise((resolve) => setTimeout(resolve, ${initDelayMs})); return r;`,
+        "test-shell-slow-db"
+      );
+      expect(res.success).toBe(false);
+      expect(res.error).toBe(executionTimeoutMessage("Shell", 100));
+    }));
+
+  test("binds the value once the init finishes within the budget", async () => {
+    const res = await swapManager.shell("r.connected", "test-shell-slow-db");
+    expect(res.success).toBe(true);
+    expect(res.result).toBe("true");
   });
 });

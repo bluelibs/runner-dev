@@ -106,7 +106,7 @@ Notes:
 - Code-execution gate: `eval`, `shell`, `shellComplete`, `swapTask`, `editFile` and `evalInput: true` on `invokeTask`/`invokeEvent` run only with `RUNNER_DEV_EVAL=1` or `NODE_ENV` exactly `development`/`test`. An unset `NODE_ENV` (plain `node`, `tsx watch`, a scaffolded `npm run dev`) keeps it closed. Closed calls return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.`
 - Probe it with `query { codeExecutionEnabled }`; `shellEnabled` is the same value.
 - Not gated: queries (including `fileContents` of registered elements), plain-JSON `invokeTask`/`invokeEvent`, `unswapTask`, `unswapAllTasks`.
-- `eval` and `shell` runs time out after `RUNNER_DEV_SHELL_TIMEOUT_MS` (default 30000; the code keeps running after the timeout) and results are cut past 256 KB with `… [truncated N chars]`.
+- `eval` and `shell` runs time out after `RUNNER_DEV_SHELL_TIMEOUT_MS` (default 30000; the code keeps running after the timeout) and results are cut past 256 KB with `… [truncated N chars]`. A `shell` budget also covers initializing a lazy `resourceId` (`Resource '<id>' did not finish initializing. …`).
 
 ## MCP Quickstart
 

@@ -17,6 +17,8 @@ import {
   executionTimeoutMessage,
   raceShellTimeout,
   resolveShellTimeoutMs,
+  startShellDeadline,
+  type ShellDeadline,
 } from "./shell.timeout";
 import { randomUUID } from "crypto";
 
@@ -786,15 +788,31 @@ export const swapManager = defineResource({
       ): Promise<ShellResult> {
         const invocationId = randomUUID();
         const startTime = Date.now();
+        let deadline: ShellDeadline | null = null;
 
         try {
           // Resolved first so a malformed setting fails before any code runs.
           const timeoutMs = resolveShellTimeoutMs();
+          // The budget starts before `r` is bound: binding a lazy resource
+          // runs its init, which can hang just like a snippet.
+          deadline = startShellDeadline(timeoutMs);
+          const binding = await deadline.race(resolveShellResource(resourceId));
+          if (binding.timedOut) {
+            return {
+              success: false,
+              error: `Resource '${resourceId}' did not finish initializing. ${executionTimeoutMessage(
+                "Shell",
+                timeoutMs
+              )}`,
+              executionTimeMs: Date.now() - startTime,
+              invocationId,
+            };
+          }
           const {
             value: r,
             resolvedId: resolvedResourceId,
             error: resourceError,
-          } = await resolveShellResource(resourceId);
+          } = binding.value;
           if (resourceError) {
             return {
               success: false,
@@ -821,9 +839,8 @@ export const swapManager = defineResource({
 
           let result: unknown;
           try {
-            const outcome = await raceShellTimeout(
-              Promise.resolve(compileResult.func(dependencies)),
-              timeoutMs
+            const outcome = await deadline.race(
+              Promise.resolve(compileResult.func(dependencies))
             );
             if (outcome.timedOut) {
               return {
@@ -871,6 +888,8 @@ export const swapManager = defineResource({
             executionTimeMs,
             invocationId,
           };
+        } finally {
+          deadline?.clear();
         }
       },
 

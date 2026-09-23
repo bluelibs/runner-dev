@@ -1,0 +1,90 @@
+# Changelog
+
+Notable changes to `@bluelibs/runner-dev`. Version numbers follow `@bluelibs/runner`, so the number for a release is chosen when it ships; until then, changes collect under "Unreleased".
+
+## Unreleased
+
+Changes since 6.6.0. This release makes the dev server safe by default: code execution is opt-in, the server listens on loopback with a DNS-rebinding guard, and every code run is time-bounded. It also makes live telemetry lossless and fixes a set of introspection and docs UI issues.
+
+Already merged to `main` since 6.6.0 and included here:
+
+- **Introspection correctness sweep (#13):** crash fixes for cyclic resource exports and id-less register/overrides entries, correct GraphQL type resolution for tags, tasks, hooks and middleware, `Float` run timestamps, and oldest-first paging under a live cursor.
+- **Runtime shell (#14):** a REPL in the docs UI and a `shell` mutation, with per-resource shells (`r` is the live resource value), a global shell with full `runtime` access, captured `console` output, and side-effect-free completion through `shellComplete`.
+- **Docs UI polish:** `⌘K` command palette, `?` shortcut overlay, `g` section jumps, list-level Run/Emit/Shell actions, a detail pager, private-element tags under table titles, and topology light/dark fixes.
+- **Search-first tables:** the ID search is focused on arrival, the column searches sit back to back in Tab order, and ID/Title filters are fuzzy.
+- **Blast-radius lens:** the topology blast view follows dependents only, lists affected nodes by depth, and shows contract partners (emitters, throwers, providers) without expanding them.
+
+### Security (breaking)
+
+- **Code execution fails closed.** In 6.6.0, `eval` ran whenever `NODE_ENV` was not `production`, and `swapTask`, `evalInput` and `editFile` were not gated at all. Now a single gate covers `eval`, `shell`, `shellComplete`, `swapTask`, `editFile`, and `invokeTask`/`invokeEvent` with `evalInput: true`. It is open only when the server starts with `RUNNER_DEV_EVAL=1`, or with `NODE_ENV` exactly `development` or `test`. When it is closed, these calls return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.` (`shellComplete` returns no options). `editFile` is gated because a written source file runs as soon as a watcher reloads it.
+- **Loopback by default.** Without a `host`, the server now listens on `127.0.0.1`; 6.6.0 listened on every interface. While it is bound to a loopback address, requests whose `Host` header is not `localhost`, `127.0.0.1` or `[::1]` (or that have no Host header) get `403` with a GraphQL-shaped error. This blocks DNS-rebinding attacks from web pages and covers every route, including `http`-tagged task routes.
+- **Deliberate exposure is explicit and logged.** A non-loopback `host` (for example `"0.0.0.0"`) skips the Host check. If the code-execution gate is also open, the server logs a warning at startup.
+- **Path traversal in the docs UI asset route (also present in 6.6.0).** The `.js` route joined the raw request path onto the UI directory, and Express does not normalize `..` segments, so a raw request such as `GET /../secret.js` could return any `.js` file on disk. Requests outside the UI directory are now rejected. Combined with 6.6.0's all-interfaces bind, this was reachable from the network; upgrading is recommended.
+- **Bounded code runs.** `shell` and `eval` time out after `RUNNER_DEV_SHELL_TIMEOUT_MS` (default 30000 ms; a whole number from 1 to 2147483647, and an invalid value fails the run before any code executes). Results are capped at 256 KB (262144 characters) with a `… [truncated N chars]` marker. A timed-out run returns an error, but the code keeps running because JavaScript cannot cancel it, and a synchronous infinite loop still blocks the server.
+
+### Breaking changes and migration notes
+
+- **An unset `NODE_ENV` now disables code execution.** This covers plain `node dist/main.js`, `tsx watch` (including a generated project's `npm run dev`) and this repository's `npm run play`. Start the server with `RUNNER_DEV_EVAL=1` or `NODE_ENV=development` to use the shell, file editing, `swapTask`, `eval` or `evalInput`. Check with `query { codeExecutionEnabled }`.
+- **The server binds to `127.0.0.1` by default.** For Docker port mapping, a remote dev box or a LAN, set the host explicitly: `dev.with({ host: "0.0.0.0" })`, or `resources.server.with({ host: "0.0.0.0" })` if you register the resources yourself. There is no authentication, so only do this on a trusted network.
+- **Foreign `Host` headers get `403`** while the server is loopback-bound. Hosts-file aliases for 127.0.0.1, `*.localhost` names and services such as `127.0.0.1.nip.io` are refused. Use `localhost`, `127.0.0.1` or `[::1]`, or set a non-loopback `host`.
+- **`last` combined with a cursor returns the oldest entries after the cursor.** In 6.6.0, `last: N` always returned the most recent N, even with `afterTimestamp`. Now, with `afterTimestamp` or `afterSequence`, it returns the oldest N after the cursor so paging never skips entries; without a cursor it still returns the most recent N. A query such as `runs(afterTimestamp: 0, last: 5)` now returns the 5 oldest runs. Drop the cursor to get the latest ones.
+- **`Task.runs` and `Hook.runs` take `afterTimestamp: Float`** (it was `Int`, which overflows for millisecond timestamps). Operations that declare the variable as `Int` now fail validation; declare it as `Float`.
+- **Exported TypeScript types:** `LogEntry`, `EmissionEntry`, `ErrorEntry` and `RunRecord` now require `sequence: number`, so code that builds these objects itself (custom `Live` stubs or fakes) must supply it. `LogLevel` gains `"critical"`, so exhaustive `switch` statements over it need a new case.
+- **Node.js 22+.** `package.json` now declares `engines.node: ">=22"`, matching `@bluelibs/runner` 6.6 and `npm-skills`. Projects generated by `runner-dev new` declare `"^22.12.0 || >=24.0.0"` (it was `^20.19.0 || ^22.12.0 || >=24.0.0`), because the generated Vitest/Vite toolchain needs 22.12+.
+- **`typescript` is an optional peer dependency (`^5.0.0 || ^6.0.0`).** In 6.6.0 the package entry imported it eagerly although it was only a devDependency, so loading runner-dev without TypeScript installed failed. It now loads lazily, and only `swapTask`, `eval` and `shell` need it. Without it they return `Install typescript 5 or 6 to use swapTask, eval and shell: ... Run: npm install --save-dev typescript@6`. TypeScript 7's package entry has no `transpileModule`, so an installed TypeScript 7 is reported as incompatible. Not verified: npm may report a peer dependency conflict (ERESOLVE) in projects that install TypeScript 7.
+- **`maxEntries` must be an integer.** `dev.with({ maxEntries })` must be a positive integer and fails at `.with()` with a message naming the setting. `live.with({ maxEntries })` must be a non-negative integer, otherwise initialization throws a `RangeError`. The default is 10000 entries per live category (earlier README text said 1000).
+- **Dependencies trimmed.** `lru-cache`, `busboy` and `@types/graphql` were removed. `react`, `react-dom`, `prismjs`, `@bluelibs/smart` and `@types/prismjs` moved to devDependencies, since they are only bundled into the prebuilt UI. Projects that relied on runner-dev to install them must depend on them directly. The unused `dist/utils/react-ssr` module is gone.
+- **Hand-built definitions:** `register`/`overrides` entries without a string `id` are now skipped, in static lists as well as in function results (a static list with `null` or an id-less entry used to throw; `{ id: 7 }` used to be stringified). Runner itself rejects these shapes at `run()`, so only hand-built definitions are affected.
+
+### Added
+
+- `sequence: Float!` on `LogEntry`, `EmissionEntry`, `ErrorEntry` and `RunRecord`: strictly increasing across all four categories, never reused, and seeded from the wall clock so it keeps increasing across restarts. `afterSequence: Float` (exclusive) on `live { logs, emissions, errors, runs }` and on `Task.runs` / `Hook.runs`, and `Live.get*({ afterSequence })` in TypeScript. Paging with `afterSequence` never skips entries, even when several share one millisecond.
+- `query { codeExecutionEnabled }` reports the code-execution gate (`shellEnabled` reports the same value).
+- `origin` (`"local"` or `"subtree"`) and `subtreeOwnerId` on `ResourceMiddlewareUsage` and `MiddlewareResourceUsage`, matching the task-middleware usage types. An owner's own subtree resource middleware is reported on the owner with `origin: "subtree"`.
+- `critical` in `LogLevelEnum` and the `LogLevel` type. Runner's logger emits it, and before this change a `critical` log made `live { logs { level } }` fail with an enum serialization error.
+- `RUNNER_DEV_SHELL_TIMEOUT_MS` environment variable for `shell` and `eval` run limits.
+- Type exports from the package entry: `ShellResult`, `ShellCompletion`, `ShellCompletionOption`, `LiveCursorOptions`, `LiveEntryStamp`, `LogQueryOptions`, `EmissionQueryOptions`, `ErrorQueryOptions`, `RunQueryOptions`, `ErrorSourceKind`, `RunNodeKind`, `LiveRecordKind` and `ResolvedMiddlewareUsage`. The exported `Middleware` model type declares `emits?: string[] | null` (the middleware's own event dependencies; the value was always present at runtime).
+- Docs UI: resource cards show middleware provenance like task cards do, with a `Subtree Policy` badge (tooltip `Applied by subtree policy from <owner>`) and a `Source:` link to the owning resource.
+- Docs UI: with the gate closed, the source viewer opens read-only and says how to enable editing, and the shell shows the same hint (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`).
+- Docs UI blast lens: a `Hidden by filters` stat, a `Contract partners` count shown apart from `Affected`, true group counts with `N hidden by filters` notes, and a fullscreen subtitle such as `Blast radius · 4 affected (2 hidden by filters) within 3 hops · 2 contract partners`.
+- Docs UI tables: sort buttons are reachable from the keyboard (one Tab stop on the ID column; ArrowLeft/ArrowRight, Home and End move between columns; Enter/Space sorts).
+- `npm run check:runtime-deps`, run in CI and in `prepack`: it fails when `dist` requires a package that is not a dependency or peer, or when loading the package entry pulls in an optional peer such as `typescript`.
+- From #14 (runtime shell): the `shell(code, resourceId)` mutation, the `shellComplete(code, position, resourceId)` and `shellEnabled` queries, and the shell modal (completion as you type, history, `Enter` to run, `Shift+Enter` for a new line, ``Ctrl+` `` for the global shell).
+- From the docs UI polish: the `⌘K` command palette, the `?` shortcut overlay, `g` section jumps, `/` to focus the sidebar filter, `Esc` back navigation, and the detail pager.
+
+### Fixed
+
+- Live telemetry lost entries: SSE bursts larger than a page, and `afterTimestamp` paging, skipped entries that shared a millisecond at a page cut. The stream now keeps one sequence cursor per category and delivers bursts in full and in order.
+- The SSE stream ignored socket backpressure. It now pauses telemetry, health and heartbeat frames while the socket buffer is full and resumes on `drain`.
+- The docs UI Live panel's polling fallback shared one timestamp cursor across categories. It now keeps a sequence cursor per category, shared with SSE, so polling continues where the stream stopped, and SSE reconnect replays no longer duplicate rows.
+- Resource middleware `emits` was always empty in 6.6.0. It now lists the events emitted by the resources the middleware wraps, and not those of tasks or hooks that merely depend on a wrapped resource.
+- Resource middleware lacked subtree provenance. Conditional subtree entries (`{ use, when }`) are now reported by their middleware id instead of `[object Object]`.
+- Boundary surfaces re-walked cyclic export graphs exponentially; each strongly connected component is now resolved once. Cyclic resource exports no longer throw (#13).
+- #13: tags resolve as `Tag` (not `Hook`) in live and snapshot GraphQL; tasks and hooks are told apart consistently; `Event.listenedToBy` follows the specific-only hooks contract; middleware `isTypeOf` checks use the type discriminator; `register`/`overrides` functions receive the real store mode.
+- Shell: a trailing `// comment` broke expression auto-return; captured console lines longer than the budget disappeared instead of being cut; `console.dir`, `table`, `trace`, `assert` and `count` bypassed capture; completion walked into Proxies (it now lists nothing for them and fires no traps).
+- Docs UI tables: the autofocused search swallowed keyboard shortcuts after keyboard navigation (it now autofocuses only after pointer navigation or on a fresh load); the fuzzy ID/Title filter matched characters scattered across a whole id (short tokens now need a substring match, and 3+ character tokens a tight subsequence); the detail pager ignored the table's sort and filters and showed for a one-row list.
+- Docs UI blast lens: `Affected` left out nodes hidden by filters and counted contract partners; a tag's blast radius omitted the elements carrying the tag; a node first reached as a contract partner was never expanded when a real downstream edge reached it later.
+- Docs: MCP tool names are underscore-style (`graphql_query`, not `graphql.query`) and `graphql_schema_sdl` is listed; the docs UI URL is `/docs` (the root redirects to Voyager); the hot-swapping setup example now registers the `graphql` resource the server depends on; the logger example uses `resources.logger` (Runner 6.6 no longer exports `globals`); the `eval` example no longer shows arguments the mutation never had.
+
+### Changed
+
+- The `last`, `afterTimestamp` and `afterSequence` argument descriptions state the window semantics (see Breaking changes).
+- Shell and eval timeouts read `<Shell|Eval> execution timed out after N ms. The code may still be running on the server: JavaScript cannot cancel it. Set RUNNER_DEV_SHELL_TIMEOUT_MS to allow longer runs.`
+- Blast lens numbers: `Affected` is Direct + Transitive only, contract partners are counted separately, and hidden nodes are counted. Tag blast radii grow because tag carriers are included.
+- Docs tables keep their sort and search when you open an element and go back, and reset when you switch sections.
+- The live store uses a ring buffer with O(1) inserts and binary search to the sequence cursor, so queries no longer copy the whole store.
+- The docs UI `.js` asset cache is keyed by the resolved file, so different spellings of one path share an entry.
+
+### Internal
+
+- CI runs lint, typecheck, `npm run test:ci` (build, then Jest with `--coverage`) and `npm run check:runtime-deps` on Node 22 and 24. Audits run once, on Node 22. The TypeDoc Pages deploy is a separate job with the only write permissions, running on pushes to `main` after the tests pass. Actions are on `checkout@v4` / `setup-node@v4`.
+- Coverage thresholds are enforced for the first time, as a ratchet toward 100%: statements 52, branches 40, functions 50, lines 54. Test files no longer count as uncovered source.
+- The jsdom Jest project runs every `src/ui/**/*.test.tsx`; before, `TopologyCanvas.test.tsx` never ran. A guard test fails when a test file is matched by no Jest project or by two.
+- `prepack` runs `npm run clean` before building, so stale `dist` files cannot be packed.
+- Removed the empty `symbolMetadata` placeholders and the unused `src/utils/react-ssr.tsx`.
+
+### Known issues
+
+- Events emitted only by a middleware are missing from `Event.emittedBy` / `emittedByResolved` and may be reported as unemitted.
+- Not gated, by design: queries (including `fileContents`, which returns the source files of registered elements) and `invokeTask`/`invokeEvent` with plain JSON input. With a non-loopback `host`, anyone who can reach the port can use them. `editFile` paths are not restricted beyond the gate.
+- The docs UI Live panel's `evalInput` toggle does not check the gate first; with the gate closed, the server answers with the disabled error.

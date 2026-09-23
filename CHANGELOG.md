@@ -85,7 +85,7 @@ Already merged to `main` since 6.6.0 and included here:
 ### Internal
 
 - CI runs lint, typecheck, `npm run test:ci` (build, then Jest with `--coverage`) and `npm run check:runtime-deps` on Node 22 and 24. Audits run once, on Node 22. The TypeDoc Pages deploy is a separate job with the only write permissions, running on pushes to `main` after the tests pass. Actions are on `checkout@v4` / `setup-node@v4`.
-- Coverage thresholds are enforced for the first time, as a ratchet toward 100%: statements 52, branches 40, functions 50, lines 54. Test files no longer count as uncovered source.
+- Coverage thresholds are enforced for the first time, as a ratchet toward 100%: statements 57, branches 44, functions 54, lines 58. Test files no longer count as uncovered source.
 - The jsdom Jest project runs every `src/ui/**/*.test.tsx`; before, `TopologyCanvas.test.tsx` never ran. A guard test fails when a test file is matched by no Jest project or by two.
 - `prepack` runs `npm run clean` before building, so stale `dist` files cannot be packed.
 - Removed the empty `symbolMetadata` placeholders and the unused `src/utils/react-ssr.tsx`.

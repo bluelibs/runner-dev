@@ -17,15 +17,15 @@ module.exports = {
   ],
   coverageDirectory: "<rootDir>/coverage",
   coverageReporters: ["text", "lcov", "html"],
-  // A ratchet toward the 100% goal: the measured global numbers, rounded down,
-  // from when CI started enforcing coverage. Raise them as coverage improves;
-  // never lower them or exclude source files to make a run pass.
+  // A ratchet toward the 100% goal: the last measured global numbers, rounded
+  // down. Raise them as coverage improves; never lower them or exclude source
+  // files to make a run pass.
   coverageThreshold: {
     global: {
-      statements: 52,
-      branches: 40,
-      functions: 50,
-      lines: 54,
+      statements: 57,
+      branches: 44,
+      functions: 54,
+      lines: 58,
     },
   },
   projects: [

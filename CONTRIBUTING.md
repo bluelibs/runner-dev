@@ -70,7 +70,7 @@ npm test -- cli
 
 CI (`.github/workflows/ci.yml`) runs on Node 22 and 24: lint, typecheck, then `npm run test:ci` (build, then Jest with `--coverage`), then `npm run check:runtime-deps`. On the Node 22 leg it also runs `npm run audit` and `npm run audit:scaffold`. The TypeDoc site deploys to GitHub Pages in a separate job, only on pushes to `main` after the tests pass.
 
-- Coverage thresholds in `config/jest/jest.config.js` are a ratchet toward 100%, not 100% today: statements 52, branches 40, functions 50, lines 54. Raise them as coverage improves; never lower them or exclude source files to make a run pass. Test files are excluded from `collectCoverageFrom` because Jest never instruments them.
+- Coverage thresholds in `config/jest/jest.config.js` are a ratchet toward 100%, not 100% today: statements 57, branches 44, functions 54, lines 58. Raise them as coverage improves; never lower them or exclude source files to make a run pass. Test files are excluded from `collectCoverageFrom` because Jest never instruments them.
 - `npm run check:runtime-deps` scans `dist` (except `dist/ui`) and fails when it requires a package that is not a dependency, a peer or a documented optional module, or when loading the package entry pulls in an optional peer such as `typescript`. `prepack` runs `npm run clean` and a fresh build before it, so stale files in `dist` cannot be packed.
 
 ## Type-safe GraphQL Resolvers

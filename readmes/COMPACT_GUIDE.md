@@ -297,7 +297,7 @@ Assume current Runner reality, not old examples:
 - Use the Runner skill for framework design or core Runner contracts.
 - Use runner-dev context for tooling behavior, docs payloads, MCP, GraphQL, telemetry, and UI integration.
 - Prefer focused tests first: `npm run test -- docs.data`, `npm run test -- mcp`, `npm run test -- live`, or another narrow suite near the touched surface.
-- CI runs lint, typecheck, build, Jest with coverage thresholds (a ratchet, currently 52/40/50/54 for statements/branches/functions/lines) and `npm run check:runtime-deps` on Node 22 and 24. Do not lower the thresholds or exclude source files to pass.
+- CI runs lint, typecheck, build, Jest with coverage thresholds (a ratchet, currently 57/44/54/58 for statements/branches/functions/lines) and `npm run check:runtime-deps` on Node 22 and 24. Do not lower the thresholds or exclude source files to pass.
 - Use `pure: true` when validating swapped task behavior safely.
 - Avoid huge live queries, broad schema dumps, or mutation access unless the task truly needs them.
 

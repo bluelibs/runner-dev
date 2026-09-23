@@ -19,8 +19,24 @@ runner-dev schema sdl --entry-file src/main.ts
 - Resource docs now include `isolation`, `subtree`, cooldown/ready/health flags, and resolved registrations.
 - Boundary queries expose declared exports, effective exports through exported resources, and private definitions.
 - Task docs include durable workflow metadata, RPC lane summary, and runtime interceptor ownership.
-- Live telemetry includes logs, event emissions, errors, runs, process stats, and per-resource health reports.
-- Mutations cover task swapping, unswapping, task/event invocation, file editing, guarded eval, and the runtime shell.
+- Live telemetry includes logs, event emissions, errors, runs, process stats, and per-resource health reports. Every entry carries a store-wide `sequence` cursor for lossless paging.
+- Task and resource middleware usages carry subtree provenance (`origin`, `subtreeOwnerId`).
+- Mutations cover task swapping, unswapping, task/event invocation, file editing, guarded eval, and the runtime shell. Everything that runs code or writes files sits behind one code-execution gate.
+
+## Transport And Access
+
+The `dev` resource serves, on port 1337 by default:
+
+- `POST /graphql` — the API described here
+- `GET /live/stream` — Server-Sent Events: `telemetry` (`{ logs, emissions, errors, runs }` deltas, each entry with its `sequence`) and `health` events, plus a `: heartbeat` comment every 15s
+- `GET /docs` — the docs UI; `GET /docs/data` — its JSON payload
+- `GET /voyager` — GraphQL Voyager; `GET /` redirects there
+
+Access rules:
+
+- Without a `host` option the server listens on `127.0.0.1`. While it is bound to a loopback address, any request whose `Host` header is not `localhost`, `127.0.0.1` or `[::1]` (or that has no Host header) gets `403` with `{ "errors": [{ "message": "Forbidden: this runner-dev server is bound to a loopback address ..." }] }`. This guards against DNS rebinding and covers every route.
+- `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`) exposes the server on the network and skips the Host check. There is no authentication; when the code-execution gate is also open, the server logs a warning at startup.
+- The code-execution gate (see Mutation Notes) is open only with `RUNNER_DEV_EVAL=1` or `NODE_ENV` exactly `development` or `test`.
 
 ## Query Root
 
@@ -88,10 +104,10 @@ The current `Mutation` type exposes:
 ### Mutation Notes
 
 - `swapTask` replaces a task's `run()` implementation at runtime.
-- `invokeTask` supports `pure: true` to bypass middleware.
+- `invokeTask` supports `pure: true` to bypass middleware. `invokeTask`/`invokeEvent` with plain JSON `inputJson` are not gated; `evalInput: true` evaluates `inputJson` as JavaScript and is.
 - Code-execution gate: `eval`, `shell`, `shellComplete`, `swapTask`, `editFile`, and `invokeTask`/`invokeEvent` with `evalInput: true` run only with `RUNNER_DEV_EVAL=1` or `NODE_ENV` exactly `development`/`test` (closed when `NODE_ENV` is unset). When closed they return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.` (`shellComplete` returns no options). `codeExecutionEnabled` reports the gate; `shellEnabled` is the same value.
 - `editFile` accepts structured paths such as `workspace:src/index.ts`. It is gated because a written source file runs as soon as a watcher reloads it.
-- `eval` and `shell` runs are bounded by `RUNNER_DEV_SHELL_TIMEOUT_MS` (default 30000) and results are cut past 256 KB with `… [truncated N chars]`.
+- `eval` and `shell` runs are bounded by `RUNNER_DEV_SHELL_TIMEOUT_MS` (default 30000; a whole number from 1 to 2147483647, anything else fails the run before code executes). A timed-out run returns `success: false` with `<Shell|Eval> execution timed out after N ms. The code may still be running …`, since JavaScript cannot cancel it. Results are cut past 256 KB with `… [truncated N chars]`, and `shell` keeps at most 200 captured console lines / 20000 characters.
 - `swapTask`, `eval` and `shell` compile code with `typescript`, an optional peer dependency (5 or 6). Without it they fail with `Install typescript 5 or 6 to use swapTask, eval and shell: ...`.
 - `shell` runs REPL-style snippets with `r` (resource value) and `runtime` in scope and captures `console` into `logs`.
 - `shellComplete` lists member completions for a snippet at a cursor offset by walking the live shell scope (side-effect free); the shell editor uses it for as-you-type autocomplete.
@@ -129,7 +145,7 @@ Key fields:
 - `inputSchema`, `inputSchemaReadable`
 - `rpcLane`
 - `interceptorCount`, `hasInterceptors`, `interceptorOwnerIds`
-- `runs(afterTimestamp, last, filter)`
+- `runs(afterTimestamp, afterSequence, last, filter)` (same cursor semantics as the live lists)
 - `isDurable`, `durableResource`, `durableWorkflowKey`
 - `overriddenBy`, `registeredBy`
 
@@ -150,7 +166,7 @@ Key fields:
 - `hookOrder`
 - `dependsOn`, `depenendsOnResolved`
 - `middleware`, `middlewareResolvedDetailed`
-- `runs(...)`
+- `runs(afterTimestamp, afterSequence, last, filter)`
 
 ### Resource
 
@@ -159,7 +175,7 @@ Key fields:
 - `dependsOn`, `dependsOnResolved`
 - `config`, `configSchema`, `configSchemaReadable`
 - `context`
-- `middleware`, `middlewareResolvedDetailed`
+- `middleware`, `middlewareResolvedDetailed` (`[ResourceMiddlewareUsage!]!`)
 - `overrides`, `overridesResolved`
 - `registers`, `registersResolved`
 - `usedBy`
@@ -169,6 +185,12 @@ Key fields:
 - `isolation`
 - `subtree`
 - `surface`
+
+`ResourceMiddlewareUsage` mirrors `TaskMiddlewareUsage`:
+
+- `id`, `config`, `node`
+- `origin` — `"local"` or `"subtree"`
+- `subtreeOwnerId` — the resource whose `subtree({ resources: { middleware } })` policy applied it. An owner's own subtree resource middleware also applies to the owner, so it appears on the owner with `origin: "subtree"` and the owner's id here.
 
 Important nested resource types:
 
@@ -221,6 +243,10 @@ Specialized views:
 - `TaskMiddleware.usedByDetailed`
 - `ResourceMiddleware.usedBy`
 - `ResourceMiddleware.usedByDetailed`
+
+`emits` lists the events emitted by the nodes the middleware wraps: tasks and hooks for task middleware, the wrapped resources' own emits for resource middleware. Tasks and hooks that only depend on a wrapped resource are not included. (The docs UI topology lenses draw a middleware's `emits` edges from the middleware's own event dependencies instead.)
+
+The detailed usage types (`MiddlewareTaskUsage`, `MiddlewareResourceUsage`) expose `id`, `config`, `origin`, `subtreeOwnerId` and `node`, the same provenance as the task and resource usage types.
 
 ### Event
 
@@ -313,18 +339,26 @@ Useful when debugging `taskDependency.intercept(...)` and middleware interceptor
 - `cpu: CpuStats!`
 - `eventLoop(reset: Boolean): EventLoopStats!`
 - `gc(windowMs: Float): GcStats!`
-- `logs(afterTimestamp, last, filter): [LogEntry!]!`
-- `emissions(afterTimestamp, last, filter): [EmissionEntry!]!`
-- `errors(afterTimestamp, last, filter): [ErrorEntry!]!`
-- `runs(afterTimestamp, last, filter): [RunRecord!]!`
+- `logs(afterTimestamp, afterSequence, last, filter): [LogEntry!]!`
+- `emissions(afterTimestamp, afterSequence, last, filter): [EmissionEntry!]!`
+- `errors(afterTimestamp, afterSequence, last, filter): [ErrorEntry!]!`
+- `runs(afterTimestamp, afterSequence, last, filter): [RunRecord!]!`
 - `healthReport: ResourceHealthReport`
+
+Cursor arguments (shared by the four lists and by `Task.runs` / `Hook.runs`):
+
+- `afterSequence: Float` — exclusive; only entries whose `sequence` is greater. Pass the last received entry's `sequence` to page forward without gaps.
+- `afterTimestamp: Float` — exclusive, milliseconds since epoch. Entries sharing one millisecond can straddle a page cut, so prefer `afterSequence` when every entry matters.
+- `last: Int` — with a cursor, the oldest N entries after it (page forward); without a cursor, the most recent N. Results are always oldest first.
+
+Every entry type (`LogEntry`, `EmissionEntry`, `ErrorEntry`, `RunRecord`) has `sequence: Float!`: strictly increasing across all four categories and never reused. It is an ordering key, not a count; values are seeded from the wall clock so they keep increasing across restarts.
 
 Supporting types include:
 
-- `LogEntry`
-- `EmissionEntry`
-- `ErrorEntry`
-- `RunRecord`
+- `LogEntry` — `sequence`, `timestampMs`, `level`, `message`, `data`, `correlationId`, `sourceId`
+- `EmissionEntry` — `sequence`, `timestampMs`, `eventId`, `emitterId`, `payload`, `correlationId`, resolved variants
+- `ErrorEntry` — `sequence`, `timestampMs`, `sourceId`, `sourceKind`, `message`, `stack`, `data`, `correlationId`, `sourceResolved`
+- `RunRecord` — `sequence`, `timestampMs`, `nodeId`, `nodeKind`, `durationMs`, `ok`, `error`, `parentId`, `rootId`, `correlationId`, `nodeResolved`
 - `ResourceHealthReport`
 - `ResourceHealthTotals`
 - `ResourceHealthEntry`
@@ -341,8 +375,10 @@ Supporting types include:
 - `SwappedTask`
 - `InvokeResult`
 - `InvokeEventResult`
-- `EvalResult`
-- `EditFileResult`
+- `EvalResult` — `success`, `error`, `result` (JSON string), `executionTimeMs`, `invocationId`
+- `EditFileResult` — `success`, `error`, `path`, `resolvedPath`
+- `ShellResult` — `success`, `error`, `result`, `logs` (captured console lines), `executionTimeMs`, `invocationId`
+- `ShellCompletion` — `from` (offset the completed word starts at), `options: [ShellCompletionOption!]!` with `label`, `type`, `detail`
 
 ## Enums Worth Knowing
 

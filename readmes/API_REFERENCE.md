@@ -36,7 +36,7 @@ Access rules:
 
 - Without a `host` option the server listens on `127.0.0.1`.
 - On every bind, any request whose `Host` header is a DNS name other than `localhost`, the configured `host` or an `allowedHosts` entry (or that has no Host header) gets `403` with `{ "errors": [{ "message": "Forbidden: this runner-dev server only answers requests addressed to localhost, an IP address or a name in allowedHosts ..." }] }`. IP addresses always pass. This guards against DNS rebinding and covers every route.
-- `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`) exposes the server on the network; add `allowedHosts: ["devbox.lan"]` to reach it by a DNS name. There is no authentication; when the bound address is not loopback and the code-execution gate is also open, the server logs a warning at startup.
+- `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`) exposes the server on the network; add `allowedHosts: ["devbox.lan"]` to reach it by a DNS name (hostnames only; both `.with()` calls reject a scheme or port). There is no authentication; when the bound address is not loopback and the code-execution gate is also open, the server logs a warning at startup.
 - The served docs UI calls this API on the origin it was loaded from; set the `API_URL` environment variable on the server to point it elsewhere.
 - The code-execution gate (see Mutation Notes) is open only with `RUNNER_DEV_EVAL=1` or `NODE_ENV` exactly `development` or `test`.
 

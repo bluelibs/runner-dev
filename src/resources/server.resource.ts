@@ -26,7 +26,9 @@ import {
   isLoopbackAddress,
 } from "./routeHandlers/hostGuard";
 import { isCodeExecutionAllowed } from "../schema/codeExecutionGate";
+import { allowedHostsSchema } from "./allowedHosts.schema";
 import voyagerHtml from "./templates/voyager.html";
+import z from "zod";
 
 export interface ServerConfig {
   port?: number;
@@ -43,6 +45,20 @@ export interface ServerConfig {
   allowedHosts?: string[];
   apollo?: StartStandaloneServerOptions<CustomGraphQLContext>;
 }
+
+/**
+ * `resources.server.with(...)` is a documented entry point next to
+ * `dev.with(...)`, so it rejects the same `allowedHosts` entries. The other
+ * fields are only type-checked, as before.
+ */
+const serverConfigSchema: z.ZodType<ServerConfig> = z.object({
+  port: z.number().optional(),
+  host: z.string().optional(),
+  allowedHosts: allowedHostsSchema,
+  apollo: z
+    .custom<StartStandaloneServerOptions<CustomGraphQLContext>>()
+    .optional(),
+});
 
 function networkExposureWarning(host: string): string {
   return (
@@ -84,6 +100,7 @@ export const serverResource = defineResource({
       "Express server with GraphQL endpoint, Voyager UI, and static file serving for the Runner-Dev application",
   },
   register: [coverage],
+  configSchema: serverConfigSchema,
   context: () => ({ liveStreams: new LiveStreamRegistry() }),
   dependencies: {
     store: resources.store,

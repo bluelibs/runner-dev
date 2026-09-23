@@ -107,7 +107,7 @@ describe("createHostGuard", () => {
       errors: [{ message: hostRejectionMessage("rebind.evil.example") }],
     });
     expect(response.body.errors[0].message).toContain(
-      'dev.with({ allowedHosts: ["rebind.evil.example"] })'
+      'list that name in allowedHosts, e.g. dev.with({ allowedHosts: ["rebind.evil.example"] })'
     );
   });
 

@@ -62,8 +62,8 @@ export function hostRejectionMessage(hostname: string | null): string {
   const received =
     hostname === null
       ? "The request had no Host header."
-      : `To reach it as "${hostname}", list that name: ` +
-        `dev.with({ allowedHosts: ["${hostname}"] }).`;
+      : `To reach it as "${hostname}", list that name in allowedHosts, ` +
+        `e.g. dev.with({ allowedHosts: ["${hostname}"] }).`;
   return (
     "Forbidden: this runner-dev server only answers requests addressed to " +
     "localhost, an IP address or a name in allowedHosts (Host header check " +

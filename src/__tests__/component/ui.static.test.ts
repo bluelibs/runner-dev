@@ -19,11 +19,12 @@ describe("ui static router", () => {
       "console.log('__API_URL__')"
     );
 
-    process.env.API_URL = "http://x";
     // [AI-CHAT-DISABLED] process.env.OPENAI_API_BASE_URL = "http://y";
     // [AI-CHAT-DISABLED] process.env.OPENAI_API_KEY = "z";
 
-    const router = createUiStaticRouter(tmpDir) as any;
+    const router = createUiStaticRouter(tmpDir, {
+      apiUrl: "http://x",
+    }) as any;
     const jsLayer = router.stack.find(
       (layer: any) => layer?.route && String(layer.route.path).includes("\\.js")
     );

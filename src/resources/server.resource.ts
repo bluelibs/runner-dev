@@ -168,15 +168,17 @@ export const serverResource = defineResource({
     const uiDir =
       candidateUiDirs.find((dir) => fs.existsSync(dir)) || candidateUiDirs[0];
 
-    // Compute base URL and expose via token replacement in JS. The default
-    // loopback bind still advertises "localhost" so the UI origin and API URL
-    // match (clients resolve it to 127.0.0.1 via happy eyeballs).
+    // Advertised in the startup logs only. The default loopback bind still
+    // says "localhost" (clients resolve it to 127.0.0.1 via happy eyeballs).
     const baseHost =
       config.host && host !== "0.0.0.0" && host !== "::" ? host : "localhost";
     const baseUrl = `http://${baseHost}:${port}`;
-    process.env.API_URL = process.env.API_URL || baseUrl;
 
-    app.use(createUiStaticRouter(uiDir));
+    // The docs UI is served by this server, so by default it calls the API
+    // on the origin it was loaded from. A URL baked in here would be wrong
+    // for any browser that reaches the server under another name or port
+    // (a LAN address, a remapped Docker port). API_URL stays an override.
+    app.use(createUiStaticRouter(uiDir, { apiUrl: process.env.API_URL ?? "" }));
 
     // Optional SPA fallback
     // app.get(/^(?!\/graphql|\/voyager|\/docs).*/, (_req, res) => {

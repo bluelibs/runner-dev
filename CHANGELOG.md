@@ -76,6 +76,7 @@ Already merged to `main` since 6.6.0 and included here:
 - Docs tables keep their sort and search when you open an element and go back, and reset when you switch sections.
 - The live store uses a ring buffer with O(1) inserts and binary search to the sequence cursor, so queries no longer copy the whole store.
 - The docs UI `.js` asset cache is keyed by the resolved file, so different spellings of one path share an entry.
+- The served docs UI calls the API on the origin it was loaded from. The server used to bake `http://localhost:<port>` (or the configured host) into the UI scripts, which broke the UI for browsers on another machine and behind a remapped Docker port. The `API_URL` environment variable still overrides the API base, and the server no longer writes `process.env.API_URL`.
 
 ### Internal
 

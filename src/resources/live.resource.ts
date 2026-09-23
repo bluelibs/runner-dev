@@ -7,140 +7,85 @@ import {
   type TaskMiddlewareStoreElementType,
 } from "@bluelibs/runner";
 import { getCorrelationId } from "./telemetry.chain";
+import { RingBuffer } from "./live/RingBuffer";
+import { createIdCanonicalizer } from "./live/idCanonicalizer";
+import { createSequenceClock } from "./live/sequenceClock";
+import { queryEntries, toQueryOptions } from "./live/entryQuery";
+import {
+  buildEmissionMatcher,
+  buildErrorMatcher,
+  buildLogMatcher,
+  buildRunMatcher,
+} from "./live/entryMatchers";
+import type {
+  EmissionEntry,
+  EmissionQueryOptions,
+  ErrorEntry,
+  ErrorQueryOptions,
+  Live,
+  LiveEntryStamp,
+  LiveRecordKind,
+  LogEntry,
+  LogLevel,
+  LogQueryOptions,
+  RunQueryOptions,
+  RunRecord,
+} from "./live/types";
 
-export type LogLevel =
-  | "trace"
-  | "debug"
-  | "info"
-  | "warn"
-  | "error"
-  | "fatal"
-  | "log";
+export type {
+  EmissionEntry,
+  EmissionQueryOptions,
+  ErrorEntry,
+  ErrorQueryOptions,
+  ErrorSourceKind,
+  Live,
+  LiveCursorOptions,
+  LiveEntryStamp,
+  LiveRecordKind,
+  LogEntry,
+  LogLevel,
+  LogQueryOptions,
+  RunNodeKind,
+  RunQueryOptions,
+  RunRecord,
+} from "./live/types";
 
-export interface LogEntry {
-  timestampMs: number;
-  level: LogLevel;
+const DEFAULT_MAX_ENTRIES = 10_000;
+
+function collectNodeIds(store: Store, eventIds: string[]): string[] {
+  return [
+    ...Array.from(store.tasks.values()).map((entry) => String(entry.task.id)),
+    ...Array.from(store.hooks.values()).map((entry) => String(entry.hook.id)),
+    ...Array.from(store.resources.values()).map(
+      (entry: ResourceStoreElementType) => String(entry.resource.id)
+    ),
+    ...Array.from(store.taskMiddlewares.values()).map(
+      (entry: TaskMiddlewareStoreElementType) => String(entry.middleware.id)
+    ),
+    ...Array.from(store.resourceMiddlewares.values()).map(
+      (entry: ResourceMiddlewareStoreElementType) => String(entry.middleware.id)
+    ),
+    ...eventIds,
+  ];
+}
+
+function describeError(error: unknown): {
   message: string;
-  sourceId?: string | null;
-  data?: unknown;
-  correlationId?: string | null;
-}
-export interface EmissionEntry {
-  timestampMs: number;
-  eventId: string;
-  emitterId?: string | null;
-  payload?: unknown;
-  correlationId?: string | null;
-}
-
-export interface ErrorEntry {
-  timestampMs: number;
-  sourceId: string;
-  sourceKind: "TASK" | "HOOK" | "RESOURCE" | "MIDDLEWARE" | "INTERNAL";
-  message: string;
-  stack?: string | null;
-  data?: unknown;
-  correlationId?: string | null;
+  stack: string | null;
+} {
+  if (error instanceof Error)
+    return { message: error.message, stack: error.stack ?? null };
+  if (typeof error === "string") return { message: error, stack: null };
+  try {
+    return { message: JSON.stringify(error), stack: null };
+  } catch {
+    return { message: String(error), stack: null };
+  }
 }
 
-export interface RunRecord {
-  timestampMs: number;
-  nodeId: string;
-  nodeKind: "TASK" | "HOOK";
-  durationMs: number;
-  ok: boolean;
-  error?: string | null;
-  parentId?: string | null;
-  rootId?: string | null;
-  correlationId?: string | null;
-}
-
-export interface Live {
-  getLogs(
-    options?:
-      | number
-      | {
-          afterTimestamp?: number;
-          last?: number;
-          levels?: LogLevel[];
-          messageIncludes?: string;
-          correlationIds?: string[];
-        }
-  ): LogEntry[];
-  getEmissions(
-    options?:
-      | number
-      | {
-          afterTimestamp?: number;
-          last?: number;
-          eventIds?: string[];
-          emitterIds?: string[];
-          correlationIds?: string[];
-        }
-  ): EmissionEntry[];
-  getErrors(
-    options?:
-      | number
-      | {
-          afterTimestamp?: number;
-          last?: number;
-          sourceKinds?: (
-            | "TASK"
-            | "HOOK"
-            | "RESOURCE"
-            | "MIDDLEWARE"
-            | "INTERNAL"
-          )[];
-          sourceIds?: string[];
-          messageIncludes?: string;
-          correlationIds?: string[];
-        }
-  ): ErrorEntry[];
-  getRuns(
-    options?:
-      | number
-      | {
-          afterTimestamp?: number;
-          last?: number;
-          nodeKinds?: ("TASK" | "HOOK")[];
-          nodeIds?: string[];
-          ok?: boolean;
-          parentIds?: string[];
-          rootIds?: string[];
-          correlationIds?: string[];
-        }
-  ): RunRecord[];
-  recordLog(
-    level: LogLevel,
-    message: string,
-    data?: unknown,
-    correlationId?: string | null,
-    sourceId?: string | null
-  ): void;
-  recordEmission(
-    eventId: string,
-    payload?: unknown,
-    emitterId?: string | null
-  ): void;
-  recordError(
-    sourceId: string,
-    sourceKind: "TASK" | "HOOK" | "RESOURCE" | "MIDDLEWARE" | "INTERNAL",
-    error: unknown,
-    data?: unknown
-  ): void;
-  recordRun(
-    nodeId: string,
-    nodeKind: "TASK" | "HOOK",
-    durationMs: number,
-    ok: boolean,
-    error?: unknown,
-    parentId?: string | null,
-    rootId?: string | null
-  ): void;
-  /** Register a listener that fires whenever a record* method is called. Returns an unsubscribe function. */
-  onRecord(
-    callback: (kind: "log" | "emission" | "error" | "run") => void
-  ): () => void;
+function describeRunError(error: unknown): string | null {
+  if (error == null) return null;
+  return describeError(error).message;
 }
 
 const liveService = defineResource({
@@ -157,17 +102,27 @@ const liveService = defineResource({
     c: { maxEntries?: number },
     { store }: { store: Store }
   ): Promise<Live> {
-    const maxEntries = c?.maxEntries ?? 10000;
-    const logs: LogEntry[] = [];
-    const emissions: EmissionEntry[] = [];
-    const errors: ErrorEntry[] = [];
-    const runs: RunRecord[] = [];
-    const recordListeners = new Set<
-      (kind: "log" | "emission" | "error" | "run") => void
-    >();
-    const notifyRecordListeners = (
-      kind: "log" | "emission" | "error" | "run"
-    ) => {
+    const maxEntries = c.maxEntries ?? DEFAULT_MAX_ENTRIES;
+    const logs = new RingBuffer<LogEntry>(maxEntries);
+    const emissions = new RingBuffer<EmissionEntry>(maxEntries);
+    const errors = new RingBuffer<ErrorEntry>(maxEntries);
+    const runs = new RingBuffer<RunRecord>(maxEntries);
+    // One clock for every category, so a sequence identifies a single entry
+    // store-wide and each category's entries stay in ascending order.
+    const nextSequence = createSequenceClock();
+
+    // The store is fully registered before any resource initializes, so the
+    // id sets are final here and the canonicalizers can memoize safely.
+    const eventIds = Array.from(store.events.values()).map((entry) =>
+      String(entry.event.id)
+    );
+    const canonicalEventId = createIdCanonicalizer(eventIds);
+    const canonicalNodeId = createIdCanonicalizer(
+      collectNodeIds(store, eventIds)
+    );
+
+    const recordListeners = new Set<(kind: LiveRecordKind) => void>();
+    const notifyRecordListeners = (kind: LiveRecordKind) => {
       for (const listener of recordListeners) {
         try {
           listener(kind);
@@ -176,298 +131,79 @@ const liveService = defineResource({
         }
       }
     };
-    const trim = <T>(arr: T[]) => {
-      const overflow = arr.length - maxEntries;
-      if (overflow > 0) arr.splice(0, overflow);
-    };
-    const eventIds = Array.from(store.events.values()).map((entry) =>
-      String(entry.event.id)
-    );
-    const nodeIds = [
-      ...Array.from(store.tasks.values()).map((entry) => String(entry.task.id)),
-      ...Array.from(store.hooks.values()).map((entry) => String(entry.hook.id)),
-      ...Array.from(store.resources.values()).map(
-        (entry: ResourceStoreElementType) => String(entry.resource.id)
-      ),
-      ...Array.from(store.taskMiddlewares.values()).map(
-        (entry: TaskMiddlewareStoreElementType) => String(entry.middleware.id)
-      ),
-      ...Array.from(store.resourceMiddlewares.values()).map(
-        (entry: ResourceMiddlewareStoreElementType) =>
-          String(entry.middleware.id)
-      ),
-      ...eventIds,
-    ];
-    const idsMatch = (candidateId: string, referenceId: string) =>
-      candidateId === referenceId || candidateId.endsWith(`.${referenceId}`);
-    const canonicalizeId = (
-      id: string | null | undefined,
-      candidateIds: string[]
-    ): string | null => {
-      if (!id) return null;
 
-      const exact = candidateIds.find((candidateId) => candidateId === id);
-      if (exact) return exact;
-
-      return (
-        candidateIds.find((candidateId) => idsMatch(candidateId, id)) ?? id
-      );
-    };
-    const matchesFilterId = (
-      recordId: string | null | undefined,
-      filterIds: string[]
-    ): boolean =>
-      recordId != null &&
-      filterIds.some((filterId) =>
-        idsMatch(String(recordId), String(filterId))
-      );
-    const normalizeError = (
-      error: unknown
-    ): { message: string; stack: string | null } => {
-      if (error instanceof Error)
-        return { message: error.message, stack: error.stack ?? null };
-      if (typeof error === "string") return { message: error, stack: null };
-      try {
-        return { message: JSON.stringify(error), stack: null };
-      } catch {
-        return { message: String(error), stack: null };
-      }
-    };
-
-    const toOptions = <T extends object>(arg: number | T | undefined): T => {
-      if (typeof arg === "number") {
-        return { ...(arg != null ? { afterTimestamp: arg } : {}) } as T;
-      }
-      return (arg ?? ({} as T)) as T;
-    };
-
-    const sliceWindow = <T>(
-      arr: T[],
-      last?: number,
-      afterTimestamp?: number
-    ): T[] => {
-      if (typeof last !== "number") return arr;
-      if (last <= 0) return [];
-      // Cursor pagination must advance oldest-first: taking the newest N
-      // here would skip (and, once the cursor advances, permanently drop)
-      // every entry beyond the page. Without a cursor, `last` keeps its
-      // "most recent N" meaning.
-      if (typeof afterTimestamp === "number") return arr.slice(0, last);
-      return arr.slice(-last);
+    /** Stamps position and time on a new entry, stores it, then notifies. */
+    const append = <T>(
+      buffer: RingBuffer<T>,
+      kind: LiveRecordKind,
+      buildEntry: (stamp: LiveEntryStamp) => T
+    ) => {
+      const timestampMs = Date.now();
+      const sequence = nextSequence(timestampMs);
+      buffer.push(buildEntry({ sequence, timestampMs }));
+      notifyRecordListeners(kind);
     };
 
     return {
       recordLog(level, message, data, correlationId, sourceId) {
-        logs.push({
-          timestampMs: Date.now(),
+        append(logs, "log", (stamp) => ({
+          ...stamp,
           level,
           message,
           data,
-          sourceId: canonicalizeId(sourceId, nodeIds) ?? sourceId,
-          correlationId: correlationId ?? getCorrelationId() ?? null,
-        });
-        trim(logs);
-        notifyRecordListeners("log");
+          sourceId: canonicalNodeId(sourceId) ?? sourceId,
+          correlationId: correlationId ?? getCorrelationId(),
+        }));
       },
       getLogs(input) {
-        const options = toOptions<{
-          afterTimestamp?: number;
-          last?: number;
-          levels?: LogLevel[];
-          messageIncludes?: string;
-          correlationIds?: string[];
-        }>(input);
-
-        let result = [...logs];
-
-        if (typeof options.afterTimestamp === "number") {
-          result = result.filter(
-            (l) => l.timestampMs > options.afterTimestamp!
-          );
-        }
-        if (options.levels && options.levels.length > 0) {
-          const allowed = new Set(options.levels);
-          result = result.filter((l) => allowed.has(l.level));
-        }
-        if (options.messageIncludes) {
-          result = result.filter((l) =>
-            l.message.includes(options.messageIncludes!)
-          );
-        }
-        if (options.correlationIds && options.correlationIds.length > 0) {
-          const allowed = new Set(options.correlationIds.map(String));
-          result = result.filter((l) => allowed.has(String(l.correlationId)));
-        }
-        return sliceWindow(result, options.last, options.afterTimestamp);
+        const options: LogQueryOptions = toQueryOptions(input);
+        return queryEntries(logs, options, buildLogMatcher(options));
       },
       recordEmission(eventId, payload, emitterId) {
-        emissions.push({
-          timestampMs: Date.now(),
-          eventId: canonicalizeId(eventId, eventIds) ?? eventId,
-          emitterId: canonicalizeId(emitterId, nodeIds),
+        append(emissions, "emission", (stamp) => ({
+          ...stamp,
+          eventId: canonicalEventId(eventId) ?? eventId,
+          emitterId: canonicalNodeId(emitterId),
           payload,
           correlationId: getCorrelationId(),
-        });
-        trim(emissions);
-        notifyRecordListeners("emission");
+        }));
       },
       getEmissions(input) {
-        const options = toOptions<{
-          afterTimestamp?: number;
-          last?: number;
-          eventIds?: string[];
-          emitterIds?: string[];
-          correlationIds?: string[];
-        }>(input);
-
-        let result = [...emissions];
-        if (typeof options.afterTimestamp === "number") {
-          result = result.filter(
-            (e) => e.timestampMs > options.afterTimestamp!
-          );
-        }
-        if (options.eventIds && options.eventIds.length > 0) {
-          result = result.filter((e) =>
-            matchesFilterId(e.eventId, options.eventIds!)
-          );
-        }
-        if (options.emitterIds && options.emitterIds.length > 0) {
-          result = result.filter((e) =>
-            matchesFilterId(e.emitterId, options.emitterIds!)
-          );
-        }
-        if (options.correlationIds && options.correlationIds.length > 0) {
-          const allowed = new Set(options.correlationIds.map(String));
-          result = result.filter((e) => allowed.has(String(e.correlationId)));
-        }
-        return sliceWindow(result, options.last, options.afterTimestamp);
+        const options: EmissionQueryOptions = toQueryOptions(input);
+        return queryEntries(emissions, options, buildEmissionMatcher(options));
       },
       recordError(sourceId, sourceKind, error, data) {
-        const { message, stack } = normalizeError(error);
-        errors.push({
-          timestampMs: Date.now(),
-          sourceId: canonicalizeId(sourceId, nodeIds) ?? sourceId,
+        const { message, stack } = describeError(error);
+        append(errors, "error", (stamp) => ({
+          ...stamp,
+          sourceId: canonicalNodeId(sourceId) ?? sourceId,
           sourceKind,
           message,
           stack,
           data,
-          correlationId: getCorrelationId() ?? null,
-        });
-        trim(errors);
-        notifyRecordListeners("error");
+          correlationId: getCorrelationId(),
+        }));
       },
       getErrors(input) {
-        const options = toOptions<{
-          afterTimestamp?: number;
-          last?: number;
-          sourceKinds?: (
-            | "TASK"
-            | "HOOK"
-            | "RESOURCE"
-            | "MIDDLEWARE"
-            | "INTERNAL"
-          )[];
-          sourceIds?: string[];
-          messageIncludes?: string;
-          correlationIds?: string[];
-        }>(input);
-
-        let result = [...errors];
-        if (typeof options.afterTimestamp === "number") {
-          result = result.filter(
-            (e) => e.timestampMs > options.afterTimestamp!
-          );
-        }
-        if (options.sourceKinds && options.sourceKinds.length > 0) {
-          const allowed = new Set(options.sourceKinds);
-          result = result.filter((e) => allowed.has(e.sourceKind));
-        }
-        if (options.sourceIds && options.sourceIds.length > 0) {
-          result = result.filter((e) =>
-            matchesFilterId(e.sourceId, options.sourceIds!)
-          );
-        }
-        if (options.messageIncludes) {
-          result = result.filter((e) =>
-            e.message.includes(options.messageIncludes!)
-          );
-        }
-        if (options.correlationIds && options.correlationIds.length > 0) {
-          const allowed = new Set(options.correlationIds.map(String));
-          result = result.filter((e) => allowed.has(String(e.correlationId)));
-        }
-        return sliceWindow(result, options.last, options.afterTimestamp);
+        const options: ErrorQueryOptions = toQueryOptions(input);
+        return queryEntries(errors, options, buildErrorMatcher(options));
       },
       recordRun(nodeId, nodeKind, durationMs, ok, error, parentId, rootId) {
-        const errStr = (() => {
-          if (error == null) return null;
-          if (typeof error === "string") return error;
-          if (error instanceof Error) return error.message;
-          try {
-            return JSON.stringify(error);
-          } catch {
-            return String(error);
-          }
-        })();
-        runs.push({
-          timestampMs: Date.now(),
-          nodeId: canonicalizeId(nodeId, nodeIds) ?? nodeId,
+        append(runs, "run", (stamp) => ({
+          ...stamp,
+          nodeId: canonicalNodeId(nodeId) ?? nodeId,
           nodeKind,
           durationMs,
           ok,
-          error: errStr,
-          parentId: canonicalizeId(parentId, nodeIds) ?? parentId ?? null,
-          rootId: canonicalizeId(rootId, nodeIds) ?? rootId ?? null,
+          error: describeRunError(error),
+          parentId: canonicalNodeId(parentId) ?? parentId ?? null,
+          rootId: canonicalNodeId(rootId) ?? rootId ?? null,
           correlationId: getCorrelationId(),
-        });
-        trim(runs);
-        notifyRecordListeners("run");
+        }));
       },
       getRuns(input) {
-        const options = toOptions<{
-          afterTimestamp?: number;
-          last?: number;
-          nodeKinds?: ("TASK" | "HOOK")[];
-          nodeIds?: string[];
-          ok?: boolean;
-          parentIds?: string[];
-          rootIds?: string[];
-          correlationIds?: string[];
-        }>(input);
-
-        let result = [...runs];
-        if (typeof options.afterTimestamp === "number") {
-          result = result.filter(
-            (r) => r.timestampMs > options.afterTimestamp!
-          );
-        }
-        if (options.nodeKinds && options.nodeKinds.length > 0) {
-          const allowed = new Set(options.nodeKinds);
-          result = result.filter((r) => allowed.has(r.nodeKind));
-        }
-        if (options.nodeIds && options.nodeIds.length > 0) {
-          result = result.filter((r) =>
-            matchesFilterId(r.nodeId, options.nodeIds!)
-          );
-        }
-        if (typeof options.ok === "boolean") {
-          result = result.filter((r) => r.ok === options.ok);
-        }
-        if (options.parentIds && options.parentIds.length > 0) {
-          result = result.filter((r) =>
-            matchesFilterId(r.parentId, options.parentIds!)
-          );
-        }
-        if (options.rootIds && options.rootIds.length > 0) {
-          result = result.filter((r) =>
-            matchesFilterId(r.rootId, options.rootIds!)
-          );
-        }
-        if (options.correlationIds && options.correlationIds.length > 0) {
-          const allowed = new Set(options.correlationIds.map(String));
-          result = result.filter((r) => allowed.has(String(r.correlationId)));
-        }
-        return sliceWindow(result, options.last, options.afterTimestamp);
+        const options: RunQueryOptions = toQueryOptions(input);
+        return queryEntries(runs, options, buildRunMatcher(options));
       },
       onRecord(callback) {
         recordListeners.add(callback);
@@ -478,24 +214,6 @@ const liveService = defineResource({
     };
   },
 });
-
-// const onGlobalEvent = hook({
-//   id: "dev.live.onEvent",
-//   on: "*",
-//   dependencies: {
-//     liveService,
-//   },
-//   async run(event, { liveService }) {
-//     // During very early init phases, liveService may not be ready
-//     if (!liveService) return;
-//     // Record full emission details
-//     liveService.recordEmission(
-//       String(event.id),
-//       event.data,
-//       typeof event.source === "string" ? event.source : String(event.source)
-//     );
-//   },
-// });
 
 export const live = defineResource({
   id: "live",

@@ -1,6 +1,17 @@
-import * as ts from "typescript";
+import type { CompilerOptions } from "typescript";
 import { types as utilTypes } from "node:util";
 import type { Store } from "@bluelibs/runner";
+import { loadTypeScript, type TypeScriptModule } from "./typescript.runtime";
+
+function createCompilerOptions(ts: TypeScriptModule): CompilerOptions {
+  return {
+    target: ts.ScriptTarget.ES2020,
+    module: ts.ModuleKind.CommonJS,
+    strict: true,
+    noImplicitAny: false,
+    skipLibCheck: true,
+  };
+}
 
 function idsMatch(candidateId: string, referenceId: string): boolean {
   return candidateId === referenceId || candidateId.endsWith(`.${referenceId}`);
@@ -46,15 +57,6 @@ export function compileRunFunction(
       };
     }
 
-    // First, try to compile as TypeScript
-    const compilerOptions: ts.CompilerOptions = {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.CommonJS,
-      strict: true,
-      noImplicitAny: false,
-      skipLibCheck: true,
-    };
-
     // Wrap code in a function if it's not already
     let wrappedCode = code.trim();
     if (
@@ -89,7 +91,8 @@ export function compileRunFunction(
     }
 
     // Try TypeScript compilation first
-    const result = ts.transpile(wrappedCode, compilerOptions);
+    const ts = loadTypeScript();
+    const result = ts.transpile(wrappedCode, createCompilerOptions(ts));
 
     // Create and validate the function
     // The result should be a function declaration, so we need to evaluate it and extract the function
@@ -229,18 +232,11 @@ function compileShellWrapper(
   | { success: true; func: (deps: any) => any }
   | { success: false; error: string } {
   try {
-    const compilerOptions: ts.CompilerOptions = {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.CommonJS,
-      strict: true,
-      noImplicitAny: false,
-      skipLibCheck: true,
-    };
-
+    const ts = loadTypeScript();
     // NB: ts.transpile() never reports syntax errors (best-effort emit), so
     // syntactic diagnostics are required to reject invalid snippets.
     const transpiled = ts.transpileModule(wrappedCode, {
-      compilerOptions,
+      compilerOptions: createCompilerOptions(ts),
       reportDiagnostics: true,
     });
     const syntaxError = (transpiled.diagnostics ?? []).find(

@@ -162,6 +162,12 @@
     ]
   },
   "peerDependencies": {
-    "@bluelibs/runner": "^6.6.0"
+    "@bluelibs/runner": "^6.6.0",
+    "typescript": "^5.0.0 || ^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   }
 }

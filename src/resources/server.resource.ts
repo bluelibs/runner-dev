@@ -27,6 +27,7 @@ import {
 } from "./routeHandlers/hostGuard";
 import { isCodeExecutionAllowed } from "../schema/codeExecutionGate";
 import { allowedHostsSchema } from "./allowedHosts.schema";
+import { closeHttpServer } from "./httpServerShutdown";
 import voyagerHtml from "./templates/voyager.html";
 import z from "zod";
 
@@ -266,8 +267,6 @@ export const serverResource = defineResource({
     // finishes by itself: end them first or shutdown hangs while a docs tab
     // shows the Live panel.
     liveStreams.endAll();
-    await new Promise<void>((resolve) =>
-      instance.httpServer.close(() => resolve())
-    );
+    await closeHttpServer(instance.httpServer);
   },
 });

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import type { Live, LiveEntryStamp } from "../live.resource";
 import { getHealthSnapshot } from "../../utils/healthCollectors";
+import type { LiveStreamRegistry } from "./liveStreamRegistry";
 
 /** Debounce interval (ms) for batching rapid record notifications into a single SSE push. */
 const DEBOUNCE_MS = 100;
@@ -85,6 +86,8 @@ function advanceCursors(cursors: SequenceCursors, page: TelemetryPage): void {
 
 export interface LiveStreamDeps {
   live: Live;
+  /** Open streams of the server, ended when it shuts down. */
+  streams?: LiveStreamRegistry;
 }
 
 /**
@@ -97,9 +100,10 @@ export interface LiveStreamDeps {
  * 4. Sends heartbeat comments every 15 s to keep proxies from closing idle connections.
  * 5. Respects socket backpressure: pauses when a write reports a full buffer
  *    and resumes on `drain`, so a slow client never grows memory unbounded.
- * 6. Cleans up all timers and subscriptions on client disconnect.
+ * 6. Cleans up all timers and subscriptions on client disconnect, and ends
+ *    the stream (with the same cleanup) when the server shuts down.
  */
-export function createLiveStreamHandler({ live }: LiveStreamDeps) {
+export function createLiveStreamHandler({ live, streams }: LiveStreamDeps) {
   return (_req: Request, res: Response) => {
     // --- SSE headers ---------------------------------------------------------
     res.setHeader("Content-Type", "text/event-stream");
@@ -202,6 +206,7 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
     const cleanup = () => {
       if (closed) return;
       closed = true;
+      streams?.delete(endStream);
       unsubscribe();
       clearInterval(healthTimer);
       clearInterval(heartbeatTimer);
@@ -211,9 +216,21 @@ export function createLiveStreamHandler({ live }: LiveStreamDeps) {
       }
     };
 
+    /** Server shutdown: stop every timer, then finish the response. */
+    function endStream() {
+      cleanup();
+      res.end();
+    }
+
     res.on("drain", resumeAfterDrain);
     res.on("close", cleanup);
     res.on("error", cleanup);
+
+    if (streams && !streams.add(endStream)) {
+      // The server began shutting down while this request was in flight.
+      endStream();
+      return;
+    }
 
     // --- Initial push --------------------------------------------------------
 

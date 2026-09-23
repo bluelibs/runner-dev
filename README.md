@@ -874,6 +874,7 @@ Delivery guarantees:
 - Telemetry entries carry their `sequence`. The stream keeps one sequence cursor per category, so bursts of any size, including many entries in the same millisecond, arrive in full and in order. Large backlogs are drained in bounded pushes (up to 10 pages of 1000 entries per category per push, then the next push continues).
 - On connect, the stream sends a `health` event and then replays the entries already in the store. After a reconnect, drop anything at or below the last `sequence` you saw.
 - The stream respects backpressure: while the socket buffer is full it pauses telemetry, health and heartbeat frames until the socket drains, instead of buffering without limit.
+- When the server shuts down (`runtime.dispose()`, Ctrl+C), it ends every open stream, so a connected client never holds up shutdown. `EventSource` then retries on its own.
 
 **JavaScript client example:**
 

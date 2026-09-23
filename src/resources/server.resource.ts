@@ -18,6 +18,7 @@ import { printSchema } from "graphql/utilities/printSchema";
 import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
 import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
 import { createLiveStreamHandler } from "./routeHandlers/createLiveStreamHandler";
+import { LiveStreamRegistry } from "./routeHandlers/liveStreamRegistry";
 import { createRequestCorrelationMiddleware } from "./routeHandlers/requestCorrelation";
 import {
   DEFAULT_BIND_HOST,
@@ -83,6 +84,7 @@ export const serverResource = defineResource({
       "Express server with GraphQL endpoint, Voyager UI, and static file serving for the Runner-Dev application",
   },
   register: [coverage],
+  context: () => ({ liveStreams: new LiveStreamRegistry() }),
   dependencies: {
     store: resources.store,
     logger: resources.logger,
@@ -94,7 +96,8 @@ export const serverResource = defineResource({
   },
   async init(
     config: ServerConfig,
-    { store, logger, introspector, live, swapManager, graphql, coverage }
+    { store, logger, introspector, live, swapManager, graphql, coverage },
+    { liveStreams }
   ): Promise<ServerInstance> {
     logger = logger.with({
       source: serverResource.id,
@@ -147,7 +150,10 @@ export const serverResource = defineResource({
     );
 
     // SSE endpoint for live telemetry streaming
-    app.get("/live/stream", createLiveStreamHandler({ live }));
+    app.get(
+      "/live/stream",
+      createLiveStreamHandler({ live, streams: liveStreams })
+    );
 
     // Voyager UI at /voyager (simple CDN-based standalone page)
     app.get("/voyager", (_req: Request, res: Response) => {
@@ -236,9 +242,13 @@ export const serverResource = defineResource({
 
     return { apolloServer: server, httpServer, app };
   },
-  async dispose(instance: ServerInstance) {
+  async dispose(instance: ServerInstance, _config, _deps, { liveStreams }) {
     console.log("Disposing server");
     await instance.apolloServer.stop();
+    // close() waits for every open connection, and an event stream never
+    // finishes by itself: end them first or shutdown hangs while a docs tab
+    // shows the Live panel.
+    liveStreams.endAll();
     await new Promise<void>((resolve) =>
       instance.httpServer.close(() => resolve())
     );

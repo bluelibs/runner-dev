@@ -57,6 +57,7 @@ Already merged to `main` since 6.6.0 and included here:
 ### Fixed
 
 - Live telemetry lost entries: SSE bursts larger than a page, and `afterTimestamp` paging, skipped entries that shared a millisecond at a page cut. The stream now keeps one sequence cursor per category and delivers bursts in full and in order.
+- Shutting down the server (`runtime.dispose()`, Ctrl+C) hung for as long as any `/live/stream` client stayed connected, such as a docs tab showing the Live panel, and the stream's timers kept firing meanwhile (also present in 6.6.0). Shutdown now ends open streams and stops their timers first.
 - The SSE stream ignored socket backpressure. It now pauses telemetry, health and heartbeat frames while the socket buffer is full and resumes on `drain`.
 - The docs UI Live panel's polling fallback shared one timestamp cursor across categories. It now keeps a sequence cursor per category, shared with SSE, so polling continues where the stream stopped, and SSE reconnect replays no longer duplicate rows.
 - Resource middleware `emits` was always empty in 6.6.0. It now lists the events emitted by the resources the middleware wraps, and not those of tasks or hooks that merely depend on a wrapped resource.

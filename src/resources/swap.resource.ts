@@ -4,7 +4,6 @@ import {
   compileRunFunction,
   compileShellFunction,
   completeShellScope,
-  createCapturedConsole,
   extractCompletionTarget,
   getTaskStoreElement,
   getTaskDependencies,
@@ -12,6 +11,12 @@ import {
   serializeShellResult,
   deserializeInput,
 } from "./swap.tools";
+import { createCapturedConsole } from "./shell.console";
+import {
+  raceShellTimeout,
+  resolveShellTimeoutMs,
+  shellTimeoutMessage,
+} from "./shell.timeout";
 import { randomUUID } from "crypto";
 
 export interface SwapResult {
@@ -768,6 +773,8 @@ export const swapManager = defineResource({
         const startTime = Date.now();
 
         try {
+          // Resolved first so a malformed setting fails before any code runs.
+          const timeoutMs = resolveShellTimeoutMs();
           const {
             value: r,
             resolvedId: resolvedResourceId,
@@ -799,7 +806,21 @@ export const swapManager = defineResource({
 
           let result: unknown;
           try {
-            result = await compileResult.func(dependencies);
+            const outcome = await raceShellTimeout(
+              Promise.resolve(compileResult.func(dependencies)),
+              timeoutMs
+            );
+            if (outcome.timedOut) {
+              return {
+                success: false,
+                error: shellTimeoutMessage(timeoutMs),
+                // Snapshot: the still-running snippet may keep logging.
+                logs: [...captured.logs],
+                executionTimeMs: Date.now() - startTime,
+                invocationId,
+              };
+            }
+            result = outcome.value;
           } catch (execError) {
             const executionTimeMs = Date.now() - startTime;
             return {

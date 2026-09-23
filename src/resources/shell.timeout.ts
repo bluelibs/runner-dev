@@ -1,0 +1,66 @@
+export const SHELL_TIMEOUT_ENV_VAR = "RUNNER_DEV_SHELL_TIMEOUT_MS";
+export const DEFAULT_SHELL_TIMEOUT_MS = 30_000;
+
+/** Largest delay `setTimeout` honors; bigger values fire immediately. */
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
+
+/**
+ * Reads the shell timeout from `RUNNER_DEV_SHELL_TIMEOUT_MS` (unset or blank
+ * means the 30s default). Malformed values throw instead of silently falling
+ * back, so a typo never quietly changes how long snippets may run.
+ */
+export function resolveShellTimeoutMs(
+  rawValue: string | undefined = process.env[SHELL_TIMEOUT_ENV_VAR]
+): number {
+  const trimmed = rawValue?.trim() ?? "";
+  if (trimmed === "") return DEFAULT_SHELL_TIMEOUT_MS;
+
+  const parsed = Number(trimmed);
+  if (!/^\d+$/.test(trimmed) || parsed < 1 || parsed > MAX_TIMER_DELAY_MS) {
+    throw new Error(
+      `Invalid ${SHELL_TIMEOUT_ENV_VAR}="${rawValue}": expected a whole number of milliseconds between 1 and ${MAX_TIMER_DELAY_MS}.`
+    );
+  }
+  return parsed;
+}
+
+export function shellTimeoutMessage(timeoutMs: number): string {
+  return (
+    `Shell execution timed out after ${timeoutMs} ms. ` +
+    `The snippet may still be running on the server: JavaScript cannot cancel it. ` +
+    `Set ${SHELL_TIMEOUT_ENV_VAR} to allow longer runs.`
+  );
+}
+
+export type ShellTimeoutOutcome<T> =
+  | { timedOut: false; value: T }
+  | { timedOut: true };
+
+/**
+ * Races a running snippet against a deadline so the shell always answers.
+ *
+ * This only bounds how long the caller waits: the snippet itself keeps
+ * running after the deadline. A synchronous infinite loop (`while (true) {}`)
+ * blocks the event loop before this timer can ever fire, so it cannot be
+ * interrupted at all; that needs a worker/isolate, which would lose access to
+ * the live runtime the shell exists to expose.
+ */
+export async function raceShellTimeout<T>(
+  execution: Promise<T>,
+  timeoutMs: number
+): Promise<ShellTimeoutOutcome<T>> {
+  let timer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<ShellTimeoutOutcome<T>>((resolve) => {
+    timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+    // A pending deadline must not keep the process alive on shutdown.
+    timer.unref();
+  });
+  try {
+    return await Promise.race([
+      execution.then((value) => ({ timedOut: false as const, value })),
+      deadline,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}

@@ -1,4 +1,4 @@
-import { definitions, type Store } from "@bluelibs/runner";
+import { definitions, middleware, type Store } from "@bluelibs/runner";
 import type { MiddlewareUsage } from "../../schema/model";
 import { stringifyIfObject } from "./introspector.tools";
 
@@ -140,29 +140,67 @@ function collectSubtreeMiddlewareOwnerIds(
   return ownerIds;
 }
 
-function hasMiddlewareConfig(middleware: MiddlewareAttachment): boolean {
+const identityCheckerDuplicateKey = getMiddlewareDuplicateKey(
+  middleware.task.identityChecker.id
+);
+
+function countIdentityRequirements(identity: unknown): number {
+  if (Array.isArray(identity)) return identity.length;
+  return identity && typeof identity === "object" ? 1 : 0;
+}
+
+/**
+ * Owner of each identityChecker gate Runner derives from subtree
+ * `tasks.identity` requirements: one gate per requirement, owners walked
+ * root-first. Runner puts these gates at the head of the task's stack in
+ * exactly this order.
+ */
+function collectIdentityGateOwnerIds(
+  store: Store,
+  ownerChainNearestFirst: string[]
+): string[] {
+  const gateOwnerIds: string[] = [];
+
+  for (const ownerResourceId of [...ownerChainNearestFirst].reverse()) {
+    const ownerResource = store.resources.get(ownerResourceId)?.resource;
+    if (!ownerResource) continue;
+
+    for (const policy of getSubtreePolicies(ownerResource)) {
+      const gateCount = countIdentityRequirements(policy.tasks?.identity);
+      for (let gate = 0; gate < gateCount; gate++) {
+        gateOwnerIds.push(ownerResourceId);
+      }
+    }
+  }
+
+  return gateOwnerIds;
+}
+
+function hasMiddlewareConfig(attachment: MiddlewareAttachment): boolean {
   return (
-    Boolean(Reflect.get(middleware, definitions.symbolMiddlewareConfigured)) ||
-    middleware.config !== undefined
+    Boolean(Reflect.get(attachment, definitions.symbolMiddlewareConfigured)) ||
+    attachment.config !== undefined
   );
 }
 
 function toMiddlewareUsage(
-  middleware: MiddlewareAttachment,
-  subtreeOwnerIdsByKey: SubtreeOwnerIdsByKey
+  attachment: MiddlewareAttachment,
+  subtreeOwnerId: string | null
 ): MiddlewareUsage {
-  const id = String(middleware.id);
-  const subtreeOwnerId =
-    subtreeOwnerIdsByKey.get(getMiddlewareDuplicateKey(id)) ?? null;
-
   return {
-    id,
-    config: hasMiddlewareConfig(middleware)
-      ? stringifyIfObject(middleware.config)
+    id: String(attachment.id),
+    config: hasMiddlewareConfig(attachment)
+      ? stringifyIfObject(attachment.config)
       : null,
     origin: subtreeOwnerId ? "subtree" : "local",
     subtreeOwnerId,
   };
+}
+
+function toLocalMiddlewareUsages(
+  attachments: readonly MiddlewareAttachment[]
+): MiddlewareUsage[] {
+  return attachments.map((attachment) => toMiddlewareUsage(attachment, null));
 }
 
 type ApplicableMiddlewareResolver = {
@@ -186,67 +224,85 @@ function getApplicableMiddlewareResolver(
   return resolver as ApplicableMiddlewareResolver;
 }
 
+/**
+ * Runner's effective stack for a target, or null when it is unavailable:
+ * the resolver is missing, returns an unexpected shape (it is private API),
+ * or throws. It fails fast on subtree/local id conflicts, and introspection
+ * must stay available to diagnose exactly such apps.
+ */
+function composeWithRunner(
+  compose: () => unknown
+): MiddlewareAttachment[] | null {
+  try {
+    const result = compose();
+    return Array.isArray(result) ? result : null;
+  } catch {
+    return null;
+  }
+}
+
 function resolveApplicableTaskMiddlewares(
   store: Store,
   task: definitions.ITask
-): MiddlewareAttachment[] {
+): MiddlewareAttachment[] | null {
   const resolver = getApplicableMiddlewareResolver(store);
-  if (typeof resolver?.getApplicableTaskMiddlewares !== "function") {
-    return [...task.middleware];
-  }
-  try {
-    const result = resolver.getApplicableTaskMiddlewares(task);
-    // The resolver is private API; never trust its shape blindly.
-    return Array.isArray(result) ? result : [...task.middleware];
-  } catch {
-    // The resolver fails fast on subtree/local id conflicts. Introspection
-    // must stay available to diagnose exactly such apps, so fall back to
-    // the task-local list.
-    return [...task.middleware];
-  }
+  const getApplicable = resolver?.getApplicableTaskMiddlewares;
+  if (typeof getApplicable !== "function") return null;
+  return composeWithRunner(() => getApplicable.call(resolver, task));
 }
 
 function resolveApplicableResourceMiddlewares(
   store: Store,
   resource: definitions.IResource
-): MiddlewareAttachment[] {
+): MiddlewareAttachment[] | null {
   const resolver = getApplicableMiddlewareResolver(store);
-  if (typeof resolver?.getApplicableResourceMiddlewares !== "function") {
-    return [...resource.middleware];
-  }
-  try {
-    const result = resolver.getApplicableResourceMiddlewares(resource);
-    return Array.isArray(result) ? result : [...resource.middleware];
-  } catch {
-    return [...resource.middleware];
-  }
+  const getApplicable = resolver?.getApplicableResourceMiddlewares;
+  if (typeof getApplicable !== "function") return null;
+  return composeWithRunner(() => getApplicable.call(resolver, resource));
 }
 
 /**
  * Effective task middleware stack (subtree-composed when a store is given)
  * with per-usage provenance: `origin: "subtree"` plus the owning resource
- * when a subtree `tasks.middleware` policy applied the middleware.
+ * when a subtree policy applied the middleware, through `tasks.middleware`
+ * or as an identityChecker gate for a `tasks.identity` requirement.
  */
 export function buildTaskMiddlewareUsages(
   task: definitions.ITask,
   store?: Store
 ): MiddlewareUsage[] {
-  if (!store) {
-    return (task.middleware || []).map((middleware) =>
-      toMiddlewareUsage(middleware, new Map())
-    );
-  }
+  if (!store) return toLocalMiddlewareUsages(task.middleware || []);
+
+  const applicable = resolveApplicableTaskMiddlewares(store, task);
+  // Without Runner's composed stack only the task's own list is known, and
+  // none of it came from a subtree policy, even where ids match one.
+  if (!applicable) return toLocalMiddlewareUsages(task.middleware);
 
   // Tasks never own a subtree themselves; the chain starts at their owner.
+  const ownerChain = getOwnerResourceChain(
+    store,
+    store.getOwnerResourceId(task.id)
+  );
+  const identityGateOwnerIds = collectIdentityGateOwnerIds(store, ownerChain);
   const subtreeOwnerIdsByKey = collectSubtreeMiddlewareOwnerIds(
     store,
-    getOwnerResourceChain(store, store.getOwnerResourceId(task.id)),
+    ownerChain,
     (policy) => policy.tasks?.middleware,
     task
   );
-  return resolveApplicableTaskMiddlewares(store, task).map((middleware) =>
-    toMiddlewareUsage(middleware, subtreeOwnerIdsByKey)
-  );
+
+  return applicable.map((attachment, position) => {
+    const duplicateKey = getMiddlewareDuplicateKey(String(attachment.id));
+    // Gate positions belong to the owner that required the identity, not to
+    // an owner that also lists identityChecker in its tasks.middleware.
+    const isIdentityGate =
+      position < identityGateOwnerIds.length &&
+      duplicateKey === identityCheckerDuplicateKey;
+    const subtreeOwnerId = isIdentityGate
+      ? identityGateOwnerIds[position]
+      : subtreeOwnerIdsByKey.get(duplicateKey) ?? null;
+    return toMiddlewareUsage(attachment, subtreeOwnerId);
+  });
 }
 
 /**
@@ -257,11 +313,10 @@ export function buildResourceMiddlewareUsages(
   resource: definitions.IResource,
   store?: Store
 ): MiddlewareUsage[] {
-  if (!store) {
-    return (resource.middleware || []).map((middleware) =>
-      toMiddlewareUsage(middleware, new Map())
-    );
-  }
+  if (!store) return toLocalMiddlewareUsages(resource.middleware || []);
+
+  const applicable = resolveApplicableResourceMiddlewares(store, resource);
+  if (!applicable) return toLocalMiddlewareUsages(resource.middleware);
 
   // Runner starts a resource's owner chain at the resource itself, so its
   // own subtree resource middleware applies to it as well.
@@ -271,7 +326,12 @@ export function buildResourceMiddlewareUsages(
     (policy) => policy.resources?.middleware,
     resource
   );
-  return resolveApplicableResourceMiddlewares(store, resource).map(
-    (middleware) => toMiddlewareUsage(middleware, subtreeOwnerIdsByKey)
+  return applicable.map((attachment) =>
+    toMiddlewareUsage(
+      attachment,
+      subtreeOwnerIdsByKey.get(
+        getMiddlewareDuplicateKey(String(attachment.id))
+      ) ?? null
+    )
   );
 }

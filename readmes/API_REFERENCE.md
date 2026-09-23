@@ -159,6 +159,8 @@ The middleware usage objects now include subtree provenance details:
 - `TaskMiddlewareUsage.subtreeOwnerId`
 - `TaskMiddlewareUsage.node`
 
+`identityChecker` gates added by a subtree `tasks.identity` requirement are `origin: "subtree"` with the declaring owner as `subtreeOwnerId`. If Runner rejects the task's stack (subtree/local conflict), the task's own middleware is listed, all `origin: "local"`.
+
 ### Hook
 
 Key fields:

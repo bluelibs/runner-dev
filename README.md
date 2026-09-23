@@ -672,6 +672,8 @@ query {
 }
 ```
 
+Every `identityChecker` gate a subtree `tasks.identity` requirement adds to a task is reported with `origin: "subtree"` and the owner that declared the requirement, even when another owner also lists `identityChecker` in its `tasks.middleware`. When Runner rejects a task's stack (a subtree middleware conflicting with a task-local one, which Runner reports only when the task runs), introspection lists the task's own middleware, all with `origin: "local"`.
+
 Resource middleware carries the same provenance as task middleware. An owner's own `subtree({ resources: { middleware } })` also applies to the owner itself, so it shows up there with `origin: "subtree"` and the owner as `subtreeOwnerId`. `Middleware.usedByResourcesDetailed` / `ResourceMiddleware.usedByDetailed` expose the same two fields from the middleware side.
 
 - Events and hooks

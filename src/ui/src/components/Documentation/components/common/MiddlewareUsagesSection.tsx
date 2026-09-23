@@ -45,8 +45,12 @@ export const MiddlewareUsagesSection: React.FC<
     <div className="middleware-usages">
       <h4 className="middleware-usages__title">Middleware Configuration</h4>
       <div className="middleware-usages__items">
-        {usages.map((usage) => (
-          <MiddlewareUsageItem key={usage.id} usage={usage} />
+        {/* The list is an ordered stack that can repeat an id (one
+            identityChecker gate per owner requiring identity), so the id
+            alone is no key: duplicate keys leave stale rows behind when the
+            card is reused for another element. */}
+        {usages.map((usage, index) => (
+          <MiddlewareUsageItem key={`${index}:${usage.id}`} usage={usage} />
         ))}
       </div>
     </div>

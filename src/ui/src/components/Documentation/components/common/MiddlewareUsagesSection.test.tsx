@@ -88,6 +88,32 @@ describe("MiddlewareUsagesSection", () => {
     expect(container.querySelector("a a")).toBeNull();
   });
 
+  it("drops every row of the previous element when reused for another", () => {
+    // Nested owners that each require identity add one identityChecker gate
+    // apiece, so one task's stack can hold the same id twice.
+    const gate = (ownerId: string) =>
+      usage("runner.middleware.task.identityChecker", {
+        origin: "subtree",
+        subtreeOwnerId: ownerId,
+      });
+    const { container, rerender } = render(
+      <MiddlewareUsagesSection
+        usages={[gate("app.outer"), gate("app.outer.inner")]}
+      />
+    );
+    expect(container.querySelectorAll(".middleware-usages__item")).toHaveLength(
+      2
+    );
+
+    // The detail pager reuses the same card for the next task.
+    rerender(<MiddlewareUsagesSection usages={[usage("app.mw.audit")]} />);
+
+    const rows = container.querySelectorAll(".middleware-usages__item");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain("app.mw.audit");
+    expect(screen.queryByText("Subtree Policy")).toBeNull();
+  });
+
   it("shows the badge without a source line when the owner is unknown", () => {
     render(
       <MiddlewareUsagesSection

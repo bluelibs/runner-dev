@@ -1,9 +1,16 @@
+/**
+ * Every level Runner's logger emits (trace..critical), plus `fatal` and `log`
+ * for entries recorded directly through `Live.recordLog`. Runner's own level
+ * type must stay assignable to this one, so a new Runner level fails the
+ * build instead of an enum serialization at query time.
+ */
 export type LogLevel =
   | "trace"
   | "debug"
   | "info"
   | "warn"
   | "error"
+  | "critical"
   | "fatal"
   | "log";
 

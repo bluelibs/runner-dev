@@ -26,7 +26,6 @@ import type {
   LiveEntryStamp,
   LiveRecordKind,
   LogEntry,
-  LogLevel,
   LogQueryOptions,
   RunQueryOptions,
   RunRecord,
@@ -233,7 +232,7 @@ export const live = defineResource({
     logger.onLog((log) => {
       const correlationId = getCorrelationId();
       liveService.recordLog(
-        log.level as LogLevel,
+        log.level,
         String(log.message),
         {
           ...log.data,

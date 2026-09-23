@@ -538,13 +538,15 @@ function safeStringify(value: unknown): string {
 // Enums and filter inputs
 export const LogLevelEnum = new GraphQLEnumType({
   name: "LogLevelEnum",
-  description: "Supported log levels",
+  description:
+    "Supported log levels. Runner's logger emits trace, debug, info, warn, error and critical; fatal and log only come from entries recorded directly through Live.recordLog.",
   values: {
     trace: { value: "trace" },
     debug: { value: "debug" },
     info: { value: "info" },
     warn: { value: "warn" },
     error: { value: "error" },
+    critical: { value: "critical" },
     fatal: { value: "fatal" },
     log: { value: "log" },
   },

@@ -343,7 +343,7 @@ Supporting types include:
 ## Enums Worth Knowing
 
 - `LogLevelEnum`
-  - `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `log`
+  - `trace`, `debug`, `info`, `warn`, `error`, `critical`, `fatal`, `log` (Runner's logger emits `trace` through `critical`; `fatal` and `log` only come from direct `Live.recordLog` calls)
 - `SourceKindEnum`
   - `TASK`, `HOOK`, `RESOURCE`, `MIDDLEWARE`, `INTERNAL`
 - `NodeKindEnum`

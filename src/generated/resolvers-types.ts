@@ -541,8 +541,9 @@ export type LogFilterInput = {
   messageIncludes: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Supported log levels */
+/** Supported log levels. Runner's logger emits trace, debug, info, warn, error and critical; fatal and log only come from entries recorded directly through Live.recordLog. */
 export type LogLevelEnum =
+  | 'critical'
   | 'debug'
   | 'error'
   | 'fatal'

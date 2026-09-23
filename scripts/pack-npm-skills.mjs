@@ -9,7 +9,21 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.join(__dirname, "..");
 const mode = process.argv[2];
 
+// npm drops symlinks from the tarball, so every link inside the published
+// skill is replaced by a copy for packing and restored afterwards.
 const syncPairs = [
+  {
+    sourcePath: path.join(projectRoot, "README.md"),
+    destinationPath: path.join(
+      projectRoot,
+      "skills",
+      "core",
+      "references",
+      "README.md",
+    ),
+    symlinkTarget: "../../../README.md",
+    type: "file",
+  },
   {
     sourcePath: path.join(projectRoot, "readmes"),
     destinationPath: path.join(
@@ -20,6 +34,7 @@ const syncPairs = [
       "readmes",
     ),
     symlinkTarget: "../../../readmes",
+    type: "dir",
   },
 ];
 
@@ -30,7 +45,7 @@ if (mode !== "materialize" && mode !== "restore") {
   process.exit(1);
 }
 
-async function materializeDirectory({ sourcePath, destinationPath }) {
+async function materialize({ sourcePath, destinationPath }) {
   await fs.rm(destinationPath, { force: true, recursive: true });
   await fs.cp(sourcePath, destinationPath, { recursive: true });
 
@@ -39,9 +54,9 @@ async function materializeDirectory({ sourcePath, destinationPath }) {
   );
 }
 
-async function restoreSymlink({ destinationPath, symlinkTarget }) {
+async function restoreSymlink({ destinationPath, symlinkTarget, type }) {
   await fs.rm(destinationPath, { force: true, recursive: true });
-  await fs.symlink(symlinkTarget, destinationPath, "dir");
+  await fs.symlink(symlinkTarget, destinationPath, type);
 
   console.log(
     `[npm-skills] Restored symlink ${path.relative(projectRoot, destinationPath)} -> ${symlinkTarget}.`,
@@ -51,7 +66,7 @@ async function restoreSymlink({ destinationPath, symlinkTarget }) {
 try {
   for (const syncPair of syncPairs) {
     if (mode === "materialize") {
-      await materializeDirectory(syncPair);
+      await materialize(syncPair);
     } else {
       await restoreSymlink(syncPair);
     }

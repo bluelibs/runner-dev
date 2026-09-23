@@ -6,5 +6,6 @@
 dist/**/__tests__/**/*
 !package.json
 !README.md
+!CHANGELOG.md
 !API_REFERENCE.md
 !AI.md

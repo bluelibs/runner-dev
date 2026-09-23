@@ -24,7 +24,7 @@ npx @bluelibs/runner-dev
 Requirements: Node.js 22+ (`engines: ">=22"`, the same floor as Runner 6.6) and `@bluelibs/runner` ^6.6.0 as a peer dependency. `typescript` is an optional peer (`>=5.0.0`, so any installed version is accepted at install time); only `swapTask`, `eval` and `shell` need it, and they need TypeScript 5 or 6 (see [Hot-Swapping](#hot-swapping-debugging-system)).
 
 For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
-Runner-Dev also publishes its own skill from `skills/core`. Treat `README.md`, `skills/core/SKILL.md`, `skills/core/references/README.md` and `skills/core/references/readmes/COMPACT_GUIDE.md` as one documentation unit and keep them aligned (together with `readmes/API_REFERENCE.md`). `skills/core/references/README.md` and `skills/core/references/readmes/` are symlinks to this `README.md` and to `readmes/`, so edit the originals and leave the links in place. The docs UI now includes a topology view for blast-radius and resource mindmap exploration. Release notes live in [CHANGELOG.md](CHANGELOG.md).
+Runner-Dev also publishes its own skill from `skills/core`. Treat `README.md`, `skills/core/SKILL.md`, `skills/core/references/README.md` and `skills/core/references/readmes/COMPACT_GUIDE.md` as one documentation unit and keep them aligned (together with `readmes/API_REFERENCE.md`). `skills/core/references/README.md` and `skills/core/references/readmes/` are symlinks to this `README.md` and to `readmes/`, so edit the originals and leave the links in place; `npm pack` copies both in for the published package, since npm drops symlinks. The docs UI now includes a topology view for blast-radius and resource mindmap exploration. Release notes live in [CHANGELOG.md](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md).
 
 ```ts
 import { r } from "@bluelibs/runner";
@@ -113,7 +113,7 @@ const app = r
 
 Register `resources.durable` (also exported as `durableSupportResource`) from `@bluelibs/runner/node` alongside durable runtime resources. It registers the durable runtime/workflow tags, events, and lifecycle hook; registering only `durableWorkflowTag` is insufficient.
 
-Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](CHANGELOG.md) first: code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) is now off unless `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`, the server listens on `127.0.0.1` by default (set `host: "0.0.0.0"` for Docker or remote access), and requests whose `Host` header is a DNS name other than `localhost` or an `allowedHosts` entry get `403`.
+Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md) first: code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) is now off unless `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`, the server listens on `127.0.0.1` by default (set `host: "0.0.0.0"` for Docker or remote access), and requests whose `Host` header is a DNS name other than `localhost` or an `allowedHosts` entry get `403`.
 
 ## Table of Contents
 
@@ -125,8 +125,8 @@ Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](C
 - [Hot-Swapping Debugging System](#hot-swapping-debugging-system)
 - [GraphQL API Examples](#graphql-api-examples)
 - [API Reference](readmes/API_REFERENCE.md)
-- [Changelog](CHANGELOG.md)
-- [Contributing & Local Dev](CONTRIBUTING.md)
+- [Changelog](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md)
+- [Contributing & Local Dev](https://github.com/bluelibs/runner-dev/blob/main/CONTRIBUTING.md)
 
 ## Quickstart
 
@@ -1002,7 +1002,7 @@ export const logSomething = r
 - Deep “resolved” fields for easy graph traversal
 - File-aware enhancements (`filePath`, `fileContents`, etc.)
 
-For full details on development, testing, and codegen, see [CONTRIBUTING.md](CONTRIBUTING.md).
+For full details on development, testing, and codegen, see [CONTRIBUTING.md](https://github.com/bluelibs/runner-dev/blob/main/CONTRIBUTING.md).
 
 ## Hot-Swapping Debugging System
 

@@ -1,7 +1,8 @@
 /**
  * Single gate for server-side code execution: `eval`, `shell`,
  * `shellComplete`, `swapTask`, `evalInput` on `invokeTask`/`invokeEvent`,
- * and the `shellEnabled` probe.
+ * `editFile` (a file write becomes code execution as soon as a watcher
+ * reloads it), and the `codeExecutionEnabled`/`shellEnabled` probes.
  *
  * Fail closed: execution is allowed only when explicitly opted in with
  * `RUNNER_DEV_EVAL=1`, or when `NODE_ENV` is exactly `development` or `test`.

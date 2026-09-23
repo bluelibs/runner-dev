@@ -56,7 +56,7 @@ export const MutationType = new GraphQLObjectType({
     },
     editFile: {
       description:
-        "Edits (overwrites) a file on disk. Accepts a structured path (eg. 'workspace:src/index.ts') and UTF-8 content. Returns success/error.",
+        "Edits (overwrites) a file on disk. Accepts a structured path (eg. 'workspace:src/index.ts') and UTF-8 content. Returns success/error. Security: writing source files is code execution once a watcher (tsx watch, nodemon) reloads them, so it is gated like `eval` (RUNNER_DEV_EVAL=1 or NODE_ENV=development/test).",
       type: new GraphQLNonNull(
         new GraphQLObjectType({
           name: "EditFileResult",
@@ -83,6 +83,14 @@ export const MutationType = new GraphQLObjectType({
         _parent,
         { path, content }: { path: string; content: string }
       ) {
+        if (!isCodeExecutionAllowed()) {
+          return {
+            success: false,
+            error: codeExecutionDisabledMessage("File editing"),
+            path,
+            resolvedPath: null,
+          };
+        }
         try {
           const resolved = resolvePathInput(path);
           if (!resolved) {

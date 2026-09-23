@@ -491,11 +491,22 @@ export const QueryType = new GraphQLObjectType({
       resolve: (_root, _args, ctx: CustomGraphQLContext) =>
         ctx.swapManager.getSwappedTasks(),
     },
+    codeExecutionEnabled: {
+      description: [
+        "Whether server-side code execution and file writes are allowed here.",
+        "One gate covers eval, shell, shellComplete, swapTask, evalInput and",
+        "editFile: true only with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test",
+        "(false when NODE_ENV is unset).",
+      ].join("\n"),
+      type: new GraphQLNonNull(GraphQLBoolean),
+      resolve: () => isCodeExecutionAllowed(),
+    },
     shellEnabled: {
       description: [
         "Whether the REPL shell (and shell completions) can run here.",
-        "Same gate as the shell mutation: true only with RUNNER_DEV_EVAL=1",
-        "or NODE_ENV=development/test (false when NODE_ENV is unset).",
+        "Same gate as the shell mutation and codeExecutionEnabled: true only",
+        "with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test (false when",
+        "NODE_ENV is unset).",
       ].join("\n"),
       type: new GraphQLNonNull(GraphQLBoolean),
       resolve: () => isCodeExecutionAllowed(),

@@ -699,6 +699,13 @@ export type Query = {
   boundaries: Array<ResourceBoundary>;
   /** Inspect the effective public/private surface for one resource boundary. */
   boundary: Maybe<ResourceBoundary>;
+  /**
+   * Whether server-side code execution and file writes are allowed here.
+   * One gate covers eval, shell, shellComplete, swapTask, evalInput and
+   * editFile: true only with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test
+   * (false when NODE_ENV is unset).
+   */
+  codeExecutionEnabled: Scalars['Boolean']['output'];
   /** Diagnostics for potential issues discovered by the introspector. */
   diagnostics: Array<Diagnostic>;
   /** Get a single error definition by its id. */
@@ -743,8 +750,9 @@ export type Query = {
   shellComplete: ShellCompletion;
   /**
    * Whether the REPL shell (and shell completions) can run here.
-   * Same gate as the shell mutation: true only with RUNNER_DEV_EVAL=1
-   * or NODE_ENV=development/test (false when NODE_ENV is unset).
+   * Same gate as the shell mutation and codeExecutionEnabled: true only
+   * with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test (false when
+   * NODE_ENV is unset).
    */
   shellEnabled: Scalars['Boolean']['output'];
   /** List of tasks currently hot-swapped. */
@@ -2054,6 +2062,7 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   asyncContexts: Resolver<Array<ResolversTypes['AsyncContext']>, ParentType, ContextType, QueryAsyncContextsArgs>;
   boundaries: Resolver<Array<ResolversTypes['ResourceBoundary']>, ParentType, ContextType, QueryBoundariesArgs>;
   boundary: Resolver<Maybe<ResolversTypes['ResourceBoundary']>, ParentType, ContextType, RequireFields<QueryBoundaryArgs, 'ownerId'>>;
+  codeExecutionEnabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   diagnostics: Resolver<Array<ResolversTypes['Diagnostic']>, ParentType, ContextType>;
   error: Resolver<Maybe<ResolversTypes['Error']>, ParentType, ContextType, RequireFields<QueryErrorArgs, 'id'>>;
   errors: Resolver<Array<ResolversTypes['Error']>, ParentType, ContextType, QueryErrorsArgs>;

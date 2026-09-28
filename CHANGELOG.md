@@ -2,7 +2,7 @@
 
 Notable changes to `@bluelibs/runner-dev`. Version numbers follow `@bluelibs/runner`, so the number for a release is chosen when it ships; until then, changes collect under "Unreleased".
 
-## Unreleased
+## 6.7.0 — 2026-09-28
 
 Changes since 6.6.0. This release makes the dev server safe by default: code execution is opt-in, the server listens on loopback and checks the Host header against DNS rebinding on every bind, and every code run is time-bounded. It also stops live telemetry from skipping retained entries at page cuts and fixes a set of introspection and docs UI issues.
 

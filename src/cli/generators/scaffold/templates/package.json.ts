@@ -20,11 +20,11 @@ export function packageJson(projectName: string) {
       postinstall: "npm run skills:extract",
     },
     dependencies: {
-      "@bluelibs/runner": "^6.6.0",
+      "@bluelibs/runner": "^6.7.0",
       "npm-skills": "^0.5.0",
     },
     devDependencies: {
-      "@bluelibs/runner-dev": "^6.6.0",
+      "@bluelibs/runner-dev": "^6.7.0",
       // vitest 5 requires @types/node 22+, which also matches `engines`.
       "@types/node": "^22.12.0",
       typescript: "^5.6.3",

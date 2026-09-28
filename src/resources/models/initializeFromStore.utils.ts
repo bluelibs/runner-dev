@@ -28,6 +28,12 @@ import {
   stringifyIfObject,
   toArray,
 } from "./introspector.tools";
+import {
+  buildResourceMiddlewareUsages,
+  buildTaskMiddlewareUsages,
+  getSubtreePolicies,
+  readSubtreeMiddlewareEntryId,
+} from "./middlewareUsages";
 
 export function normalizeTags(
   tags: Array<string | definitions.ITagDefinition> | null | undefined
@@ -76,37 +82,6 @@ export function findById(collection: any, id: string): any | undefined {
   return undefined;
 }
 
-const taskMiddlewareScopeMarker = ".middleware.task.";
-const resourceMiddlewareScopeMarker = ".middleware.resource.";
-
-function getMiddlewareDuplicateKey(id: string): string {
-  const taskScopeIndex = id.lastIndexOf(taskMiddlewareScopeMarker);
-  if (taskScopeIndex >= 0) {
-    return id.slice(taskScopeIndex + taskMiddlewareScopeMarker.length);
-  }
-
-  const resourceScopeIndex = id.lastIndexOf(resourceMiddlewareScopeMarker);
-  if (resourceScopeIndex >= 0) {
-    return id.slice(resourceScopeIndex + resourceMiddlewareScopeMarker.length);
-  }
-
-  return id;
-}
-
-function getTaskOwnerResourceChain(store: Store, taskId: string): string[] {
-  const chain: string[] = [];
-  const visited = new Set<string>();
-  let currentOwnerId = store.getOwnerResourceId(taskId);
-
-  while (currentOwnerId && !visited.has(currentOwnerId)) {
-    visited.add(currentOwnerId);
-    chain.push(currentOwnerId);
-    currentOwnerId = store.getOwnerResourceId(currentOwnerId);
-  }
-
-  return chain;
-}
-
 function normalizeIdentityRequirementSummary(
   value: unknown
 ): IdentityRequirementSummary | null {
@@ -147,182 +122,6 @@ function normalizeIdentityScopeSummary(
   };
 }
 
-function getSubtreePolicies(resource: any): SubtreePolicyInput[] {
-  const rawSubtree = resource?.subtree;
-  if (!rawSubtree || typeof rawSubtree !== "object") return [];
-  return Array.isArray(rawSubtree)
-    ? rawSubtree.filter(
-        (policy): policy is SubtreePolicyInput =>
-          Boolean(policy) && typeof policy === "object"
-      )
-    : [rawSubtree as SubtreePolicyInput];
-}
-
-function readSubtreeMiddlewareEntryId(entry: unknown): string | null {
-  if (typeof entry === "string") return entry;
-  if (!entry || typeof entry !== "object") return null;
-  if ("use" in (entry as Record<string, unknown>)) {
-    return readSubtreeMiddlewareEntryId(
-      (entry as { use?: unknown }).use ?? null
-    );
-  }
-
-  const id = readId(entry);
-  return id ? id : null;
-}
-
-function resolveTaskSubtreeMiddlewareEntry(
-  entry: unknown,
-  task: definitions.ITask
-): string | null {
-  if (typeof entry === "string") {
-    return entry;
-  }
-  if (!entry || typeof entry !== "object") {
-    return null;
-  }
-
-  if ("use" in (entry as Record<string, unknown>)) {
-    const conditionalEntry = entry as {
-      use?: unknown;
-      when?: (definition: definitions.ITask) => boolean;
-    };
-
-    if (typeof conditionalEntry.when === "function") {
-      try {
-        if (!conditionalEntry.when(task)) {
-          return null;
-        }
-      } catch {
-        return null;
-      }
-    }
-
-    return readSubtreeMiddlewareEntryId(conditionalEntry.use ?? null);
-  }
-
-  return readSubtreeMiddlewareEntryId(entry);
-}
-
-function collectSubtreeTaskMiddlewareOwnerIds(
-  store: Store,
-  task: definitions.ITask
-): Map<string, string> {
-  const ownerIds = new Map<string, string>();
-  const chainRootToNearest = [
-    ...getTaskOwnerResourceChain(store, task.id),
-  ].reverse();
-
-  for (const ownerResourceId of chainRootToNearest) {
-    const ownerResource = store.resources.get(ownerResourceId)?.resource;
-    if (!ownerResource) continue;
-
-    for (const policy of getSubtreePolicies(ownerResource)) {
-      const taskMiddlewares = Array.isArray(policy.tasks?.middleware)
-        ? policy.tasks.middleware
-        : [];
-
-      for (const entry of taskMiddlewares) {
-        const middlewareId = resolveTaskSubtreeMiddlewareEntry(entry, task);
-        if (!middlewareId) continue;
-
-        const duplicateKey = getMiddlewareDuplicateKey(middlewareId);
-        if (!ownerIds.has(duplicateKey)) {
-          ownerIds.set(duplicateKey, ownerResourceId);
-        }
-      }
-    }
-  }
-
-  return ownerIds;
-}
-
-function hasMiddlewareConfig(middleware: { config?: unknown }): boolean {
-  return (
-    Boolean((middleware as any)?.[definitions.symbolMiddlewareConfigured]) ||
-    middleware?.config !== undefined
-  );
-}
-
-type ApplicableMiddlewareResolver = {
-  getApplicableTaskMiddlewares?: (
-    taskDefinition: definitions.ITask
-  ) => definitions.ITaskMiddleware[];
-  getApplicableResourceMiddlewares?: (
-    resourceDefinition: definitions.IResource
-  ) => definitions.IResourceMiddleware[];
-};
-
-function getApplicableMiddlewareResolver(
-  store: Store
-): ApplicableMiddlewareResolver | null {
-  // MiddlewareManager keeps the resolver private; introspection reads it
-  // defensively so a Runner internals change degrades to local middleware
-  // lists instead of crashing init.
-  if (typeof store.getMiddlewareManager !== "function") return null;
-  const resolver = (store.getMiddlewareManager() as any)?.middlewareResolver;
-  if (!resolver || typeof resolver !== "object") return null;
-  return resolver as ApplicableMiddlewareResolver;
-}
-
-function resolveApplicableTaskMiddlewares(
-  store: Store,
-  task: definitions.ITask
-): definitions.ITaskMiddleware[] {
-  const resolver = getApplicableMiddlewareResolver(store);
-  if (typeof resolver?.getApplicableTaskMiddlewares !== "function") {
-    return [...task.middleware];
-  }
-  try {
-    const result = resolver.getApplicableTaskMiddlewares(task);
-    // The resolver is private API; never trust its shape blindly.
-    return Array.isArray(result) ? result : [...task.middleware];
-  } catch {
-    // The resolver fails fast on subtree/local id conflicts. Introspection
-    // must stay available to diagnose exactly such apps, so fall back to
-    // the task-local list.
-    return [...task.middleware];
-  }
-}
-
-function resolveApplicableResourceMiddlewares(
-  store: Store,
-  resource: definitions.IResource
-): definitions.IResourceMiddleware[] {
-  const resolver = getApplicableMiddlewareResolver(store);
-  if (typeof resolver?.getApplicableResourceMiddlewares !== "function") {
-    return [...resource.middleware];
-  }
-  try {
-    const result = resolver.getApplicableResourceMiddlewares(resource);
-    return Array.isArray(result) ? result : [...resource.middleware];
-  } catch {
-    return [...resource.middleware];
-  }
-}
-
-function buildEffectiveTaskMiddlewareUsages(
-  store: Store,
-  task: definitions.ITask
-): NonNullable<Task["middlewareDetailed"]> {
-  const effectiveMiddlewares = resolveApplicableTaskMiddlewares(store, task);
-  const subtreeOwnersByKey = collectSubtreeTaskMiddlewareOwnerIds(store, task);
-
-  return effectiveMiddlewares.map((middleware: any) => {
-    const duplicateKey = getMiddlewareDuplicateKey(String(middleware.id));
-    const subtreeOwnerId = subtreeOwnersByKey.get(duplicateKey) ?? null;
-
-    return {
-      id: String(middleware.id),
-      config: hasMiddlewareConfig(middleware)
-        ? stringifyIfObject(middleware.config)
-        : null,
-      origin: subtreeOwnerId ? "subtree" : "local",
-      subtreeOwnerId,
-    };
-  });
-}
-
 // Mapping helpers
 export function mapStoreTaskToTaskModel(
   task: definitions.ITask,
@@ -337,14 +136,7 @@ export function mapStoreTaskToTaskModel(
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
   const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
-  const middlewareDetailed = store
-    ? buildEffectiveTaskMiddlewareUsages(store, task)
-    : (task.middleware || []).map((m: any) => ({
-        id: String(m.id),
-        config: hasMiddlewareConfig(m) ? stringifyIfObject(m.config) : null,
-        origin: "local" as const,
-        subtreeOwnerId: null,
-      }));
+  const middlewareDetailed = buildTaskMiddlewareUsages(task, store);
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
     (task as any)?.tags
   );
@@ -447,31 +239,57 @@ export function mapStoreHookToHookModel(
   );
 }
 
-function hasRegisterId(entry: unknown): boolean {
+/** `register` / `overrides` as declared: a static list or a (config, mode) fn. */
+type DeclaredEntries =
+  | readonly unknown[]
+  | ((config: never, mode: never) => unknown)
+  | null
+  | undefined;
+
+// Runner only accepts definitions (or `.with()` / override wrappers) that
+// carry a string id, so anything else cannot be a registered element.
+function hasDeclaredEntryId(entry: unknown): entry is { id: string } {
   return (
-    entry !== null &&
     (typeof entry === "object" || typeof entry === "function") &&
-    (entry as { id?: unknown }).id != null
+    entry !== null &&
+    "id" in entry &&
+    typeof entry.id === "string"
   );
 }
 
-function invokeRegisterFn(
+function invokeDeclarationFn(
   fn: (config: never, mode: never) => unknown,
   resourceConfig: unknown,
-  mode: unknown
-): any[] {
+  mode: Store["mode"]
+): readonly unknown[] {
   try {
     const result = fn(resourceConfig as never, mode as never);
-    if (!Array.isArray(result)) return [];
-    // Mappers dereference entry.id; drop malformed entries rather than
-    // aborting init on user-composed edge cases.
-    return result.filter(hasRegisterId);
+    return Array.isArray(result) ? result : [];
   } catch {
     // Mode-sensitive register/overrides fns can throw for the introspected
     // mode. Runner already resolved the real graph; introspection degrades
     // to an empty declared list rather than aborting init.
     return [];
   }
+}
+
+/**
+ * Reads declared register/overrides ids. Static lists and fn results go
+ * through the same filter, so null or id-less entries (hand-built
+ * definitions Runner itself would reject) are skipped consistently instead
+ * of aborting introspection init.
+ */
+function readDeclaredEntryIds(
+  declared: DeclaredEntries,
+  resourceConfig: unknown,
+  mode: Store["mode"]
+): string[] {
+  const entries = Array.isArray(declared)
+    ? declared
+    : typeof declared === "function"
+    ? invokeDeclarationFn(declared, resourceConfig, mode)
+    : [];
+  return entries.filter(hasDeclaredEntryId).map((entry) => entry.id);
 }
 
 export function mapStoreResourceToResourceModel(
@@ -481,17 +299,16 @@ export function mapStoreResourceToResourceModel(
 ): Resource {
   const introspectorMode = store?.mode ?? ("dev" as Store["mode"]);
 
-  const register = Array.isArray(resource.register)
-    ? resource.register
-    : typeof resource.register === "function"
-    ? invokeRegisterFn(resource.register, resourceConfig, introspectorMode)
-    : [];
-
-  const overrides = Array.isArray(resource.overrides)
-    ? resource.overrides
-    : typeof resource.overrides === "function"
-    ? invokeRegisterFn(resource.overrides, resourceConfig, introspectorMode)
-    : [];
+  const registers = readDeclaredEntryIds(
+    resource.register,
+    resourceConfig,
+    introspectorMode
+  );
+  const overrides = readDeclaredEntryIds(
+    resource.overrides,
+    resourceConfig,
+    introspectorMode
+  );
 
   const depsObj = normalizeDependencies(resource?.dependencies);
   const eventIdsFromDeps = extractEventIdsFromDependencies(depsObj);
@@ -499,20 +316,7 @@ export function mapStoreResourceToResourceModel(
   const taskIdsFromDeps = extractTaskIdsFromDependencies(depsObj);
   const errorIdsFromDeps = extractErrorIdsFromDependencies(depsObj);
   const tagIdsFromDeps = extractTagIdsFromDependencies(depsObj);
-  // Mirror the task path: resolve the effective stack (subtree-composed)
-  // when a store is available, otherwise fall back to the local list.
-  const effectiveResourceMiddlewares = store
-    ? resolveApplicableResourceMiddlewares(store, resource)
-    : [...(resource.middleware || [])];
-  const middlewareDetailed = effectiveResourceMiddlewares.map((m: any) => ({
-    id: String(m.id),
-    // In some @bluelibs/runner versions the configured flag may be missing; fall back to presence of config
-    config:
-      (m && m[definitions.symbolMiddlewareConfigured]) ||
-      m?.config !== undefined
-        ? stringifyIfObject(m.config)
-        : null,
-  }));
+  const middlewareDetailed = buildResourceMiddlewareUsages(resource, store);
 
   const { ids: tagIds, detailed: tagsDetailed } = normalizeTags(
     (resource as any)?.tags
@@ -546,12 +350,10 @@ export function mapStoreResourceToResourceModel(
           null
       ),
       config,
-      middleware: effectiveResourceMiddlewares.map((m) => m.id.toString()),
+      middleware: middlewareDetailed.map((m) => m.id),
       middlewareDetailed,
-      overrides: overrides.flatMap((override) =>
-        override ? [override.id.toString()] : []
-      ),
-      registers: register.map((r) => r.id.toString()) as string[],
+      overrides,
+      registers,
       isolation,
       subtree,
       hasInit,
@@ -1379,21 +1181,6 @@ function toSubtreeMiddlewareIds(entries: unknown): string[] {
     .filter((id): id is string => Boolean(id));
   return Array.from(new Set(ids));
 }
-
-type SubtreePolicyInput = {
-  tasks?: {
-    middleware?: unknown;
-    identity?: unknown;
-    validate?: unknown;
-  } | null;
-  middleware?: { identityScope?: unknown } | null;
-  resources?: { middleware?: unknown; validate?: unknown } | null;
-  hooks?: { validate?: unknown } | null;
-  taskMiddleware?: { validate?: unknown } | null;
-  resourceMiddleware?: { validate?: unknown } | null;
-  events?: { validate?: unknown } | null;
-  tags?: { validate?: unknown } | null;
-};
 
 function appendSubtreeMiddlewareIds(
   target: Set<string>,

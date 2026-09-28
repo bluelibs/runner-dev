@@ -8,6 +8,12 @@ import type {
 } from "../utils/topologyGraph";
 import { TopologyCanvas } from "./TopologyCanvas";
 
+// `marked` ships ESM-only, which Jest cannot parse; description tooltips only
+// need their trigger here, not real markdown rendering.
+jest.mock("../utils/markdownUtils", () => ({
+  MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
+}));
+
 function createNode(
   overrides: Partial<TopologyGraphNode> &
     Pick<
@@ -31,6 +37,7 @@ function createNode(
     parentRelationKind: overrides.parentRelationKind ?? null,
     isFocus: overrides.isFocus ?? false,
     isVisible: overrides.isVisible ?? true,
+    terminal: overrides.terminal ?? false,
     hiddenNeighborCount: overrides.hiddenNeighborCount ?? 0,
     incomingCount: overrides.incomingCount,
     outgoingCount: overrides.outgoingCount,
@@ -66,6 +73,18 @@ function createProjection(nodes: TopologyGraphNode[]): TopologyGraphProjection {
   };
 }
 
+// jsdom 26 has no PointerEvent, so fireEvent.pointer* would fall back to a
+// bare Event and drop clientX/clientY/button/pointerId. MouseEvent carries the
+// coordinates and button; pointerId is the only field we have to add.
+class PointerEventPolyfill extends MouseEvent {
+  readonly pointerId: number;
+
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init);
+    this.pointerId = init.pointerId ?? 0;
+  }
+}
+
 function getCanvasStage(): HTMLElement | null {
   return document.querySelector(
     '[id^="topology-canvas-stage-"]'
@@ -80,6 +99,26 @@ describe("TopologyCanvas", () => {
   const originalHasPointerCapture = HTMLElement.prototype.hasPointerCapture;
   const originalGetBoundingClientRect =
     HTMLElement.prototype.getBoundingClientRect;
+  const originalPointerEvent = Object.getOwnPropertyDescriptor(
+    window,
+    "PointerEvent"
+  );
+
+  beforeAll(() => {
+    Object.defineProperty(window, "PointerEvent", {
+      configurable: true,
+      writable: true,
+      value: PointerEventPolyfill,
+    });
+  });
+
+  afterAll(() => {
+    if (originalPointerEvent) {
+      Object.defineProperty(window, "PointerEvent", originalPointerEvent);
+      return;
+    }
+    Reflect.deleteProperty(window, "PointerEvent");
+  });
 
   beforeEach(() => {
     class ResizeObserverMock {
@@ -109,7 +148,9 @@ describe("TopologyCanvas", () => {
         };
       }
 
-      if (element.classList.contains("topology-panel__scroll-rail")) {
+      // The rail measures its inner track (not the padded outer rail) to
+      // position the thumb, so the track is what needs a realistic height.
+      if (element.classList.contains("topology-panel__scroll-rail-track")) {
         return {
           width: 56,
           height: 724,
@@ -317,9 +358,14 @@ describe("TopologyCanvas", () => {
       />
     );
 
-    const node = await screen.findByRole("button", {
-      name: /Drag Me/i,
-    });
+    // The node's description tooltip is also a button named "Drag Me
+    // description", so resolve the node card from its title instead.
+    const node = (await screen.findByText("Drag Me")).closest<HTMLElement>(
+      ".topology-panel__node"
+    );
+    if (!node) {
+      throw new Error("Expected the Drag Me node card to render");
+    }
     const stage = getCanvasStage();
 
     await waitFor(() => {
@@ -474,7 +520,9 @@ describe("TopologyCanvas", () => {
             id: "task.pan.child",
             kind: "task",
             label: "Pan Child",
-            x: 620,
+            // Wider and taller than the viewport even at minimum zoom: an axis
+            // the graph fits on is centered by design, so it would not pan.
+            x: 2620,
             y: 2280,
             incomingCount: 2,
             outgoingCount: 1,

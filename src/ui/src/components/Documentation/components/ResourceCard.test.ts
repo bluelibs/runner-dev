@@ -2,7 +2,8 @@
 
 import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import type { Resource } from "../../../../../schema/model";
+import type { Middleware, Resource } from "../../../../../schema/model";
+import { Introspector } from "../../../../../resources/models/Introspector";
 import { ResourceCard } from "./ResourceCard";
 import { DocumentationModeProvider } from "../context/DocumentationModeContext";
 
@@ -582,5 +583,86 @@ describe("ResourceCard", () => {
 
     expect(screen.queryByRole("button", { name: "Shell" })).toBeNull();
     expect(mockShellModal).not.toHaveBeenCalled();
+  });
+  it("shows subtree provenance for resource middleware like task cards do", () => {
+    const resourceMiddleware = (id: string, title: string): Middleware => ({
+      id,
+      meta: { title },
+      type: "resource",
+      autoApply: { enabled: false, scope: null, hasPredicate: false },
+      usedByTasks: [],
+      usedByResources: ["app.features.db"],
+    });
+    const resource = (id: string, overrides: Partial<Resource>): Resource => ({
+      id,
+      emits: [],
+      dependsOn: [],
+      middleware: [],
+      overrides: [],
+      registers: [],
+      ...overrides,
+    });
+    const db = resource("app.features.db", {
+      meta: { title: "Database" },
+      registeredBy: "app.features",
+      middleware: ["app.mw.retry", "app.mw.audit"],
+      middlewareDetailed: [
+        {
+          id: "app.mw.retry",
+          config: null,
+          origin: "subtree",
+          subtreeOwnerId: "app.features",
+        },
+        {
+          id: "app.mw.audit",
+          config: JSON.stringify({ level: "info" }),
+          origin: "local",
+          subtreeOwnerId: null,
+        },
+      ],
+    });
+    const introspector = new Introspector({
+      data: {
+        tasks: [],
+        hooks: [],
+        resources: [
+          resource("app", { registers: ["app.features"] }),
+          resource("app.features", {
+            registeredBy: "app",
+            registers: ["app.features.db"],
+          }),
+          db,
+        ],
+        events: [],
+        middlewares: [
+          resourceMiddleware("app.mw.retry", "Retry"),
+          resourceMiddleware("app.mw.audit", "Audit"),
+        ],
+        tags: [],
+        rootId: "app",
+      },
+    });
+
+    render(
+      React.createElement(ResourceCard, {
+        resource: db,
+        introspector,
+      })
+    );
+
+    const badge = screen.getByText("Subtree Policy");
+    expect(screen.getAllByText("Subtree Policy")).toHaveLength(1);
+    expect(badge.getAttribute("title")).toBe(
+      "Applied by subtree policy from app.features"
+    );
+    expect(badge.parentElement?.textContent).toContain("Retry");
+    expect(
+      screen
+        .getByText(/Source:/)
+        .querySelector("a")
+        ?.getAttribute("href")
+    ).toBe("#element-app.features");
+    expect(screen.getByText("Audit")).toBeTruthy();
+    expect(screen.getByText(/"level"/)).toBeTruthy();
   });
 });

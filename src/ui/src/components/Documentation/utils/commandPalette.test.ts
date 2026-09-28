@@ -217,5 +217,52 @@ describe("commandPalette", () => {
     test("matches everything on an empty query", () => {
       expect(matchesFuzzyText("   ", "Anything")).toBe(true);
     });
+
+    const runnerIds = [
+      "app.tasks.createUser",
+      "app.tasks.deleteUser",
+      "app.tasks.lookupOrg",
+      "app.resources.logger",
+      "app.middleware.globalLogging",
+      "app.events.userCreated",
+      "platform.config",
+    ];
+    const matchingIds = (query: string) =>
+      runnerIds.filter((id) => matchesFuzzyText(query, id));
+
+    test("short tokens only match as contiguous substrings", () => {
+      expect(matchingIds("log")).toEqual([
+        "app.resources.logger",
+        "app.middleware.globalLogging",
+      ]);
+      expect(matchingIds("LOG")).toEqual(matchingIds("log"));
+      // "lg" is a subsequence of logger/globalLogging, but too short to fuzz.
+      expect(matchingIds("lg")).toEqual([]);
+    });
+
+    test("accepts tight abbreviations and rejects scattered characters", () => {
+      // c-r-(eate)-u-s spans 8 characters for a 4-character token.
+      expect(matchingIds("crus")).toEqual(["app.tasks.createUser"]);
+      // c…u-s-(e)-r spans 10 characters: past the 2x budget.
+      expect(matchingIds("cusr")).toEqual([]);
+      expect(matchingIds("usr")).toEqual([
+        "app.tasks.createUser",
+        "app.tasks.deleteUser",
+        "app.events.userCreated",
+      ]);
+      expect(matchingIds("dtb")).toEqual([]);
+      expect(matchesFuzzyText("dtb", "app.resources.database")).toBe(true);
+    });
+
+    test("keeps the palette's looser subsequence ranking intact", () => {
+      // The table filter rejects these scattered matches...
+      expect(matchesFuzzyText("log", "app.tasks.lookupOrg")).toBe(false);
+      expect(matchesFuzzyText("log", "platform.config")).toBe(false);
+      // ...while the palette still lists them, ranked last.
+      expect(
+        scoreEntry(elementEntry("app.tasks.lookupOrg", "task"), "log")
+      ).toBe(10);
+      expect(scoreEntry(elementEntry("app.resources.logger"), "lg")).toBe(10);
+    });
   });
 });

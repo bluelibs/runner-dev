@@ -668,29 +668,29 @@ describe("Swap GraphQL Integration", () => {
         }
       `;
 
-      // Disable eval explicitly
+      const previousEnv = captureShellEnv();
       process.env.RUNNER_DEV_EVAL = "0";
       process.env.NODE_ENV = "production";
 
-      const response = await apolloServer.executeOperation(
-        {
-          query: mutation,
-          variables: { code: "() => 1" },
-        },
-        { contextValue: context }
-      );
+      try {
+        const response = await apolloServer.executeOperation(
+          {
+            query: mutation,
+            variables: { code: "() => 1" },
+          },
+          { contextValue: context }
+        );
 
-      expect(response.body.kind).toBe("single");
-      if (response.body.kind === "single") {
-        const resData = response.body.singleResult.data as any;
-        const res = resData?.eval as any;
-        expect(res.success).toBe(false);
-        expect(res.error).toContain("Eval is disabled");
+        expect(response.body.kind).toBe("single");
+        if (response.body.kind === "single") {
+          const resData = response.body.singleResult.data as any;
+          const res = resData?.eval as any;
+          expect(res.success).toBe(false);
+          expect(res.error).toContain("Eval is disabled");
+        }
+      } finally {
+        restoreShellEnv(previousEnv);
       }
-
-      // Reset env to non-production for other tests
-      delete process.env.NODE_ENV;
-      process.env.RUNNER_DEV_EVAL = "1";
     });
   });
 
@@ -794,7 +794,7 @@ describe("Swap GraphQL Integration", () => {
       }
     });
 
-    test("should allow shell by default when the env is unset", async () => {
+    test("should deny shell when NODE_ENV is unset (fail closed)", async () => {
       const mutation = `
         mutation Shell($code: String!) {
           shell(code: $code) {
@@ -819,8 +819,10 @@ describe("Swap GraphQL Integration", () => {
         if (response.body.kind === "single") {
           const responseData = response.body.singleResult.data;
           assertShellData(responseData);
-          expect(responseData.shell.success).toBe(true);
-          expect(responseData.shell.result).toContain("2");
+          expect(responseData.shell.success).toBe(false);
+          expect(responseData.shell.result).toBeNull();
+          expect(responseData.shell.error).toContain("RUNNER_DEV_EVAL=1");
+          expect(responseData.shell.error).toContain("NODE_ENV=development");
         }
       } finally {
         restoreShellEnv(previousEnv);
@@ -857,6 +859,19 @@ describe("Swap GraphQL Integration", () => {
         expect(disabledResponse.body.kind).toBe("single");
         if (disabledResponse.body.kind === "single") {
           const responseData = disabledResponse.body.singleResult.data;
+          assertShellEnabledData(responseData);
+          expect(responseData.shellEnabled).toBe(false);
+        }
+
+        delete process.env.RUNNER_DEV_EVAL;
+        delete process.env.NODE_ENV;
+        const unsetEnvResponse = await apolloServer.executeOperation(
+          { query },
+          { contextValue: context }
+        );
+        expect(unsetEnvResponse.body.kind).toBe("single");
+        if (unsetEnvResponse.body.kind === "single") {
+          const responseData = unsetEnvResponse.body.singleResult.data;
           assertShellEnabledData(responseData);
           expect(responseData.shellEnabled).toBe(false);
         }

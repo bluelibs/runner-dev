@@ -453,8 +453,10 @@ describe("ShellModal", () => {
     mockedRequest.mockResolvedValueOnce({ shellEnabled: false });
     renderShell(null);
 
-    await screen.findByText(/Shell is disabled in production/);
-    expect(screen.getByText(/RUNNER_DEV_EVAL=1/)).toBeTruthy();
+    const note = await screen.findByRole("status");
+    expect(note.textContent).toContain("Shell is disabled on this server");
+    expect(note.textContent).toContain("RUNNER_DEV_EVAL=1");
+    expect(note.textContent).toContain("NODE_ENV=development");
 
     fireEvent.change(screen.getByLabelText("Shell input"), {
       target: { value: "1 + 1" },

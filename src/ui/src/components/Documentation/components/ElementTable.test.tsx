@@ -3,6 +3,11 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ElementTable, type BaseElement } from "./ElementTable";
+import {
+  DEFAULT_ELEMENT_TABLE_VIEW,
+  type ElementTableView,
+} from "./elementTable.utils";
+import { recordInputModality } from "../utils/inputModality";
 
 jest.mock("../utils/markdownUtils", () => ({
   MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
@@ -47,6 +52,11 @@ describe("ElementTable", () => {
     Array.from(container.querySelectorAll(".element-table__id-code")).map(
       (element) => element.textContent || ""
     );
+
+  beforeEach(() => {
+    // Pointer-driven arrival: the table opens search-first.
+    recordInputModality("pointer");
+  });
 
   it("defaults to the original neutral up-down indicator and source order", () => {
     const { container } = render(
@@ -309,7 +319,21 @@ describe("ElementTable", () => {
     ]);
   });
 
-  it("keeps sort buttons out of the tab order between search inputs", () => {
+  it("leaves focus on the page when the keyboard drove the navigation", () => {
+    recordInputModality("keyboard");
+
+    render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
+    );
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("gives the sort buttons a single tab stop ahead of back-to-back searches", () => {
     const { container } = render(
       <ElementTable
         elements={elements}
@@ -319,12 +343,80 @@ describe("ElementTable", () => {
     );
 
     const sortButtons = Array.from(
-      container.querySelectorAll(".element-table__sort-btn")
+      container.querySelectorAll<HTMLButtonElement>(".element-table__sort-btn")
     );
-    expect(sortButtons.length).toBeGreaterThan(0);
-    sortButtons.forEach((button) => {
-      expect((button as HTMLElement).tabIndex).toBe(-1);
+    expect(sortButtons.map((button) => button.tabIndex)).toEqual([
+      0, -1, -1, -1,
+    ]);
+    screen.getAllByRole("searchbox").forEach((search) => {
+      expect(search.tabIndex).toBe(0);
     });
+  });
+
+  it("walks the sort buttons with arrow keys and keeps aria-sort in sync", () => {
+    render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+      />
+    );
+    const idSort = screen.getByRole("button", { name: /^id$/i });
+    const titleSort = screen.getByRole("button", { name: /^title$/i });
+    const usedBySort = screen.getByRole("button", { name: /^used by$/i });
+
+    idSort.focus();
+    fireEvent.keyDown(idSort, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(titleSort);
+    fireEvent.keyDown(titleSort, { key: "End" });
+    expect(document.activeElement).toBe(usedBySort);
+    fireEvent.keyDown(usedBySort, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(idSort);
+    fireEvent.keyDown(idSort, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(usedBySort);
+    fireEvent.keyDown(usedBySort, { key: "Home" });
+    expect(document.activeElement).toBe(idSort);
+    fireEvent.keyDown(idSort, { key: "a" });
+    expect(document.activeElement).toBe(idSort);
+
+    // Enter/Space on a native button is a click.
+    fireEvent.click(titleSort);
+    expect(titleSort.closest("th")).toHaveAttribute("aria-sort", "ascending");
+    expect(idSort.closest("th")).toHaveAttribute("aria-sort", "none");
+    fireEvent.click(titleSort);
+    expect(titleSort.closest("th")).toHaveAttribute("aria-sort", "descending");
+  });
+
+  it("renders a controlled view and reports changes instead of owning them", () => {
+    const onViewChange = jest.fn();
+    const view: ElementTableView = {
+      ...DEFAULT_ELEMENT_TABLE_VIEW,
+      sort: { key: "id", direction: "desc" },
+    };
+    const { container } = render(
+      <ElementTable
+        elements={elements}
+        resources={resources}
+        title="Tasks Overview"
+        view={view}
+        onViewChange={onViewChange}
+      />
+    );
+
+    expect(getRenderedIds(container)[0]).toBe("...>catalog > catalogOnEnabled");
+
+    fireEvent.click(screen.getByRole("button", { name: /^id$/i }));
+    expect(onViewChange).toHaveBeenLastCalledWith({ ...view, sort: null });
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search by ID" }), {
+      target: { value: "zlst" },
+    });
+    expect(onViewChange).toHaveBeenLastCalledWith({
+      ...view,
+      filters: { ...view.filters, id: "zlst" },
+    });
+    // The parent did not apply either change, so the rows stay put.
+    expect(getRenderedIds(container)).toHaveLength(elements.length);
   });
 
   it("matches ids fuzzily across separators", () => {

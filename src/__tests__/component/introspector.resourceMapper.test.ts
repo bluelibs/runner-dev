@@ -1,5 +1,16 @@
 import { mapStoreResourceToResourceModel } from "../../resources/models/initializeFromStore.utils";
 
+// Only the Store members the resource mapper reads; the owner lookup finds
+// no parent, so middleware provenance stays local.
+function fakeStore(overrides: Record<string, unknown> = {}) {
+  return {
+    mode: "dev",
+    getOwnerResourceId: () => undefined,
+    resources: new Map(),
+    ...overrides,
+  } as any;
+}
+
 function fakeResource(overrides: Record<string, unknown> = {}) {
   return {
     id: "test-mapper-resource",
@@ -24,10 +35,11 @@ describe("mapStoreResourceToResourceModel", () => {
       },
     });
 
-    mapStoreResourceToResourceModel(resource, undefined, {
-      mode: "prod",
-      getMiddlewareManager: () => ({}),
-    } as any);
+    mapStoreResourceToResourceModel(
+      resource,
+      undefined,
+      fakeStore({ mode: "prod", getMiddlewareManager: () => ({}) })
+    );
 
     expect(seen).toEqual(["prod", "prod"]);
   });
@@ -80,22 +92,35 @@ describe("mapStoreResourceToResourceModel", () => {
       middleware: [{ id: "mw-local" }],
     });
 
-    const mapped = mapStoreResourceToResourceModel(resource, undefined, {
-      mode: "dev",
-      getMiddlewareManager: () => ({
-        middlewareResolver: {
-          getApplicableResourceMiddlewares: () => [
-            { id: "mw-everywhere" },
-            { id: "mw-local", config: { retries: 1 } },
-          ],
-        },
-      }),
-    } as any);
+    const mapped = mapStoreResourceToResourceModel(
+      resource,
+      undefined,
+      fakeStore({
+        getMiddlewareManager: () => ({
+          middlewareResolver: {
+            getApplicableResourceMiddlewares: () => [
+              { id: "mw-everywhere" },
+              { id: "mw-local", config: { retries: 1 } },
+            ],
+          },
+        }),
+      })
+    );
 
     expect(mapped.middleware).toEqual(["mw-everywhere", "mw-local"]);
     expect(mapped.middlewareDetailed).toEqual([
-      { id: "mw-everywhere", config: null },
-      { id: "mw-local", config: '{"retries":1}' },
+      {
+        id: "mw-everywhere",
+        config: null,
+        origin: "local",
+        subtreeOwnerId: null,
+      },
+      {
+        id: "mw-local",
+        config: '{"retries":1}',
+        origin: "local",
+        subtreeOwnerId: null,
+      },
     ]);
   });
 
@@ -104,51 +129,53 @@ describe("mapStoreResourceToResourceModel", () => {
       middleware: [{ id: "mw-local" }],
     });
 
-    const throwing = mapStoreResourceToResourceModel(resource, undefined, {
-      mode: "dev",
-      getMiddlewareManager: () => ({
-        middlewareResolver: {
-          getApplicableResourceMiddlewares: () => {
-            throw new Error("subtree conflict");
+    const throwing = mapStoreResourceToResourceModel(
+      resource,
+      undefined,
+      fakeStore({
+        getMiddlewareManager: () => ({
+          middlewareResolver: {
+            getApplicableResourceMiddlewares: () => {
+              throw new Error("subtree conflict");
+            },
           },
-        },
-      }),
-    } as any);
+        }),
+      })
+    );
     expect(throwing.middleware).toEqual(["mw-local"]);
 
-    const missingFn = mapStoreResourceToResourceModel(resource, undefined, {
-      mode: "dev",
-      getMiddlewareManager: () => ({ middlewareResolver: {} }),
-    } as any);
+    const missingFn = mapStoreResourceToResourceModel(
+      resource,
+      undefined,
+      fakeStore({ getMiddlewareManager: () => ({ middlewareResolver: {} }) })
+    );
     expect(missingFn.middleware).toEqual(["mw-local"]);
 
     const nonObjectResolver = mapStoreResourceToResourceModel(
       resource,
       undefined,
-      {
-        mode: "dev",
-        getMiddlewareManager: () => ({ middlewareResolver: 42 }),
-      } as any
+      fakeStore({ getMiddlewareManager: () => ({ middlewareResolver: 42 }) })
     );
     expect(nonObjectResolver.middleware).toEqual(["mw-local"]);
 
     const missingManager = mapStoreResourceToResourceModel(
       resource,
       undefined,
-      {
-        mode: "dev",
-      } as any
+      fakeStore()
     );
     expect(missingManager.middleware).toEqual(["mw-local"]);
 
-    const nonArray = mapStoreResourceToResourceModel(resource, undefined, {
-      mode: "dev",
-      getMiddlewareManager: () => ({
-        middlewareResolver: {
-          getApplicableResourceMiddlewares: () => ({ oops: true }),
-        },
-      }),
-    } as any);
+    const nonArray = mapStoreResourceToResourceModel(
+      resource,
+      undefined,
+      fakeStore({
+        getMiddlewareManager: () => ({
+          middlewareResolver: {
+            getApplicableResourceMiddlewares: () => ({ oops: true }),
+          },
+        }),
+      })
+    );
     expect(nonArray.middleware).toEqual(["mw-local"]);
   });
 
@@ -162,5 +189,34 @@ describe("mapStoreResourceToResourceModel", () => {
 
     expect(mapped.registers).toEqual(["ok-task"]);
     expect(mapped.overrides).toEqual(["ok-override"]);
+  });
+
+  // Runner rejects these shapes at run(), so they only reach the mapper via
+  // hand-built definitions; the static form must degrade like the fn form.
+  test("drops static register/overrides entries without an id", () => {
+    const resource = fakeResource({
+      register: [
+        null,
+        "bare-string",
+        { id: "ok-task" },
+        { noId: true },
+        { id: 7 },
+      ],
+      overrides: [{}, null, undefined, { id: "ok-override" }],
+    });
+
+    const mapped = mapStoreResourceToResourceModel(resource);
+
+    expect(mapped.registers).toEqual(["ok-task"]);
+    expect(mapped.overrides).toEqual(["ok-override"]);
+  });
+
+  test("reads missing register/overrides declarations as empty", () => {
+    const mapped = mapStoreResourceToResourceModel(
+      fakeResource({ register: undefined, overrides: undefined })
+    );
+
+    expect(mapped.registers).toEqual([]);
+    expect(mapped.overrides).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { recordInputModality } from "../utils/inputModality";
 
 export interface GlobalShortcutHandlers {
   onOpenPalette: () => void;
@@ -46,6 +47,8 @@ function isTypingTarget(target: EventTarget | null): target is HTMLElement {
  * App-wide keyboard shortcuts: command palette, shell, help,
  * `g`-prefixed section jumps, and detail-view escape. Typing in inputs is
  * never hijacked (except for palette toggle and escape, which always work).
+ * Also records the last input modality so keyboard-driven navigation does
+ * not land focus in a table search (see inputModality).
  */
 export function useGlobalShortcuts(handlers: GlobalShortcutHandlers) {
   const handlersRef = useRef(handlers);
@@ -63,6 +66,7 @@ export function useGlobalShortcuts(handlers: GlobalShortcutHandlers) {
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      recordInputModality("keyboard");
       const current = handlersRef.current;
       const overlayOpen = current.isOverlayOpen();
       const typing = isTypingTarget(event.target);
@@ -138,13 +142,17 @@ export function useGlobalShortcuts(handlers: GlobalShortcutHandlers) {
       }
     };
 
+    const handlePointerDown = () => recordInputModality("pointer");
+
     // Capture phase: observe overlay state before the modal stack consumes
     // Escape in bubble phase, so one keypress never both closes a modal and
     // navigates. Stopping propagation only when we consume the key keeps
     // field-level and modal Escape behavior intact.
     window.addEventListener("keydown", handleKeyDown, true);
+    window.addEventListener("pointerdown", handlePointerDown, true);
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("pointerdown", handlePointerDown, true);
       clearPendingKey();
     };
   }, []);

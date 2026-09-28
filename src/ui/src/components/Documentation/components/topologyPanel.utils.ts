@@ -10,39 +10,126 @@ export interface TopologyRelationGroup {
 }
 
 export interface TopologyImpactSummary {
+  /** Downstream nodes: direct + transitive. Contract partners are not. */
   affected: number;
   direct: number;
   transitive: number;
+  /** Emitters, throwers, providers: must still conform, not downstream. */
   contract: number;
+  /** Affected nodes the current filters hide from the canvas. */
+  hiddenAffected: number;
+  /** Contract partners the current filters hide from the canvas. */
+  hiddenContract: number;
+}
+
+type ImpactClass = "direct" | "transitive" | "contract";
+
+function classifyImpact(node: TopologyGraphNode): ImpactClass {
+  if (node.terminal) return "contract";
+  return node.depth <= 1 ? "direct" : "transitive";
 }
 
 /**
- * Blast-lens counts over visible, non-focus nodes: depth-1 downstream
- * (direct), deeper downstream (transitive), and terminal contract partners
- * (emitters, throwers, providers — checked, not expanded).
+ * Blast-lens counts over every non-focus node of the projection. Filters
+ * only decide what the canvas shows, so hidden nodes still count (the true
+ * downstream set) and are reported separately instead of silently dropped.
  */
 export function summarizeImpact(
   nodes: TopologyGraphNode[]
 ): TopologyImpactSummary {
-  let direct = 0;
-  let transitive = 0;
-  let contract = 0;
+  const counts = { direct: 0, transitive: 0, contract: 0 };
+  let hiddenAffected = 0;
+  let hiddenContract = 0;
   for (const node of nodes) {
-    if (node.isFocus || !node.isVisible) continue;
-    if (node.terminal) {
-      contract += 1;
-    } else if (node.depth <= 1) {
-      direct += 1;
-    } else {
-      transitive += 1;
-    }
+    if (node.isFocus) continue;
+    const impactClass = classifyImpact(node);
+    counts[impactClass] += 1;
+    if (node.isVisible) continue;
+    if (impactClass === "contract") hiddenContract += 1;
+    else hiddenAffected += 1;
   }
   return {
-    affected: direct + transitive + contract,
-    direct,
-    transitive,
-    contract,
+    affected: counts.direct + counts.transitive,
+    ...counts,
+    hiddenAffected,
+    hiddenContract,
   };
+}
+
+export interface TopologyImpactGroup {
+  title: string;
+  hint: string;
+  /** Nodes the current filters leave visible, sorted by label. */
+  visibleNodes: TopologyGraphNode[];
+  hiddenCount: number;
+}
+
+const IMPACT_GROUPS: Array<{
+  impactClass: ImpactClass;
+  title: string;
+  hint: string;
+}> = [
+  {
+    impactClass: "direct",
+    title: "Direct",
+    hint: "Behaves differently if the focus changes",
+  },
+  {
+    impactClass: "transitive",
+    title: "Transitive",
+    hint: "Affected further down the chain",
+  },
+  {
+    impactClass: "contract",
+    title: "Contract partners",
+    hint: "Not downstream, but must still conform: emitters, throwers, providers",
+  },
+];
+
+/** Impact panel groups; empty groups (no visible or hidden node) are dropped. */
+export function groupImpactNodes(
+  nodes: TopologyGraphNode[]
+): TopologyImpactGroup[] {
+  const byLabel = (left: TopologyGraphNode, right: TopologyGraphNode) =>
+    left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
+  const impacted = nodes.filter((node) => !node.isFocus);
+
+  return IMPACT_GROUPS.map(({ impactClass, title, hint }) => {
+    const members = impacted.filter(
+      (node) => classifyImpact(node) === impactClass
+    );
+    const visibleNodes = members.filter((node) => node.isVisible);
+    return {
+      title,
+      hint,
+      visibleNodes: visibleNodes.sort(byLabel),
+      hiddenCount: members.length - visibleNodes.length,
+    };
+  }).filter((group) => group.visibleNodes.length + group.hiddenCount > 0);
+}
+
+export function formatHiddenByFilters(count: number): string {
+  return `${count} hidden by filters`;
+}
+
+/** One-line blast summary for the fullscreen header (the hero is hidden there). */
+export function formatBlastSubtitle(
+  summary: TopologyImpactSummary,
+  radius: number
+): string {
+  const parts = [`Blast radius · ${summary.affected} affected`];
+  if (summary.hiddenAffected > 0) {
+    parts.push(` (${formatHiddenByFilters(summary.hiddenAffected)})`);
+  }
+  parts.push(` within ${pluralize(radius, "hop")}`);
+  if (summary.contract > 0) {
+    parts.push(` · ${pluralize(summary.contract, "contract partner")}`);
+  }
+  return parts.join("");
+}
+
+function pluralize(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
 export function buildRelationGroups(

@@ -306,7 +306,7 @@ describe("GraphQL Live (integration)", () => {
     expect(data.live.gc.duration).toBeGreaterThanOrEqual(0);
   });
 
-  test("task and hook runs accept millisecond epoch cursors", async () => {
+  test("task and hook runs filter by millisecond epoch and sequence cursors", async () => {
     let ctx: any;
 
     const probe = defineResource({
@@ -317,24 +317,69 @@ describe("GraphQL Live (integration)", () => {
       },
     });
 
-    const app = createDummyApp([live, introspector, telemetry, probe]);
-    await run(app);
+    // No telemetry resource: the only runs are the ones recorded below.
+    const runtime = await run(createDummyApp([live, introspector, probe]));
+    const liveStore = await runtime.getResourceValue(live);
+    const taskId = dummyAppIds.task("task-hello");
+    const hookId = dummyAppIds.hook("hook-hello");
 
-    // Date.now() overflows Int32, so an Int-typed cursor would reject this
-    // query at validation time.
-    const cursor = Date.now();
-    const result = await graphql({
-      schema,
-      source: `query RunsCursor {
-        tasks { id runs(afterTimestamp: ${cursor}) { nodeId } }
-        hooks { id runs(afterTimestamp: ${cursor}) { nodeId } }
-      }`,
-      contextValue: ctx,
-    });
+    // Far above 2^31: an Int-typed cursor would reject these at validation.
+    const base = 1_900_000_000_000;
+    const clock = jest.spyOn(Date, "now");
+    for (const offset of [0, 1_000, 2_000]) {
+      clock.mockReturnValue(base + offset);
+      liveStore.recordRun(taskId, "TASK", 1, true);
+      liveStore.recordRun(hookId, "HOOK", 1, true);
+    }
+    clock.mockRestore();
+    const [firstTaskRun] = liveStore.getRuns({ nodeIds: [taskId] });
 
-    expect(result.errors).toBeUndefined();
-    const data: any = result.data;
-    expect(data.tasks.every((t: any) => Array.isArray(t.runs))).toBe(true);
-    expect(data.hooks.every((h: any) => Array.isArray(h.runs))).toBe(true);
+    try {
+      const result = await graphql({
+        schema,
+        source: `query RunsCursor($ts: Float, $seq: Float) {
+          task(id: "${taskId}") {
+            afterTimestamp: runs(afterTimestamp: $ts) { timestampMs }
+            afterSequence: runs(afterSequence: $seq, last: 1) { timestampMs sequence }
+            mostRecent: runs(last: 1) { timestampMs }
+          }
+          hook(id: "${hookId}") {
+            afterTimestamp: runs(afterTimestamp: $ts) { timestampMs }
+            afterSequence: runs(afterSequence: $seq) { timestampMs }
+          }
+        }`,
+        contextValue: ctx,
+        variableValues: { ts: base + 500, seq: firstTaskRun.sequence },
+      });
+
+      expect(result.errors).toBeUndefined();
+      const data: any = result.data;
+      const stamps = (records: Array<{ timestampMs: number }>) =>
+        records.map((record) => record.timestampMs);
+
+      expect(stamps(data.task.afterTimestamp)).toEqual([
+        base + 1_000,
+        base + 2_000,
+      ]);
+      expect(stamps(data.hook.afterTimestamp)).toEqual([
+        base + 1_000,
+        base + 2_000,
+      ]);
+      // With a cursor, `last` pages forward: the oldest run after it.
+      expect(stamps(data.task.afterSequence)).toEqual([base + 1_000]);
+      expect(data.task.afterSequence[0].sequence).toBeGreaterThan(
+        firstTaskRun.sequence
+      );
+      // Without a cursor, `last` is the most recent run.
+      expect(stamps(data.task.mostRecent)).toEqual([base + 2_000]);
+      // The first hook run was recorded right after the first task run.
+      expect(stamps(data.hook.afterSequence)).toEqual([
+        base,
+        base + 1_000,
+        base + 2_000,
+      ]);
+    } finally {
+      await runtime.dispose();
+    }
   });
 });

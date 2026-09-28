@@ -518,7 +518,8 @@ export const ShellModal: React.FC<ShellModalProps> = ({
     >
       {isShellDisabled && (
         <div className="shell-modal__disabled-note" role="status">
-          Shell is disabled in production. Set <code>RUNNER_DEV_EVAL=1</code> to
+          Shell is disabled on this server. Start it with{" "}
+          <code>RUNNER_DEV_EVAL=1</code> or <code>NODE_ENV=development</code> to
           enable it.
         </div>
       )}

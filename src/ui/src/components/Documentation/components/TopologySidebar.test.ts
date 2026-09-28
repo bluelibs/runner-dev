@@ -87,9 +87,11 @@ describe("TopologyDetailPanels impact list", () => {
       })
     );
 
-    expect(screen.getByText("Direct (1)")).toBeTruthy();
+    // The filtered-out task still counts toward Direct, but gets no chip.
+    expect(screen.getByText("Direct (2)")).toBeTruthy();
+    expect(screen.getByText("1 hidden by filters")).toBeTruthy();
     expect(screen.getByText("Transitive (1)")).toBeTruthy();
-    expect(screen.getByText("Shared contract (1)")).toBeTruthy();
+    expect(screen.getByText("Contract partners (1)")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Build/ })).toBeTruthy();
     expect(screen.queryByText("Hidden")).toBeNull();
 
@@ -97,6 +99,32 @@ describe("TopologyDetailPanels impact list", () => {
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({ id: "event.shipped" })
     );
+  });
+
+  it("keeps the node list stable across re-renders with the same map", () => {
+    const focus = createNode({
+      id: "resource.cache",
+      kind: "resource",
+      label: "Cache",
+      isFocus: true,
+    });
+    const nodesById = new Map([[focus.id, focus] as const]);
+    const valuesSpy = jest.spyOn(nodesById, "values");
+    const props = {
+      edges: [],
+      nodesById,
+      selectedNode: focus,
+      view: "blast" as const,
+      onSelect: () => {},
+    };
+
+    const { rerender } = render(
+      React.createElement(TopologyDetailPanels, props)
+    );
+    rerender(React.createElement(TopologyDetailPanels, { ...props }));
+
+    // Spreading the map once per map identity keeps the impact memo warm.
+    expect(valuesSpy).toHaveBeenCalledTimes(1);
   });
 
   it("shows an empty state when nothing is affected", () => {

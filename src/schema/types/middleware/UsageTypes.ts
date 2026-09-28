@@ -29,6 +29,8 @@ export const MiddlewareResourceUsageType: GraphQLObjectType =
     fields: (): GraphQLFieldConfigMap<any, any> => ({
       id: { type: new GraphQLNonNull(GraphQLID) },
       config: { type: GraphQLString },
+      origin: { type: GraphQLString },
+      subtreeOwnerId: { type: GraphQLID },
       node: { type: new GraphQLNonNull(ResourceType) },
     }),
   });
@@ -39,6 +41,8 @@ export const ResourceMiddlewareUsageType: GraphQLObjectType =
     fields: (): GraphQLFieldConfigMap<any, any> => ({
       id: { type: new GraphQLNonNull(GraphQLID) },
       config: { type: GraphQLString },
+      origin: { type: GraphQLString },
+      subtreeOwnerId: { type: GraphQLID },
       node: { type: new GraphQLNonNull(ResourceMiddlewareType) },
     }),
   });

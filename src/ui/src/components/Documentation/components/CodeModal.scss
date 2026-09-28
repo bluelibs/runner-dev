@@ -225,6 +225,25 @@
   }
 }
 
+.code-modal__disabled-note {
+  margin-bottom: $spacing-md;
+  padding: 10px 16px;
+  border: 1px solid var(--docs-warning-text);
+  border-radius: $border-radius-lg;
+  background: var(--docs-warning-bg);
+  color: var(--docs-warning-text);
+  font-size: $font-size-sm;
+  line-height: 1.5;
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--docs-hover-bg);
+    border: 1px solid var(--docs-border-secondary);
+    border-radius: 4px;
+    padding: 0 5px;
+  }
+}
+
 .code-modal__error {
   margin-left: auto;
   color: var(--docs-error-text);

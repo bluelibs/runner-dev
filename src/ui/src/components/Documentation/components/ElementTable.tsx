@@ -1,40 +1,26 @@
 import React from "react";
 import { MarkdownRenderer } from "../utils/markdownUtils";
-import { matchesFuzzyText } from "../utils/commandPalette";
+import {
+  getLastInputModality,
+  shouldAutofocusTableSearch,
+} from "../utils/inputModality";
 import { OverviewIdLink } from "./common/OverviewIdLink";
 import { DocIcon } from "./common/DocIcon";
+import { ElementTableHeader } from "./ElementTableHeader";
+import {
+  DEFAULT_ELEMENT_TABLE_VIEW,
+  getUsedByCount,
+  getVisibleTableElements,
+  nextSortState,
+  type BaseElement,
+  type ElementTableColumnKey,
+  type ElementTableView,
+} from "./elementTable.utils";
 import "./ElementTable.scss";
 
-type SortKey = "id" | "title" | "description" | "usedBy";
-type SortDirection = "asc" | "desc";
-type ColumnFilters = Record<SortKey, string>;
+export type { BaseElement } from "./elementTable.utils";
 
-export interface BaseElement {
-  id: string;
-  type?: string;
-  registeredBy?: string | null;
-  isPrivate?: boolean;
-  meta?: {
-    title?: string;
-    description?: string;
-  };
-  usedBy?: string[];
-  usedByTasks?: string[];
-  usedByResources?: string[];
-  listenedToBy?: string[];
-  emittedBy?: string[];
-  thrownBy?: string[];
-  tasks?: unknown[];
-  hooks?: unknown[];
-  resources?: unknown[];
-  middlewares?: unknown[];
-  taskMiddlewares?: unknown[];
-  resourceMiddlewares?: unknown[];
-  events?: unknown[];
-  errors?: unknown[];
-}
-
-export interface ElementTableProps {
+interface ElementTableBaseProps {
   elements: BaseElement[];
   resources?: Array<Pick<BaseElement, "id" | "registeredBy">>;
   title: string;
@@ -51,6 +37,16 @@ export interface ElementTableProps {
   middlewareTypeFilters?: boolean;
 }
 
+/**
+ * Sort/search state is either fully controlled (the docs page lifts it so
+ * the detail pager can follow the table's order) or fully owned here.
+ */
+type ElementTableViewControl =
+  | { view: ElementTableView; onViewChange: (view: ElementTableView) => void }
+  | { view?: undefined; onViewChange?: undefined };
+
+export type ElementTableProps = ElementTableBaseProps & ElementTableViewControl;
+
 export const ElementTable: React.FC<ElementTableProps> = ({
   elements,
   resources = [],
@@ -60,202 +56,43 @@ export const ElementTable: React.FC<ElementTableProps> = ({
   enableActions,
   onAction,
   middlewareTypeFilters = false,
+  view: controlledView,
+  onViewChange,
 }) => {
-  const [sortState, setSortState] = React.useState<{
-    key: SortKey;
-    direction: SortDirection;
-  } | null>(null);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFilters>({
-    id: "",
-    title: "",
-    description: "",
-    usedBy: "",
-  });
+  const [ownView, setOwnView] = React.useState<ElementTableView>(
+    DEFAULT_ELEMENT_TABLE_VIEW
+  );
+  const view = controlledView ?? ownView;
+  const setView = onViewChange ?? setOwnView;
   const [expandedMap, setExpandedMap] = React.useState<Record<string, boolean>>(
     {}
   );
   const [clampedMap, setClampedMap] = React.useState<Record<string, boolean>>(
     {}
   );
-  const [showTaskMiddlewares, setShowTaskMiddlewares] = React.useState(true);
-  const [showResourceMiddlewares, setShowResourceMiddlewares] =
-    React.useState(true);
   const idFilterRef = React.useRef<HTMLInputElement>(null);
 
-  // Section opens land in the ID search so typing filters immediately;
+  // Section opens land in the ID search so typing filters immediately —
+  // unless the keyboard drove here (g-chain, palette, Escape-back): then
+  // focus stays on the page so the next shortcut still fires.
   // preventScroll avoids fighting the hash-scroll pass on navigation.
   React.useEffect(() => {
+    if (!shouldAutofocusTableSearch(getLastInputModality())) return;
     idFilterRef.current?.focus({ preventScroll: true });
   }, []);
   const descriptionRefs = React.useRef<Record<string, HTMLElement | null>>({});
 
-  const getUsedByCount = React.useCallback((element: BaseElement): number => {
-    const getUniqueCount = (...groups: Array<string[] | undefined>): number => {
-      const allIds = new Set<string>();
-      groups.forEach((group) => {
-        group?.forEach((id) => allIds.add(id));
-      });
-      return allIds.size;
-    };
+  const sortedElements = React.useMemo(
+    () => getVisibleTableElements(elements, view, { middlewareTypeFilters }),
+    [elements, view, middlewareTypeFilters]
+  );
 
-    if (Array.isArray(element.usedBy)) return element.usedBy.length;
-    if (
-      Array.isArray(element.usedByTasks) ||
-      Array.isArray(element.usedByResources)
-    ) {
-      return getUniqueCount(element.usedByTasks, element.usedByResources);
-    }
-    if (
-      Array.isArray(element.emittedBy) ||
-      Array.isArray(element.listenedToBy)
-    ) {
-      return getUniqueCount(element.emittedBy, element.listenedToBy);
-    }
-    if (Array.isArray(element.thrownBy)) return element.thrownBy.length;
-
-    // Tag model: count all referenced elements.
-    if (
-      Array.isArray(element.tasks) ||
-      Array.isArray(element.hooks) ||
-      Array.isArray(element.resources) ||
-      Array.isArray(element.middlewares) ||
-      Array.isArray(element.taskMiddlewares) ||
-      Array.isArray(element.resourceMiddlewares) ||
-      Array.isArray(element.events) ||
-      Array.isArray(element.errors)
-    ) {
-      return (
-        (element.tasks?.length ?? 0) +
-        (element.hooks?.length ?? 0) +
-        (element.resources?.length ?? 0) +
-        (element.middlewares?.length ?? 0) +
-        (element.taskMiddlewares?.length ?? 0) +
-        (element.resourceMiddlewares?.length ?? 0) +
-        (element.events?.length ?? 0) +
-        (element.errors?.length ?? 0)
-      );
-    }
-
-    return 0;
-  }, []);
-
-  const filteredElements = React.useMemo(() => {
-    const idFilter = columnFilters.id.trim();
-    const titleFilter = columnFilters.title.trim();
-    const descriptionFilter = columnFilters.description.trim().toLowerCase();
-    const usedByFilter = columnFilters.usedBy.trim().toLowerCase();
-
-    const middlewareScopedElements = middlewareTypeFilters
-      ? elements.filter((element) => {
-          if (element.type === "task") return showTaskMiddlewares;
-          if (element.type === "resource") return showResourceMiddlewares;
-          return true;
-        })
-      : elements;
-
-    if (!idFilter && !titleFilter && !descriptionFilter && !usedByFilter) {
-      return middlewareScopedElements;
-    }
-
-    return middlewareScopedElements.filter((element) => {
-      const descriptionValue = (element.meta?.description ?? "").toLowerCase();
-      const usedByValue = String(getUsedByCount(element)).toLowerCase();
-
-      // ID and Title share the palette's fuzzy matcher; Description and
-      // Used By stay exact-substring (long prose and numeric counts).
-      return (
-        matchesFuzzyText(idFilter, element.id) &&
-        matchesFuzzyText(titleFilter, element.meta?.title ?? "") &&
-        (!descriptionFilter || descriptionValue.includes(descriptionFilter)) &&
-        (!usedByFilter || usedByValue.includes(usedByFilter))
-      );
-    });
-  }, [
-    columnFilters,
-    elements,
-    getUsedByCount,
-    middlewareTypeFilters,
-    showResourceMiddlewares,
-    showTaskMiddlewares,
-  ]);
-
-  const sortedElements = React.useMemo(() => {
-    if (!sortState) return filteredElements;
-
-    const compareStrings = (left: string, right: string): number =>
-      left.localeCompare(right, undefined, {
-        numeric: true,
-        sensitivity: "base",
-      });
-
-    const getSortValue = (
-      element: BaseElement,
-      key: SortKey
-    ): string | number => {
-      if (key === "id") return element.id;
-      if (key === "title") return element.meta?.title ?? "";
-      if (key === "description") return element.meta?.description ?? "";
-      return getUsedByCount(element);
-    };
-
-    return [...filteredElements]
-      .map((element, index) => ({ element, index }))
-      .sort((left, right) => {
-        const leftValue = getSortValue(left.element, sortState.key);
-        const rightValue = getSortValue(right.element, sortState.key);
-
-        const comparison =
-          typeof leftValue === "number" && typeof rightValue === "number"
-            ? leftValue - rightValue
-            : compareStrings(String(leftValue), String(rightValue));
-
-        if (comparison === 0) return left.index - right.index;
-        return sortState.direction === "asc" ? comparison : -comparison;
-      })
-      .map(({ element }) => element);
-  }, [filteredElements, getUsedByCount, sortState]);
-
-  const getSortIndicatorState = (
-    key: SortKey
-  ): "neutral" | "ascending" | "descending" => {
-    if (!sortState || sortState.key !== key) return "neutral";
-    return sortState.direction === "asc" ? "ascending" : "descending";
+  const handleSort = (key: ElementTableColumnKey) => {
+    setView({ ...view, sort: nextSortState(view.sort, key) });
   };
 
-  const getSortIndicator = (key: SortKey): string => {
-    const indicatorState = getSortIndicatorState(key);
-    if (indicatorState === "ascending") return "↑";
-    if (indicatorState === "descending") return "↓";
-    return "↑↓";
-  };
-
-  const getAriaSort = (key: SortKey): "ascending" | "descending" | "none" => {
-    if (!sortState || sortState.key !== key) return "none";
-    return sortState.direction === "asc" ? "ascending" : "descending";
-  };
-
-  const handleSort = (key: SortKey) => {
-    setSortState((previousState) => {
-      if (!previousState || previousState.key !== key) {
-        return { key, direction: "asc" };
-      }
-
-      if (previousState.direction === "desc") {
-        return null;
-      }
-
-      return {
-        key,
-        direction: "desc",
-      };
-    });
-  };
-
-  const handleFilterChange = (key: SortKey, value: string) => {
-    setColumnFilters((previousFilters) => ({
-      ...previousFilters,
-      [key]: value,
-    }));
+  const handleFilterChange = (key: ElementTableColumnKey, value: string) => {
+    setView({ ...view, filters: { ...view.filters, [key]: value } });
   };
 
   const toggleExpanded = (elementId: string) => {
@@ -287,20 +124,6 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     return () => clearTimeout(timer);
   }, [sortedElements]);
 
-  const _copyToClipboard = async (text: string) => {
-    try {
-      if (
-        typeof navigator !== "undefined" &&
-        navigator.clipboard &&
-        navigator.clipboard.writeText
-      ) {
-        await navigator.clipboard.writeText(text);
-      }
-    } catch (_e) {
-      // ignore
-    }
-  };
-
   if (elements.length === 0) return null;
 
   const openExecuteFor = (element: BaseElement) => {
@@ -319,9 +142,9 @@ export const ElementTable: React.FC<ElementTableProps> = ({
     return null;
   };
 
-  const openElementDetail = React.useCallback((elementId: string) => {
+  const openElementDetail = (elementId: string) => {
     window.location.hash = `#element-${elementId}`;
-  }, []);
+  };
 
   return (
     <div className="element-table" id={id}>
@@ -342,22 +165,34 @@ export const ElementTable: React.FC<ElementTableProps> = ({
           <button
             type="button"
             className={`element-table__scope-toggle ${
-              showTaskMiddlewares ? "element-table__scope-toggle--active" : ""
+              view.showTaskMiddlewares
+                ? "element-table__scope-toggle--active"
+                : ""
             }`}
-            onClick={() => setShowTaskMiddlewares((value) => !value)}
-            aria-pressed={showTaskMiddlewares}
+            onClick={() =>
+              setView({
+                ...view,
+                showTaskMiddlewares: !view.showTaskMiddlewares,
+              })
+            }
+            aria-pressed={view.showTaskMiddlewares}
           >
             For Tasks
           </button>
           <button
             type="button"
             className={`element-table__scope-toggle ${
-              showResourceMiddlewares
+              view.showResourceMiddlewares
                 ? "element-table__scope-toggle--active"
                 : ""
             }`}
-            onClick={() => setShowResourceMiddlewares((value) => !value)}
-            aria-pressed={showResourceMiddlewares}
+            onClick={() =>
+              setView({
+                ...view,
+                showResourceMiddlewares: !view.showResourceMiddlewares,
+              })
+            }
+            aria-pressed={view.showResourceMiddlewares}
           >
             For Resources
           </button>
@@ -365,144 +200,13 @@ export const ElementTable: React.FC<ElementTableProps> = ({
       )}
       <div className="element-table__container">
         <table className="element-table__table">
-          <thead>
-            <tr>
-              <th
-                className="element-table__header element-table__header--id"
-                aria-sort={getAriaSort("id")}
-              >
-                <div className="element-table__header-content">
-                  {/* Sort stays mouse-only so Tab walks the search inputs back-to-back. */}
-                  <button
-                    className="element-table__sort-btn"
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => handleSort("id")}
-                  >
-                    <span>ID</span>
-                    <span
-                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
-                        "id"
-                      )}`}
-                      aria-hidden
-                    >
-                      {getSortIndicator("id")}
-                    </span>
-                  </button>
-                  <input
-                    type="search"
-                    ref={idFilterRef}
-                    className="element-table__filter-input"
-                    value={columnFilters.id}
-                    onChange={(event) =>
-                      handleFilterChange("id", event.target.value)
-                    }
-                    placeholder="Search ID"
-                    aria-label="Search by ID"
-                  />
-                </div>
-              </th>
-              <th
-                className="element-table__header element-table__header--title"
-                aria-sort={getAriaSort("title")}
-              >
-                <div className="element-table__header-content">
-                  <button
-                    className="element-table__sort-btn"
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => handleSort("title")}
-                  >
-                    <span>Title</span>
-                    <span
-                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
-                        "title"
-                      )}`}
-                      aria-hidden
-                    >
-                      {getSortIndicator("title")}
-                    </span>
-                  </button>
-                  <input
-                    type="search"
-                    className="element-table__filter-input"
-                    value={columnFilters.title}
-                    onChange={(event) =>
-                      handleFilterChange("title", event.target.value)
-                    }
-                    placeholder="Search Title"
-                    aria-label="Search by Title"
-                  />
-                </div>
-              </th>
-              <th
-                className="element-table__header element-table__header--description"
-                aria-sort={getAriaSort("description")}
-              >
-                <div className="element-table__header-content">
-                  <button
-                    className="element-table__sort-btn"
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => handleSort("description")}
-                  >
-                    <span>Description</span>
-                    <span
-                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
-                        "description"
-                      )}`}
-                      aria-hidden
-                    >
-                      {getSortIndicator("description")}
-                    </span>
-                  </button>
-                  <input
-                    type="search"
-                    className="element-table__filter-input"
-                    value={columnFilters.description}
-                    onChange={(event) =>
-                      handleFilterChange("description", event.target.value)
-                    }
-                    placeholder="Search Description"
-                    aria-label="Search by Description"
-                  />
-                </div>
-              </th>
-              <th
-                className="element-table__header element-table__header--used-by"
-                aria-sort={getAriaSort("usedBy")}
-              >
-                <div className="element-table__header-content">
-                  <button
-                    className="element-table__sort-btn"
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => handleSort("usedBy")}
-                  >
-                    <span>Used By</span>
-                    <span
-                      className={`element-table__sort-indicator element-table__sort-indicator--${getSortIndicatorState(
-                        "usedBy"
-                      )}`}
-                      aria-hidden
-                    >
-                      {getSortIndicator("usedBy")}
-                    </span>
-                  </button>
-                  <input
-                    type="search"
-                    className="element-table__filter-input"
-                    value={columnFilters.usedBy}
-                    onChange={(event) =>
-                      handleFilterChange("usedBy", event.target.value)
-                    }
-                    placeholder="Search Count"
-                    aria-label="Search by Used By count"
-                  />
-                </div>
-              </th>
-            </tr>
-          </thead>
+          <ElementTableHeader
+            sort={view.sort}
+            filters={view.filters}
+            idSearchRef={idFilterRef}
+            onSort={handleSort}
+            onFilterChange={handleFilterChange}
+          />
           <tbody>
             {sortedElements.map((element) => {
               const isExpanded = !!expandedMap[element.id];

@@ -228,7 +228,7 @@ export function buildTopologyProjection(
     terminal: boolean;
     order: number;
   }> = [];
-  const queued = new Set<string>();
+  const queuedReach = new Map<string, TraversalReach>();
   const nodeRecords = new Map<string, TopologyNodeRecord>();
   const edges = new Map<string, TopologyGraphEdge>();
   const hiddenIds = new Set<string>();
@@ -242,7 +242,7 @@ export function buildTopologyProjection(
     terminal: false,
     order,
   });
-  queued.add(focus.id);
+  queuedReach.set(focus.id, "downstream");
 
   for (let cursor = 0; cursor < queue.length; cursor++) {
     const current = queue[cursor];
@@ -267,17 +267,17 @@ export function buildTopologyProjection(
           includeContract: state.view === "blast" && current.depth === 0,
         });
 
+    // Each dequeue is a first visit or a contract partner upgraded by a later
+    // downstream reach (see shouldEnqueueReach); both take this entry's place.
     const node = nodeRecords.get(descriptor.id) ?? createNodeRecord(descriptor);
-    if (!nodeRecords.has(descriptor.id)) {
-      node.depth = current.depth;
-      node.order = current.order;
-      node.parentId = current.parentId;
-      node.parentRelationKind = current.relationKind;
-      node.isFocus = descriptor.id === focus.id;
-      node.isVisible = isVisible;
-      node.terminal = current.terminal;
-      nodeRecords.set(descriptor.id, node);
-    }
+    node.depth = current.depth;
+    node.order = current.order;
+    node.parentId = current.parentId;
+    node.parentRelationKind = current.relationKind;
+    node.isFocus = descriptor.id === focus.id;
+    node.isVisible = isVisible;
+    node.terminal = current.terminal;
+    nodeRecords.set(descriptor.id, node);
 
     for (const relation of relations) {
       for (const target of relation.targets) {
@@ -307,14 +307,19 @@ export function buildTopologyProjection(
         }
 
         const nextDepth = current.depth + 1;
-        if (nextDepth <= state.radius && !queued.has(target.id)) {
-          queued.add(target.id);
+        const reach: TraversalReach =
+          relation.terminal === true ? "terminal" : "downstream";
+        if (
+          nextDepth <= state.radius &&
+          shouldEnqueueReach(queuedReach.get(target.id), reach)
+        ) {
+          queuedReach.set(target.id, reach);
           queue.push({
             id: target.id,
             depth: nextDepth,
             parentId: descriptor.id,
             relationKind: relation.kind,
-            terminal: relation.terminal === true,
+            terminal: reach === "terminal",
             order: ++order,
           });
         }
@@ -410,6 +415,24 @@ export function buildTopologyProjection(
       hiddenNodes: hiddenIds.size,
     },
   };
+}
+
+/**
+ * How traversal reached a node. Breadth-first order makes the first
+ * downstream reach the shallowest one, so a node is enqueued at most twice:
+ * once as a terminal contract partner, and once more when a real downstream
+ * edge reaches it later — it is affected after all and must expand.
+ * Nothing downgrades a downstream node back to terminal.
+ */
+type TraversalReach = "downstream" | "terminal";
+
+function shouldEnqueueReach(
+  previous: TraversalReach | undefined,
+  next: TraversalReach
+): boolean {
+  return (
+    previous === undefined || (previous === "terminal" && next === "downstream")
+  );
 }
 
 function createNodeRecord(descriptor: BaseDescriptor): TopologyNodeRecord {
@@ -581,19 +604,10 @@ function getTraversalRelations(
   }
 
   if (descriptor.kind === "middleware") {
-    const middleware = element as Middleware & { emits?: string[] | null };
     appendRegisteredByRelation(introspector, element, relations);
-    relations.push({
-      kind: "used-by",
-      targets: resolveMany(introspector, [
-        ...middleware.usedByTasks,
-        ...middleware.usedByResources,
-      ]),
-    });
-    relations.push({
-      kind: "emits",
-      targets: resolveMany(introspector, middleware.emits ?? []),
-    });
+    relations.push(
+      ...getMiddlewareRelations(introspector, element as Middleware)
+    );
     return dedupeRelations(relations);
   }
 
@@ -630,15 +644,7 @@ function getTraversalRelations(
     appendRegisteredByRelation(introspector, element, relations);
     relations.push({
       kind: "tagged",
-      targets: resolveMany(introspector, [
-        ...tag.tasks.map((item) => item.id),
-        ...tag.hooks.map((item) => item.id),
-        ...tag.resources.map((item) => item.id),
-        ...tag.events.map((item) => item.id),
-        ...tag.taskMiddlewares.map((item) => item.id),
-        ...tag.resourceMiddlewares.map((item) => item.id),
-        ...tag.errors.map((item) => item.id),
-      ]),
+      targets: resolveMany(introspector, getTaggedElementIds(tag)),
     });
     return dedupeRelations(relations);
   }
@@ -647,11 +653,54 @@ function getTraversalRelations(
 }
 
 /**
+ * A middleware's own neighborhood, the same in both lenses: the nodes it
+ * wraps (`used-by`) and the events it emits itself through its own event
+ * dependencies (`emits`). The wrapped nodes' events are reached one hop
+ * later through those nodes. GraphQL `Middleware.emits` and the card's
+ * "Events Emitted by Usage" aggregate exactly those wrapped-node events, so
+ * folding them in here would draw emit edges the middleware never fires and
+ * place those events a hop too shallow in the blast radius.
+ */
+function getMiddlewareRelations(
+  introspector: Introspector,
+  middleware: Middleware
+): TraversalRelation[] {
+  return [
+    {
+      kind: "used-by",
+      targets: resolveMany(introspector, [
+        ...middleware.usedByTasks,
+        ...middleware.usedByResources,
+      ]),
+    },
+    {
+      kind: "emits",
+      targets: resolveMany(introspector, ensureStringArray(middleware.emits)),
+    },
+  ];
+}
+
+/** Every element carrying the tag, whatever its kind. */
+function getTaggedElementIds(tag: Tag): string[] {
+  return [
+    ...tag.tasks,
+    ...tag.hooks,
+    ...tag.resources,
+    ...tag.events,
+    ...tag.taskMiddlewares,
+    ...tag.resourceMiddlewares,
+    ...tag.errors,
+  ].map((item) => item.id);
+}
+
+/**
  * Dependents-only relations for the blast lens: "what behaves differently
  * if this node changes". Ownership (`registered-by`, `registers`) and
  * upstream edges (`depends-on`, `uses-middleware`, `listens-to`,
  * `provided-by`) are excluded — the mindmap lens keeps the full
- * neighborhood. Override propagation is a known gap: consumers of an
+ * neighborhood. A tag reaches both the elements depending on it and the
+ * elements carrying it (`tagged`): a tag config/schema change lands on
+ * every carrier. Override propagation is a known gap: consumers of an
  * overridden base execute the winner's code but are not listed yet.
  */
 function getImpactRelations(
@@ -707,18 +756,9 @@ function getImpactRelations(
   }
 
   if (descriptor.kind === "middleware") {
-    const middleware = element as Middleware & { emits?: string[] | null };
-    relations.push({
-      kind: "used-by",
-      targets: resolveMany(introspector, [
-        ...middleware.usedByTasks,
-        ...middleware.usedByResources,
-      ]),
-    });
-    relations.push({
-      kind: "emits",
-      targets: resolveMany(introspector, middleware.emits ?? []),
-    });
+    relations.push(
+      ...getMiddlewareRelations(introspector, element as Middleware)
+    );
     return dedupeRelations(relations);
   }
 
@@ -763,6 +803,10 @@ function getImpactRelations(
         ...handlers.hooks.map((item) => item.id),
         ...handlers.resources.map((item) => item.id),
       ]),
+    });
+    relations.push({
+      kind: "tagged",
+      targets: resolveMany(introspector, getTaggedElementIds(element as Tag)),
     });
     return dedupeRelations(relations);
   }
@@ -923,13 +967,16 @@ function resolveFocus(
   focusId?: string | null,
   focusKind?: TopologyFocusKind | null
 ): TopologyFocus {
-  if (focusId && focusKind) {
-    return { kind: focusKind, id: focusId };
-  }
-
   if (focusId) {
+    // Canonicalize: a hand-written hash may name the focus by a short id
+    // that the introspector resolves by suffix, while traversal records
+    // nodes under canonical ids. A raw id would let a cycle back to the
+    // focus re-record it as a child of its own neighbor.
     const descriptor = resolveNodeDescriptor(introspector, focusId);
-    if (descriptor) return { kind: descriptor.kind, id: descriptor.id };
+    if (descriptor && (!focusKind || descriptor.kind === focusKind)) {
+      return { kind: descriptor.kind, id: descriptor.id };
+    }
+    if (focusKind) return { kind: focusKind, id: focusId };
   }
 
   const fallback = getDefaultTopologyFocus(introspector);

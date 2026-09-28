@@ -11,6 +11,7 @@ import {
 import type { CustomGraphQLContext } from "../context";
 import type { RunRecord as LiveRunRecord } from "../../resources/live.resource";
 import { BaseElementInterface } from "./AllType";
+import { liveSequenceField } from "./liveCursorArgs";
 
 export const NodeKindEnum = new GraphQLEnumType({
   name: "NodeKindEnum",
@@ -27,6 +28,7 @@ export const RunRecordType = new GraphQLObjectType<
 >({
   name: "RunRecord",
   fields: () => ({
+    sequence: liveSequenceField,
     timestampMs: {
       description: "Run end time (milliseconds since epoch)",
       type: new GraphQLNonNull(GraphQLFloat),

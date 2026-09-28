@@ -1,6 +1,5 @@
 import {
   GraphQLBoolean,
-  GraphQLFloat,
   GraphQLID,
   GraphQLList,
   GraphQLNonNull,
@@ -24,6 +23,7 @@ import { baseElementCommonFields } from "./BaseElementCommon";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
+import { liveCursorArgs } from "./liveCursorArgs";
 import { RpcLaneSummaryType } from "./LaneSummaryTypes";
 import { findDurableResourceIdFromStore } from "../../resources/models/durable.runtime";
 
@@ -257,17 +257,17 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
     runs: {
       description: "Execution run records for this task",
       args: {
-        afterTimestamp: { type: GraphQLFloat },
-        last: { type: GraphQLInt },
+        ...liveCursorArgs,
         filter: { type: RunFilterInput },
       },
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(RunRecordType))
       ),
-      resolve: (node: Task, args: any, ctx: CustomGraphQLContext) => {
-        const opts = ctx.introspector.buildRunOptionsForTask(node.id, args);
-        return ctx.live.getRuns(opts);
-      },
+      resolve: (node: Task, args: any, ctx: CustomGraphQLContext) =>
+        ctx.live.getRuns({
+          ...ctx.introspector.buildRunOptionsForTask(node.id, args),
+          afterSequence: args.afterSequence ?? undefined,
+        }),
     },
 
     // Durable workflow fields

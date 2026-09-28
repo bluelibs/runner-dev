@@ -169,6 +169,8 @@ export type EmissionEntry = {
   eventResolved: Maybe<Event>;
   /** Stringified JSON if object */
   payload: Maybe<Scalars['String']['output']>;
+  /** Strictly increasing position of this entry in the live store, shared by logs, emissions, errors and runs and never reused; pass it as `afterSequence` to page forward. An opaque ordering key rather than a count: values are seeded from the wall clock so they keep increasing across process restarts. */
+  sequence: Scalars['Float']['output'];
   /** Emission time (milliseconds since epoch) */
   timestampMs: Scalars['Float']['output'];
 };
@@ -229,6 +231,8 @@ export type ErrorEntry = {
   data: Maybe<Scalars['String']['output']>;
   /** Error message */
   message: Scalars['String']['output'];
+  /** Strictly increasing position of this entry in the live store, shared by logs, emissions, errors and runs and never reused; pass it as `afterSequence` to page forward. An opaque ordering key rather than a count: values are seeded from the wall clock so they keep increasing across process restarts. */
+  sequence: Scalars['Float']['output'];
   /** Id of the source that emitted the error */
   sourceId: Scalars['ID']['output'];
   /** Kind of source (task/hook/resource/middleware/internal) */
@@ -406,6 +410,7 @@ export type HookFileContentsArgs = {
 
 
 export type HookRunsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -442,9 +447,9 @@ export type Live = {
   __typename?: 'Live';
   /** CPU-related statistics */
   cpu: CpuStats;
-  /** Event emissions with optional timestamp cursor, filters and last N */
+  /** Event emissions with optional cursor (afterSequence or afterTimestamp), filters and last N */
   emissions: Array<EmissionEntry>;
-  /** Errors captured with optional timestamp cursor, filters and last N */
+  /** Errors captured with optional cursor (afterSequence or afterTimestamp), filters and last N */
   errors: Array<ErrorEntry>;
   /** Event loop statistics */
   eventLoop: EventLoopStats;
@@ -452,17 +457,18 @@ export type Live = {
   gc: GcStats;
   /** Per-resource health report. Only includes resources with a health() probe defined. */
   healthReport: Maybe<ResourceHealthReport>;
-  /** Live logs with optional timestamp cursor, filters and last N */
+  /** Live logs with optional cursor (afterSequence or afterTimestamp), filters and last N */
   logs: Array<LogEntry>;
   /** Process memory usage */
   memory: MemoryStats;
-  /** Execution run records with optional timestamp cursor, filters and last N */
+  /** Execution run records with optional cursor (afterSequence or afterTimestamp), filters and last N */
   runs: Array<RunRecord>;
 };
 
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type LiveEmissionsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<EmissionFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -471,6 +477,7 @@ export type LiveEmissionsArgs = {
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type LiveErrorsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<ErrorFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -491,6 +498,7 @@ export type LiveGcArgs = {
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type LiveLogsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<LogFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -499,6 +507,7 @@ export type LiveLogsArgs = {
 
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type LiveRunsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -514,6 +523,8 @@ export type LogEntry = {
   level: LogLevelEnum;
   /** Log message */
   message: Scalars['String']['output'];
+  /** Strictly increasing position of this entry in the live store, shared by logs, emissions, errors and runs and never reused; pass it as `afterSequence` to page forward. An opaque ordering key rather than a count: values are seeded from the wall clock so they keep increasing across process restarts. */
+  sequence: Scalars['Float']['output'];
   /** Source id */
   sourceId: Maybe<Scalars['String']['output']>;
   /** Log creation time (milliseconds since epoch) */
@@ -530,8 +541,9 @@ export type LogFilterInput = {
   messageIncludes: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Supported log levels */
+/** Supported log levels. Runner's logger emits trace, debug, info, warn, error and critical; fatal and log only come from entries recorded directly through Live.recordLog. */
 export type LogLevelEnum =
+  | 'critical'
   | 'debug'
   | 'error'
   | 'fatal'
@@ -578,7 +590,7 @@ export type Middleware = BaseElement & {
   coverage: Maybe<CoverageInfo>;
   /** Raw coverage report contents from the project (entire file), or null if not available. */
   coverageContents: Maybe<Scalars['String']['output']>;
-  /** Events emitted by task/hook nodes that use this middleware */
+  /** Events emitted by the nodes this middleware wraps: tasks/hooks for task middleware, resources for resource middleware. Tasks/hooks that only depend on a wrapped resource are not included. */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
@@ -657,6 +669,8 @@ export type MiddlewareResourceUsage = {
   config: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   node: Resource;
+  origin: Maybe<Scalars['String']['output']>;
+  subtreeOwnerId: Maybe<Scalars['ID']['output']>;
 };
 
 export type MiddlewareTaskUsage = {
@@ -686,6 +700,13 @@ export type Query = {
   boundaries: Array<ResourceBoundary>;
   /** Inspect the effective public/private surface for one resource boundary. */
   boundary: Maybe<ResourceBoundary>;
+  /**
+   * Whether server-side code execution and file writes are allowed here.
+   * One gate covers eval, shell, shellComplete, swapTask, evalInput and
+   * editFile: true only with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test
+   * (false when NODE_ENV is unset).
+   */
+  codeExecutionEnabled: Scalars['Boolean']['output'];
   /** Diagnostics for potential issues discovered by the introspector. */
   diagnostics: Array<Diagnostic>;
   /** Get a single error definition by its id. */
@@ -724,14 +745,15 @@ export type Query = {
    * live shell scope without executing anything, so it is side-effect free.
    * Returns the offset the completed word starts at plus matching options.
    *
-   * Security: completion is disabled in production unless
-   * RUNNER_DEV_EVAL=1, like the shell itself (yields no options).
+   * Security: completion shares the shell gate (RUNNER_DEV_EVAL=1 or
+   * NODE_ENV=development/test) and yields no options when disabled.
    */
   shellComplete: ShellCompletion;
   /**
    * Whether the REPL shell (and shell completions) can run here.
-   * Same gate as the shell mutation: false only in production
-   * without RUNNER_DEV_EVAL=1.
+   * Same gate as the shell mutation and codeExecutionEnabled: true only
+   * with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test (false when
+   * NODE_ENV is unset).
    */
   shellEnabled: Scalars['Boolean']['output'];
   /** List of tasks currently hot-swapped. */
@@ -1028,7 +1050,7 @@ export type ResourceMiddleware = BaseElement & {
   coverage: Maybe<CoverageInfo>;
   /** Raw coverage report contents from the project (entire file), or null if not available. */
   coverageContents: Maybe<Scalars['String']['output']>;
-  /** Events emitted by task/hook nodes that use this middleware */
+  /** Events emitted by the nodes this middleware wraps: tasks/hooks for task middleware, resources for resource middleware. Tasks/hooks that only depend on a wrapped resource are not included. */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
@@ -1071,6 +1093,8 @@ export type ResourceMiddlewareUsage = {
   config: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   node: ResourceMiddleware;
+  origin: Maybe<Scalars['String']['output']>;
+  subtreeOwnerId: Maybe<Scalars['ID']['output']>;
 };
 
 export type ResourceSubtreeIdentityRequirement = {
@@ -1220,6 +1244,8 @@ export type RunRecord = {
   parentId: Maybe<Scalars['String']['output']>;
   /** Root caller id that initiated the chain */
   rootId: Maybe<Scalars['String']['output']>;
+  /** Strictly increasing position of this entry in the live store, shared by logs, emissions, errors and runs and never reused; pass it as `afterSequence` to page forward. An opaque ordering key rather than a count: values are seeded from the wall clock so they keep increasing across process restarts. */
+  sequence: Scalars['Float']['output'];
   /** Run end time (milliseconds since epoch) */
   timestampMs: Scalars['Float']['output'];
 };
@@ -1394,6 +1420,7 @@ export type TaskFileContentsArgs = {
 
 
 export type TaskRunsArgs = {
+  afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
@@ -1429,7 +1456,7 @@ export type TaskMiddleware = BaseElement & {
   coverage: Maybe<CoverageInfo>;
   /** Raw coverage report contents from the project (entire file), or null if not available. */
   coverageContents: Maybe<Scalars['String']['output']>;
-  /** Events emitted by task/hook nodes that use this middleware */
+  /** Events emitted by the nodes this middleware wraps: tasks/hooks for task middleware, resources for resource middleware. Tasks/hooks that only depend on a wrapped resource are not included. */
   emits: Array<Event>;
   /** Contents of the file at filePath (if accessible). Optionally slice by 1-based inclusive line numbers via startLine/endLine. Caution: avoid querying this in bulk; prefer fetching one file at a time. */
   fileContents: Maybe<Scalars['String']['output']>;
@@ -1783,6 +1810,7 @@ export type EmissionEntryResolvers<ContextType = CustomGraphQLContext, ParentTyp
   eventId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   eventResolved: Resolver<Maybe<ResolversTypes['Event']>, ParentType, ContextType>;
   payload: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1808,6 +1836,7 @@ export type ErrorEntryResolvers<ContextType = CustomGraphQLContext, ParentType e
   correlationId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   data: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   message: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   sourceId: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   sourceKind: Resolver<ResolversTypes['SourceKindEnum'], ParentType, ContextType>;
   sourceResolved: Resolver<Maybe<ResolversTypes['BaseElement']>, ParentType, ContextType>;
@@ -1933,6 +1962,7 @@ export type LogEntryResolvers<ContextType = CustomGraphQLContext, ParentType ext
   data: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   level: Resolver<ResolversTypes['LogLevelEnum'], ParentType, ContextType>;
   message: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   sourceId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2013,6 +2043,8 @@ export type MiddlewareResourceUsageResolvers<ContextType = CustomGraphQLContext,
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   node: Resolver<ResolversTypes['Resource'], ParentType, ContextType>;
+  origin: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  subtreeOwnerId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2031,6 +2063,7 @@ export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extend
   asyncContexts: Resolver<Array<ResolversTypes['AsyncContext']>, ParentType, ContextType, QueryAsyncContextsArgs>;
   boundaries: Resolver<Array<ResolversTypes['ResourceBoundary']>, ParentType, ContextType, QueryBoundariesArgs>;
   boundary: Resolver<Maybe<ResolversTypes['ResourceBoundary']>, ParentType, ContextType, RequireFields<QueryBoundaryArgs, 'ownerId'>>;
+  codeExecutionEnabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   diagnostics: Resolver<Array<ResolversTypes['Diagnostic']>, ParentType, ContextType>;
   error: Resolver<Maybe<ResolversTypes['Error']>, ParentType, ContextType, RequireFields<QueryErrorArgs, 'id'>>;
   errors: Resolver<Array<ResolversTypes['Error']>, ParentType, ContextType, QueryErrorsArgs>;
@@ -2166,6 +2199,8 @@ export type ResourceMiddlewareUsageResolvers<ContextType = CustomGraphQLContext,
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   node: Resolver<ResolversTypes['ResourceMiddleware'], ParentType, ContextType>;
+  origin: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  subtreeOwnerId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2266,6 +2301,7 @@ export type RunRecordResolvers<ContextType = CustomGraphQLContext, ParentType ex
   ok: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   parentId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   rootId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

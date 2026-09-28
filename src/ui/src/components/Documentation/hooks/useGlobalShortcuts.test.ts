@@ -5,6 +5,10 @@ import {
   useGlobalShortcuts,
   type GlobalShortcutHandlers,
 } from "./useGlobalShortcuts";
+import {
+  getLastInputModality,
+  shouldAutofocusTableSearch,
+} from "../utils/inputModality";
 
 function TestHost({ handlers }: { handlers: GlobalShortcutHandlers }) {
   useGlobalShortcuts(handlers);
@@ -231,6 +235,28 @@ describe("useGlobalShortcuts", () => {
     fireEvent.keyDown(document, { key: "r" });
     expect(handlers.onNavigateSection).not.toHaveBeenCalled();
     unmount();
+  });
+
+  test("records whether the keyboard or the pointer drives the UI", () => {
+    const handlers = createHandlers();
+    const { getByLabelText, unmount } = renderHost(handlers);
+
+    // A `g t` jump is keyboard-driven, so tables must not grab focus.
+    fireEvent.keyDown(document, { key: "g" });
+    fireEvent.keyDown(document, { key: "t" });
+    expect(getLastInputModality()).toBe("keyboard");
+    expect(shouldAutofocusTableSearch(getLastInputModality())).toBe(false);
+
+    fireEvent.pointerDown(document.body);
+    expect(getLastInputModality()).toBe("pointer");
+
+    // Typing into a field is keyboard input too.
+    fireEvent.keyDown(getByLabelText("probe-input"), { key: "x" });
+    expect(getLastInputModality()).toBe("keyboard");
+
+    unmount();
+    fireEvent.pointerDown(document.body);
+    expect(getLastInputModality()).toBe("keyboard");
   });
 
   test("unmounting removes the listener and pending timer", () => {

@@ -1,5 +1,4 @@
 import {
-  GraphQLFloat,
   GraphQLID,
   GraphQLInt,
   GraphQLList,
@@ -20,6 +19,7 @@ import { TaskMiddlewareUsageType } from "./TaskType";
 import { sanitizePath } from "../../utils/path";
 import { convertJsonSchemaToReadable } from "../../utils/schemaFormat";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
+import { liveCursorArgs } from "./liveCursorArgs";
 
 export const HookType = new GraphQLObjectType({
   name: "Hook",
@@ -143,20 +143,17 @@ export const HookType = new GraphQLObjectType({
     runs: {
       description: "Execution run records for this hook",
       args: {
-        afterTimestamp: { type: GraphQLFloat },
-        last: { type: GraphQLInt },
+        ...liveCursorArgs,
         filter: { type: RunFilterInput },
       },
       type: new GraphQLNonNull(
         new GraphQLList(new GraphQLNonNull(RunRecordType))
       ),
-      resolve: (node: Hook, args: any, ctx: CustomGraphQLContext) => {
-        const opts = (ctx.introspector as any).buildRunOptionsForHook(
-          (node as any).id,
-          args
-        );
-        return ctx.live.getRuns(opts);
-      },
+      resolve: (node: Hook, args: any, ctx: CustomGraphQLContext) =>
+        ctx.live.getRuns({
+          ...ctx.introspector.buildRunOptionsForHook(node.id, args),
+          afterSequence: args.afterSequence ?? undefined,
+        }),
     },
     ...baseElementCommonFields(),
   }),

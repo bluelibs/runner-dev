@@ -141,6 +141,12 @@ export interface Middleware extends BaseElement {
   type: "task" | "resource";
   usedByTasks: string[];
   usedByResources: string[];
+  /**
+   * Events the middleware can emit itself, read from its own event
+   * dependencies. GraphQL `Middleware.emits` answers a different question:
+   * the events emitted by the nodes the middleware wraps.
+   */
+  emits?: string[] | null;
   // Prettified Zod schema for the middleware config if provided
   configSchema?: string | null;
 }

@@ -516,63 +516,6 @@
 }
 
 // -----------------------------------------------------------------------------
-// Middleware Configuration
-// -----------------------------------------------------------------------------
-.resource-card__middleware {
-  margin-top: $spacing-xxl;
-
-  &__title {
-    margin: 0 0 $spacing-lg 0;
-    color: var(--docs-text-primary);
-    font-size: $font-size-lg;
-    border-bottom: 2px solid var(--docs-border-primary);
-    padding-bottom: $spacing-sm;
-  }
-
-  &__items {
-    display: grid;
-    gap: $spacing-md;
-  }
-
-  &__item {
-    background: var(--docs-bg-secondary);
-    border: 1px solid var(--docs-border-primary);
-    border-radius: $border-radius-lg;
-    padding: $spacing-lg;
-
-    .title {
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: var(--docs-text-primary);
-      font-size: $font-size-md;
-    }
-
-    .id {
-      font-size: $font-size-xs;
-      color: var(--docs-text-muted);
-      font-family: $font-family-mono;
-      margin-bottom: $spacing-md;
-      word-break: break-all;
-      overflow-wrap: break-word;
-    }
-
-    .config-title {
-      font-size: $font-size-base;
-      color: var(--docs-text-secondary);
-      margin-bottom: $spacing-sm;
-      font-weight: 600;
-    }
-
-    .config-block {
-      @include docs-code-block($padding: $spacing-md, $max-height: 240px);
-      background: var(--docs-bg-primary);
-      border-radius: $border-radius-md;
-      line-height: 1.4;
-    }
-  }
-}
-
-// -----------------------------------------------------------------------------
 // RPC Lanes Badge
 // -----------------------------------------------------------------------------
 .resource-card__rpc-lanes-badge {

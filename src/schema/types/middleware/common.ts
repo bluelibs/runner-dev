@@ -65,7 +65,8 @@ export function middlewareCommonFields(): GraphQLFieldConfigMap<any, any> {
       type: new GraphQLNonNull(MiddlewareAutoApplyType),
     },
     emits: {
-      description: "Events emitted by task/hook nodes that use this middleware",
+      description:
+        "Events emitted by the nodes this middleware wraps: tasks/hooks for task middleware, resources for resource middleware. Tasks/hooks that only depend on a wrapped resource are not included.",
       type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(EventType))),
       resolve: (node, _args, ctx) =>
         ctx.introspector.getMiddlewareEmittedEvents(node.id),

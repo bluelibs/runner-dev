@@ -14,9 +14,14 @@ import {
   ShellResultType,
 } from "./types/SwapType";
 import { CustomGraphQLContext } from "./context";
-import { isCodeExecutionAllowed } from "./codeExecutionGate";
+import {
+  codeExecutionDisabledMessage,
+  isCodeExecutionAllowed,
+} from "./codeExecutionGate";
 import { resolvePathInput } from "../utils/path";
 import { promises as fs } from "fs";
+
+const EVAL_INPUT_FEATURE = "Evaluating input as JavaScript (evalInput)";
 
 export const MutationType = new GraphQLObjectType({
   name: "Mutation",
@@ -25,7 +30,7 @@ export const MutationType = new GraphQLObjectType({
   fields: () => ({
     swapTask: {
       description:
-        "Hot-swaps the `run()` function of a task with new TypeScript or JavaScript code. The new code can be a full function definition, an arrow function, or just the function body.",
+        "Hot-swaps the `run()` function of a task with new TypeScript or JavaScript code. The new code can be a full function definition, an arrow function, or just the function body. Security: compiles and runs server-side code, so it is gated like `eval` (RUNNER_DEV_EVAL=1 or NODE_ENV=development/test).",
       type: new GraphQLNonNull(SwapResultType),
       args: {
         taskId: {
@@ -39,12 +44,19 @@ export const MutationType = new GraphQLObjectType({
         },
       },
       async resolve(_parent, { taskId, runCode }, ctx: CustomGraphQLContext) {
+        if (!isCodeExecutionAllowed()) {
+          return {
+            success: false,
+            error: codeExecutionDisabledMessage("Task swapping"),
+            taskId,
+          };
+        }
         return await ctx.swapManager.swap(taskId, runCode);
       },
     },
     editFile: {
       description:
-        "Edits (overwrites) a file on disk. Accepts a structured path (eg. 'workspace:src/index.ts') and UTF-8 content. Returns success/error.",
+        "Edits (overwrites) a file on disk. Accepts a structured path (eg. 'workspace:src/index.ts') and UTF-8 content. Returns success/error. Security: writing source files is code execution once a watcher (tsx watch, nodemon) reloads them, so it is gated like `eval` (RUNNER_DEV_EVAL=1 or NODE_ENV=development/test).",
       type: new GraphQLNonNull(
         new GraphQLObjectType({
           name: "EditFileResult",
@@ -71,6 +83,14 @@ export const MutationType = new GraphQLObjectType({
         _parent,
         { path, content }: { path: string; content: string }
       ) {
+        if (!isCodeExecutionAllowed()) {
+          return {
+            success: false,
+            error: codeExecutionDisabledMessage("File editing"),
+            path,
+            resolvedPath: null,
+          };
+        }
         try {
           const resolved = resolvePathInput(path);
           if (!resolved) {
@@ -130,7 +150,7 @@ export const MutationType = new GraphQLObjectType({
         },
         evalInput: {
           description:
-            "When true, `inputJson` is evaluated as a JavaScript expression, allowing for dynamic and complex inputs beyond simple JSON.",
+            "When true, `inputJson` is evaluated as a JavaScript expression, allowing for dynamic and complex inputs beyond simple JSON. Gated like `eval` (RUNNER_DEV_EVAL=1 or NODE_ENV=development/test); plain JSON input is always allowed.",
           type: GraphQLBoolean,
           defaultValue: false,
         },
@@ -140,6 +160,12 @@ export const MutationType = new GraphQLObjectType({
         { eventId, inputJson, evalInput },
         ctx: CustomGraphQLContext
       ) {
+        if (evalInput && !isCodeExecutionAllowed()) {
+          return {
+            success: false,
+            error: codeExecutionDisabledMessage(EVAL_INPUT_FEATURE),
+          };
+        }
         return await ctx.swapManager.invokeEvent(eventId, inputJson, evalInput);
       },
     },
@@ -166,7 +192,7 @@ export const MutationType = new GraphQLObjectType({
         },
         evalInput: {
           description:
-            "When true, `inputJson` is evaluated as a JavaScript expression, allowing for dynamic and complex inputs beyond simple JSON.",
+            "When true, `inputJson` is evaluated as a JavaScript expression, allowing for dynamic and complex inputs beyond simple JSON. Gated like `eval` (RUNNER_DEV_EVAL=1 or NODE_ENV=development/test); plain JSON input is always allowed.",
           type: GraphQLBoolean,
           defaultValue: false,
         },
@@ -176,6 +202,13 @@ export const MutationType = new GraphQLObjectType({
         { taskId, inputJson, pure, evalInput },
         ctx: CustomGraphQLContext
       ) {
+        if (evalInput && !isCodeExecutionAllowed()) {
+          return {
+            success: false,
+            error: codeExecutionDisabledMessage(EVAL_INPUT_FEATURE),
+            taskId,
+          };
+        }
         return await ctx.swapManager.invokeTask(
           taskId,
           inputJson,
@@ -194,7 +227,8 @@ export const MutationType = new GraphQLObjectType({
         "  - taskRunner: Runner task runner (read-only access patterns recommended)",
         "  - introspector: Introspector API for tasks/hooks/resources/middleware/events",
         "",
-        "Security: eval is disabled by default in production; enable with RUNNER_DEV_EVAL=1.",
+        "Security: eval runs only with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test (disabled when NODE_ENV is unset).",
+        "Runs share the shell limits: capped by RUNNER_DEV_SHELL_TIMEOUT_MS (default 30000) and results are truncated past 256 KB.",
       ].join("\n"),
       type: new GraphQLNonNull(EvalResultType),
       args: {
@@ -210,7 +244,7 @@ export const MutationType = new GraphQLObjectType({
         if (!isCodeExecutionAllowed()) {
           return {
             success: false,
-            error: "Eval is disabled in this environment",
+            error: codeExecutionDisabledMessage("Eval"),
           };
         }
         return await ctx.swapManager.runnerEval(code);
@@ -225,7 +259,8 @@ export const MutationType = new GraphQLObjectType({
         "- runtime: live IRuntime (runTask, emitEvent, getResourceValue, getResourceConfig, getHealth, ...)",
         "- console: captured; lines are returned in `logs`",
         "",
-        "Security: shell is disabled in production unless RUNNER_DEV_EVAL=1.",
+        "Security: shell runs only with RUNNER_DEV_EVAL=1 or NODE_ENV=development/test (disabled when NODE_ENV is unset).",
+        "Runs are capped by RUNNER_DEV_SHELL_TIMEOUT_MS (default 30000) and results are truncated past 256 KB.",
       ].join("\n"),
       type: new GraphQLNonNull(ShellResultType),
       args: {
@@ -248,7 +283,7 @@ export const MutationType = new GraphQLObjectType({
         if (!isCodeExecutionAllowed()) {
           return {
             success: false,
-            error: "Shell is disabled in this environment",
+            error: codeExecutionDisabledMessage("Shell"),
           };
         }
         return await ctx.swapManager.shell(code, resourceId ?? null);

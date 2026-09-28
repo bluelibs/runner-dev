@@ -3,6 +3,10 @@
 import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { DocumentationMainContent } from "./DocumentationMainContent";
+import {
+  DEFAULT_ELEMENT_TABLE_VIEW,
+  type ElementTableView,
+} from "./elementTable.utils";
 import { getDocumentationIcon } from "../config/documentationIcons";
 
 jest.mock("./TaskCard", () => ({ TaskCard: () => null }));
@@ -886,5 +890,153 @@ describe("DocumentationMainContent", () => {
     expect(scrollSpy.mock.instances[0]).toBe(
       document.querySelector(".docs-detail")
     );
+  });
+});
+
+describe("DocumentationMainContent table order and pager", () => {
+  const tableSections = [
+    {
+      id: "tasks",
+      label: "Tasks",
+      icon: getDocumentationIcon("tasks"),
+      count: 4,
+      hasContent: true,
+    },
+    {
+      id: "resources",
+      label: "Resources",
+      icon: getDocumentationIcon("resources"),
+      count: 1,
+      hasContent: true,
+    },
+  ];
+  // Source order a, b, c, d; title order b, d, c, a.
+  const tasks = [
+    { id: "app.tasks.a", meta: { title: "Delta" } },
+    { id: "app.tasks.b", meta: { title: "Alpha" } },
+    { id: "app.tasks.c", meta: { title: "Charlie" } },
+    { id: "app.tasks.d", meta: { title: "Bravo" } },
+  ];
+  const titleSortedView: ElementTableView = {
+    ...DEFAULT_ELEMENT_TABLE_VIEW,
+    sort: { key: "title", direction: "asc" },
+  };
+
+  const renderTables = (taskList: Array<{ id: string }> = tasks) =>
+    render(
+      React.createElement(DocumentationMainContent, {
+        introspector: createIntrospectorStub(),
+        sidebarWidth: 0,
+        tasks: taskList,
+        resources: [{ id: "app.resources.db" }],
+        events: [],
+        hooks: [],
+        middlewares: [],
+        errors: [],
+        asyncContexts: [],
+        tags: [],
+        topologyConnections: 0,
+        sections: tableSections,
+      })
+    );
+
+  const navigateTo = (hash: string) =>
+    act(() => {
+      window.location.hash = hash;
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+
+  const lastTableProps = () => {
+    const calls = elementTableMock.mock.calls as unknown as Array<
+      [
+        {
+          id: string;
+          view: ElementTableView;
+          onViewChange: (view: ElementTableView) => void;
+        }
+      ]
+    >;
+    return calls[calls.length - 1][0];
+  };
+
+  const pagerHref = (name: string) =>
+    screen.getByRole("link", { name }).getAttribute("href");
+
+  beforeEach(() => {
+    elementTableMock.mockClear();
+    Element.prototype.scrollIntoView = jest.fn();
+  });
+
+  it("hides the pager when the list holds only the shown element", () => {
+    window.location.hash = "#element-app.tasks.a";
+    renderTables([{ id: "app.tasks.a" }]);
+
+    expect(screen.getByText("Back to Tasks")).toBeTruthy();
+    expect(
+      screen.queryByRole("navigation", { name: "Walk through elements" })
+    ).toBeNull();
+  });
+
+  it("pages in the table's sorted order and keeps it for Back to list", () => {
+    window.location.hash = "#tasks";
+    renderTables();
+
+    act(() => lastTableProps().onViewChange(titleSortedView));
+    navigateTo("#element-app.tasks.c");
+
+    // Title order b, d, c, a: c sits between d and a.
+    expect(pagerHref("View previous element")).toBe("#element-app.tasks.d");
+    expect(pagerHref("View next element")).toBe("#element-app.tasks.a");
+    expect(screen.getByText("3 of 4")).toBeTruthy();
+
+    navigateTo("#tasks");
+    expect(lastTableProps().view).toEqual(titleSortedView);
+  });
+
+  it("pages only through rows the table search leaves visible", () => {
+    window.location.hash = "#tasks";
+    renderTables();
+
+    act(() =>
+      lastTableProps().onViewChange({
+        ...DEFAULT_ELEMENT_TABLE_VIEW,
+        filters: { ...DEFAULT_ELEMENT_TABLE_VIEW.filters, title: "r" },
+      })
+    );
+    // "r" keeps Charlie and Bravo (c, d); "alpha" keeps Alpha alone.
+    navigateTo("#element-app.tasks.c");
+    expect(screen.getByText("1 of 2")).toBeTruthy();
+    expect(pagerHref("View next element")).toBe("#element-app.tasks.d");
+
+    navigateTo("#tasks");
+    act(() =>
+      lastTableProps().onViewChange({
+        ...DEFAULT_ELEMENT_TABLE_VIEW,
+        filters: { ...DEFAULT_ELEMENT_TABLE_VIEW.filters, title: "alpha" },
+      })
+    );
+    navigateTo("#element-app.tasks.b");
+    expect(
+      screen.queryByRole("navigation", { name: "Walk through elements" })
+    ).toBeNull();
+  });
+
+  it("starts another section's table fresh", () => {
+    window.location.hash = "#tasks";
+    renderTables();
+
+    act(() => lastTableProps().onViewChange(titleSortedView));
+    expect(lastTableProps().view).toEqual(titleSortedView);
+
+    navigateTo("#resources");
+    expect(lastTableProps()).toEqual(
+      expect.objectContaining({
+        id: "resources",
+        view: DEFAULT_ELEMENT_TABLE_VIEW,
+      })
+    );
+
+    navigateTo("#tasks");
+    expect(lastTableProps().view).toEqual(DEFAULT_ELEMENT_TABLE_VIEW);
   });
 });

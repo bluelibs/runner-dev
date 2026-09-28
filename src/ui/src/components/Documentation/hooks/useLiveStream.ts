@@ -1,5 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { graphqlRequest } from "../utils/graphqlClient";
+import {
+  advanceCursors,
+  emptyCursors,
+  keepUnseenEntries,
+} from "./liveTelemetryCursors";
+import { pollLiveTelemetry } from "./liveTelemetryPolling";
+import type {
+  LiveData,
+  TelemetryCursors,
+  TelemetryDelta,
+} from "./liveTelemetry.types";
+
+export type {
+  CpuStats,
+  EmissionEntry,
+  ErrorEntry,
+  EventLoopStats,
+  GcStats,
+  LiveData,
+  LogEntry,
+  MemoryStats,
+  RunRecord,
+} from "./liveTelemetry.types";
 
 // ---------------------------------------------------------------------------
 // Re-export-friendly base URL helper (mirrors graphqlClient.ts)
@@ -15,113 +38,6 @@ function getBaseUrl(): string {
     // Ignore unresolved __API_URL__
   }
   return typeof window !== "undefined" ? window.location.origin : "";
-}
-
-/** Return the max `timestampMs` across one or more entry arrays, or undefined if all empty. */
-function latestTimestamp(
-  ...arrays: Array<{ timestampMs: number }[]>
-): number | undefined {
-  let max: number | undefined;
-  for (const arr of arrays) {
-    for (const entry of arr) {
-      if (max === undefined || entry.timestampMs > max) max = entry.timestampMs;
-    }
-  }
-  return max;
-}
-
-// ---------------------------------------------------------------------------
-// Types (shared with LivePanel)
-// ---------------------------------------------------------------------------
-
-export interface MemoryStats {
-  heapUsed: number;
-  heapTotal: number;
-  rss: number;
-}
-
-export interface CpuStats {
-  usage: number;
-  loadAverage: number;
-}
-
-export interface EventLoopStats {
-  lag: number;
-}
-
-export interface GcStats {
-  collections: number;
-  duration: number;
-}
-
-export interface LogEntry {
-  timestampMs: number;
-  level: string;
-  message: string;
-  data?: string;
-  correlationId?: string;
-  sourceId?: string;
-}
-
-export interface EmissionEntry {
-  timestampMs: number;
-  eventId: string;
-  emitterId?: string;
-  payload?: string;
-  correlationId?: string;
-  eventResolved?: {
-    id: string;
-    meta?: {
-      title?: string;
-      description?: string;
-    };
-    tags: Array<{
-      id: string;
-      config?: string;
-    }>;
-  };
-}
-
-export interface ErrorEntry {
-  timestampMs: number;
-  sourceId: string;
-  sourceKind: string;
-  message: string;
-  stack?: string;
-  data?: string;
-  correlationId?: string;
-  sourceResolved?: {
-    id: string;
-    meta?: {
-      title?: string;
-      description?: string;
-    };
-    tags: Array<{
-      id: string;
-      config?: string;
-    }>;
-  };
-}
-
-export interface RunRecord {
-  timestampMs: number;
-  nodeId: string;
-  nodeKind: string;
-  ok: boolean;
-  durationMs?: number;
-  error?: string;
-  correlationId?: string;
-}
-
-export interface LiveData {
-  memory: MemoryStats;
-  cpu: CpuStats;
-  eventLoop: EventLoopStats;
-  gc: GcStats;
-  logs: LogEntry[];
-  emissions: EmissionEntry[];
-  errors: ErrorEntry[];
-  runs: RunRecord[];
 }
 
 export type ConnectionMode = "sse" | "polling";
@@ -159,69 +75,39 @@ export interface UseLiveStreamResult {
 }
 
 // ---------------------------------------------------------------------------
-// GraphQL query (used as polling fallback)
-// ---------------------------------------------------------------------------
-
-const LIVE_DATA_QUERY = `
-  query LiveData($afterTimestamp: Float, $last: Int) {
-    live {
-      memory { heapUsed heapTotal rss }
-      cpu { usage loadAverage }
-      eventLoop { lag }
-      gc(windowMs: 30000) { collections duration }
-      logs(afterTimestamp: $afterTimestamp, last: $last) {
-        timestampMs level message data correlationId sourceId
-      }
-      emissions(afterTimestamp: $afterTimestamp, last: $last) {
-        timestampMs eventId emitterId payload correlationId
-        eventResolved { id tags { id config } meta { title description } }
-      }
-      errors(afterTimestamp: $afterTimestamp, last: $last) {
-        timestampMs sourceId sourceKind message stack data correlationId
-        sourceResolved { id tags { id config } meta { title description } }
-      }
-      runs(afterTimestamp: $afterTimestamp, last: $last) {
-        timestampMs nodeId nodeKind ok durationMs error correlationId
-      }
-    }
-  }
-`;
-
-// ---------------------------------------------------------------------------
 // Merge helper
 // ---------------------------------------------------------------------------
 
+const EMPTY_LIVE_DATA: LiveData = {
+  memory: { heapUsed: 0, heapTotal: 0, rss: 0 },
+  cpu: { usage: 0, loadAverage: 0 },
+  eventLoop: { lag: 0 },
+  gc: { collections: 0, duration: 0 },
+  logs: [],
+  emissions: [],
+  errors: [],
+  runs: [],
+};
+
+function appendRecent<T>(existing: T[], incoming: T[] | undefined): T[] {
+  if (!incoming || incoming.length === 0) return existing;
+  return [...existing, ...incoming].slice(-MAX_BUFFER_ENTRIES);
+}
+
 function mergeLiveData(
   prev: LiveData | null,
-  incoming: Partial<LiveData>,
-  isIncremental: boolean
+  incoming: Partial<LiveData>
 ): LiveData {
-  if (!prev || !isIncremental) {
-    return {
-      memory: incoming.memory ?? { heapUsed: 0, heapTotal: 0, rss: 0 },
-      cpu: incoming.cpu ?? { usage: 0, loadAverage: 0 },
-      eventLoop: incoming.eventLoop ?? { lag: 0 },
-      gc: incoming.gc ?? { collections: 0, duration: 0 },
-      logs: (incoming.logs ?? []).slice(-MAX_BUFFER_ENTRIES),
-      emissions: (incoming.emissions ?? []).slice(-MAX_BUFFER_ENTRIES),
-      errors: (incoming.errors ?? []).slice(-MAX_BUFFER_ENTRIES),
-      runs: (incoming.runs ?? []).slice(-MAX_BUFFER_ENTRIES),
-    };
-  }
-
+  const base = prev ?? EMPTY_LIVE_DATA;
   return {
-    memory: incoming.memory ?? prev.memory,
-    cpu: incoming.cpu ?? prev.cpu,
-    eventLoop: incoming.eventLoop ?? prev.eventLoop,
-    gc: incoming.gc ?? prev.gc,
-    logs: [...prev.logs, ...(incoming.logs ?? [])].slice(-MAX_BUFFER_ENTRIES),
-    emissions: [...prev.emissions, ...(incoming.emissions ?? [])].slice(
-      -MAX_BUFFER_ENTRIES
-    ),
-    errors: [...prev.errors, ...(incoming.errors ?? [])].slice(
-      -MAX_BUFFER_ENTRIES
-    ),
-    runs: [...prev.runs, ...(incoming.runs ?? [])].slice(-MAX_BUFFER_ENTRIES),
+    memory: incoming.memory ?? base.memory,
+    cpu: incoming.cpu ?? base.cpu,
+    eventLoop: incoming.eventLoop ?? base.eventLoop,
+    gc: incoming.gc ?? base.gc,
+    logs: appendRecent(base.logs, incoming.logs),
+    emissions: appendRecent(base.emissions, incoming.emissions),
+    errors: appendRecent(base.errors, incoming.errors),
+    runs: appendRecent(base.runs, incoming.runs),
   };
 }
 
@@ -241,8 +127,10 @@ export function useLiveStream(
   const [isActive, setIsActive] = useState(true);
   const [pollInterval, setPollIntervalRaw] = useState(initialPollInterval);
 
-  // Refs to avoid stale closures
-  const cursorRef = useRef<number>(Date.now());
+  // Per-category sequence cursors shared by SSE and polling, so switching
+  // transport resumes exactly where the other one stopped.
+  const cursorsRef = useRef<TelemetryCursors>(emptyCursors());
+  const pollInFlightRef = useRef(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isActiveRef = useRef(isActive);
@@ -254,48 +142,39 @@ export function useLiveStream(
     );
   }, []);
 
+  /** Merges an update, keeping only entries past each category's cursor. */
+  const applyUpdate = useCallback(
+    (health: Partial<LiveData>, delta: TelemetryDelta) => {
+      const unseen = keepUnseenEntries(delta, cursorsRef.current);
+      cursorsRef.current = advanceCursors(cursorsRef.current, delta);
+      setLiveData((prev) => mergeLiveData(prev, { ...health, ...unseen }));
+    },
+    []
+  );
+
   // -----------------------------------------------------------------------
   // Polling fallback
   // -----------------------------------------------------------------------
 
-  const fetchLiveData = useCallback(
-    async (afterTimestamp?: number) => {
-      try {
-        const variables: Record<string, unknown> = {
-          last: detailed ? 50 : 10,
-        };
-        if (afterTimestamp != null) {
-          variables.afterTimestamp = afterTimestamp;
-        }
-
-        const data = await graphqlRequest<{ live: LiveData }>(
-          LIVE_DATA_QUERY,
-          variables
-        );
-
-        if (data.live) {
-          setLiveData((prev) =>
-            mergeLiveData(prev, data.live, !!afterTimestamp)
-          );
-
-          // Advance cursor
-          const latest = latestTimestamp(
-            data.live.logs,
-            data.live.emissions,
-            data.live.errors,
-            data.live.runs
-          );
-          if (latest !== undefined) cursorRef.current = latest;
-        }
-        setError(null);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch live data"
-        );
-      }
-    },
-    [detailed]
-  );
+  const fetchLiveData = useCallback(async () => {
+    // A slow drain must not overlap the next tick with the same cursors.
+    if (pollInFlightRef.current) return;
+    pollInFlightRef.current = true;
+    try {
+      const { health, delta } = await pollLiveTelemetry(graphqlRequest, {
+        cursors: cursorsRef.current,
+        historySize: detailed ? 50 : 10,
+      });
+      applyUpdate(health, delta);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch live data"
+      );
+    } finally {
+      pollInFlightRef.current = false;
+    }
+  }, [detailed, applyUpdate]);
 
   // -----------------------------------------------------------------------
   // Polling start/stop
@@ -307,11 +186,11 @@ export function useLiveStream(
     }
 
     // Initial fetch
-    fetchLiveData();
+    void fetchLiveData();
 
     pollTimerRef.current = setInterval(() => {
       if (!isActiveRef.current) return;
-      fetchLiveData(cursorRef.current);
+      void fetchLiveData();
     }, pollInterval);
   }, [fetchLiveData, pollInterval]);
 
@@ -326,13 +205,14 @@ export function useLiveStream(
   // SSE connection
   // -----------------------------------------------------------------------
 
-  const connectSSE = useCallback(() => {
-    // Clean up any previous connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
+  const closeEventSource = useCallback(() => {
+    eventSourceRef.current?.close();
+    eventSourceRef.current = null;
+  }, []);
 
+  // Only the lifecycle effect below opens streams, and its cleanup always
+  // closes the previous one first.
+  const connectSSE = useCallback(() => {
     const url = new URL("/live/stream", getBaseUrl()).toString();
     const es = new EventSource(url);
     eventSourceRef.current = es;
@@ -340,26 +220,18 @@ export function useLiveStream(
     es.addEventListener("telemetry", (event: MessageEvent) => {
       if (!isActiveRef.current) return;
       try {
-        const raw = JSON.parse(event.data) as Partial<
-          Pick<LiveData, "logs" | "emissions" | "errors" | "runs">
-        >;
-        const delta = {
-          logs: raw.logs ?? [],
-          emissions: raw.emissions ?? [],
-          errors: raw.errors ?? [],
-          runs: raw.runs ?? [],
-        };
-
-        setLiveData((prev) => mergeLiveData(prev, delta, true));
-
-        // Advance cursor from the latest timestamps in the delta
-        const latest = latestTimestamp(
-          delta.logs,
-          delta.emissions,
-          delta.errors,
-          delta.runs
+        const raw = JSON.parse(event.data) as TelemetryDelta;
+        // The stream always carries all four categories; a missing list
+        // means nothing new, which still settles an unset cursor.
+        applyUpdate(
+          {},
+          {
+            logs: raw.logs ?? [],
+            emissions: raw.emissions ?? [],
+            errors: raw.errors ?? [],
+            runs: raw.runs ?? [],
+          }
         );
-        if (latest !== undefined) cursorRef.current = latest;
       } catch {
         // Ignore malformed SSE data
       }
@@ -368,12 +240,8 @@ export function useLiveStream(
     es.addEventListener("health", (event: MessageEvent) => {
       if (!isActiveRef.current) return;
       try {
-        const health = JSON.parse(event.data) as Pick<
-          LiveData,
-          "memory" | "cpu" | "eventLoop" | "gc"
-        >;
-
-        setLiveData((prev) => mergeLiveData(prev, health, true));
+        const health = JSON.parse(event.data) as Partial<LiveData>;
+        applyUpdate(health, {});
       } catch {
         // Ignore malformed SSE data
       }
@@ -385,29 +253,23 @@ export function useLiveStream(
     };
 
     es.onerror = () => {
-      // SSE failed — fall back to polling
+      // SSE failed — fall back to polling, continuing from the cursors the
+      // stream already advanced.
       es.close();
       eventSourceRef.current = null;
       setConnectionMode("polling");
-      // Start polling
       startPolling();
     };
-  }, [startPolling]);
+  }, [applyUpdate, startPolling]);
 
   // -----------------------------------------------------------------------
   // Lifecycle: connect SSE on mount, fall back to polling
   // -----------------------------------------------------------------------
 
   useEffect(() => {
-    if (!isActive) {
-      // Paused: close SSE and stop polling
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      stopPolling();
-      return;
-    }
+    // Pausing needs no work here: the previous run's cleanup already closed
+    // the stream and stopped polling.
+    if (!isActive) return;
 
     // Try SSE first
     if (typeof EventSource !== "undefined") {
@@ -419,10 +281,7 @@ export function useLiveStream(
     }
 
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
+      closeEventSource();
       stopPolling();
     };
   }, [isActive]);
@@ -439,7 +298,7 @@ export function useLiveStream(
   // -----------------------------------------------------------------------
 
   const refresh = useCallback(() => {
-    fetchLiveData(cursorRef.current);
+    void fetchLiveData();
   }, [fetchLiveData]);
 
   return {

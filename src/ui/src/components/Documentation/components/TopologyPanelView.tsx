@@ -168,24 +168,45 @@ export const TopologyPanelView: React.FC<TopologyPanelViewProps> = ({
 
 function BlastHeroStats({ nodes }: { nodes: TopologyGraphNode[] }) {
   const summary = summarizeImpact(nodes);
+  const stats: Array<{ label: string; value: number; hint: string }> = [
+    {
+      label: "Affected",
+      value: summary.affected,
+      hint: "Downstream nodes: direct + transitive",
+    },
+    {
+      label: "Direct",
+      value: summary.direct,
+      hint: "Behaves differently if the focus changes",
+    },
+    {
+      label: "Transitive",
+      value: summary.transitive,
+      hint: "Affected further down the chain",
+    },
+    {
+      label: "Contract partners",
+      value: summary.contract,
+      hint: "Not downstream, so not in Affected: emitters, throwers, providers that must still conform",
+    },
+    {
+      label: "Hidden by filters",
+      value: summary.hiddenAffected + summary.hiddenContract,
+      hint: "Counted above, but hidden on the canvas by the current filters",
+    },
+  ];
   return (
     <>
-      <div className="topology-panel__stat">
-        <span className="label">Affected</span>
-        <span className="value">{summary.affected}</span>
-      </div>
-      <div className="topology-panel__stat">
-        <span className="label">Direct</span>
-        <span className="value">{summary.direct}</span>
-      </div>
-      <div className="topology-panel__stat">
-        <span className="label">Transitive</span>
-        <span className="value">{summary.transitive}</span>
-      </div>
-      <div className="topology-panel__stat">
-        <span className="label">Contract</span>
-        <span className="value">{summary.contract}</span>
-      </div>
+      {stats.map((stat) => (
+        <div
+          key={stat.label}
+          className="topology-panel__stat"
+          title={stat.hint}
+        >
+          <span className="label">{stat.label}</span>
+          <span className="value">{stat.value}</span>
+        </div>
+      ))}
     </>
   );
 }

@@ -9,6 +9,7 @@ import { coverage } from "./resources/coverage.resource";
 import { exportDocs } from "./exportDocs";
 
 export type { ServerConfig, ServerInstance } from "./resources/server.resource";
+export type { LiveStreamRegistry } from "./resources/routeHandlers/liveStreamRegistry";
 export type { CustomGraphQLContext } from "./schema/context";
 export type {
   CoverageDetails,
@@ -18,10 +19,19 @@ export type {
 } from "./resources/coverage.resource";
 export type {
   EmissionEntry,
+  EmissionQueryOptions,
   ErrorEntry,
+  ErrorQueryOptions,
+  ErrorSourceKind,
   Live,
+  LiveCursorOptions,
+  LiveEntryStamp,
+  LiveRecordKind,
   LogEntry,
   LogLevel,
+  LogQueryOptions,
+  RunNodeKind,
+  RunQueryOptions,
   RunRecord,
 } from "./resources/live.resource";
 export type {
@@ -29,6 +39,9 @@ export type {
   InvokeEventResult,
   InvokeResult,
   ISwapManager,
+  ShellCompletion,
+  ShellCompletionOption,
+  ShellResult,
   SwapResult,
   SwappedTask,
 } from "./resources/swap.resource";
@@ -36,6 +49,7 @@ export {
   Introspector,
   type InterceptorOwnersSnapshot,
   type MiddlewareInterceptorOwnerSnapshot,
+  type ResolvedMiddlewareUsage,
   type SerializedIntrospector,
 } from "./resources/models/Introspector";
 export type { ExportDocsOptions, ExportDocsResult } from "./exportDocs";

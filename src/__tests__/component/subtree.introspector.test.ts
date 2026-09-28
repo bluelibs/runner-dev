@@ -162,14 +162,15 @@ describe("Subtree Introspection", () => {
       ]);
       expect(task?.middlewareDetailed).toEqual([
         {
+          // The gate exists only because of the owner's tasks.identity.
           id: identityCheckerId,
           config: JSON.stringify({
             tenant: true,
             user: true,
             roles: ["ADMIN"],
           }),
-          origin: "local",
-          subtreeOwnerId: null,
+          origin: "subtree",
+          subtreeOwnerId: resource?.id ?? null,
         },
         {
           id: subtreeMiddlewareId,

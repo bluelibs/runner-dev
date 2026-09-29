@@ -24,7 +24,7 @@ Use this skill when the task involves:
 - MCP helpers (`graphql_query`, `graphql_mutation`, `graphql_introspect`, `graphql_schema_sdl`, `graphql_ping`, `project_overview`), GraphQL tooling, introspection resources, or chat context wiring
 - live telemetry (including `sequence`/`afterSequence` cursors and SSE streaming), hot-swapping, CLI surfaces, or other runner-dev tooling
 - host system information (`live.systemInfo`) shown alongside live process health in the docs UI
-- security defaults: the code-execution gate (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`), the loopback bind, the Host header check on every bind (`allowedHosts` for extra DNS names), and the `host` option for deliberate network exposure
+- security defaults: the code-execution gate (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`), the loopback bind, the Host header check on every bind (`allowedHosts` for extra DNS names), and the `host` option for deliberate network exposure. `RUNNER_DEV_HTTP_PASSWORD` automatically enables Basic auth for all HTTP routes in any mode (username `runner`); an empty value fails startup, while an unset variable disables auth. Keep credentials in environment variables, outside resource config and exported docs; remote access needs HTTPS or a secure tunnel. Protected browser calls must use the same origin, including port. CLI/MCP clients use `HEADERS` with `Authorization: Basic <base64 of runner:password>`. The password grants full DevTools access, subject to the existing code-execution gate.
 - agent-facing documentation that must stay aligned with `readmes/COMPACT_GUIDE.md` and `README.md`
 - GraphQL schema and MCP contract work grounded in `./references/readmes/API_REFERENCE.md`
 

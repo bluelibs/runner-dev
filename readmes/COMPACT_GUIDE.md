@@ -101,7 +101,8 @@ Notes:
 ## Security Defaults
 
 - The server listens on `127.0.0.1` unless `host` is set. On every bind, requests whose `Host` header is a DNS name other than `localhost`, the configured `host` or an `allowedHosts` entry get `403` (DNS-rebinding guard); IP addresses always pass, while hosts-file aliases and `*.localhost` names are refused unless listed.
-- To reach it from Docker, a remote box or a LAN, set `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`), plus `allowedHosts: ["devbox.lan"]` for access by DNS name; entries are exact hostnames, and both entry points reject a scheme, port or wildcard at `.with()` (Unicode names match their punycode form). There is no auth, and the server logs a startup warning when the bound address is not loopback and code execution is also enabled.
+- To reach it from Docker, a remote box or a LAN, set `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`), plus `allowedHosts: ["devbox.lan"]` for access by DNS name; entries are exact hostnames, and both entry points reject a scheme, port or wildcard at `.with()` (Unicode names match their punycode form). The server logs a startup warning when the bound address is not loopback and code execution is also enabled.
+- Set `RUNNER_DEV_HTTP_PASSWORD` before server startup to enable HTTP Basic auth on every route (UI/assets, GraphQL, Voyager, SSE and HTTP-tagged tasks), in production too. Browser login: username `runner`, password from the variable. Unset means disabled; empty or whitespace-only fails startup. The secret stays outside resource config and exported docs; restart to rotate it. Remote access needs HTTPS at a proxy or a secure tunnel, since Basic auth does not encrypt credentials; preserve the browser-facing Host header. Authenticated browser calls must use the same origin, including port: cross-site requests are rejected. Twenty failed credential attempts block the connecting IP for up to one minute (`429`, `Retry-After`), shared by clients behind a proxy. The password grants full DevTools access; it does not add a production read-only mode.
 - The served docs UI calls the API on the origin it was loaded from, so IP addresses, remapped Docker ports and DNS names listed in `allowedHosts` work (an unlisted name gets `403` first); the `API_URL` env var overrides it.
 - Code-execution gate: `eval`, `shell`, `shellComplete`, `swapTask`, `editFile` and `evalInput: true` on `invokeTask`/`invokeEvent` run only with `RUNNER_DEV_EVAL=1` or `NODE_ENV` exactly `development`/`test`. An unset `NODE_ENV` (plain `node`, `tsx watch`, a scaffolded `npm run dev`) keeps it closed. Closed calls return `success: false` with `<Feature> is disabled in this environment. Set RUNNER_DEV_EVAL=1 or NODE_ENV=development on the server to enable it.`
 - Probe it with `query { codeExecutionEnabled }`; `shellEnabled` is the same value.
@@ -181,7 +182,7 @@ ENDPOINT=http://localhost:1337/graphql npx @bluelibs/runner-dev query 'query { t
 Notes:
 
 - Keep `ALLOW_MUTATIONS=false` unless you intentionally need write access.
-- Set `HEADERS` if the GraphQL endpoint requires auth.
+- Set `HEADERS` if the GraphQL endpoint requires auth. For `RUNNER_DEV_HTTP_PASSWORD`, use `{"Authorization":"Basic <base64 of runner:password>"}` in the client environment, outside committed configuration. Missing or wrong credentials return `401`.
 - `SNAPSHOT_FILE` enables read-only MCP over an exported catalog without starting the app.
 - If `graphql_ping` fails, check that the app is running, the port is correct, and `HEADERS` is valid JSON. A `403` mentioning DNS rebinding means the endpoint's host is a DNS name the server does not accept: use `localhost` or an IP address, or add the name to `allowedHosts`.
 

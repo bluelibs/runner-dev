@@ -20,6 +20,7 @@ import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
 import { createLiveStreamHandler } from "./routeHandlers/createLiveStreamHandler";
 import { LiveStreamRegistry } from "./routeHandlers/liveStreamRegistry";
 import { createRequestCorrelationMiddleware } from "./routeHandlers/requestCorrelation";
+import { createHttpPasswordGuard } from "./routeHandlers/httpPasswordGuard";
 import {
   DEFAULT_BIND_HOST,
   createHostGuard,
@@ -120,6 +121,9 @@ export const serverResource = defineResource({
     logger = logger.with({
       source: serverResource.id,
     });
+    const passwordGuard = createHttpPasswordGuard(
+      process.env.RUNNER_DEV_HTTP_PASSWORD
+    );
     const server = new ApolloServer({
       schema: graphql.getSchema(),
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
@@ -139,6 +143,7 @@ export const serverResource = defineResource({
     app.use(
       createHostGuard({ allowedHosts: [host, ...(config.allowedHosts ?? [])] })
     );
+    app.use(passwordGuard);
 
     // Wrap every incoming request in an AsyncLocalStorage context with a fresh
     // correlationId so that all logs / emissions / errors within the request

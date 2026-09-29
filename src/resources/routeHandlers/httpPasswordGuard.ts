@@ -72,8 +72,12 @@ function createFailureThrottle() {
 
 /** The password is read at startup, outside serializable resource configuration. */
 export function createHttpPasswordGuard(
-  password: string | undefined
+  password: string | undefined,
+  passwordRequired = false
 ): RequestHandler {
+  if (password === undefined && passwordRequired) {
+    throw new Error("RUNNER_DEV_HTTP_PASSWORD is required in production mode.");
+  }
   if (password === undefined) return (_req, _res, next) => next();
   if (password.trim() === "") {
     throw new Error("RUNNER_DEV_HTTP_PASSWORD must not be empty when set.");

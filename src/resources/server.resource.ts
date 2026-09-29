@@ -122,7 +122,8 @@ export const serverResource = defineResource({
       source: serverResource.id,
     });
     const passwordGuard = createHttpPasswordGuard(
-      process.env.RUNNER_DEV_HTTP_PASSWORD
+      process.env.RUNNER_DEV_HTTP_PASSWORD,
+      store.mode === "prod" || process.env.NODE_ENV === "production"
     );
     const server = new ApolloServer({
       schema: graphql.getSchema(),

@@ -37,6 +37,16 @@ describe("HTTP password guard", () => {
     );
   });
 
+  test("requires a password when production protection is requested", () => {
+    expect(() => createHttpPasswordGuard(undefined, true)).toThrow(
+      "RUNNER_DEV_HTTP_PASSWORD is required in production mode."
+    );
+    expect(() => createHttpPasswordGuard("", true)).toThrow(
+      "RUNNER_DEV_HTTP_PASSWORD must not be empty when set."
+    );
+    expect(() => createHttpPasswordGuard(PASSWORD, true)).not.toThrow();
+  });
+
   test("leaves an unset password disabled and rejects empty settings", async () => {
     const app = express();
     app.use(createHttpPasswordGuard(undefined));

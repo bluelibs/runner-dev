@@ -1,5 +1,8 @@
 import type { AddressInfo } from "node:net";
+import { run, type RunOptions } from "@bluelibs/runner";
 import request from "supertest";
+import { dev } from "../../resources/dev.resource";
+import { createDummyApp } from "../dummy/dummyApp";
 import { withEnvAsync } from "../swap/withEnv";
 import { startServer } from "./serverHarness";
 
@@ -7,6 +10,16 @@ const PASSWORD = "integration-only-private-password";
 const AUTHORIZATION = `Basic ${Buffer.from(`runner:${PASSWORD}`).toString(
   "base64"
 )}`;
+
+const PRODUCTION_STARTS: {
+  nodeEnv: string | undefined;
+  mode?: RunOptions["mode"];
+}[] = [
+  { nodeEnv: "production" },
+  { nodeEnv: "test", mode: "prod" },
+  { nodeEnv: undefined, mode: "prod" },
+  { nodeEnv: "production", mode: "dev" },
+];
 
 describe("server password protection", () => {
   test("protects every route in production, including routes registered later", () =>
@@ -18,6 +31,7 @@ describe("server password protection", () => {
       },
       async () => {
         const { runtime, server } = await startServer({ port: 0 });
+        expect(runtime.mode).toBe("prod");
         let taskCalls = 0;
         server.app.get("/password-task", (_req, res) => {
           taskCalls++;
@@ -116,6 +130,71 @@ describe("server password protection", () => {
         "RUNNER_DEV_HTTP_PASSWORD must not be empty when set."
       );
     }));
+
+  test.each(PRODUCTION_STARTS)(
+    "fails without a password for NODE_ENV=$nodeEnv and mode=$mode",
+    ({ nodeEnv, mode }) =>
+      withEnvAsync(
+        {
+          RUNNER_DEV_HTTP_PASSWORD: undefined,
+          NODE_ENV: nodeEnv,
+          RUNNER_DEV_EVAL: "1",
+        },
+        async () => {
+          await expect(startServer({ port: 0 }, mode)).rejects.toThrow(
+            "RUNNER_DEV_HTTP_PASSWORD is required in production mode."
+          );
+        }
+      )
+  );
+
+  test("dev.with also refuses production startup without a password", () =>
+    withEnvAsync({ RUNNER_DEV_HTTP_PASSWORD: undefined }, async () => {
+      await expect(
+        run(createDummyApp([dev]), {
+          mode: "prod",
+          shutdownHooks: false,
+          logs: { printThreshold: null },
+        })
+      ).rejects.toThrow(
+        "RUNNER_DEV_HTTP_PASSWORD is required in production mode."
+      );
+    }));
+
+  test("explicit production mode works with a password even under NODE_ENV=test", () =>
+    withEnvAsync(
+      { RUNNER_DEV_HTTP_PASSWORD: PASSWORD, NODE_ENV: "test" },
+      async () => {
+        const { runtime, server } = await startServer({ port: 0 }, "prod");
+        try {
+          expect(runtime.mode).toBe("prod");
+          expect(
+            (await request(server.httpServer).get("/voyager")).status
+          ).toBe(401);
+          const authenticated = await request(server.httpServer)
+            .get("/voyager")
+            .set("Authorization", AUTHORIZATION);
+          expect(authenticated.status).toBe(200);
+        } finally {
+          await runtime.dispose();
+        }
+      }
+    ));
+
+  test("development can still start without a password", () =>
+    withEnvAsync(
+      { RUNNER_DEV_HTTP_PASSWORD: undefined, NODE_ENV: undefined },
+      async () => {
+        const { runtime, server } = await startServer({ port: 0 }, "dev");
+        try {
+          expect(
+            (await request(server.httpServer).get("/voyager")).status
+          ).toBe(200);
+        } finally {
+          await runtime.dispose();
+        }
+      }
+    ));
 });
 
 async function expectLiveStream(address: AddressInfo, authorization: string) {

@@ -811,6 +811,7 @@ query {
 
 ### Live system health
 
+- **systemInfo: `SystemInfo!`** — the server host's CPU model, logical core count, total RAM, platform, architecture, and Node.js version. The Live UI shows this once above the updating process-health metrics. It describes the server machine, not the browser; container resource limits may differ from host totals.
 - **memory: `MemoryStats!`**
   - Fields: `heapUsed` (bytes), `heapTotal` (bytes), `rss` (bytes)
 - **cpu: `CpuStats!`**
@@ -827,6 +828,14 @@ Example query:
 ```graphql
 query SystemHealth {
   live {
+    systemInfo {
+      cpuModel
+      logicalCores
+      totalMemory
+      platform
+      architecture
+      nodeVersion
+    }
     memory {
       heapUsed
       heapTotal

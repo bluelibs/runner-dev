@@ -339,6 +339,7 @@ Useful when debugging `taskDependency.intercept(...)` and middleware interceptor
 
 `live: Live!` exposes:
 
+- `systemInfo: SystemInfo!` — `platform`, `architecture`, `cpuModel`, `logicalCores`, `totalMemory` (host bytes), `nodeVersion`
 - `memory: MemoryStats!`
 - `cpu: CpuStats!`
 - `eventLoop(reset: Boolean): EventLoopStats!`

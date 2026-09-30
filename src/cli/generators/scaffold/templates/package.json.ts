@@ -24,7 +24,7 @@ export function packageJson(projectName: string) {
       "npm-skills": "^0.5.0",
     },
     devDependencies: {
-      "@bluelibs/runner-dev": "^6.7.0",
+      "@bluelibs/runner-dev": "^6.8.0",
       // vitest 5 requires @types/node 22+, which also matches `engines`.
       "@types/node": "^22.12.0",
       typescript: "^5.6.3",

@@ -28,6 +28,7 @@ jest.mock("./live/RecentLogs", () => ({ RecentLogs: () => null }));
 jest.mock("./live/RecentEvents", () => ({ RecentEvents: () => null }));
 jest.mock("./live/RecentRuns", () => ({ RecentRuns: () => null }));
 jest.mock("./live/TraceView", () => ({ TraceView: () => null }));
+jest.mock("./live/SystemInfoPanel", () => ({ SystemInfoPanel: () => null }));
 
 function liveDataStub() {
   return {

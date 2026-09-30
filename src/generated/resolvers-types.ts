@@ -463,6 +463,8 @@ export type Live = {
   memory: MemoryStats;
   /** Execution run records with optional cursor (afterSequence or afterTimestamp), filters and last N */
   runs: Array<RunRecord>;
+  /** Host CPU, RAM, platform and Node.js version */
+  systemInfo: SystemInfo;
 };
 
 
@@ -1285,6 +1287,18 @@ export type SwappedTask = {
   taskId: Scalars['String']['output'];
 };
 
+/** Host information for the process serving Runner DevTools */
+export type SystemInfo = {
+  __typename?: 'SystemInfo';
+  architecture: Scalars['String']['output'];
+  cpuModel: Scalars['String']['output'];
+  logicalCores: Scalars['Int']['output'];
+  nodeVersion: Scalars['String']['output'];
+  platform: Scalars['String']['output'];
+  /** Host RAM in bytes */
+  totalMemory: Scalars['Float']['output'];
+};
+
 export type Tag = BaseElement & {
   __typename?: 'Tag';
   all: Array<BaseElement>;
@@ -1648,6 +1662,7 @@ export type ResolversTypes = ResolversObject<{
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   SwapResult: ResolverTypeWrapper<SwapResult>;
   SwappedTask: ResolverTypeWrapper<SwappedTask>;
+  SystemInfo: ResolverTypeWrapper<SystemInfo>;
   Tag: ResolverTypeWrapper<Omit<Tag, 'all' | 'errors' | 'events' | 'hooks' | 'resourceMiddlewares' | 'resources' | 'tags' | 'taskMiddlewares' | 'tasks'> & { all: Array<ResolversTypes['BaseElement']>, errors: Array<ResolversTypes['Error']>, events: Array<ResolversTypes['Event']>, hooks: Array<ResolversTypes['Hook']>, resourceMiddlewares: Array<ResolversTypes['ResourceMiddleware']>, resources: Array<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, taskMiddlewares: Array<ResolversTypes['TaskMiddleware']>, tasks: Array<ResolversTypes['Task']> }>;
   TagTarget: null;
   TagUsage: ResolverTypeWrapper<TagUsage>;
@@ -1723,6 +1738,7 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   SwapResult: SwapResult;
   SwappedTask: SwappedTask;
+  SystemInfo: SystemInfo;
   Tag: Omit<Tag, 'all' | 'errors' | 'events' | 'hooks' | 'resourceMiddlewares' | 'resources' | 'tags' | 'taskMiddlewares' | 'tasks'> & { all: Array<ResolversParentTypes['BaseElement']>, errors: Array<ResolversParentTypes['Error']>, events: Array<ResolversParentTypes['Event']>, hooks: Array<ResolversParentTypes['Hook']>, resourceMiddlewares: Array<ResolversParentTypes['ResourceMiddleware']>, resources: Array<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, taskMiddlewares: Array<ResolversParentTypes['TaskMiddleware']>, tasks: Array<ResolversParentTypes['Task']> };
   TagUsage: TagUsage;
   Task: Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: ResolversParentTypes['TaskDependsOn'], depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, durableResource: Maybe<ResolversParentTypes['Resource']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
@@ -1954,6 +1970,7 @@ export type LiveResolvers<ContextType = CustomGraphQLContext, ParentType extends
   logs: Resolver<Array<ResolversTypes['LogEntry']>, ParentType, ContextType, LiveLogsArgs>;
   memory: Resolver<ResolversTypes['MemoryStats'], ParentType, ContextType>;
   runs: Resolver<Array<ResolversTypes['RunRecord']>, ParentType, ContextType, LiveRunsArgs>;
+  systemInfo: Resolver<ResolversTypes['SystemInfo'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2333,6 +2350,16 @@ export type SwappedTaskResolvers<ContextType = CustomGraphQLContext, ParentType 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type SystemInfoResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['SystemInfo'] = ResolversParentTypes['SystemInfo']> = ResolversObject<{
+  architecture: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  cpuModel: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  logicalCores: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  nodeVersion: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  platform: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  totalMemory: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type TagResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Tag'] = ResolversParentTypes['Tag']> = ResolversObject<{
   all: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -2507,6 +2534,7 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   ShellCompletionOption: ShellCompletionOptionResolvers<ContextType>;
   SwapResult: SwapResultResolvers<ContextType>;
   SwappedTask: SwappedTaskResolvers<ContextType>;
+  SystemInfo: SystemInfoResolvers<ContextType>;
   Tag: TagResolvers<ContextType>;
   TagTarget: TagTargetResolvers;
   TagUsage: TagUsageResolvers<ContextType>;

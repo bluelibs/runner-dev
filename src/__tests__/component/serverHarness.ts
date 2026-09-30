@@ -2,6 +2,7 @@ import {
   run,
   defineResource,
   resources as runnerResources,
+  type RunOptions,
 } from "@bluelibs/runner";
 import { once } from "node:events";
 import { resources } from "../../index";
@@ -12,7 +13,10 @@ import { createDummyApp } from "../dummy/dummyApp";
  * Boots the dev server resources on a real socket and records warn logs, so
  * tests can assert on binding, routing and shutdown end to end.
  */
-export async function startServer(config: ServerConfig) {
+export async function startServer(
+  config: ServerConfig,
+  mode?: RunOptions["mode"]
+) {
   const warnings: string[] = [];
   const logProbe = defineResource({
     id: "server-harness-log-probe",
@@ -33,7 +37,7 @@ export async function startServer(config: ServerConfig) {
       resources.swapManager,
       resources.live,
     ]),
-    { shutdownHooks: false, logs: { printThreshold: null } }
+    { mode, shutdownHooks: false, logs: { printThreshold: null } }
   );
   const server = runtime.getResourceValue(resources.server);
   // The server resource resolves before its socket is bound.

@@ -36,7 +36,8 @@ Access rules:
 
 - Without a `host` option the server listens on `127.0.0.1`.
 - On every bind, any request whose `Host` header is a DNS name other than `localhost`, the configured `host` or an `allowedHosts` entry (or that has no Host header) gets `403` with `{ "errors": [{ "message": "Forbidden: this runner-dev server only answers requests addressed to localhost, an IP address or a name in allowedHosts ..." }] }`. IP addresses always pass. This guards against DNS rebinding and covers every route.
-- `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`) exposes the server on the network; add `allowedHosts: ["devbox.lan"]` to reach it by a DNS name (exact hostnames; both `.with()` calls reject a scheme, port, wildcard such as `*.lan`, leading dot or userinfo, and a Unicode name matches its punycode form). There is no authentication; when the bound address is not loopback and the code-execution gate is also open, the server logs a warning at startup.
+- `dev.with({ host: "0.0.0.0" })` (or `resources.server.with({ host })`) exposes the server on the network; add `allowedHosts: ["devbox.lan"]` to reach it by a DNS name (exact hostnames; both `.with()` calls reject a scheme, port, wildcard such as `*.lan`, leading dot or userinfo, and a Unicode name matches its punycode form). When the bound address is not loopback and the code-execution gate is also open, the server logs a warning at startup.
+- `RUNNER_DEV_HTTP_PASSWORD` enables HTTP Basic authentication on every route in any runtime mode. Username: `runner`. Production requires it: resolved Runner mode `prod` or `NODE_ENV=production` fails before Apollo or HTTP startup if it is missing. An empty or whitespace-only value fails in every mode; an unset variable disables auth outside production. Clients send `Authorization: Basic <base64 of runner:password>` (CLI/MCP via `HEADERS`). The secret stays outside resource config and exported docs; restart to rotate it. Use HTTPS or a secure tunnel remotely. Protected browser requests must be same-origin, including port; cross-site requests get `403`. Twenty failed credential attempts block the connecting IP for up to one minute (`429` with `Retry-After`). This grants full DevTools access subject to the existing code-execution gate, not a read-only production role.
 - The served docs UI calls this API on the origin it was loaded from; set the `API_URL` environment variable on the server to point it elsewhere.
 - The code-execution gate (see Mutation Notes) is open only with `RUNNER_DEV_EVAL=1` or `NODE_ENV` exactly `development` or `test`.
 
@@ -339,6 +340,7 @@ Useful when debugging `taskDependency.intercept(...)` and middleware interceptor
 
 `live: Live!` exposes:
 
+- `systemInfo: SystemInfo!` — `platform`, `architecture`, `cpuModel`, `logicalCores`, `totalMemory` (host bytes), `nodeVersion`
 - `memory: MemoryStats!`
 - `cpu: CpuStats!`
 - `eventLoop(reset: Boolean): EventLoopStats!`

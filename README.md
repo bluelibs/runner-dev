@@ -170,11 +170,12 @@ runner-dev exposes introspection and, when enabled, code execution, so its defau
 
 - **Loopback bind.** Without a `host`, the server listens on `127.0.0.1` only. URLs are still printed as `http://localhost:<port>`.
 - **Host header check, on every bind.** Every route answers `403` unless the request's `Host` names `localhost`, an IP address (`127.0.0.1`, `[::1]`, `192.168.1.50`, ...), the configured `host`, or a name listed in `allowedHosts`; a missing Host header is refused too. This blocks DNS-rebinding attacks from web pages: a rebinding page always arrives with its own DNS name in the `Host` header, including when the server listens on `0.0.0.0` and a published Docker port is reachable on the developer's `127.0.0.1`. A hosts-file alias, a `*.localhost` name or a service such as `127.0.0.1.nip.io` is rejected unless you list it. The 403 body is GraphQL-shaped (`{ "errors": [{ "message": "Forbidden: ..." }] }`) and names the `allowedHosts` entry that would let the request through.
-- **Exposing it on purpose.** For Docker port mapping, a remote dev box or a LAN, set an explicit host: `dev.with({ host: "0.0.0.0" })`, or `resources.server.with({ host: "0.0.0.0" })` when you register the resources yourself. Browsing by IP address or `localhost` works as is; to use a DNS name (a LAN name, a Docker Compose service name), list it: `dev.with({ host: "0.0.0.0", allowedHosts: ["devbox.lan"] })`. Entries are exact hostnames: `dev` and `resources.server` both reject a scheme, port or wildcard (`*.lan`, `.lan`) at `.with()`, so list each subdomain on its own. A Unicode name such as `bücher.lan` matches the punycode form browsers send. If the server ends up listening on a non-loopback address and the code-execution gate is also open, it logs a warning at startup that code execution is reachable from the network. There is no authentication, so only do this on a trusted network.
+- **Exposing it on purpose.** For Docker port mapping, a remote dev box or a LAN, set an explicit host: `dev.with({ host: "0.0.0.0" })`, or `resources.server.with({ host: "0.0.0.0" })` when you register the resources yourself. Browsing by IP address or `localhost` works as is; to use a DNS name (a LAN name, a Docker Compose service name), list it: `dev.with({ host: "0.0.0.0", allowedHosts: ["devbox.lan"] })`. Entries are exact hostnames: `dev` and `resources.server` both reject a scheme, port or wildcard (`*.lan`, `.lan`) at `.with()`, so list each subdomain on its own. A Unicode name such as `bücher.lan` matches the punycode form browsers send. If the server ends up listening on a non-loopback address and the code-execution gate is also open, it logs a warning at startup that code execution is reachable from the network.
+- **HTTP password.** Set `RUNNER_DEV_HTTP_PASSWORD` in the server's environment before startup to protect every route with HTTP Basic authentication: docs and assets, GraphQL, Voyager, the live stream, and HTTP-tagged tasks. Log in through the browser's built-in prompt with username `runner` and that password; the same-origin UI and live stream reuse the login. Production mode requires the password: a resolved Runner mode of `prod` (including `run(app, { mode: "prod" })`) or `NODE_ENV=production` fails startup when the variable is missing, before Apollo starts or an HTTP port is bound. An empty or whitespace-only value fails in every mode. Outside production, an unset variable leaves authentication disabled. The password is read once, kept outside resource configuration and never injected into the UI or exported catalog. Restart the server to rotate it. Use a long random password, and HTTPS through a reverse proxy or a secure tunnel for remote access: Basic authentication does not encrypt credentials. Preserve the browser-facing `Host` header at the proxy. Password-protected browser requests must use the same origin (including the port); cross-site requests are rejected before running tasks. Twenty failed credential attempts block the connecting IP for up to one minute with `429` and `Retry-After`; clients behind a proxy share that limit.
 - **The docs UI follows the address you use.** The served UI calls the API on the origin it was loaded from, so `http://192.168.1.50:1337/docs`, a remapped Docker port (`-p 8080:1337`, then `http://localhost:8080/docs`) or a DNS name you listed in `allowedHosts` (such as `http://devbox.lan:1337/docs`) works without extra UI setup. An unlisted DNS name gets `403` from the Host header check before the UI loads. Set the `API_URL` environment variable on the server only when the API lives at another address.
 - **Code execution is opt-in.** `eval`, `shell`, `shellComplete`, `swapTask`, `editFile` and `evalInput: true` on `invokeTask`/`invokeEvent` run only when the server starts with `RUNNER_DEV_EVAL=1`, or with `NODE_ENV` exactly `development` or `test`. An unset `NODE_ENV` keeps them off. Details: [Code-execution gate](#code-execution-gate).
 
-Queries and plain-JSON `invokeTask`/`invokeEvent` are not gated. With a non-loopback host, anyone who can reach the port can read the app's topology and registered source files and run its tasks with JSON input.
+Queries and plain-JSON `invokeTask`/`invokeEvent` are not gated by the code-execution setting. A password grants access to the full DevTools surface allowed by that setting; it does not make production read-only. Outside production, without a password, anyone who can reach the port can read the app's topology and registered source files and run its tasks with JSON input.
 
 ### Docs UI tables and blast radius
 
@@ -327,6 +328,7 @@ Optional environment variables:
 - `SNAPSHOT_FILE=./runner-dev-catalog/snapshot.json` to serve MCP from an exported static snapshot instead of a live endpoint
 - `ALLOW_MUTATIONS=true` to enable `graphql_mutation`
 - `HEADERS='{"Authorization":"Bearer token"}'` to pass extra headers
+- For a server protected by `RUNNER_DEV_HTTP_PASSWORD`, use `HEADERS='{"Authorization":"Basic <base64 of runner:password>"}'`. Keep this value in your client environment, outside committed configuration; a `401` means credentials are missing or incorrect.
 - `GRAPHQL_ENDPOINT` is accepted as an alias for `ENDPOINT`
 
 Available tools once connected:
@@ -811,6 +813,7 @@ query {
 
 ### Live system health
 
+- **systemInfo: `SystemInfo!`** — the server host's CPU model, logical core count, total RAM, platform, architecture, and Node.js version. The Live UI shows this once above the updating process-health metrics. It describes the server machine, not the browser; container resource limits may differ from host totals.
 - **memory: `MemoryStats!`**
   - Fields: `heapUsed` (bytes), `heapTotal` (bytes), `rss` (bytes)
 - **cpu: `CpuStats!`**
@@ -827,6 +830,14 @@ Example query:
 ```graphql
 query SystemHealth {
   live {
+    systemInfo {
+      cpuModel
+      logicalCores
+      totalMemory
+      platform
+      architecture
+      nodeVersion
+    }
     memory {
       heapUsed
       heapTotal

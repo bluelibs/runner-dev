@@ -696,7 +696,7 @@ query {
 
 ## Live Telemetry
 
-The `live` resource records, in memory:
+The `live` resource records telemetry in memory, with optional persistence:
 
 - Logs written through Runner's logger (`resources.logger`), including `critical` ones
 - All event emissions (via an event manager interceptor)
@@ -704,7 +704,66 @@ The `live` resource records, in memory:
 
 Each category keeps the latest `maxEntries` entries (default 10000, set through `dev.with({ maxEntries })`, which must be a positive integer). Older entries are evicted without notice, including entries a cursor or stream has not read yet: `afterSequence` then resumes at the oldest entry still kept. Readers that must see every entry have to stay within the last `maxEntries` entries of each category; raise `maxEntries` for high-volume apps.
 
-Every entry has a `sequence`: a number that is strictly increasing across all four categories and never reused, so it identifies one entry store-wide. It is an ordering key, not a count: it is seeded from the wall clock (about `Date.now() * 1000`), so it keeps increasing across restarts. Use it as the cursor when paging.
+### Persistence across restarts
+
+Enable SQLite through the `persistence` option:
+
+```ts
+import { dev, resources } from "@bluelibs/runner-dev";
+
+const devTools = dev.with({
+  maxEntries: 10_000,
+  persistence: resources.sqlitePersistence.with({
+    file: "./.runner-dev/telemetry.sqlite",
+  }),
+});
+```
+
+Register `devTools` in your app as usual. Like Runner's cache providers, `persistence` accepts a resource definition or its configured `.with(...)` entry. Runner-Dev automatically registers the provider and injects its initialized `LivePersistence` store. Provider dependencies, overrides and isolation participate in Runner's normal graph. The provider resource initializes its store and releases it in `dispose()`, entirely within Runner's lifecycle.
+
+The same option works on `resources.live.with({ persistence, maxEntries })` when composing the resources separately. Use `sqlitePersistence({ file })` inside a custom resource's `init()` if you need custom SQLite wiring, and call its `close()` in that resource's `dispose()`. `sqlitePersistenceResource` is the named export of `resources.sqlitePersistence`. Without `persistence`, telemetry stays in memory and is lost on restart.
+
+SQLite restores retained logs, emissions, errors and runs before the runtime starts serving queries or live streams. Each category keeps at most `maxEntries` rows on disk and entries in memory; lowering the cap trims existing rows on the next startup. Sequences resume above the highest committed sequence, including when the clock moves backwards. GraphQL, the docs UI, and `/live/stream` all see the restored history through their existing APIs.
+
+The adapter uses Node's built-in `node:sqlite`, loaded only when enabled: use Node.js 22.13+ or 24+ (Node 22.5–22.12 requires `--experimental-sqlite`). No SQLite npm dependency is needed. Parent directories are created automatically. Keep the same file path between restarts, use a separate file for each app/runtime, and add the database directory to your `.gitignore`. The cap limits retained rows rather than file bytes; SQLite reuses freed database pages.
+
+Writes are synchronous: each entry and its cap eviction commit in one transaction before live readers are notified. There is no pending write queue to flush at shutdown. Database/open/write failures throw rather than silently falling back to memory; SQLite work adds latency to telemetry recording. The runtime closes its connection on disposal.
+
+Payloads and log data are saved as JSON snapshots: ordinary JSON fields survive; dates use their JSON representation, bigint and symbols become strings, functions become `"[Function]"`, and circular/repeated object references become `"[Circular]"`. Errors keep their name, message and stack. JavaScript object identity and prototypes are not restored.
+
+### Custom persistence adapters
+
+Exported `LivePersistence`, `LivePersistenceOptions`, `LivePersistenceSnapshot`, and `LivePersistedEntry` types define the store contract. `LivePersistenceResource`/`LivePersistenceSource` describe the accepted provider references. Return your store directly from a resource:
+
+```ts
+import { r } from "@bluelibs/runner";
+import { dev, type LivePersistence } from "@bluelibs/runner-dev";
+import { database } from "./database";
+import { createTelemetryStore } from "./myTelemetryStore";
+
+const myPersistence = r
+  .resource("telemetryPersistence")
+  .dependencies({ database })
+  .init(async (_config, { database }) => {
+    const store = await createTelemetryStore(database);
+    return store satisfies LivePersistence;
+  })
+  .dispose(async (store) => { await store.close(); })
+  .build();
+
+const devTools = dev.with({ persistence: myPersistence });
+```
+
+Register `database` in its owning app/module as usual, or register it inside the provider for a self-contained subtree. Runner-Dev registers the persistence provider automatically. Runner calls its `dispose()` after the live service stops, including cleanup after a restore failure. Resource `init()` must clean up any partial initialization before throwing. Avoid a provider dependency on `resources.live`, which would create a cycle.
+
+Your store implements two methods; connection setup and cleanup belong to its resource:
+
+- `load({ maxEntries })` synchronously trims each category to its cap and returns `{ entries, lastSequence }`. Entries are `{ kind, entry }` records where `kind` is `log`, `emission`, `error` or `run`, in strictly increasing, unique sequence order. `lastSequence` is the highest committed sequence, even if its entry was evicted; use `0` for a new store. Restore validates stamps and category fields and fails startup on invalid data.
+- `append(record, { maxEntries })` synchronously commits the entry, updates `lastSequence`, and evicts the oldest entries of that category atomically. It returns `undefined` and throws on failure. Promise returns are rejected by TypeScript and guarded at runtime because live recording is synchronous. Invalid provider values fail startup. Validate records before committing so a bad entry cannot poison the next restart.
+
+### Queries and cursors
+
+Every entry has a `sequence`: a number that is strictly increasing across all four categories and never reused, so it identifies one entry store-wide. It is an ordering key, not a count: it is seeded from the wall clock (about `Date.now() * 1000`), so it normally keeps increasing across memory-only restarts; persistence also seeds it from the highest saved sequence. Use it as the cursor when paging.
 
 GraphQL (basic):
 

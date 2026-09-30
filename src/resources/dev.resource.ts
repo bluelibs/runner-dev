@@ -9,6 +9,8 @@ import { registerHttpRoutes } from "./routeHandlers/registerHttpRoutes.hook";
 import { graphqlQueryTask } from "./graphql.query.task";
 import z from "zod";
 import { allowedHostsSchema } from "./allowedHosts.schema";
+import type { LivePersistenceSource } from "./live/persistence";
+import { persistenceSourceSchema } from "./live/persistenceProvider";
 
 const MAX_ENTRIES_MESSAGE =
   "maxEntries must be a positive integer: the number of entries kept per live telemetry category.";
@@ -19,6 +21,7 @@ export type DevConfig = {
   /** DNS names, besides localhost and IP addresses, requests may use. */
   allowedHosts?: string[];
   maxEntries?: number;
+  persistence?: LivePersistenceSource;
 };
 
 export const dev = defineResource({
@@ -29,6 +32,7 @@ export const dev = defineResource({
       "Main development resource that registers all necessary components for Runner-Dev including server, GraphQL, telemetry, and HTTP routes",
   },
   configSchema: z.object({
+    persistence: persistenceSourceSchema.optional(),
     port: z.number().min(1).max(65535).optional(),
     host: z.string().min(1).optional(),
     // An entry that can never equal a Host hostname would silently allow
@@ -54,6 +58,7 @@ export const dev = defineResource({
     swapManager,
     live.with({
       maxEntries: config.maxEntries,
+      persistence: config.persistence,
     }),
     registerHttpRoutes,
     graphqlQueryTask,

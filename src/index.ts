@@ -6,6 +6,7 @@ import { swapManager } from "./resources/swap.resource";
 import { graphql } from "./resources/graphql-accumulator.resource";
 import { dev } from "./resources/dev.resource";
 import { coverage } from "./resources/coverage.resource";
+import { sqlitePersistenceResource } from "./resources/live/sqlitePersistence.resource";
 import { exportDocs } from "./exportDocs";
 
 export type { ServerConfig, ServerInstance } from "./resources/server.resource";
@@ -68,7 +69,27 @@ export const resources = {
   graphql,
   dev,
   coverage,
+  sqlitePersistence: sqlitePersistenceResource,
 };
 
 export { dev };
 export { exportDocs };
+
+export { sqlitePersistence } from "./resources/live/sqlitePersistence";
+export type {
+  SQLitePersistence,
+  SQLitePersistenceOptions,
+} from "./resources/live/sqlitePersistence";
+export type {
+  LiveConfig,
+  LivePersistedEntry,
+  LivePersistence,
+  LivePersistenceOptions,
+  LivePersistenceSource,
+  LivePersistenceResource,
+  LivePersistenceResourceDefinition,
+  LivePersistenceSnapshot,
+} from "./resources/live/persistence";
+export type { DevConfig } from "./resources/dev.resource";
+
+export { sqlitePersistenceResource };

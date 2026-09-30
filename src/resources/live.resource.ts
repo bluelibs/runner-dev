@@ -7,7 +7,19 @@ import {
   type TaskMiddlewareStoreElementType,
 } from "@bluelibs/runner";
 import { getCorrelationId } from "./telemetry.chain";
-import { RingBuffer } from "./live/RingBuffer";
+import type {
+  LiveConfig,
+  LivePersistedEntry,
+  LivePersistence,
+} from "./live/persistence";
+import { parsePersistedEntry } from "./live/persistence.schema";
+import {
+  commitPersistence,
+  isPersistenceResource,
+  persistenceResourceDefinition,
+  restorePersistence,
+} from "./live/persistenceProvider";
+import { createEntryBuffers } from "./live/entryBuffers";
 import { createIdCanonicalizer } from "./live/idCanonicalizer";
 import { createSequenceClock } from "./live/sequenceClock";
 import { queryEntries, toQueryOptions } from "./live/entryQuery";
@@ -18,17 +30,13 @@ import {
   buildRunMatcher,
 } from "./live/entryMatchers";
 import type {
-  EmissionEntry,
   EmissionQueryOptions,
-  ErrorEntry,
   ErrorQueryOptions,
   Live,
   LiveEntryStamp,
   LiveRecordKind,
-  LogEntry,
   LogQueryOptions,
   RunQueryOptions,
-  RunRecord,
 } from "./live/types";
 
 export type {
@@ -76,7 +84,7 @@ function describeError(error: unknown): {
     return { message: error.message, stack: error.stack ?? null };
   if (typeof error === "string") return { message: error, stack: null };
   try {
-    return { message: JSON.stringify(error), stack: null };
+    return { message: JSON.stringify(error) ?? String(error), stack: null };
   } catch {
     return { message: String(error), stack: null };
   }
@@ -87,28 +95,42 @@ function describeRunError(error: unknown): string | null {
   return describeError(error).message;
 }
 
+function createPersistenceContext(): {
+  closed: boolean;
+} {
+  return { closed: false };
+}
+
 const liveService = defineResource({
+  context: createPersistenceContext,
   id: "liveService",
   meta: {
     title: "Live Telemetry Service",
     description:
       "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
   },
-  dependencies: {
-    store: resources.store,
+  register: (config: LiveConfig) =>
+    isPersistenceResource(config.persistence) ? [config.persistence] : [],
+  dependencies: (config: LiveConfig) => {
+    const provider = persistenceResourceDefinition(config.persistence);
+    return {
+      store: resources.store,
+      ...(provider ? { persistence: provider } : {}),
+    };
   },
-  async init(
-    c: { maxEntries?: number },
-    { store }: { store: Store }
-  ): Promise<Live> {
+  async init(c: LiveConfig, { store, persistence }, context): Promise<Live> {
     const maxEntries = c.maxEntries ?? DEFAULT_MAX_ENTRIES;
-    const logs = new RingBuffer<LogEntry>(maxEntries);
-    const emissions = new RingBuffer<EmissionEntry>(maxEntries);
-    const errors = new RingBuffer<ErrorEntry>(maxEntries);
-    const runs = new RingBuffer<RunRecord>(maxEntries);
-    // One clock for every category, so a sequence identifies a single entry
-    // store-wide and each category's entries stay in ascending order.
-    const nextSequence = createSequenceClock();
+    const buffers = createEntryBuffers(maxEntries);
+    const { logs, emissions, errors, runs } = buffers;
+    let lastSequence = 0;
+    let persistenceStore: LivePersistence | undefined;
+    if (c.persistence !== undefined) {
+      const restored = restorePersistence(persistence, maxEntries, buffers);
+      persistenceStore = restored.persistence;
+      lastSequence = restored.lastSequence;
+    }
+    // Seed above persisted entries even after a backwards clock adjustment.
+    const nextSequence = createSequenceClock(lastSequence);
 
     // The store is fully registered before any resource initializes, so the
     // id sets are final here and the canonicalizers can memoize safely.
@@ -131,41 +153,52 @@ const liveService = defineResource({
       }
     };
 
-    /** Stamps position and time on a new entry, stores it, then notifies. */
-    const append = <T>(
-      buffer: RingBuffer<T>,
-      kind: LiveRecordKind,
-      buildEntry: (stamp: LiveEntryStamp) => T
-    ) => {
+    /** Commits a new entry, stores it in memory, then notifies readers. */
+    const append = (record: LivePersistedEntry) => {
+      if (context.closed) throw new Error("Live telemetry store is closed.");
+      // Commit before publishing: a failed write cannot appear persisted to readers.
+      if (persistenceStore) {
+        parsePersistedEntry(record);
+        commitPersistence(persistenceStore, record, maxEntries);
+      }
+      buffers.append(record);
+      notifyRecordListeners(record.kind);
+    };
+    const stamp = (): LiveEntryStamp => {
       const timestampMs = Date.now();
       const sequence = nextSequence(timestampMs);
-      buffer.push(buildEntry({ sequence, timestampMs }));
-      notifyRecordListeners(kind);
+      return { sequence, timestampMs };
     };
 
     return {
       recordLog(level, message, data, correlationId, sourceId) {
-        append(logs, "log", (stamp) => ({
-          ...stamp,
-          level,
-          message,
-          data,
-          sourceId: canonicalNodeId(sourceId) ?? sourceId,
-          correlationId: correlationId ?? getCorrelationId(),
-        }));
+        append({
+          kind: "log",
+          entry: {
+            ...stamp(),
+            level,
+            message,
+            data,
+            sourceId: canonicalNodeId(sourceId) ?? sourceId,
+            correlationId: correlationId ?? getCorrelationId(),
+          },
+        });
       },
       getLogs(input) {
         const options: LogQueryOptions = toQueryOptions(input);
         return queryEntries(logs, options, buildLogMatcher(options));
       },
       recordEmission(eventId, payload, emitterId) {
-        append(emissions, "emission", (stamp) => ({
-          ...stamp,
-          eventId: canonicalEventId(eventId) ?? eventId,
-          emitterId: canonicalNodeId(emitterId),
-          payload,
-          correlationId: getCorrelationId(),
-        }));
+        append({
+          kind: "emission",
+          entry: {
+            ...stamp(),
+            eventId: canonicalEventId(eventId) ?? eventId,
+            emitterId: canonicalNodeId(emitterId),
+            payload,
+            correlationId: getCorrelationId(),
+          },
+        });
       },
       getEmissions(input) {
         const options: EmissionQueryOptions = toQueryOptions(input);
@@ -173,32 +206,38 @@ const liveService = defineResource({
       },
       recordError(sourceId, sourceKind, error, data) {
         const { message, stack } = describeError(error);
-        append(errors, "error", (stamp) => ({
-          ...stamp,
-          sourceId: canonicalNodeId(sourceId) ?? sourceId,
-          sourceKind,
-          message,
-          stack,
-          data,
-          correlationId: getCorrelationId(),
-        }));
+        append({
+          kind: "error",
+          entry: {
+            ...stamp(),
+            sourceId: canonicalNodeId(sourceId) ?? sourceId,
+            sourceKind,
+            message,
+            stack,
+            data,
+            correlationId: getCorrelationId(),
+          },
+        });
       },
       getErrors(input) {
         const options: ErrorQueryOptions = toQueryOptions(input);
         return queryEntries(errors, options, buildErrorMatcher(options));
       },
       recordRun(nodeId, nodeKind, durationMs, ok, error, parentId, rootId) {
-        append(runs, "run", (stamp) => ({
-          ...stamp,
-          nodeId: canonicalNodeId(nodeId) ?? nodeId,
-          nodeKind,
-          durationMs,
-          ok,
-          error: describeRunError(error),
-          parentId: canonicalNodeId(parentId) ?? parentId ?? null,
-          rootId: canonicalNodeId(rootId) ?? rootId ?? null,
-          correlationId: getCorrelationId(),
-        }));
+        append({
+          kind: "run",
+          entry: {
+            ...stamp(),
+            nodeId: canonicalNodeId(nodeId) ?? nodeId,
+            nodeKind,
+            durationMs,
+            ok,
+            error: describeRunError(error),
+            parentId: canonicalNodeId(parentId) ?? parentId ?? null,
+            rootId: canonicalNodeId(rootId) ?? rootId ?? null,
+            correlationId: getCorrelationId(),
+          },
+        });
       },
       getRuns(input) {
         const options: RunQueryOptions = toQueryOptions(input);
@@ -212,9 +251,13 @@ const liveService = defineResource({
       },
     };
   },
+  async dispose(_instance, _config, _deps, context) {
+    context.closed = true;
+  },
 });
 
 export const live = defineResource({
+  context: () => ({ active: true }),
   id: "live",
   meta: {
     title: "Live Telemetry Manager",
@@ -225,11 +268,15 @@ export const live = defineResource({
     liveService,
     logger: resources.logger,
   },
-  register: (config: { maxEntries?: number }) => [
-    liveService.with({ maxEntries: config?.maxEntries }),
+  register: (config: LiveConfig) => [
+    liveService.with({
+      maxEntries: config?.maxEntries,
+      persistence: config?.persistence,
+    }),
   ],
-  async init(_config, { liveService, logger }) {
+  async init(_config, { liveService, logger }, context) {
     logger.onLog((log) => {
+      if (!context.active) return;
       const correlationId = getCorrelationId();
       liveService.recordLog(
         log.level,
@@ -244,5 +291,8 @@ export const live = defineResource({
     });
 
     return liveService;
+  },
+  async dispose(_instance, _config, _deps, context) {
+    context.active = false;
   },
 });

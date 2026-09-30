@@ -12,13 +12,20 @@ const SEQUENCES_PER_MILLISECOND = 1_000;
  * reused. `max` keeps it strictly increasing through same-millisecond bursts
  * and backwards clock adjustments alike.
  */
-export function createSequenceClock(): (timestampMs: number) => number {
-  let lastSequence = 0;
+export function createSequenceClock(
+  initialSequence = 0
+): (timestampMs: number) => number {
+  let lastSequence = initialSequence;
   return (timestampMs) => {
     lastSequence = Math.max(
       lastSequence + 1,
       Math.floor(timestampMs) * SEQUENCES_PER_MILLISECOND
     );
+    if (!Number.isSafeInteger(lastSequence)) {
+      throw new Error(
+        "Live telemetry sequence exceeded the safe integer range."
+      );
+    }
     return lastSequence;
   };
 }

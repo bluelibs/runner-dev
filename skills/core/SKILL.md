@@ -22,12 +22,20 @@ Use this skill when the task involves:
 - docs UI behavior, `/docs/data`, in-app documentation delivery, or the topology graph / blast-radius / mindmap views
 - the runtime shell (REPL), the `⌘K` command palette, keyboard shortcuts, or the docs tables (search-first filters, sorting, detail pager)
 - MCP helpers (`graphql_query`, `graphql_mutation`, `graphql_introspect`, `graphql_schema_sdl`, `graphql_ping`, `project_overview`), GraphQL tooling, introspection resources, or chat context wiring
-- live telemetry (including `sequence`/`afterSequence` cursors and SSE streaming), hot-swapping, CLI surfaces, or other runner-dev tooling
+- live telemetry (including `sequence`/`afterSequence` cursors, SSE streaming, and optional SQLite/custom persistence), hot-swapping, CLI surfaces, or other runner-dev tooling
 - security defaults: the code-execution gate (`RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`), the loopback bind, the Host header check on every bind (`allowedHosts` for extra DNS names), and the `host` option for deliberate network exposure
 - agent-facing documentation that must stay aligned with `readmes/COMPACT_GUIDE.md` and `README.md`
 - GraphQL schema and MCP contract work grounded in `./references/readmes/API_REFERENCE.md`
 
 Reach for the general Runner skill when the problem is about framework design rather than runner-dev's tooling surface.
+
+## Telemetry persistence
+
+`dev.with({ maxEntries, persistence: resources.sqlitePersistence.with({ file }) })` retains all four live categories across restarts; `resources.live.with()` accepts the same config. SQLite is loaded lazily from Node's built-in `node:sqlite` (22.13+ or 24+, or the experimental flag on 22.5–22.12). Use a stable, gitignored path and one database per runtime. Writes/eviction are synchronous and transactional; failures throw and resource disposal closes the store. The cap applies per category on disk and in memory, including a lower cap on restart. Restoration preserves sequences and resumes above the committed maximum; GraphQL/SSE use existing read APIs.
+
+Like Runner cache providers, persistence resource definitions or configured `.with(...)` entries are auto-registered and injected through config-driven dependencies. Their initialized value must be a `LivePersistence` store; DI, overrides and isolation work normally. The resource owns initialization and disposal, and is disposed after the live service stops. `sqlitePersistenceResource` names the built-in resource export. `sqlitePersistence({ file })` creates a closeable store for custom resource wiring. `LivePersistenceResource`/`LivePersistenceSource` type the resource/config option. Avoid provider dependencies on live itself (cycles).
+
+Custom resources return `LivePersistence` directly: synchronous `load({ maxEntries })` trims every category and returns ascending `{ kind, entry }` records plus the highest committed `lastSequence` (including evicted records). Synchronous `append(record, { maxEntries })` returns `undefined`, commits and evicts atomically or throws; async writes are rejected by types and guarded at runtime. Invalid provider values and snapshots fail startup. Resource `init()` may be async and must clean up partial initialization on failure; Runner calls `dispose()` for initialized providers when restoration fails or the runtime shuts down. Validate records before committing; SQLite validates serialized snapshots to prevent invalid entries from poisoning restarts. SQLite payloads are JSON snapshots, with explicit string representations for bigint/symbols/functions/circular references. Read the compact guide and README persistence sections before changing this contract.
 
 ## Scaffold dependency checks
 

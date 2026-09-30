@@ -46,6 +46,25 @@ export const app = r
   .build();
 ```
 
+Optional telemetry persistence:
+
+```ts
+import { dev, resources } from "@bluelibs/runner-dev";
+
+const devTools = dev.with({
+  maxEntries: 10_000,
+  persistence: resources.sqlitePersistence.with({
+    file: "./.runner-dev/telemetry.sqlite",
+  }),
+});
+```
+
+Register `devTools` in the root. `persistence` accepts a provider resource or configured `.with(...)` entry, following Runner cache wiring: the provider is auto-registered and injected with its dependencies, overrides and isolation. Its initialized value must be a `LivePersistence` store. Resource `init()` initializes the store, and `dispose()` releases it after live stops. `sqlitePersistence({ file })` creates a closeable store for custom resource wiring. `sqlitePersistenceResource` also exports the built-in resource by name. Logs, emissions, errors and task/hook runs restore before serving GraphQL, docs or SSE. The cap applies per category in memory and on disk, including when reduced on restart; sequence cursors continue above the saved maximum even with a backwards clock. Without `persistence`, history is memory-only. `resources.live.with()` accepts the same options.
+
+SQLite uses the built-in `node:sqlite`, loaded lazily, with no npm runtime dependency. Use Node 22.13+ or 24+ (22.5–22.12 needs `--experimental-sqlite`), a stable file path, one file per app/runtime, and a gitignored database directory. Parent directories are created. Writes and eviction commit synchronously and atomically before notifications; no shutdown flush queue. Open/write failures throw. The connection closes on disposal. The cap counts rows, not bytes; SQLite reuses freed pages. Payloads restore as JSON snapshots (errors retain name/message/stack; bigint/symbols become strings, functions `[Function]`, circular/repeated references `[Circular]`, dates JSON strings).
+
+Custom persistence resources return exported `LivePersistence` directly. Synchronous `load({ maxEntries })` trims every category and returns `{ entries: LivePersistedEntry[], lastSequence }` in unique ascending sequence order; `lastSequence` includes evicted records, or `0` for a new store. Synchronous `append({ kind, entry }, { maxEntries })` returns `undefined`, atomically commits the record, sequence and eviction or throws. Promise writes are rejected at compile time and guarded at runtime; invalid provider values fail startup. Validate before committing (SQLite validates serialized records) to prevent invalid snapshots from poisoning restart recovery. `kind` is `log`, `emission`, `error` or `run`. The provider resource owns setup and cleanup through `init()`/`dispose()`; Runner disposes initialized providers if restoration fails. Use `dev.with({ persistence: myProviderResource })`. `LivePersistenceResource`/`LivePersistenceSource` describe accepted references. See README's custom resource example; avoid provider dependencies on live itself (cycles).
+
 Expected endpoints after the app starts:
 
 - Docs UI: `http://localhost:1337/docs` (the root `/` redirects to Voyager)

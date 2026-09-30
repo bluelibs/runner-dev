@@ -26,6 +26,7 @@ import type {
 import { BaseElementInterface } from "./AllType";
 import { EventType } from "./EventType";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
+import { getSystemInfo, SystemInfoType } from "./SystemInfoType";
 import {
   liveCursorArgs,
   liveSequenceField,
@@ -373,6 +374,11 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
   description:
     "Real-time telemetry access: logs, event emissions, errors, runs, and system health.",
   fields: () => ({
+    systemInfo: {
+      description: "Host CPU, RAM, platform and Node.js version",
+      type: new GraphQLNonNull(SystemInfoType),
+      resolve: getSystemInfo,
+    },
     memory: {
       description: "Process memory usage",
       type: new GraphQLNonNull(MemoryStatsType),

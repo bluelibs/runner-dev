@@ -11,6 +11,7 @@ import {
 } from "../hooks/useLiveStream";
 import type { ConnectionMode } from "../hooks/useLiveStream";
 import { DocIcon } from "./common/DocIcon";
+import { SystemInfoPanel } from "./live/SystemInfoPanel";
 
 interface LivePanelProps {
   detailed?: boolean;
@@ -147,12 +148,13 @@ export const LivePanel: React.FC<LivePanelProps> = ({
 
       {/* Main Grid Layout */}
       <div className="live-main-grid">
+        <SystemInfoPanel />
         {/* System Health - Full Width */}
         <div className="live-section live-section--health">
-          <h3>System Health</h3>
+          <h3>Process health</h3>
           <div className="health-metrics">
             <div className="metric">
-              <span className="metric-label">Memory</span>
+              <span className="metric-label">V8 heap</span>
               <span className="metric-value">
                 {formatBytes(liveData.memory.heapUsed)} /{" "}
                 {formatBytes(liveData.memory.heapTotal)}
@@ -162,7 +164,7 @@ export const LivePanel: React.FC<LivePanelProps> = ({
               </div>
             </div>
             <div className="metric">
-              <span className="metric-label">CPU Usage</span>
+              <span className="metric-label">Event loop utilization</span>
               <span className="metric-value">
                 {(liveData.cpu.usage * 100).toFixed(1)}%
               </span>

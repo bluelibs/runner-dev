@@ -33,21 +33,20 @@ export interface LivePersistence {
 
 // Resource lifecycle callbacks may use a more specific store value (for example
 // SQLite's close()). Check the initialized contract without erasing its methods.
-type PersistenceResourceBase = IResource<any, any, any, any, any, any, any>;
-type PersistenceInitializer = IResource<
-  any,
-  Promise<LivePersistence>,
-  any,
-  any,
-  any,
-  any,
-  any
->["init"];
-
 export type LivePersistenceResourceDefinition = Omit<
-  PersistenceResourceBase,
+  IResource<any, any, any, any, any, any, any>,
   "init"
-> & { init?: PersistenceInitializer };
+> & {
+  init?: IResource<
+    any,
+    Promise<LivePersistence>,
+    any,
+    any,
+    any,
+    any,
+    any
+  >["init"];
+};
 
 export type LivePersistenceResource =
   | LivePersistenceResourceDefinition

@@ -18,7 +18,7 @@ export interface TopologyViewportState {
 const BOUNDS_PADDING = 180;
 const MIN_STAGE_SPAN = 480;
 const DEFAULT_STAGE_SIZE = 1200;
-const MIN_SCALE = 0.55;
+export const MIN_TOPOLOGY_SCALE = 0.55;
 const MAX_SCALE = 1.9;
 
 export function getTopologyCanvasBounds(
@@ -74,16 +74,20 @@ export function getTopologyCanvasBounds(
 
 export function getZoomedViewport(
   viewport: TopologyViewportState,
-  factor: number
+  factor: number,
+  minScale: number = MIN_TOPOLOGY_SCALE
 ): TopologyViewportState {
   return {
     ...viewport,
-    scale: clampTopologyScale(viewport.scale * factor),
+    scale: clampTopologyScale(viewport.scale * factor, minScale),
   };
 }
 
-export function clampTopologyScale(scale: number): number {
-  return Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+export function clampTopologyScale(
+  scale: number,
+  minScale: number = MIN_TOPOLOGY_SCALE
+): number {
+  return Math.max(minScale, Math.min(MAX_SCALE, scale));
 }
 
 export function getInitialTopologyViewport(

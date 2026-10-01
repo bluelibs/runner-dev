@@ -705,3 +705,95 @@
     }
   }
 }
+
+// Phones: a four-column table cannot fit, and sideways scrolling hides half of
+// every row. Each row becomes a stacked card instead — title and usage on top,
+// the full id below, then the description — and the header keeps only the
+// id/title sort + search controls, side by side.
+@media (max-width: 560px) {
+  .element-table {
+    padding: $spacing-sm;
+
+    &__container {
+      overflow-x: visible;
+    }
+
+    &__table,
+    &__table thead,
+    &__table tbody {
+      display: block;
+      min-width: 0;
+    }
+
+    &__table thead tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $spacing-sm;
+      padding-bottom: $spacing-sm;
+      border-bottom: 1px solid var(--docs-border-subtle);
+    }
+
+    &__header {
+      display: block;
+      width: auto;
+      min-width: 0;
+      padding: 0;
+
+      &--id,
+      &--title {
+        width: auto;
+        min-width: 0;
+      }
+
+      &--description,
+      &--used-by {
+        display: none;
+      }
+    }
+
+    &__row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "title used-by"
+        "id id"
+        "description description";
+      column-gap: $spacing-sm;
+      padding: $spacing-sm 0;
+    }
+
+    &__cell {
+      display: block;
+      min-width: 0;
+      padding: 2px 0;
+      font-size: $font-size-sm;
+
+      &--title {
+        grid-area: title;
+        font-size: $font-size-base;
+      }
+
+      &--used-by {
+        grid-area: used-by;
+
+        &::before {
+          content: "used by ";
+          font-family: $font-family-base;
+        }
+      }
+
+      &--id {
+        grid-area: id;
+      }
+
+      &--description {
+        grid-area: description;
+      }
+    }
+
+    &__id-code {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+  }
+}

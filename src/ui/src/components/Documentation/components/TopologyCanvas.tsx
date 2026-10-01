@@ -18,7 +18,8 @@ import {
   getFittedViewport,
   getViewportMetrics,
   setViewportPositionY,
-  TOPOLOGY_CANVAS_INSETS,
+  getTopologyCanvasLayout,
+  type TopologyCanvasInsets,
   type TopologyCanvasSize,
 } from "./topologyViewport.utils";
 import { TopologyDescriptionTooltip } from "./TopologyDescriptionTooltip";
@@ -62,14 +63,10 @@ const DEFAULT_CANVAS_SIZE: TopologyCanvasSize = {
 function clampViewport(
   bounds: ReturnType<typeof getTopologyCanvasBounds>,
   canvasSize: TopologyCanvasSize,
-  viewport: TopologyViewportState
+  viewport: TopologyViewportState,
+  insets: TopologyCanvasInsets
 ) {
-  return clampViewportToBounds(
-    bounds,
-    viewport,
-    canvasSize,
-    TOPOLOGY_CANVAS_INSETS
-  );
+  return clampViewportToBounds(bounds, viewport, canvasSize, insets);
 }
 
 function shouldStartCanvasPan(target: EventTarget | null): boolean {
@@ -104,6 +101,7 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
     React.useState<TopologyCanvasSize>(DEFAULT_CANVAS_SIZE);
   const pointerStateRef = React.useRef<CanvasPointerState | null>(null);
   const viewportModeRef = React.useRef<"fit" | "manual">("fit");
+  const { insets, minScale } = getTopologyCanvasLayout(canvasSize);
 
   const [viewport, setViewport] = React.useState(() =>
     getInitialTopologyViewport(isFullscreen)
@@ -168,14 +166,14 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
 
   React.useEffect(() => {
     if (viewportModeRef.current === "fit") {
-      setViewport(
-        getFittedViewport(bounds, canvasSize, TOPOLOGY_CANVAS_INSETS)
-      );
+      setViewport(getFittedViewport(bounds, canvasSize, insets, minScale));
       return;
     }
 
-    setViewport((current) => clampViewport(bounds, canvasSize, current));
-  }, [bounds, canvasSize]);
+    setViewport((current) =>
+      clampViewport(bounds, canvasSize, current, insets)
+    );
+  }, [bounds, canvasSize, insets, minScale]);
 
   const positionedNodes = React.useMemo(
     () =>
@@ -196,9 +194,8 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
   );
 
   const viewportMetrics = React.useMemo(
-    () =>
-      getViewportMetrics(bounds, viewport, canvasSize, TOPOLOGY_CANVAS_INSETS),
-    [bounds, canvasSize, viewport]
+    () => getViewportMetrics(bounds, viewport, canvasSize, insets),
+    [bounds, canvasSize, insets, viewport]
   );
   const stageId = `topology-canvas-stage-${canvasInstanceId}`;
   const arrowId = `topology-arrow-${canvasInstanceId}`;
@@ -207,16 +204,16 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
     (updater: (current: TopologyViewportState) => TopologyViewportState) => {
       viewportModeRef.current = "manual";
       setViewport((current) =>
-        clampViewport(bounds, canvasSize, updater(current))
+        clampViewport(bounds, canvasSize, updater(current), insets)
       );
     },
-    [bounds, canvasSize]
+    [bounds, canvasSize, insets]
   );
 
   const resetView = React.useCallback(() => {
     viewportModeRef.current = "fit";
-    setViewport(getFittedViewport(bounds, canvasSize, TOPOLOGY_CANVAS_INSETS));
-  }, [bounds, canvasSize]);
+    setViewport(getFittedViewport(bounds, canvasSize, insets, minScale));
+  }, [bounds, canvasSize, insets, minScale]);
 
   const resetNodePositions = React.useCallback(() => {
     setDraggedPositions({});
@@ -224,24 +221,18 @@ export const TopologyCanvas: React.FC<TopologyCanvasProps> = ({
 
   const updateZoom = React.useCallback(
     (factor: number) => {
-      updateViewport((current) => getZoomedViewport(current, factor));
+      updateViewport((current) => getZoomedViewport(current, factor, minScale));
     },
-    [updateViewport]
+    [minScale, updateViewport]
   );
 
   const updateViewportPositionY = React.useCallback(
     (positionY: number) => {
       updateViewport((current) =>
-        setViewportPositionY(
-          bounds,
-          current,
-          canvasSize,
-          positionY,
-          TOPOLOGY_CANVAS_INSETS
-        )
+        setViewportPositionY(bounds, current, canvasSize, positionY, insets)
       );
     },
-    [bounds, canvasSize, updateViewport]
+    [bounds, canvasSize, insets, updateViewport]
   );
 
   const handleWheel = React.useCallback(

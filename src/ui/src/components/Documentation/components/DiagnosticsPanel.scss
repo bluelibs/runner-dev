@@ -257,6 +257,9 @@
 
   .main {
     flex: 1;
+    // Let long dotted ids wrap instead of stretching the row past its card.
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -335,6 +338,8 @@
 
   &__items {
     display: grid;
+    // A bare track sizes to its widest unbreakable id; pin it to the container.
+    grid-template-columns: minmax(0, 1fr);
     gap: $spacing-sm;
   }
 
@@ -570,5 +575,40 @@
 
   .diagnostics-panel__summary-card__value {
     color: var(--docs-info);
+  }
+}
+
+// Phones: the 200px tab rail beside the detail box left the box ~50px wide.
+// Stack them — tabs become one swipeable row of chips — and let the details
+// flow with the page instead of scrolling inside a short nested box.
+@include mobile {
+  .diagnostics-panel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: $spacing-sm;
+
+    &__tabs {
+      flex: none;
+      flex-direction: row;
+      overflow-x: auto;
+      padding-bottom: $spacing-xs;
+    }
+
+    &__tab {
+      flex: 0 0 auto;
+      gap: $spacing-sm;
+      white-space: nowrap;
+    }
+
+    &__content {
+      padding: $spacing-md;
+      max-height: none;
+      overflow-y: visible;
+    }
+  }
+
+  .diagnostics-panel__detailed-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: $spacing-sm;
   }
 }

@@ -2,7 +2,10 @@
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { DocumentationSidebar } from "./DocumentationSidebar";
+import {
+  DocumentationSidebar,
+  getFilterPopoverPosition,
+} from "./DocumentationSidebar";
 
 const mockNavigationView = jest.fn(() => null);
 
@@ -321,5 +324,77 @@ describe("DocumentationSidebar visibility filters", () => {
     } finally {
       window.removeEventListener("docs:open-shell", listener);
     }
+  });
+});
+
+describe("DocumentationSidebar phone drawer", () => {
+  const renderSidebar = (isMobileOpen?: boolean) =>
+    render(
+      React.createElement(DocumentationSidebar, {
+        sidebarWidth: 280,
+        sidebarRef: React.createRef<HTMLElement>(),
+        isMobileOpen,
+        viewMode: "list",
+        treeType: "namespace",
+        showSystem: false,
+        showRunner: false,
+        showPrivate: false,
+        treeNodes: [],
+        sections: [],
+        onViewModeChange: () => {},
+        onTreeTypeChange: () => {},
+        onShowSystemChange: () => {},
+        onShowRunnerChange: () => {},
+        onShowPrivateChange: () => {},
+        onTreeNodeClick: () => {},
+        onToggleExpansion: () => {},
+        onSectionClick: () => {},
+        onOpenPalette: () => {},
+        onOpenShortcuts: () => {},
+      })
+    );
+
+  it("is addressable by the top bar and closed by default", () => {
+    const { container } = renderSidebar();
+    const sidebar = container.querySelector("#docs-sidebar");
+
+    expect(sidebar).not.toBeNull();
+    expect(sidebar?.classList.contains("docs-sidebar--mobile-open")).toBe(
+      false
+    );
+  });
+
+  it("marks itself open for the phone drawer styles", () => {
+    const { container } = renderSidebar(true);
+
+    expect(
+      container
+        .querySelector("#docs-sidebar")
+        ?.classList.contains("docs-sidebar--mobile-open")
+    ).toBe(true);
+  });
+});
+
+describe("getFilterPopoverPosition", () => {
+  const anchor = { left: 16, right: 280, top: 12, bottom: 48 };
+
+  it("opens to the right of the search row when there is room", () => {
+    expect(getFilterPopoverPosition(anchor, 1440)).toEqual({
+      left: 288,
+      top: 12,
+    });
+  });
+
+  it("drops below the search row on a phone-width viewport", () => {
+    expect(getFilterPopoverPosition(anchor, 375)).toEqual({
+      left: 16,
+      top: 56,
+    });
+  });
+
+  it("keeps the dropped popover inside the viewport", () => {
+    expect(
+      getFilterPopoverPosition({ ...anchor, left: 200, right: 340 }, 375)
+    ).toEqual({ left: 119, top: 56 });
   });
 });

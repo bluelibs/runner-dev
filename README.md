@@ -163,6 +163,8 @@ Inside the UI, you can:
 - View source files, and edit them when the [code-execution gate](#code-execution-gate) is open (otherwise the viewer is read-only and shows how to enable editing).
 - Open a runtime shell per resource (`Shell` button, `r` is the live resource value) or a global shell from the sidebar (``Ctrl+` ``) with full `runtime` access. The shell also needs the code-execution gate.
 - Press `⌘K`/`Ctrl+K` for the command palette (fuzzy-jump to any element, section, or action) and `?` for the full keyboard shortcut map (`g` + key section jumps, `/` focuses the sidebar filter, `Esc` walks back).
+- Use it from a phone or tablet: at 768px and below the sidebar becomes a slide-in menu behind a top bar (menu and search buttons), overview tables stack into one card per element, and the topology canvas fits whole graphs on narrow screens.
+- Use it from a phone or tablet: at 768px and below the sidebar becomes a slide-in menu behind a top bar (menu and search buttons), overview tables stack into one card per element, and the topology canvas fits whole graphs on narrow screens.
 
 ### Network and code-execution defaults
 

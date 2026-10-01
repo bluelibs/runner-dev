@@ -6,6 +6,7 @@ import { DocumentationMainContent } from "./components/DocumentationMainContent"
 import { useDocumentationFilters } from "./hooks/useDocumentationFilters";
 import { useViewMode } from "./hooks/useViewMode";
 import { useSidebarResize } from "./hooks/useSidebarResize";
+import { useMobileNavDrawer } from "./hooks/useMobileNavDrawer";
 // [AI-CHAT-DISABLED] import { useChatSidebarResize } from "./hooks/useChatSidebarResize";
 import { useTreeNavigation } from "./hooks/useTreeNavigation";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
@@ -17,6 +18,7 @@ import { ModalStackProvider } from "./components/modals";
 import ShellModal from "./components/ShellModal";
 import { CommandPalette } from "./components/CommandPalette";
 import { ShortcutsModal } from "./components/ShortcutsModal";
+import { MobileTopBar } from "./components/MobileTopBar";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { buildPaletteEntries, type PaletteEntry } from "./utils/commandPalette";
 import { getHashScrollTargetId } from "./utils/documentationHash";
@@ -354,6 +356,18 @@ export const Documentation: React.FC<DocumentationProps> = ({
   const [shellResourceId, setShellResourceId] = useState<string | null>(null);
   const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
+  const mobileNav = useMobileNavDrawer();
+  const closeMobileNav = mobileNav.close;
+
+  // Anything launched from the phone drawer replaces it, so close it first.
+  const openPalette = React.useCallback(() => {
+    closeMobileNav();
+    setIsPaletteOpen(true);
+  }, [closeMobileNav]);
+  const openShortcuts = React.useCallback(() => {
+    closeMobileNav();
+    setIsShortcutsOpen(true);
+  }, [closeMobileNav]);
 
   const openGlobalShell = React.useCallback(() => {
     if (mode === "catalog") return;
@@ -587,14 +601,25 @@ export const Documentation: React.FC<DocumentationProps> = ({
   return (
     <DocumentationModeProvider mode={mode}>
       <ModalStackProvider>
-        <div className="docs-app">
-          {/* Fixed Navigation Sidebar */}
+        <div
+          className={`docs-app${
+            mobileNav.isOpen ? " docs-app--mobile-nav-open" : ""
+          }`}
+        >
+          <MobileTopBar
+            isNavOpen={mobileNav.isOpen}
+            onToggleNav={mobileNav.toggle}
+            onOpenPalette={openPalette}
+          />
+
+          {/* Fixed Navigation Sidebar (an off-canvas drawer at phone width) */}
           <DocumentationSidebar
             sidebarWidth={sidebarHook.sidebarWidth}
             sidebarRef={sidebarHook.sidebarRef}
             // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}
             // [AI-CHAT-DISABLED] onToggleChat={handleToggleChat}
             leftOffset={0}
+            isMobileOpen={mobileNav.isOpen}
             isDarkMode={isDarkMode}
             onToggleDarkMode={toggleDarkMode}
             viewMode={viewModeHook.viewMode}
@@ -610,12 +635,24 @@ export const Documentation: React.FC<DocumentationProps> = ({
             onShowSystemChange={filterHook.handleShowSystemChange}
             onShowRunnerChange={filterHook.handleShowRunnerChange}
             onShowPrivateChange={filterHook.handleShowPrivateChange}
-            onTreeNodeClick={treeHook.handleTreeNodeClick}
+            onTreeNodeClick={(node) => {
+              treeHook.handleTreeNodeClick(node);
+              mobileNav.close();
+            }}
             onToggleExpansion={treeHook.handleToggleExpansion}
-            onSectionClick={handleSectionClick}
+            onSectionClick={(sectionId) => {
+              handleSectionClick(sectionId);
+              mobileNav.close();
+            }}
             resolveSectionFromElementId={resolveSectionFromElementId}
-            onOpenPalette={() => setIsPaletteOpen(true)}
-            onOpenShortcuts={() => setIsShortcutsOpen(true)}
+            onOpenPalette={openPalette}
+            onOpenShortcuts={openShortcuts}
+          />
+
+          <div
+            className="docs-mobile-nav-backdrop"
+            onClick={mobileNav.close}
+            aria-hidden="true"
           />
 
           {/* Sidebar Resizer */}

@@ -12,6 +12,8 @@ export interface DocumentationSidebarProps {
   isChatOpen?: boolean;
   onToggleChat?: () => void;
   leftOffset?: number;
+  /** Phone-width drawer state; ignored on wider screens, where CSS keeps the sidebar docked. */
+  isMobileOpen?: boolean;
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
   viewMode: ViewMode;
@@ -42,12 +44,32 @@ export interface DocumentationSidebarProps {
   onOpenShortcuts: () => void;
 }
 
+const FILTER_POPOVER_WIDTH = 248;
+const FILTER_POPOVER_GAP = 8;
+
+export function getFilterPopoverPosition(
+  anchor: Pick<DOMRect, "left" | "right" | "top" | "bottom">,
+  viewportWidth: number = window.innerWidth
+): { left: number; top: number } {
+  const fitsOnTheRight =
+    anchor.right + FILTER_POPOVER_GAP + FILTER_POPOVER_WIDTH <= viewportWidth;
+  if (fitsOnTheRight) {
+    return { left: anchor.right + FILTER_POPOVER_GAP, top: anchor.top };
+  }
+  const maxLeft = viewportWidth - FILTER_POPOVER_WIDTH - FILTER_POPOVER_GAP;
+  return {
+    left: Math.max(FILTER_POPOVER_GAP, Math.min(anchor.left, maxLeft)),
+    top: anchor.bottom + FILTER_POPOVER_GAP,
+  };
+}
+
 export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   sidebarWidth,
   sidebarRef,
   isChatOpen: _isChatOpen,
   onToggleChat: _onToggleChat,
   leftOffset = 0,
+  isMobileOpen = false,
   isDarkMode = true,
   onToggleDarkMode,
   viewMode,
@@ -96,10 +118,11 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       return;
     }
     // The sidebar clips horizontal overflow, so the popover is portaled to
-    // the body and anchored to the right of the search row.
+    // the body and anchored to the right of the search row — or below it when
+    // there is no room on the right (the phone-width drawer).
     const rect = filterAnchorRef.current?.getBoundingClientRect();
     setFilterPopoverPos(
-      rect ? { left: rect.right + 8, top: rect.top } : { left: 0, top: 0 }
+      rect ? getFilterPopoverPosition(rect) : { left: 0, top: 0 }
     );
     setFiltersOpen(true);
   }, [filtersOpen]);
@@ -134,7 +157,10 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
   return (
     <nav
       ref={sidebarRef}
-      className="docs-sidebar"
+      id="docs-sidebar"
+      className={`docs-sidebar${
+        isMobileOpen ? " docs-sidebar--mobile-open" : ""
+      }`}
       style={{ width: `${sidebarWidth}px`, left: `${leftOffset}px` }}
     >
       {/* Main Filters */}

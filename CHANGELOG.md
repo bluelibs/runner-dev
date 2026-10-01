@@ -2,6 +2,20 @@
 
 Notable changes to `@bluelibs/runner-dev`. Version numbers follow `@bluelibs/runner`, so the number for a release is chosen when it ships; until then, changes collect under "Unreleased".
 
+## Unreleased
+
+### Added
+
+- **The docs UI works on phones.** At 768px and below the sidebar becomes a slide-in drawer behind a top bar with menu and search buttons; it closes when you navigate, tap outside it or press `Esc`. The layout is pure CSS, so server-rendered pages are correct before hydration and desktop is unchanged.
+- Below 560px, overview tables stack into one card per element (title, usage, full id, description), element card headers stack their actions under the title, the Diagnostics tabs become a swipeable row, and the overview tiles sit two per row.
+
+### Fixed
+
+- The main content area included its padding on top of the viewport height, so jumping to a section scrolled a hidden outer container and slid the page up under the top edge.
+- Diagnostics items with long dotted ids no longer stretch past their card.
+- On narrow screens the topology "Fit" now shows the whole graph: compact canvases use insets that match their controls and can zoom out to 0.25 (desktop keeps 0.55), and the canvas is capped at 60% of the viewport so the page can still be scrolled past it.
+- The sidebar's visibility-filter popover opens below the search row when there is no room to its right, instead of off-screen.
+
 ## 6.8.0 — 2026-09-30
 
 Changes since 6.7.0. This release adds password protection for the DevTools HTTP surface (required in production), optional persistence of live telemetry across restarts, and host system information in the Live panel.

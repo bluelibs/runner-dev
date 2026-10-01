@@ -1690,3 +1690,42 @@
     right: 0;
   }
 }
+
+// Phones: the panel's own padding nests inside the page padding, and the
+// canvas captures touch for panning (touch-action: none). At 560px tall it
+// filled most of the screen, leaving almost nowhere to swipe the page past it.
+// Keep the canvas to ~60% of the viewport and give its chrome back the width.
+@media (max-width: 560px) {
+  .topology-panel {
+    padding: $spacing-sm;
+    border-radius: 16px;
+  }
+
+  .topology-panel__hero,
+  .topology-panel__toolbar,
+  .topology-panel__focus-bar {
+    padding: $spacing-sm $spacing-md;
+  }
+
+  .topology-panel__hero-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .topology-panel__canvas-shell,
+  .topology-panel--fullscreen .topology-panel__canvas-shell {
+    height: min(480px, 60dvh);
+    min-height: 320px;
+  }
+
+  .topology-panel__scroll-rail {
+    top: 12px;
+    bottom: 12px;
+    right: 8px;
+    width: 32px;
+  }
+
+  .topology-panel__canvas-hint {
+    margin: 12px 48px 0 12px;
+  }
+}

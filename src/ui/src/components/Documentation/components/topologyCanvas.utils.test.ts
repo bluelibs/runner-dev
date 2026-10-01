@@ -127,4 +127,11 @@ describe("topologyCanvas.utils", () => {
     expect(getZoomedViewport(viewport, 10).scale).toBe(1.9);
     expect(getZoomedViewport(viewport, 0.1).scale).toBe(0.55);
   });
+
+  it("lets a caller lower the zoom floor (compact canvases)", () => {
+    expect(clampTopologyScale(0.1, 0.25)).toBe(0.25);
+
+    const viewport = getInitialTopologyViewport(false);
+    expect(getZoomedViewport(viewport, 0.1, 0.25).scale).toBe(0.25);
+  });
 });

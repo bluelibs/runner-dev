@@ -167,3 +167,11 @@
     gap: 4px;
   }
 }
+
+// Touch devices have no arrow/enter/esc keys to hint at.
+@media (hover: none) and (pointer: coarse) {
+  .command-palette__footer,
+  .command-palette__esc {
+    display: none;
+  }
+}

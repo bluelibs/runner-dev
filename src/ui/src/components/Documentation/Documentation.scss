@@ -453,7 +453,11 @@ body {
   background: var(--docs-bg-primary);
   padding: $spacing-lg;
   transition: margin-left 0.2s ease;
-  // Make the main area a dedicated scroll container to match Chat
+  // Make the main area a dedicated scroll container to match Chat. Border-box
+  // keeps the padding inside the viewport height: with content-box the area
+  // overflowed .docs-app, and scrollIntoView then scrolled that hidden
+  // ancestor too, sliding the whole page up under the top edge.
+  box-sizing: border-box;
   height: 100vh;
   // Always render a vertical scrollbar for a stable layout
   overflow-y: scroll;
@@ -1430,6 +1434,159 @@ body {
 // -----------------------------------------------------------------------------
 // Reduced Motion
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Phone Shell
+// -----------------------------------------------------------------------------
+// At phone width the docked sidebar would leave the content a sliver, so it
+// becomes an off-canvas drawer behind a top bar. Everything here is pure CSS
+// (the sidebar's inline width/left and the content's inline margin are
+// overridden) so server-rendered markup lays out correctly before hydration.
+$mobile-topbar-height: 52px;
+
+.docs-mobile-topbar,
+.docs-mobile-nav-backdrop {
+  display: none;
+}
+
+@include mobile {
+  .docs-mobile-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1002;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    height: $mobile-topbar-height;
+    padding: 0 $spacing-sm;
+    box-sizing: border-box;
+    background: var(--docs-sidebar-bg);
+    border-bottom: 1px solid var(--docs-border-primary);
+    color: var(--docs-text-primary);
+
+    &__title {
+      flex: 1;
+      min-width: 0;
+      font-weight: 600;
+      font-size: $font-size-md;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &__button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      // 44px is the minimum comfortable touch target.
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      border-radius: $border-radius-lg;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+
+      &:hover,
+      &:focus-visible {
+        background: var(--docs-hover-bg);
+      }
+    }
+  }
+
+  .docs-sidebar {
+    top: $mobile-topbar-height;
+    left: 0 !important;
+    width: min(320px, 86vw) !important;
+    min-width: 0;
+    height: calc(100dvh - #{$mobile-topbar-height});
+    padding-top: $spacing-md;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+
+    &--mobile-open {
+      transform: none;
+      visibility: visible;
+      transition: transform 0.2s ease, visibility 0s;
+    }
+  }
+
+  .docs-app--mobile-nav-open .docs-mobile-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: $mobile-topbar-height 0 0 0;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .docs-sidebar-resizer {
+    display: none;
+  }
+
+  .docs-main-content {
+    margin-left: 0 !important;
+    height: 100dvh;
+    padding: calc(#{$mobile-topbar-height} + #{$spacing-sm}) $spacing-sm
+      $spacing-lg;
+    // Anchored jumps must land below the fixed top bar.
+    scroll-padding-top: $mobile-topbar-height;
+    // Touch scrolling uses overlay bars; a reserved gutter only eats width.
+    scrollbar-gutter: auto;
+  }
+
+  .docs-header {
+    padding: $spacing-lg $spacing-md;
+    margin-bottom: $spacing-lg;
+  }
+
+  // Two compact tiles per row instead of one tall tile per screen.
+  .overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $spacing-sm;
+
+    .card {
+      padding: $spacing-md;
+    }
+  }
+}
+
+// Element cards share one header/content structure per kind. On phones the
+// title column and the action buttons cannot sit side by side (the actions
+// were clipped off the right edge), and the desktop padding eats the width.
+$element-card-kinds: task, resource, event, hook, middleware, error,
+  async-context, tag;
+
+// Scoped under .docs-app because each card's own stylesheet loads after this
+// one and would otherwise win at equal specificity.
+@media (max-width: 560px) {
+  @each $kind in $element-card-kinds {
+    .docs-app .#{$kind}-card__header {
+      padding: $spacing-md;
+    }
+
+    .docs-app .#{$kind}-card__header-content {
+      min-height: 0;
+    }
+
+    .docs-app .#{$kind}-card__header-top {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .docs-app .#{$kind}-card__actions {
+      margin-left: 0;
+      flex-wrap: wrap;
+    }
+
+    .docs-app .#{$kind}-card__content {
+      padding: $spacing-md;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .docs-app *,
   .docs-app *::before,

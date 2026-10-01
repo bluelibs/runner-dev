@@ -3,7 +3,10 @@
 import type { TopologyCanvasBounds } from "./topologyCanvas.utils";
 import {
   clampViewportToBounds,
+  COMPACT_TOPOLOGY_CANVAS_INSETS,
   getFittedViewport,
+  getTopologyCanvasLayout,
+  TOPOLOGY_CANVAS_INSETS,
   getViewportMetrics,
   getViewportPositionY,
   setViewportPositionY,
@@ -114,5 +117,38 @@ describe("topologyViewport.utils", () => {
     expect(fitted.scale).toBeGreaterThan(1);
     expect(fitted.offsetX).toBeGreaterThan(116);
     expect(fitted.offsetY).toBe(92);
+  });
+
+  describe("getTopologyCanvasLayout", () => {
+    it("keeps the desktop gutters on wide canvases", () => {
+      expect(getTopologyCanvasLayout({ width: 1200, height: 900 })).toEqual({
+        insets: TOPOLOGY_CANVAS_INSETS,
+        minScale: 0.55,
+      });
+    });
+
+    it("switches to compact insets and a lower floor on phone canvases", () => {
+      expect(getTopologyCanvasLayout({ width: 329, height: 480 })).toEqual({
+        insets: COMPACT_TOPOLOGY_CANVAS_INSETS,
+        minScale: 0.25,
+      });
+    });
+
+    it("stays on the desktop layout until the canvas is measured", () => {
+      expect(getTopologyCanvasLayout({ width: 0, height: 0 }).insets).toBe(
+        TOPOLOGY_CANVAS_INSETS
+      );
+    });
+  });
+
+  it("fits a large graph below the desktop zoom floor on a phone canvas", () => {
+    const phoneCanvas = { width: 329, height: 480 };
+    const { insets, minScale } = getTopologyCanvasLayout(phoneCanvas);
+
+    const fitted = getFittedViewport(tallBounds, phoneCanvas, insets, minScale);
+
+    expect(fitted.scale).toBeLessThan(0.55);
+    expect(fitted.scale).toBeGreaterThanOrEqual(minScale);
+    expect(fitted.offsetX).toBeGreaterThanOrEqual(insets.left);
   });
 });

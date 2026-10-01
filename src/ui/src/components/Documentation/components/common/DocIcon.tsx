@@ -33,6 +33,7 @@ export type DocIconName =
   | "list"
   | "tree"
   | "filter"
+  | "menu"
   | "external"
   | "hash"
   | "globe"
@@ -176,6 +177,7 @@ const PATHS: Record<DocIconName, React.ReactNode> = {
     </>
   ),
   filter: <path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z" />,
+  menu: <path d="M3 6h18M3 12h18M3 18h18" />,
   external: (
     <>
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />

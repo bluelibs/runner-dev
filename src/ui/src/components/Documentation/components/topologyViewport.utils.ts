@@ -2,7 +2,7 @@ import type {
   TopologyCanvasBounds,
   TopologyViewportState,
 } from "./topologyCanvas.utils";
-import { clampTopologyScale } from "./topologyCanvas.utils";
+import { clampTopologyScale, MIN_TOPOLOGY_SCALE } from "./topologyCanvas.utils";
 
 export interface TopologyCanvasSize {
   width: number;
@@ -34,6 +34,53 @@ export const TOPOLOGY_CANVAS_INSETS: TopologyCanvasInsets = {
   bottom: 84,
   left: 116,
 };
+
+/**
+ * Phone-width canvases (see the `max-width: 560px` rules in
+ * TopologyPanel.scss): the controls wrap across the top and the scroll rail
+ * hugs the right edge, so the desktop side gutters would leave the graph a
+ * ~150px strip. These insets only clear what is actually overlaid.
+ */
+export const COMPACT_TOPOLOGY_CANVAS_INSETS: TopologyCanvasInsets = {
+  top: 156,
+  right: 48,
+  bottom: 16,
+  left: 16,
+};
+
+/** Canvas width at or below which the compact layout applies. */
+export const COMPACT_TOPOLOGY_CANVAS_MAX_WIDTH = 520;
+
+/** Lets "Fit" show a whole real-world graph on a phone instead of a corner of it. */
+const COMPACT_MIN_SCALE = 0.25;
+
+export interface TopologyCanvasLayout {
+  insets: TopologyCanvasInsets;
+  minScale: number;
+}
+
+const DEFAULT_TOPOLOGY_CANVAS_LAYOUT: TopologyCanvasLayout = {
+  insets: TOPOLOGY_CANVAS_INSETS,
+  minScale: MIN_TOPOLOGY_SCALE,
+};
+
+const COMPACT_TOPOLOGY_CANVAS_LAYOUT: TopologyCanvasLayout = {
+  insets: COMPACT_TOPOLOGY_CANVAS_INSETS,
+  minScale: COMPACT_MIN_SCALE,
+};
+
+export function getTopologyCanvasLayout(
+  canvasSize: TopologyCanvasSize
+): TopologyCanvasLayout {
+  // A zero width means the canvas has not been measured yet; stay on the
+  // desktop layout rather than flashing the compact one.
+  const isCompact =
+    canvasSize.width > 0 &&
+    canvasSize.width <= COMPACT_TOPOLOGY_CANVAS_MAX_WIDTH;
+  return isCompact
+    ? COMPACT_TOPOLOGY_CANVAS_LAYOUT
+    : DEFAULT_TOPOLOGY_CANVAS_LAYOUT;
+}
 
 export const TOPOLOGY_SCROLLBAR_KEYBOARD_STEP = 0.08;
 export const TOPOLOGY_SCROLLBAR_PAGE_STEP = 0.22;
@@ -175,7 +222,8 @@ export function getViewportMetrics(
 export function getFittedViewport(
   bounds: TopologyCanvasBounds,
   canvasSize: TopologyCanvasSize,
-  insets: TopologyCanvasInsets = TOPOLOGY_CANVAS_INSETS
+  insets: TopologyCanvasInsets = TOPOLOGY_CANVAS_INSETS,
+  minScale: number = MIN_TOPOLOGY_SCALE
 ): TopologyViewportState {
   const { width: availableWidth, height: availableHeight } = getAvailableSize(
     canvasSize,
@@ -185,7 +233,8 @@ export function getFittedViewport(
     Math.min(
       availableWidth / Math.max(bounds.width, MIN_VIEWPORT_SIZE),
       availableHeight / Math.max(bounds.height, MIN_VIEWPORT_SIZE)
-    )
+    ),
+    minScale
   );
 
   return clampViewportToBounds(

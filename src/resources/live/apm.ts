@@ -22,8 +22,7 @@ export type ApmConfig =
       storage?: "auto" | "memory";
     };
 export type ApmScope = "all" | "direct" | "nested";
-export interface TaskPerformance {
-  taskId: string;
+export interface PerformanceMetrics {
   count: number;
   failures: number;
   errorRate: number;
@@ -32,6 +31,12 @@ export interface TaskPerformance {
   p95Ms: number;
   p99Ms: number;
   maxMs: number;
+}
+export interface TaskPerformance extends PerformanceMetrics {
+  taskId: string;
+}
+export interface HookPerformance extends PerformanceMetrics {
+  hookId: string;
 }
 export interface ApmSnapshot {
   enabled: boolean;
@@ -42,22 +47,23 @@ export interface ApmSnapshot {
   scope: ApmScope;
   oldestTimestampMs: number | null;
   tasks: TaskPerformance[];
+  hooks: HookPerformance[];
 }
 
-export function summarizeTasks(samples: RunRecord[]): TaskPerformance[] {
+function summarizeRuns(samples: RunRecord[]) {
   const groups = new Map<string, RunRecord[]>();
   for (const sample of samples) {
     const group = groups.get(sample.nodeId) ?? [];
     group.push(sample);
     groups.set(sample.nodeId, group);
   }
-  return Array.from(groups, ([taskId, runs]) => {
+  return Array.from(groups, ([nodeId, runs]) => {
     const durations = runs.map((run) => run.durationMs).sort((a, b) => a - b);
     const count = durations.length;
     const percentile = (p: number) => durations[Math.ceil(p * count) - 1];
     const failures = runs.filter((run) => !run.ok).length;
     return {
-      taskId,
+      nodeId,
       count,
       failures,
       errorRate: failures / count,
@@ -67,7 +73,18 @@ export function summarizeTasks(samples: RunRecord[]): TaskPerformance[] {
       p99Ms: percentile(0.99),
       maxMs: durations[count - 1],
     };
-  }).sort((a, b) => b.p95Ms - a.p95Ms || a.taskId.localeCompare(b.taskId));
+  }).sort((a, b) => b.p95Ms - a.p95Ms || a.nodeId.localeCompare(b.nodeId));
+}
+
+export function summarizeTasks(samples: RunRecord[]): TaskPerformance[] {
+  return summarizeRuns(samples.filter((run) => run.nodeKind === "TASK")).map(
+    ({ nodeId, ...metrics }) => ({ taskId: nodeId, ...metrics })
+  );
+}
+export function summarizeHooks(samples: RunRecord[]): HookPerformance[] {
+  return summarizeRuns(samples.filter((run) => run.nodeKind === "HOOK")).map(
+    ({ nodeId, ...metrics }) => ({ hookId: nodeId, ...metrics })
+  );
 }
 
 /** Separate bounded samples prevent trace retention from biasing APM queries. */
@@ -87,8 +104,7 @@ export function createApm(config: ApmConfig | undefined) {
       const snapshot = persistence.load({ maxEntries: maxSamples });
       lastSequence = snapshot.lastSequence;
       for (const record of snapshot.entries) {
-        if (record.kind === "run" && record.entry.nodeKind === "TASK")
-          samples.push(record.entry);
+        if (record.kind === "run") samples.push(record.entry);
       }
     } catch (error) {
       persistence?.close();
@@ -106,7 +122,7 @@ export function createApm(config: ApmConfig | undefined) {
   const nextSequence = createSequenceClock(lastSequence);
   return {
     record(run: RunRecord) {
-      if (!enabled || run.nodeKind !== "TASK") return;
+      if (!enabled) return;
       if (!Number.isFinite(run.durationMs) || run.durationMs < 0)
         throw new Error("APM duration must be finite and non-negative.");
       // No inputs, outputs, error messages or correlation data are persisted for APM.
@@ -114,7 +130,7 @@ export function createApm(config: ApmConfig | undefined) {
         sequence: nextSequence(run.timestampMs),
         timestampMs: run.timestampMs,
         nodeId: run.nodeId,
-        nodeKind: "TASK",
+        nodeKind: run.nodeKind,
         durationMs: run.durationMs,
         ok: run.ok,
         parentId: run.parentId ? "nested" : null,
@@ -161,6 +177,7 @@ export function createApm(config: ApmConfig | undefined) {
         scope,
         oldestTimestampMs: samples.size ? samples.at(0).timestampMs : null,
         tasks: summarizeTasks(selected),
+        hooks: summarizeHooks(selected),
       };
     },
     close() {

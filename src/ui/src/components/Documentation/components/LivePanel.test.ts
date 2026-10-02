@@ -73,5 +73,11 @@ describe("LivePanel header", () => {
     expect(controls).not.toBeNull();
     expect(controls?.textContent).toContain("SSE");
     expect(controls?.textContent).toContain("Refresh");
+    expect(
+      screen.queryByRole("button", { name: "Task performance · APM" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Execution & traces" })
+    ).toBeNull();
   });
 });

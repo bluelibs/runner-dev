@@ -64,26 +64,32 @@ const hookInterceptors = defineResource({
     eventManager.interceptHook(async (next, hook, emission) => {
       const startedAt = performance.now();
       const { parentId, rootId } = deriveParentAndRoot(hook.id);
-      let error = undefined;
-      try {
-        const result = await next(hook, emission);
-        return result;
-      } catch (_error) {
-        live.recordError(hook.id, "HOOK", _error);
-        error = _error;
-        throw _error;
-      } finally {
-        const durationMs = performance.now() - startedAt;
-        live.recordRun(
-          hook.id,
-          "HOOK",
-          durationMs,
-          !error,
-          undefined,
-          parentId,
-          rootId
-        );
-      }
+      return withTaskRunContext(hook.id, async () => {
+        let ok = false;
+        let hookError: unknown;
+        let durationMs = 0;
+        try {
+          const result = await next(hook, emission);
+          durationMs = performance.now() - startedAt;
+          ok = true;
+          return result;
+        } catch (error) {
+          durationMs = performance.now() - startedAt;
+          hookError = error;
+          live.recordError(hook.id, "HOOK", error);
+          throw error;
+        } finally {
+          live.recordRun(
+            hook.id,
+            "HOOK",
+            durationMs,
+            ok,
+            hookError,
+            parentId,
+            rootId
+          );
+        }
+      });
     });
   },
 });

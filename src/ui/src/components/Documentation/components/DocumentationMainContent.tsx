@@ -9,6 +9,8 @@ import { TagCard } from "./TagCard";
 import { ErrorCard } from "./ErrorCard";
 import { AsyncContextCard } from "./AsyncContextCard";
 import { DiagnosticsPanel } from "./DiagnosticsPanel";
+import { TelemetryPanel } from "./TelemetryPanel";
+import { LogsPanel } from "./LogsPanel";
 import { LivePanel } from "./LivePanel";
 import { ElementTable } from "./ElementTable";
 import {
@@ -545,6 +547,17 @@ export const DocumentationMainContent: React.FC<
         {mode !== "catalog" && activeSection === "live" && (
           <section id="live" className="docs-section">
             <LivePanel detailed introspector={introspector} />
+          </section>
+        )}
+
+        {mode !== "catalog" && activeSection === "telemetry" && (
+          <section id="telemetry" className="docs-section">
+            <TelemetryPanel />
+          </section>
+        )}
+        {mode !== "catalog" && activeSection === "logs" && (
+          <section id="logs" className="docs-section">
+            <LogsPanel introspector={introspector} />
           </section>
         )}
 

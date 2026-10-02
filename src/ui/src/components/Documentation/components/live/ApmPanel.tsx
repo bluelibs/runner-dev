@@ -3,13 +3,21 @@ import { graphqlRequest } from "../../utils/graphqlClient";
 import type {
   ApmSnapshot,
   ApmScope,
+  PerformanceMetrics,
 } from "../../../../../../resources/live/apm";
 import "./ApmPanel.scss";
+
+type PerformanceRow = PerformanceMetrics & { nodeId: string };
+type PerformanceSnapshot = Omit<ApmSnapshot, "tasks" | "hooks"> & {
+  tasks: PerformanceRow[];
+  hooks: PerformanceRow[];
+};
 
 const QUERY = `query TaskPerformance($window: Int!, $scope: ApmScope!) {
   live { apm(windowMinutes: $window, scope: $scope) {
     enabled storage maxSamples retainedSamples windowMinutes scope oldestTimestampMs
-    tasks { taskId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
+    tasks { nodeId: taskId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
+    hooks { nodeId: hookId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
   } }
 }`;
 const ms = (value: number) =>
@@ -24,10 +32,11 @@ export function ApmPanel({
   pollInterval: number;
   refreshKey: number;
 }) {
-  const [snapshot, setSnapshot] = useState<ApmSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [windowMinutes, setWindowMinutes] = useState(30);
   const [scope, setScope] = useState<ApmScope>("all");
+  const [kind, setKind] = useState<"tasks" | "hooks">("tasks");
   const [search, setSearch] = useState("");
   useEffect(() => {
     let disposed = false;
@@ -35,7 +44,7 @@ export function ApmPanel({
     async function load() {
       try {
         const data = await graphqlRequest<{
-          live: { apm: ApmSnapshot | null };
+          live: { apm: PerformanceSnapshot | null };
         }>(QUERY, { window: windowMinutes, scope });
         if (!disposed) {
           setSnapshot(data.live.apm);
@@ -62,14 +71,14 @@ export function ApmPanel({
   if (error)
     return (
       <section className="apm-panel">
-        <h3>Task performance</h3>
+        <h3>Task & hook performance</h3>
         <p role="alert">{error}</p>
       </section>
     );
   if (!snapshot)
     return (
       <section className="apm-panel">
-        <h3>Task performance</h3>
+        <h3>Task & hook performance</h3>
         <p>Loading performance metrics…</p>
       </section>
     );
@@ -77,31 +86,30 @@ export function ApmPanel({
     return (
       <section className="apm-panel apm-panel--disabled">
         <span className="apm-eyebrow">APM · OPT IN</span>
-        <h3>Task performance</h3>
+        <h3>Task & hook performance</h3>
         <p>
-          Spot slow tasks and long tails across executions. Enable collection
-          with <code>dev.with({"{ apm: true }"})</code>.
+          Spot slow tasks, hooks and long tails across executions. Enable
+          collection with <code>dev.with({"{ apm: true }"})</code>.
         </p>
         <small>
           SQLite when available · bounded memory fallback · no task payloads
         </small>
       </section>
     );
-  const tasks = snapshot.tasks.filter((task) =>
-    task.taskId.toLowerCase().includes(search.toLowerCase())
+  const entries = snapshot[kind];
+  const label = kind === "tasks" ? "task" : "hook";
+  const tasks = entries.filter((task) =>
+    task.nodeId.toLowerCase().includes(search.toLowerCase())
   );
-  const count = snapshot.tasks.reduce((total, task) => total + task.count, 0);
-  const failures = snapshot.tasks.reduce(
-    (total, task) => total + task.failures,
-    0
-  );
-  const slowest = snapshot.tasks[0];
+  const count = entries.reduce((total, task) => total + task.count, 0);
+  const failures = entries.reduce((total, task) => total + task.failures, 0);
+  const slowest = entries[0];
   return (
-    <section className="apm-panel" aria-label="Task performance">
+    <section className="apm-panel" aria-label="Task and hook performance">
       <div className="apm-heading">
         <div>
-          <span className="apm-eyebrow">APM · TASK LATENCY</span>
-          <h3>Task performance</h3>
+          <span className="apm-eyebrow">APM · TASKS & REACTIONS</span>
+          <h3>Task & hook performance</h3>
           <p>Find the long tail. Every completed call counts.</p>
         </div>
         <span className="apm-storage">
@@ -110,6 +118,25 @@ export function ApmPanel({
             ? "SQLite · persisted"
             : "Memory · this session"}
         </span>
+      </div>
+      <div className="apm-toolbar apm-kind-toolbar">
+        <div className="apm-scopes" role="group" aria-label="Execution kind">
+          {(["tasks", "hooks"] as const).map((value) => (
+            <button
+              key={value}
+              aria-pressed={kind === value}
+              onClick={() => {
+                setKind(value);
+                setSearch("");
+              }}
+            >
+              {value === "tasks" ? "Tasks" : "Hooks"} ·{" "}
+              {snapshot[value]
+                .reduce((sum, entry) => sum + entry.count, 0)
+                .toLocaleString()}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="apm-toolbar">
         <div className="apm-scopes" role="group" aria-label="Call scope">
@@ -144,7 +171,9 @@ export function ApmPanel({
         <div>
           <span>Completed calls</span>
           <strong>{count.toLocaleString()}</strong>
-          <small>{snapshot.tasks.length} active tasks</small>
+          <small>
+            {entries.length} active {kind}
+          </small>
         </div>
         <div>
           <span>Failure rate</span>
@@ -154,20 +183,20 @@ export function ApmPanel({
           <small>{failures.toLocaleString()} failed calls</small>
         </div>
         <div>
-          <span>Highest task p95</span>
+          <span>Highest {label} p95</span>
           <strong>{slowest ? ms(slowest.p95Ms) : "—"}</strong>
-          <small title={slowest?.taskId}>
-            {slowest?.taskId ?? "Waiting for calls"}
+          <small title={slowest?.nodeId}>
+            {slowest?.nodeId ?? "Waiting for calls"}
           </small>
         </div>
       </div>
       <div className="apm-table-heading">
         <h4>
-          Latency by task <span>Sorted by p95</span>
+          Latency by {label} <span>Sorted by p95</span>
         </h4>
         <input
-          aria-label="Filter performance tasks"
-          placeholder="Filter tasks…"
+          aria-label={`Filter performance ${kind}`}
+          placeholder={`Filter ${kind}…`}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -176,7 +205,7 @@ export function ApmPanel({
         <table>
           <thead>
             <tr>
-              <th>Task</th>
+              <th>{kind === "tasks" ? "Task" : "Hook"}</th>
               <th>Calls</th>
               <th>Failed</th>
               <th>Mean</th>
@@ -189,9 +218,9 @@ export function ApmPanel({
           </thead>
           <tbody>
             {tasks.map((task) => (
-              <tr key={task.taskId}>
+              <tr key={task.nodeId}>
                 <td>
-                  <a href={`#element-${task.taskId}`}>{task.taskId}</a>
+                  <a href={`#element-${task.nodeId}`}>{task.nodeId}</a>
                   {task.count < 100 && (
                     <small className="apm-sample-note">
                       Small sample · {task.count} calls
@@ -233,12 +262,12 @@ export function ApmPanel({
       {!tasks.length && (
         <p className="apm-empty">
           {count
-            ? "No tasks match your filter."
-            : "No completed task calls in this window yet."}
+            ? `No ${kind} match your filter.`
+            : `No completed ${label} calls in this window yet.`}
         </p>
       )}
       <footer>
-        <span>Inclusive duration · includes child work · hooks excluded</span>
+        <span>Inclusive duration · includes delegated work · {kind} only</span>
         <span>
           {snapshot.retainedSamples.toLocaleString()} /{" "}
           {snapshot.maxSamples.toLocaleString()} samples retained
@@ -246,8 +275,8 @@ export function ApmPanel({
       </footer>
       <p className="apm-method">
         Exact nearest-rank percentiles over retained completions in the selected
-        window. Direct = no parent task or event; nested = called within a task
-        or event. Durations overlap across nested calls.{" "}
+        window. Direct = no parent task, hook or event; nested = called within
+        one. Task and hook durations overlap; counts are shown separately.{" "}
         {snapshot.oldestTimestampMs !== null &&
           `History starts ${new Date(
             snapshot.oldestTimestampMs

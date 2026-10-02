@@ -14,9 +14,22 @@ const snapshot = {
   windowMinutes: 30,
   scope: "all",
   oldestTimestampMs: 100_000,
+  hooks: [
+    {
+      nodeId: "app.on-order",
+      count: 3,
+      failures: 0,
+      errorRate: 0,
+      meanMs: 20,
+      p50Ms: 18,
+      p95Ms: 25,
+      p99Ms: 25,
+      maxMs: 25,
+    },
+  ],
   tasks: [
     {
-      taskId: "app.checkout",
+      nodeId: "app.checkout",
       count: 5,
       failures: 1,
       errorRate: 0.2,
@@ -74,4 +87,17 @@ it("shows fetch failures instead of inventing zero metrics", async () => {
     "textContent",
     "Network unavailable"
   );
+});
+
+it("separates hook calls and latency from delegated task metrics", async () => {
+  request.mockResolvedValue({ live: { apm: snapshot } });
+  renderPanel();
+  const hooks = await screen.findByRole("button", { name: "Hooks · 3" });
+  fireEvent.click(hooks);
+  expect(
+    screen.getByRole("link", { name: "app.on-order" }).getAttribute("href")
+  ).toBe("#element-app.on-order");
+  expect(screen.queryByRole("link", { name: "app.checkout" })).toBeNull();
+  expect(screen.getByText("Highest hook p95")).toBeTruthy();
+  expect(screen.getByText("3 calls", { exact: false })).toBeTruthy();
 });

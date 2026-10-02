@@ -99,4 +99,6 @@ export type {
   ApmScope,
   ApmSnapshot,
   TaskPerformance,
+  HookPerformance,
+  PerformanceMetrics,
 } from "./resources/live/apm";

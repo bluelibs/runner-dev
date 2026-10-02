@@ -9,6 +9,8 @@ export const DOCUMENTATION_ICONS: Record<string, DocIconName> = {
   overview: "overview",
   docs: "book",
   live: "live",
+  telemetry: "chart",
+  logs: "list",
   diagnostics: "diagnostics",
   topology: "topology",
   task: "task",
@@ -31,6 +33,10 @@ export function getDocumentationIcon(kind: string): string {
       return DOCUMENTATION_ICONS.docs;
     case "live":
       return DOCUMENTATION_ICONS.live;
+    case "telemetry":
+      return DOCUMENTATION_ICONS.telemetry;
+    case "logs":
+      return DOCUMENTATION_ICONS.logs;
     case "diagnostics":
       return DOCUMENTATION_ICONS.diagnostics;
     case "topology":

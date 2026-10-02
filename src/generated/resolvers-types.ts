@@ -57,10 +57,11 @@ export type ApmScope =
   | 'direct'
   | 'nested';
 
-/** Exact nearest-rank percentiles of retained task completions. Durations include nested work; hooks are excluded. */
+/** Exact nearest-rank percentiles of retained task and hook completions, grouped separately. Durations include delegated work and overlap. */
 export type ApmSnapshot = {
   __typename?: 'ApmSnapshot';
   enabled: Scalars['Boolean']['output'];
+  hooks: Array<HookPerformance>;
   maxSamples: Scalars['Int']['output'];
   oldestTimestampMs: Maybe<Scalars['Float']['output']>;
   retainedSamples: Scalars['Int']['output'];
@@ -432,6 +433,19 @@ export type HookRunsArgs = {
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type HookPerformance = {
+  __typename?: 'HookPerformance';
+  count: Scalars['Int']['output'];
+  errorRate: Scalars['Float']['output'];
+  failures: Scalars['Int']['output'];
+  hookId: Scalars['String']['output'];
+  maxMs: Scalars['Float']['output'];
+  meanMs: Scalars['Float']['output'];
+  p50Ms: Scalars['Float']['output'];
+  p95Ms: Scalars['Float']['output'];
+  p99Ms: Scalars['Float']['output'];
 };
 
 export type InterceptorOwnersSnapshot = {
@@ -1653,6 +1667,7 @@ export type ResolversTypes = ResolversObject<{
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GcStats: ResolverTypeWrapper<GcStats>;
   Hook: ResolverTypeWrapper<Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<ResolversTypes['BaseElement']>, emitsResolved: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, runs: Array<ResolversTypes['RunRecord']>, tags: Maybe<Array<ResolversTypes['Tag']>> }>;
+  HookPerformance: ResolverTypeWrapper<HookPerformance>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   InterceptorOwnersSnapshot: ResolverTypeWrapper<InterceptorOwnersSnapshot>;
@@ -1737,6 +1752,7 @@ export type ResolversParentTypes = ResolversObject<{
   Float: Scalars['Float']['output'];
   GcStats: GcStats;
   Hook: Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<ResolversParentTypes['BaseElement']>, emitsResolved: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['TaskMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['TaskMiddlewareUsage']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, runs: Array<ResolversParentTypes['RunRecord']>, tags: Maybe<Array<ResolversParentTypes['Tag']>> };
+  HookPerformance: HookPerformance;
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   InterceptorOwnersSnapshot: InterceptorOwnersSnapshot;
@@ -1809,6 +1825,7 @@ export type AllResolvers<ContextType = CustomGraphQLContext, ParentType extends 
 
 export type ApmSnapshotResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ApmSnapshot'] = ResolversParentTypes['ApmSnapshot']> = ResolversObject<{
   enabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  hooks: Resolver<Array<ResolversTypes['HookPerformance']>, ParentType, ContextType>;
   maxSamples: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   oldestTimestampMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   retainedSamples: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -1990,6 +2007,19 @@ export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type HookPerformanceResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['HookPerformance'] = ResolversParentTypes['HookPerformance']> = ResolversObject<{
+  count: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  errorRate: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  failures: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  hookId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  maxMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  meanMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  p50Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  p95Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  p99Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2564,6 +2594,7 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   EventLoopStats: EventLoopStatsResolvers<ContextType>;
   GcStats: GcStatsResolvers<ContextType>;
   Hook: HookResolvers<ContextType>;
+  HookPerformance: HookPerformanceResolvers<ContextType>;
   InterceptorOwnersSnapshot: InterceptorOwnersSnapshotResolvers<ContextType>;
   IsolationChannels: IsolationChannelsResolvers<ContextType>;
   IsolationExportsMode: IsolationExportsModeResolvers;

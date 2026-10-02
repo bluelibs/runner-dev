@@ -45,7 +45,6 @@ describe("Live correlation and chain tracking", () => {
       dependencies: { outer, logger: resources.logger },
       async run(_e, { outer, logger }) {
         await logger.info("chain-root");
-        // how to properly do correlation id with hooks?
         await outer();
       },
     });
@@ -102,7 +101,7 @@ describe("Live correlation and chain tracking", () => {
     expect(runsById[rootHookId].rootId).toBe("system.events.ready");
     expect(runsById[rootHookId].correlationId).toBe(corr);
 
-    expect(runsById[outerTaskId].parentId).toBe("system.events.ready");
+    expect(runsById[outerTaskId].parentId).toBe(rootHookId);
     expect(runsById[outerTaskId].rootId).toBe("system.events.ready");
     expect(runsById[outerTaskId].correlationId).toBe(corr);
 

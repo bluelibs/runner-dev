@@ -417,6 +417,6 @@ Or from the repo without a running server:
 runner-dev schema sdl --entry-file src/main.ts
 ```
 
-## Task performance
+## Task and hook performance
 
-`live.apm(windowMinutes: Int = 30, scope: ApmScope = all)` returns opt-in APM status, actual storage, retained sample cap/count, oldest completion, and per-task `count`, `failures`, `errorRate` (0–1), `meanMs`, `p50Ms`, `p95Ms`, `p99Ms`, `maxMs`. `ApmScope` is `all`, `direct`, `nested`. Windows must be 1–1440 minutes. Exact nearest-rank statistics include failed completions, exclude hooks/internal GraphQL tasks, and use inclusive durations. Samples are independently bounded; see README for storage and opt-in configuration.
+`live.apm(windowMinutes: Int = 30, scope: ApmScope = all)` returns opt-in APM status, actual storage, retained sample cap/count, oldest completion, and separate `tasks { taskId }` / `hooks { hookId }` lists with `count`, `failures`, `errorRate` (0–1), `meanMs`, `p50Ms`, `p95Ms`, `p99Ms`, `maxMs`. `ApmScope` is `all`, `direct`, `nested`. Windows must be 1–1440 minutes. Exact nearest-rank statistics include failed completions, exclude internal GraphQL tasks, and use inclusive durations. Hook durations include delegated tasks; their counts and latency distributions stay separate. Delegated tasks retain the hook as their trace parent. Task and hook samples share an APM cap independent of execution traces; see README for storage and opt-in configuration.

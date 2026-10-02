@@ -20,7 +20,7 @@ const sample = (
 });
 
 describe("task APM", () => {
-  it("is opt-in and excludes hooks", () => {
+  it("is opt-in and groups tasks and hooks separately", () => {
     const disabled = createApm(undefined);
     disabled.record(sample(10));
     expect(disabled.snapshot(30, "all", 100_000)).toMatchObject({
@@ -31,7 +31,11 @@ describe("task APM", () => {
     });
     const enabled = createApm({ storage: "memory" });
     enabled.record(sample(10, { nodeKind: "HOOK" }));
-    expect(enabled.snapshot().retainedSamples).toBe(0);
+    expect(enabled.snapshot(30, "all", 100_000)).toMatchObject({
+      retainedSamples: 1,
+      tasks: [],
+      hooks: [{ hookId: "app.task", count: 1, p95Ms: 10 }],
+    });
   });
 
   it("calculates nearest-rank tail latency and failure rate from all completed calls", () => {
@@ -88,17 +92,25 @@ describe("task APM", () => {
       const first = createApm(config);
       first.record(sample(10, { error: "sensitive", correlationId: "secret" }));
       first.record(sample(20));
-      first.record(sample(30, { ok: false, parentId: "parent" }));
+      first.record(
+        sample(30, {
+          nodeKind: "HOOK",
+          nodeId: "app.hook",
+          ok: false,
+          parentId: "parent",
+        })
+      );
       first.close();
       const second = createApm({ ...config, maxSamples: 2 });
       try {
         expect(second.snapshot(30, "all", 100_000)).toMatchObject({
           storage: "sqlite",
           retainedSamples: 2,
-          tasks: [{ count: 2, failures: 1, p95Ms: 30 }],
+          tasks: [{ count: 1, failures: 0, p95Ms: 20 }],
+          hooks: [{ hookId: "app.hook", count: 1, failures: 1, p95Ms: 30 }],
         });
         second.record(sample(40));
-        expect(second.snapshot(30, "all", 100_000).tasks[0].meanMs).toBe(35);
+        expect(second.snapshot(30, "all", 100_000).tasks[0].meanMs).toBe(40);
       } finally {
         second.close();
       }
@@ -110,11 +122,18 @@ describe("task APM", () => {
   it("exposes APM through GraphQL and rejects invalid windows", async () => {
     const apm = createApm({ storage: "memory" });
     apm.record(sample(42, { timestampMs: Date.now() }));
+    apm.record(
+      sample(65, {
+        nodeKind: "HOOK",
+        nodeId: "app.react",
+        timestampMs: Date.now(),
+      })
+    );
     const contextValue = { live: { getApm: apm.snapshot } };
     const result = await graphql({
       schema,
       source:
-        "{ live { apm(scope: direct, windowMinutes: 5) { enabled storage tasks { taskId p95Ms count } } } }",
+        "{ live { apm(scope: direct, windowMinutes: 5) { enabled storage tasks { taskId p95Ms count } hooks { hookId p99Ms count } } } }",
       contextValue,
     });
     expect(result.errors).toBeUndefined();
@@ -124,6 +143,7 @@ describe("task APM", () => {
           enabled: true,
           storage: "memory",
           tasks: [{ p95Ms: 42, count: 1 }],
+          hooks: [{ hookId: "app.react", p99Ms: 65, count: 1 }],
         },
       },
     });

@@ -10,6 +10,7 @@ import {
   apmPersistenceDefinition,
   validateApmPersistence,
 } from "./live/apmPersistence";
+import { resolveApmRetention } from "./live/apmRetention";
 import { createApm } from "./live/apm";
 import { getCorrelationId } from "./telemetry.chain";
 import type {
@@ -151,18 +152,7 @@ const liveService = defineResource({
     const apmOptions = typeof c.apm === "object" ? c.apm : undefined;
     if (apmOptions?.persistence) {
       validateApmPersistence(apmPersistence);
-      const cutoffTimestampMs = Math.max(
-        apmOptions.cutoffDate ? Date.parse(apmOptions.cutoffDate) : -Infinity,
-        apmOptions.retentionDays
-          ? Date.now() - apmOptions.retentionDays * 86_400_000
-          : -Infinity
-      );
-      restoredApm = await apmPersistence.load({
-        maxSamples: apmOptions.maxSamples ?? 10_000,
-        cutoffTimestampMs: Number.isFinite(cutoffTimestampMs)
-          ? cutoffTimestampMs
-          : undefined,
-      });
+      restoredApm = await apmPersistence.load(resolveApmRetention(c.apm));
     }
     const apm = createApm(
       c.apm,

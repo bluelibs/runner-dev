@@ -45,7 +45,7 @@ it("applies a cutoff date and sliding retention using the stricter boundary", ()
   expect(() => createApm({ retentionDays: 0 })).toThrow();
 });
 
-it("prunes expired SQLite samples before restoration and preserves sequence progress", () => {
+it("prunes expired SQLite samples before restoration and preserves sequence progress", async () => {
   const directory = mkdtempSync(join(tmpdir(), "apm-retention-"));
   const file = join(directory, "apm.sqlite");
   const now = Date.now();
@@ -53,7 +53,7 @@ it("prunes expired SQLite samples before restoration and preserves sequence prog
     const original = createApm({ sqliteFile: file });
     original.record(sample(now - 3 * 86_400_000));
     original.record(sample(now));
-    original.close();
+    await original.close();
     const restored = createApm({
       sqliteFile: file,
       cutoffDate: new Date(now - 86_400_000).toISOString(),
@@ -61,10 +61,10 @@ it("prunes expired SQLite samples before restoration and preserves sequence prog
     expect(restored.snapshot().retainedSamples).toBe(1);
     restored.record(sample(now + 1));
     expect(restored.snapshot(30, "all", now + 2).tasks[0].count).toBe(2);
-    restored.close();
+    await restored.close();
     const after = createApm({ sqliteFile: file });
     expect(after.snapshot().retainedSamples).toBe(2);
-    after.close();
+    await after.close();
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

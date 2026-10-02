@@ -1,7 +1,10 @@
 import z from "zod";
+import { compactApmSample } from "./apmSample";
+import { bufferedApmWriter } from "./bufferedApmWriter";
+import { clickHouseApmRetention } from "./clickHouseApmRetention";
+import { apmRetentionSchema } from "./apmRetention";
 import type { ApmPersistence } from "./apmPersistence";
 import { parsePersistedEntry } from "./persistence.schema";
-import type { RunRecord } from "./types";
 
 const identifier = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
 export const clickHouseApmConfigSchema = z
@@ -10,7 +13,6 @@ export const clickHouseApmConfigSchema = z
     database: identifier.optional(),
     table: identifier.optional(),
     streamId: z.string().min(1),
-    retentionDays: z.number().int().positive().max(3650).optional(),
     batchSize: z.number().int().positive().max(10_000).optional(),
     maxPendingSamples: z.number().int().positive().max(1_000_000).optional(),
     flushIntervalMs: z.number().int().positive().optional(),
@@ -22,7 +24,6 @@ export interface ClickHouseApmPersistenceOptions {
   streamId: string;
   database?: string;
   table?: string;
-  retentionDays?: number;
   batchSize?: number;
   maxPendingSamples?: number;
   flushIntervalMs?: number;
@@ -41,7 +42,6 @@ export async function clickHouseApmPersistence(
     ...parsed,
     database: parsed.database ?? "default",
     table: parsed.table ?? "runner_dev_apm",
-    retentionDays: parsed.retentionDays ?? 30,
     batchSize: parsed.batchSize ?? 1000,
     maxPendingSamples: parsed.maxPendingSamples ?? 10_000,
     flushIntervalMs: parsed.flushIntervalMs ?? 1000,
@@ -90,70 +90,59 @@ export async function clickHouseApmPersistence(
   }
   await request(`CREATE TABLE IF NOT EXISTS ${table} (
     streamId String, sequence UInt64, timestampMs Float64,
-    completedAt DateTime64(3, 'UTC'), record String
-  ) ENGINE = MergeTree ORDER BY (streamId, sequence)
-    TTL completedAt + INTERVAL ${config.retentionDays} DAY DELETE`);
-  const pending: RunRecord[] = [];
-  let inFlightCount = 0;
-  let failure: unknown;
-  let closed = false;
-  let flushing: Promise<void> | undefined;
-  function assertReady() {
-    if (failure) throw failure;
-    if (closed) throw new Error("ClickHouse APM store is closed.");
-  }
-  async function drain() {
-    while (pending.length) {
-      const batch = pending.splice(0, config.batchSize);
-      inFlightCount = batch.length;
-      try {
-        await request(
-          `INSERT INTO ${table} FORMAT JSONEachRow\n` +
-            batch
-              .map((sample) =>
-                JSON.stringify({
-                  streamId: config.streamId,
-                  sequence: sample.sequence,
-                  timestampMs: sample.timestampMs,
-                  completedAt: new Date(sample.timestampMs)
-                    .toISOString()
-                    .replace("T", " ")
-                    .replace("Z", ""),
-                  record: JSON.stringify(sample),
-                })
-              )
-              .join("\n")
-        );
-      } finally {
-        inFlightCount = 0;
-      }
-    }
-  }
-  function flush(): Promise<void> {
-    if (failure) return Promise.reject(failure);
-    if (flushing) return flushing;
-    flushing = drain()
-      .catch((cause) => {
-        failure =
-          cause instanceof Error
-            ? cause
-            : new Error("ClickHouse APM write failed.");
-        throw cause;
-      })
-      .finally(() => {
-        flushing = undefined;
-      });
-    return flushing;
-  }
-  // Observe background failures; append/load/flush surface the latched error to callers.
-  const timer = setInterval(() => {
-    if (pending.length) void flush().catch(() => {});
-  }, config.flushIntervalMs);
-  timer.unref();
+    completedAt DateTime64(3, 'UTC'), record String,
+    expiresAt DateTime64(3, 'UTC') DEFAULT completedAt + INTERVAL 30 DAY
+  ) ENGINE = MergeTree ORDER BY (streamId, sequence) TTL expiresAt DELETE`);
+  // Upgrade existing APM tables while preserving their archived samples.
+  await request(
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS expiresAt DateTime64(3, 'UTC') DEFAULT completedAt + INTERVAL 30 DAY`
+  );
+  await request(`ALTER TABLE ${table} MODIFY TTL expiresAt DELETE`);
+  const metadata = `\`${config.database}\`.\`${config.table}_sequences\``;
+  await request(
+    `CREATE TABLE IF NOT EXISTS ${metadata} (streamId String, sequence UInt64) ENGINE=ReplacingMergeTree(sequence) ORDER BY streamId`
+  );
+  const retention = clickHouseApmRetention(table, config.streamId, request);
+  retention.set({ maxSamples: 10_000 });
+  let maxStorage: number | undefined;
+  let enqueuedSequence = 0;
+  const writer = bufferedApmWriter(async (batch) => {
+    await request(
+      `INSERT INTO ${table} FORMAT JSONEachRow\n` +
+        batch
+          .map((sample) =>
+            JSON.stringify({
+              streamId: config.streamId,
+              sequence: sample.sequence,
+              timestampMs: sample.timestampMs,
+              completedAt: new Date(sample.timestampMs)
+                .toISOString()
+                .replace("T", " ")
+                .replace("Z", ""),
+              expiresAt: retention.expiresAt(sample.timestampMs),
+              record: JSON.stringify(sample),
+            })
+          )
+          .join("\n")
+    );
+    await request(
+      `INSERT INTO ${metadata} FORMAT JSONEachRow\n` +
+        JSON.stringify({
+          streamId: config.streamId,
+          sequence: batch[batch.length - 1].sequence,
+        })
+    );
+    await retention.trim();
+  }, config);
   return {
     storage: "clickhouse",
-    async load({ maxSamples, cutoffTimestampMs }) {
-      assertReady();
+    async load(options) {
+      writer.assertReady();
+      await writer.flush();
+      const { maxSamples, cutoffTimestampMs, retentionDays } =
+        apmRetentionSchema.parse(options);
+      maxStorage = options.maxStorage;
+      retention.set(options);
       z.number().int().positive().max(10_000_000).parse(maxSamples);
       if (cutoffTimestampMs !== undefined)
         z.number().finite().parse(cutoffTimestampMs);
@@ -163,7 +152,7 @@ export async function clickHouseApmPersistence(
         cutoff: String(
           Math.max(
             cutoffTimestampMs ?? -Infinity,
-            Date.now() - config.retentionDays * 86_400_000
+            retentionDays ? Date.now() - retentionDays * 86_400_000 : -1e300
           )
         ),
       };
@@ -191,7 +180,7 @@ export async function clickHouseApmPersistence(
             .reverse()
         : [];
       const highest = await request(
-        `SELECT max(sequence) AS lastSequence FROM ${table} WHERE streamId = {stream:String} FORMAT JSONEachRow`,
+        `SELECT max(sequence) AS lastSequence FROM (SELECT sequence FROM ${table} WHERE streamId={stream:String} UNION ALL SELECT sequence FROM ${metadata} WHERE streamId={stream:String}) FORMAT JSONEachRow`,
         { stream: config.streamId }
       );
       const lastSequence = z
@@ -203,6 +192,21 @@ export async function clickHouseApmPersistence(
             .max(Number.MAX_SAFE_INTEGER),
         })
         .parse(JSON.parse(highest)).lastSequence;
+      await request(
+        `INSERT INTO ${metadata} FORMAT JSONEachRow\n` +
+          JSON.stringify({ streamId: config.streamId, sequence: lastSequence })
+      );
+      await retention.trim();
+      if (options.maxStorage) {
+        let bytes = 0;
+        for (let index = samples.length - 1; index >= 0; index--) {
+          bytes += Buffer.byteLength(JSON.stringify(samples[index]));
+          if (bytes > options.maxStorage) {
+            samples.splice(0, index + 1);
+            break;
+          }
+        }
+      }
       let previous = 0;
       for (const sample of samples) {
         if (sample.sequence <= previous || sample.sequence > lastSequence)
@@ -211,40 +215,22 @@ export async function clickHouseApmPersistence(
           );
         previous = sample.sequence;
       }
+      enqueuedSequence = lastSequence;
       return { samples, lastSequence };
     },
     append(sample) {
-      assertReady();
-      if (pending.length + inFlightCount >= config.maxPendingSamples)
+      writer.assertReady();
+      const compact = compactApmSample(sample, maxStorage);
+      if (compact.sequence <= enqueuedSequence)
         throw new Error(
-          "ClickHouse APM queue is full; increase capacity or restore database availability."
+          "APM sequences must increase; use one stream per runtime."
         );
-      const parsed = parsePersistedEntry({ kind: "run", entry: sample });
-      if (parsed.kind !== "run" || parsed.entry.durationMs < 0)
-        throw new Error("Invalid APM sample.");
-      pending.push({
-        sequence: parsed.entry.sequence,
-        timestampMs: parsed.entry.timestampMs,
-        nodeId: parsed.entry.nodeId,
-        nodeKind: parsed.entry.nodeKind,
-        durationMs: parsed.entry.durationMs,
-        ok: parsed.entry.ok,
-        parentId: parsed.entry.parentId ? "nested" : null,
-      });
-      if (pending.length >= config.batchSize) void flush().catch(() => {});
+      writer.append(compact);
+      enqueuedSequence = compact.sequence;
       return undefined;
     },
-    status() {
-      return {
-        pendingSamples: pending.length + inFlightCount,
-        error: failure instanceof Error ? failure.message : null,
-      };
-    },
-    flush,
-    async close() {
-      clearInterval(timer);
-      closed = true;
-      await flush();
-    },
+    status: writer.status,
+    flush: writer.flush,
+    close: writer.close,
   };
 }

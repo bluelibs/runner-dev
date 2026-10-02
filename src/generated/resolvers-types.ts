@@ -64,9 +64,11 @@ export type ApmSnapshot = {
   enabled: Scalars['Boolean']['output'];
   hooks: Array<HookPerformance>;
   maxSamples: Scalars['Int']['output'];
+  maxStorage: Maybe<Scalars['Float']['output']>;
   oldestTimestampMs: Maybe<Scalars['Float']['output']>;
   pendingSamples: Maybe<Scalars['Int']['output']>;
   persistenceError: Maybe<Scalars['String']['output']>;
+  retainedBytes: Maybe<Scalars['Float']['output']>;
   retainedSamples: Scalars['Int']['output'];
   scope: ApmScope;
   storage: Scalars['String']['output'];
@@ -1837,9 +1839,11 @@ export type ApmSnapshotResolvers<ContextType = CustomGraphQLContext, ParentType 
   enabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hooks: Resolver<Array<ResolversTypes['HookPerformance']>, ParentType, ContextType>;
   maxSamples: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  maxStorage: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   oldestTimestampMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   pendingSamples: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   persistenceError: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  retainedBytes: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   retainedSamples: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   scope: Resolver<ResolversTypes['ApmScope'], ParentType, ContextType>;
   storage: Resolver<ResolversTypes['String'], ParentType, ContextType>;

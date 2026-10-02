@@ -9,12 +9,13 @@ import type { ApmPersistence } from "../../resources/live/apmPersistence";
 it("auto-registers an APM adapter and flushes it before provider disposal", async () => {
   const calls: string[] = [];
   const append = jest.fn(() => undefined);
+  const load = jest.fn(async () => ({ samples: [], lastSequence: 0 }));
   const provider = defineResource({
     id: "apm-provider",
     async init(): Promise<ApmPersistence> {
       return {
         storage: "custom",
-        load: async () => ({ samples: [], lastSequence: 0 }),
+        load,
         append,
         flush: async () => {
           calls.push("flush");
@@ -33,11 +34,21 @@ it("auto-registers an APM adapter and flushes it before provider disposal", asyn
   });
   const runtime = await run(
     createDummyApp([
-      live.with({ apm: { persistence: provider } }),
+      live.with({
+        apm: { persistence: provider, retentionDays: 7, maxStorage: "1mb" },
+      }),
       telemetry,
       task,
     ]),
     { logs: { printThreshold: null } }
+  );
+  expect(load).toHaveBeenCalledWith(
+    expect.objectContaining({
+      retentionDays: 7,
+      maxStorage: 1048576,
+      maxSamples: 10000000,
+      cutoffTimestampMs: expect.any(Number),
+    })
   );
   await runtime.runTask(task);
   expect(append).toHaveBeenCalledWith(

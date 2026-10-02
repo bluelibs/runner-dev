@@ -85,7 +85,7 @@ describe("task APM", () => {
     expect(() => apm.record(sample(-1))).toThrow("duration");
   });
 
-  it("restores SQLite samples, resumes sequences and lowers the cap across restarts", () => {
+  it("restores SQLite samples, resumes sequences and lowers the cap across restarts", async () => {
     const directory = mkdtempSync(join(tmpdir(), "apm-"));
     const config = { sqliteFile: join(directory, "apm.sqlite"), maxSamples: 3 };
     try {
@@ -100,7 +100,7 @@ describe("task APM", () => {
           parentId: "parent",
         })
       );
-      first.close();
+      await first.close();
       const second = createApm({ ...config, maxSamples: 2 });
       try {
         expect(second.snapshot(30, "all", 100_000)).toMatchObject({
@@ -112,7 +112,7 @@ describe("task APM", () => {
         second.record(sample(40));
         expect(second.snapshot(30, "all", 100_000).tasks[0].meanMs).toBe(40);
       } finally {
-        second.close();
+        await second.close();
       }
     } finally {
       rmSync(directory, { recursive: true, force: true });

@@ -734,8 +734,8 @@ const devTools = dev.with({
 
 SQLite is loaded lazily from Node's built-in `node:sqlite`. If the builtin is
 unavailable, collection falls back to memory and the UI reports the actual storage.
-Other database failures throw. SQLite samples restore on restart and are committed
-synchronously before publication; disposal closes the database. Gitignore the database
+Other database failures throw. SQLite samples restore on restart; buffered batches
+commit during collection and flush on graceful disposal. Gitignore the database
 directory. APM uses a separate bounded sample history from trace `maxEntries` and
 `persistence`; configuring live persistence alone does not enable APM. Only node ID and kind,
 completion timestamp, duration, success and direct/nested classification are stored;
@@ -762,59 +762,91 @@ query TaskPerformance {
 ```
 
 `scope` is `all` (default), `direct` or `nested`. `windowMinutes` defaults to 30
-and accepts integers from 1 through 1440. Event reactions are nested because
+and accepts integers from 1 through 525600. Event reactions are nested because
 the emitted event is their parent. APM is disabled by default.
 
-For larger histories, `maxSamples` supports up to 10,000,000 (default 10,000) and
-`windowMinutes` supports 1–525600 minutes. Increasing the sample cap increases memory
-and exact-percentile query work; it grows lazily. `retentionDays` and ISO `cutoffDate`
-are optional APM retention limits; the stricter boundary wins. SQLite expires old
-samples on restoration and snapshots. These limits are independent of live log retention.
+### APM persistence and retention
 
-### ClickHouse APM archive
-
-Use a Runner persistence resource for batched compact APM samples:
+Configure retention once under `apm`; the same policy applies to the dashboard and
+stored samples. Choose a sample count or a byte budget, and optionally an age limit:
 
 ```ts
 import { dev, resources } from "@bluelibs/runner-dev";
 
 const devTools = dev.with({
   apm: {
-    maxSamples: 100_000,
-    retentionDays: 7, // dashboard/restoration history
-    cutoffDate: "2026-01-01T00:00:00Z", // optional lower date boundary
+    retentionDays: 7,
+    maxStorage: "1mb",
+    // maxSamples: 100_000, // optional additional cap
     persistence: resources.clickHouseApmPersistence.with({
       url: "http://localhost:8123",
       streamId: "orders-worker", // stable, unique per runtime; never share concurrently
-      retentionDays: 30, // archive TTL; independent of the dashboard cap
     }),
   },
 });
 ```
 
-Set `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` in the environment; keep credentials out
-of URLs and resource config. Provision the database first (`database` defaults to
-`default`); `table` defaults to `runner_dev_apm`. The resource creates a MergeTree
-table if absent. TTL is set at creation; existing table TTL changes are operator-owned.
-ClickHouse removes expired rows during merges; restoration also filters expired
-rows immediately. The dashboard uses bounded local samples, while the archive can
-keep more samples for external analysis. The archive stores compact timings only;
-related error logs still use live telemetry retention.
+`maxStorage` accepts integer bytes or strings such as `"512kb"`, `"1mb"`, and
+`"1.5 MiB"` (binary units). The minimum is 512 KiB. It measures UTF-8 compact sample
+JSON, excluding database/index/file overhead, write queues and JavaScript object
+bookkeeping. It is a retained-data budget, not a hard process-memory or physical
+file-size limit. Oldest samples are evicted first. Without a byte budget,
+`maxSamples` defaults to 10,000; with one, the count has a 10,000,000 safety ceiling
+unless explicitly set lower. Both limits apply when supplied. Percentile query cost
+grows with retained history; buffers allocate lazily.
 
-Defaults: batches of 1000, 1-second flush interval, 10,000 queued/in-flight samples,
-10-second request timeout. Configure `batchSize`, `flushIntervalMs`, `maxPendingSamples`
-and `timeoutMs` on the adapter resource. Writes are acknowledged before leaving the
-queue; failed writes are latched and exposed by the Telemetry panel and subsequent
-append/flush calls. There are no automatic retries or silent drops. Queue overflow
-throws; abrupt termination can lose unflushed samples. Graceful Runner disposal
-flushes before the provider closes. Explicit provider failures never fall back to memory.
+`retentionDays` is a sliding age limit. ISO `cutoffDate` is an optional absolute
+lower boundary; the stricter date wins. In-memory queries immediately exclude expired
+samples; adapters trim on restoration and committed batches. SQLite is automatically
+available on supported Node versions, otherwise memory. SQLite APM writes use bounded
+batches and flush on graceful shutdown; existing APM files migrate automatically.
+Live logs/traces retain their separate synchronous persistence contract and caps.
 
-Custom resources return `ApmPersistence` (`storage`, async `load({ maxSamples,
-cutoffTimestampMs })`, synchronous enqueue-only `append(sample)`, async `flush()`,
-optional `status()`). `load` returns ascending unique `samples` and `lastSequence`;
-startup validates the snapshot. Config auto-registers and injects the provider,
-so Runner overrides, isolation and disposal apply. This asynchronous APM contract
-is additive; the synchronous `LivePersistence` contract for logs/traces is unchanged.
+ClickHouse uses Node's native HTTP client through `fetch`; choosing it requires no
+additional npm dependency. Set `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` in the
+environment, keeping credentials out of URLs/config. Provision the database first
+(`database` defaults to `default`; `table` to `runner_dev_apm`). The resource creates
+or upgrades the table with per-row expiration, so workers in the same table can use
+different age limits. Count/byte/date eviction is scoped to `streamId`; ClickHouse TTL
+also removes expired rows during merges. Mutations finish before flush acknowledges
+retention, while physical disk reclamation follows database housekeeping. Sequence
+metadata survives eviction. Existing rows keep their previous TTL until rewritten.
+
+For Redis, install the optional peer dependency `ioredis` and substitute:
+
+```ts
+persistence: resources.redisApmPersistence.with({
+  url: "redis://localhost:6379",
+  streamId: "orders-worker",
+})
+```
+
+Redis loads lazily only when selected. Credentials use `REDIS_USERNAME` /
+`REDIS_PASSWORD`. A Lua transaction atomically appends samples and applies age,
+count and byte eviction. Keys share a Redis Cluster hash tag; stream IDs isolate
+workers. Sample keys expire after the configured retention period when idle;
+sequence metadata remains. Redis server persistence (AOF/RDB) determines survival
+across Redis server restarts. Use one active runtime per stream or SQLite file.
+
+Defaults for buffered adapters: batches of 1000, 1-second flush interval, 10,000
+queued/in-flight samples and 10-second remote request timeout. Configure `batchSize`,
+`flushIntervalMs`, `maxPendingSamples` and `timeoutMs` on remote adapter resources.
+Writes are acknowledged after committing; failures are latched and exposed in the
+Telemetry panel and subsequent append/flush calls. There are no automatic retries
+or silent fallback. Overflow throws. Abrupt termination can lose unflushed samples;
+graceful Runner disposal drains them before closing. APM stores compact timings only;
+related error logs still depend on live telemetry retention.
+
+Custom resources return `ApmPersistence`: `storage`, async
+`load({ maxSamples, maxStorage, retentionDays, cutoffTimestampMs })`, synchronous
+enqueue-only `append(sample)`, async `flush()`, and optional `status()`. `maxStorage`
+is normalized to bytes before `load`; adapters must enforce the supplied policy.
+`load` returns ascending unique `samples` and highest committed `lastSequence`,
+including evicted samples. Startup validates the snapshot. Config auto-registers
+and injects the provider, so Runner overrides, isolation and disposal apply.
+
+See [the performance measurements](readmes/TELEMETRY_PERFORMANCE.md) for overhead,
+methodology and a repeatable comparison script.
 
 ### Persistence across restarts
 

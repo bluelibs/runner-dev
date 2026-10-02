@@ -56,6 +56,8 @@ export const ApmType = new GraphQLObjectType<ApmSnapshot, CustomGraphQLContext>(
       enabled: { type: new GraphQLNonNull(GraphQLBoolean) },
       storage: { type: new GraphQLNonNull(GraphQLString) },
       maxSamples: { type: new GraphQLNonNull(GraphQLInt) },
+      maxStorage: { type: GraphQLFloat },
+      retainedBytes: { type: GraphQLFloat },
       retainedSamples: { type: new GraphQLNonNull(GraphQLInt) },
       windowMinutes: { type: new GraphQLNonNull(GraphQLInt) },
       scope: { type: new GraphQLNonNull(ApmScopeType) },

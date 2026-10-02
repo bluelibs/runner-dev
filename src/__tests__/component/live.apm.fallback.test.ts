@@ -1,10 +1,10 @@
 import { createApm } from "../../resources/live/apm";
-import { sqlitePersistence } from "../../resources/live/sqlitePersistence";
+import { sqliteApmPersistence } from "../../resources/live/sqliteApmPersistence";
 
-jest.mock("../../resources/live/sqlitePersistence", () => ({
-  sqlitePersistence: jest.fn(),
+jest.mock("../../resources/live/sqliteApmPersistence", () => ({
+  sqliteApmPersistence: jest.fn(),
 }));
-const sqlite = jest.mocked(sqlitePersistence);
+const sqlite = jest.mocked(sqliteApmPersistence);
 
 afterEach(() => jest.resetAllMocks());
 
@@ -27,14 +27,16 @@ test("does not silently discard database open failures", () => {
 });
 
 test("closes a database whose restoration failed", () => {
-  const close = jest.fn();
+  const close = jest.fn(async () => undefined);
   sqlite.mockReturnValue({
     load: () => {
       throw new Error("corrupt data");
     },
     append: () => undefined,
     close,
-    pruneRunsBefore: () => undefined,
+    storage: "sqlite",
+    flush: async () => undefined,
+    status: () => ({ pendingSamples: 0, error: null }),
   });
   expect(() => createApm(true)).toThrow("corrupt data");
   expect(close).toHaveBeenCalledTimes(1);

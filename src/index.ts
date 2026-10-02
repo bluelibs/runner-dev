@@ -1,3 +1,4 @@
+import { redisApmPersistenceResource } from "./resources/live/redisApmPersistence.resource";
 import { clickHouseApmPersistenceResource } from "./resources/live/clickHouseApmPersistence.resource";
 import { serverResource } from "./resources/server.resource";
 import { introspector } from "./resources/introspector.resource";
@@ -72,6 +73,7 @@ export const resources = {
   coverage,
   sqlitePersistence: sqlitePersistenceResource,
   clickHouseApmPersistence: clickHouseApmPersistenceResource,
+  redisApmPersistence: redisApmPersistenceResource,
 };
 
 export { dev };
@@ -117,3 +119,12 @@ export type {
   ApmPersistenceResourceDefinition,
   ApmRetention,
 } from "./resources/live/apmPersistence";
+
+export { redisApmPersistenceResource };
+export { redisApmPersistence } from "./resources/live/redisApmPersistence";
+export type {
+  RedisApmPersistence,
+  RedisApmPersistenceOptions,
+} from "./resources/live/redisApmPersistence";
+export { parseStorageSize } from "./resources/live/storageSize";
+export type { StorageSize } from "./resources/live/storageSize";

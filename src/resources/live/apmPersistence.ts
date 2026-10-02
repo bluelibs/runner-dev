@@ -9,6 +9,8 @@ import type { RunRecord } from "./types";
 
 export interface ApmRetention {
   maxSamples: number;
+  maxStorage?: number;
+  retentionDays?: number;
   cutoffTimestampMs?: number;
 }
 /** Async initialization and flush; append only enqueues, keeping instrumentation synchronous. */

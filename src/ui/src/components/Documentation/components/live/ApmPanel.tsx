@@ -20,7 +20,7 @@ type PerformanceSnapshot = Omit<ApmSnapshot, "tasks" | "hooks"> & {
 
 const QUERY = `query TaskPerformance($window: Int!, $scope: ApmScope!) {
   live { apm(windowMinutes: $window, scope: $scope) {
-    enabled storage maxSamples retainedSamples windowMinutes scope oldestTimestampMs cutoffTimestampMs pendingSamples persistenceError
+    enabled storage maxSamples maxStorage retainedBytes retainedSamples windowMinutes scope oldestTimestampMs cutoffTimestampMs pendingSamples persistenceError
     tasks { nodeId: taskId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
     hooks { nodeId: hookId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
   } }
@@ -121,7 +121,7 @@ export function ApmPanel({
           <i />
           {snapshot.storage === "sqlite"
             ? "SQLite · persisted"
-            : snapshot.storage === "clickhouse"
+            : ["sqlite", "clickhouse", "redis"].includes(snapshot.storage)
             ? "ClickHouse · archive"
             : snapshot.storage === "memory"
             ? "Memory · this session"
@@ -241,8 +241,13 @@ export function ApmPanel({
       <footer>
         <span>Inclusive duration · includes delegated work · {kind} only</span>
         <span>
-          {snapshot.retainedSamples.toLocaleString()} /{" "}
-          {snapshot.maxSamples.toLocaleString()} samples retained
+          {snapshot.maxStorage
+            ? `${((snapshot.retainedBytes ?? 0) / 1024).toFixed(0)} / ${(
+                snapshot.maxStorage / 1024
+              ).toFixed(
+                0
+              )} KB · ${snapshot.retainedSamples.toLocaleString()} samples`
+            : `${snapshot.retainedSamples.toLocaleString()} / ${snapshot.maxSamples.toLocaleString()} samples retained`}
         </span>
       </footer>
       <p className="apm-method">
@@ -254,11 +259,10 @@ export function ApmPanel({
             snapshot.oldestTimestampMs
           ).toLocaleString()}.`}
       </p>
-      {snapshot.storage === "clickhouse" && (
+      {["sqlite", "clickhouse", "redis"].includes(snapshot.storage) && (
         <p className="apm-empty">
-          Dashboard uses the retained sample cap; the ClickHouse archive has
-          separate TTL retention. {snapshot.pendingSamples ?? 0} samples
-          awaiting confirmation.
+          Retention limits apply to the dashboard and stored sample data.{" "}
+          {snapshot.pendingSamples ?? 0} samples awaiting confirmation.
         </p>
       )}
       {failureSelection && (

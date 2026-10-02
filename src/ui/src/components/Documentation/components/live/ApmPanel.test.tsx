@@ -123,3 +123,19 @@ it("opens failure details for the selected execution kind", async () => {
   );
   expect(screen.getByText("Failures for TASK:app.checkout")).toBeTruthy();
 });
+
+it("shows the byte budget without exposing the large sample safety ceiling", async () => {
+  request.mockResolvedValue({
+    live: {
+      apm: {
+        ...snapshot,
+        maxStorage: 1048576,
+        retainedBytes: 524288,
+        maxSamples: 10000000,
+      },
+    },
+  });
+  renderPanel();
+  expect(await screen.findByText("512 / 1024 KB · 5 samples")).toBeTruthy();
+  expect(screen.queryByText(/10,000,000 samples retained/)).toBeNull();
+});

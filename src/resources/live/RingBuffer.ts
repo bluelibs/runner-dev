@@ -11,6 +11,7 @@ export class RingBuffer<T> {
   // so reads never have to deal with holes.
   private readonly slots: T[] = [];
   private head = 0;
+  private count = 0;
 
   constructor(readonly capacity: number) {
     if (!Number.isInteger(capacity) || capacity < 0) {
@@ -21,18 +22,28 @@ export class RingBuffer<T> {
   }
 
   get size(): number {
-    return this.slots.length;
+    return this.count;
   }
 
   /** Appends an item, evicting the oldest one when the buffer is full. */
   push(item: T): void {
     if (this.capacity === 0) return;
-    if (this.slots.length < this.capacity) {
-      this.slots.push(item);
+    if (this.count === this.capacity) {
+      this.slots[this.head] = item;
+      this.head = (this.head + 1) % this.capacity;
       return;
     }
-    this.slots[this.head] = item;
+    this.slots[(this.head + this.count) % this.capacity] = item;
+    this.count++;
+  }
+  /** Releases the oldest slot in O(1), including its payload reference. */
+  shift(): T | undefined {
+    if (!this.count) return undefined;
+    const value = this.slots[this.head];
+    delete this.slots[this.head];
     this.head = (this.head + 1) % this.capacity;
+    this.count--;
+    return value;
   }
 
   /** Returns the item at a logical index (0 = oldest). */
@@ -42,7 +53,7 @@ export class RingBuffer<T> {
         `RingBuffer index ${index} is out of range (size ${this.size})`
       );
     }
-    return this.slots[(this.head + index) % this.size];
+    return this.slots[(this.head + index) % this.capacity];
   }
 
   /**

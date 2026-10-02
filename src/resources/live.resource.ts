@@ -6,6 +6,12 @@ import {
   type Store,
   type TaskMiddlewareStoreElementType,
 } from "@bluelibs/runner";
+import {
+  apmPersistenceDefinition,
+  validateApmPersistence,
+} from "./live/apmPersistence";
+import { resolveApmRetention } from "./live/apmRetention";
+import { createApm } from "./live/apm";
 import { getCorrelationId } from "./telemetry.chain";
 import type {
   LiveConfig,
@@ -97,8 +103,9 @@ function describeRunError(error: unknown): string | null {
 
 function createPersistenceContext(): {
   closed: boolean;
+  apm: ReturnType<typeof createApm> | undefined;
 } {
-  return { closed: false };
+  return { closed: false, apm: undefined };
 }
 
 const liveService = defineResource({
@@ -109,16 +116,28 @@ const liveService = defineResource({
     description:
       "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
   },
-  register: (config: LiveConfig) =>
-    isPersistenceResource(config.persistence) ? [config.persistence] : [],
+  register: (config: LiveConfig) => [
+    ...(isPersistenceResource(config.persistence) ? [config.persistence] : []),
+    ...(typeof config.apm === "object" && config.apm.persistence
+      ? [config.apm.persistence]
+      : []),
+  ],
   dependencies: (config: LiveConfig) => {
     const provider = persistenceResourceDefinition(config.persistence);
+    const apmProvider = apmPersistenceDefinition(
+      typeof config.apm === "object" ? config.apm.persistence : undefined
+    );
     return {
       store: resources.store,
       ...(provider ? { persistence: provider } : {}),
+      ...(apmProvider ? { apmPersistence: apmProvider } : {}),
     };
   },
-  async init(c: LiveConfig, { store, persistence }, context): Promise<Live> {
+  async init(
+    c: LiveConfig,
+    { store, persistence, apmPersistence },
+    context
+  ): Promise<Live> {
     const maxEntries = c.maxEntries ?? DEFAULT_MAX_ENTRIES;
     const buffers = createEntryBuffers(maxEntries);
     const { logs, emissions, errors, runs } = buffers;
@@ -129,6 +148,18 @@ const liveService = defineResource({
       persistenceStore = restored.persistence;
       lastSequence = restored.lastSequence;
     }
+    let restoredApm;
+    const apmOptions = typeof c.apm === "object" ? c.apm : undefined;
+    if (apmOptions?.persistence) {
+      validateApmPersistence(apmPersistence);
+      restoredApm = await apmPersistence.load(resolveApmRetention(c.apm));
+    }
+    const apm = createApm(
+      c.apm,
+      apmOptions?.persistence ? apmPersistence : undefined,
+      restoredApm
+    );
+    context.apm = apm;
     // Seed above persisted entries even after a backwards clock adjustment.
     const nextSequence = createSequenceClock(lastSequence);
 
@@ -161,6 +192,7 @@ const liveService = defineResource({
         parsePersistedEntry(record);
         commitPersistence(persistenceStore, record, maxEntries);
       }
+      if (record.kind === "run") apm.record(record.entry);
       buffers.append(record);
       notifyRecordListeners(record.kind);
     };
@@ -171,6 +203,7 @@ const liveService = defineResource({
     };
 
     return {
+      getApm: (windowMinutes, scope) => apm.snapshot(windowMinutes, scope),
       recordLog(level, message, data, correlationId, sourceId) {
         append({
           kind: "log",
@@ -253,6 +286,7 @@ const liveService = defineResource({
   },
   async dispose(_instance, _config, _deps, context) {
     context.closed = true;
+    await context.apm?.close();
   },
 });
 
@@ -270,6 +304,7 @@ export const live = defineResource({
   },
   register: (config: LiveConfig) => [
     liveService.with({
+      apm: config?.apm,
       maxEntries: config?.maxEntries,
       persistence: config?.persistence,
     }),

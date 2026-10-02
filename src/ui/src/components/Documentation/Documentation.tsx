@@ -41,7 +41,9 @@ export type Section =
   | "asyncContexts"
   | "tags"
   | "diagnostics"
-  | "live";
+  | "live"
+  | "telemetry"
+  | "logs";
 
 export interface DocumentationProps {
   introspector: Introspector;

@@ -1,0 +1,4192 @@
+{
+  "measuredAt": "2026-10-02T21:39:08.240Z",
+  "platform": "darwin",
+  "arch": "arm64",
+  "results": [
+    {
+      "version": "baseline",
+      "repetition": 0,
+      "mode": "runner",
+      "node": "v25.7.0",
+      "startupMs": 23.732124999999996,
+      "shutdownMs": 3.631667000000107,
+      "heapUsed": 36075960,
+      "rss": 137461760,
+      "snapshotMs": 0,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 4.956124999999929
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 6.5132919999999785
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 4.520417000000066
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 3.3171250000000327
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 2.2598330000000715
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 2.152917000000002
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 52.10091699999998
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 6.919208000000026
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 7.44724999999994
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 22.7690419999999
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 8.363125000000082
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 18.167333000000102
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 5.081707999999935
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 4.284209000000146
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1739.4708333333347
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1935.9669466666676
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1628.2316666666657
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 0,
+      "mode": "live",
+      "node": "v25.7.0",
+      "startupMs": 91.46908299999996,
+      "shutdownMs": 2.3275000000003274,
+      "heapUsed": 68210328,
+      "rss": 190382080,
+      "snapshotMs": 0.005083000000013271,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 93.43029200000002
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 7.530041999999867
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 6.477041999999983
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 4.461000000000013
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 8.181458999999904
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 9.852167000000009
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 4.938333000000057
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 19.752791999999772
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 20.910209000000123
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 8.689250000000357
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 12.52212499999996
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 9.118583999999828
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 20.710957999999664
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 9.486499999999978
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 2432.018613333333
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2282.1499999999983
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1684.1194400000008
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 0,
+      "mode": "dev",
+      "node": "v25.7.0",
+      "startupMs": 103.046292,
+      "shutdownMs": 3.98379100000011,
+      "heapUsed": 61738192,
+      "rss": 204800000,
+      "snapshotMs": 0.005707999999913227,
+      "httpSnapshotMs": 49.03154100000006,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 4.9784590000000435
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 5.155166000000008
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 7.1289580000000115
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 11.884250000000065
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 12.653125000000045
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 4.688291999999933
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 7.469832999999994
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 11.72791700000005
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 27.36316599999998
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 20.73537499999998
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 9.00004100000001
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 20.32820900000002
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 18.395208000000025
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 10.568540999999984
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1605.9480533333333
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1457.331113333333
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1701.6897199999994
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 0,
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 87.23870799999997,
+      "shutdownMs": 7.692417000000205,
+      "heapUsed": 77549464,
+      "rss": 211550208,
+      "snapshotMs": 4.653874999999971,
+      "httpSnapshotMs": 51.93600000000015,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 15.114584000000034
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 11.412207999999964
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 21.781708999999978
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 18.892291
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 22.94791699999996
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 21.223959000000036
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 4.914124999999899
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 10.967457999999967
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 14.288791999999942
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 9.226084000000013
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 17.356125000000024
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 130.69908299999997
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 67.83383299999991
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 40.23579100000006
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 3348.2169400000007
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2433.5877733333336
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1830.1486066666664
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 0,
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 165.28170800000004,
+      "shutdownMs": 30.33283300000039,
+      "heapUsed": 67504952,
+      "rss": 199213056,
+      "snapshotMs": 5.246125000005122,
+      "httpSnapshotMs": 80.468667000001,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 1644.1743750000005
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 1817.0369170000013
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 1647.8868750000001
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 2048.592749999998
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 2164.787500000002
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 1632.3400000000001
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 2202.201500000003
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 2445.886624999999
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 2746.939624999999
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 3629.0730419999963
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 2328.9316670000044
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 1347.9443329999995
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 1791.6984159999993
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 1465.2831670000012
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 2508.252499999993
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2602.1661066666516
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 3469.086106666655
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 0,
+      "mode": "runner",
+      "node": "v25.7.0",
+      "startupMs": 38.54845799999998,
+      "shutdownMs": 6.404125000000022,
+      "heapUsed": 41647200,
+      "rss": 144097280,
+      "snapshotMs": 0,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 2.9447079999999914
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 2.3614580000000274
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 1.979250000000036
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 4.9128749999999854
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 2.90220800000003
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 1.9964579999999614
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 3.590750000000014
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 5.509916999999973
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 4.687667000000033
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 3.592624999999998
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 4.410750000000007
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 5.686707999999953
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 4.8848330000000715
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 3.741540999999984
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1746.3391666666666
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1918.9527733333332
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1695.052220000001
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 0,
+      "mode": "live",
+      "node": "v25.7.0",
+      "startupMs": 44.864915999999994,
+      "shutdownMs": 1.6514999999999418,
+      "heapUsed": 70286240,
+      "rss": 192610304,
+      "snapshotMs": 0.007250000000112777,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 9.501915999999937
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 14.633333999999877
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 10.528250000000071
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 63.813917000000174
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 20.054875000000035
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 14.298999999999978
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 61.1082080000001
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 13.538958999999977
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 78.50424999999996
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 10.716832999999951
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 36.47550000000002
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 31.587624999999893
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 6.783666999999923
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 53.375708000000024
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 2511.02222
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1538.5275000000001
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1920.1611133333333
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 0,
+      "mode": "dev",
+      "node": "v25.7.0",
+      "startupMs": 264.81337500000006,
+      "shutdownMs": 8.423917000000074,
+      "heapUsed": 61975824,
+      "rss": 207781888,
+      "snapshotMs": 0.005916999999953987,
+      "httpSnapshotMs": 57.74704100000008,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 8.377958000000035
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 9.293499999999995
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 5.272291999999879
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 8.551291999999876
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 9.827457999999979
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 12.437624999999798
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 12.659000000000106
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 8.590832999999975
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 39.82562500000017
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 65.0915
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 13.99608400000011
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 16.188083000000006
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 15.462207999999919
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 7.565959000000021
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1956.0230533333333
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 3083.272499999998
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1765.9708333333342
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 0,
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 85.59633400000001,
+      "shutdownMs": 7.725083999999924,
+      "heapUsed": 75516024,
+      "rss": 210386944,
+      "snapshotMs": 4.752207999999882,
+      "httpSnapshotMs": 74.30070799999999,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 6.399000000000001
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 5.271832999999959
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 7.256792000000019
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 7.127083000000028
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 6.592083000000002
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 12.126541000000032
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 4.422415999999998
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 30.23620900000003
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 12.314208000000008
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 8.688166999999906
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 14.201124999999935
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 15.476374999999962
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 11.005042000000003
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 9.569459000000052
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1531.7230533333334
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1399.4408333333324
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1818.328053333333
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 0,
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 201.37079200000005,
+      "shutdownMs": 7.8333339999999225,
+      "heapUsed": 73133064,
+      "rss": 221790208,
+      "snapshotMs": 4.5025839999998425,
+      "httpSnapshotMs": 46.4114169999998,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 12.396250000000009
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 12.820666999999958
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 27.480790999999954
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 21.606416999999965
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 16.911375000000135
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 15.698750000000018
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 12.920624999999973
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 19.815583999999944
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 25.214291000000006
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 26.620542000000114
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 22.437583000000128
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 28.755709000000024
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 21.394332999999964
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 20.952707999999802
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1620.028333333333
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1400.4216666666662
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1338.9577733333347
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 1,
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 104.99674999999996,
+      "shutdownMs": 10.308207999999922,
+      "heapUsed": 50752704,
+      "rss": 214663168,
+      "snapshotMs": 2.996167000000014,
+      "httpSnapshotMs": 43.06379100000004,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 13.713708999999996
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 21.199707999999987
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 12.229666000000067
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 19.597583999999983
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 10.972208000000025
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 12.11583399999995
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 10.59004200000004
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 20.530167000000006
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 20.40208300000006
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 18.919874999999934
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 29.87008400000002
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 33.59812499999999
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 27.96908400000007
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 63.88154200000008
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1915.8733333333337
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1440.0861133333335
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1750.49194
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 1,
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 86.630042,
+      "shutdownMs": 2.619583000000148,
+      "heapUsed": 77337392,
+      "rss": 212369408,
+      "snapshotMs": 3.4182080000000497,
+      "httpSnapshotMs": 54.45387500000015,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 9.227499999999964
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 6.399959000000081
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 9.123458000000028
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 8.41974999999991
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 8.855832999999963
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 13.442999999999984
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 8.089375000000018
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 13.20054199999993
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 14.309249999999905
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 10.116708000000017
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 15.38066600000002
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 12.797292000000086
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 8.794750000000022
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 17.77191700000003
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1378.2994466666667
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1644.9163866666656
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1331.0555599999998
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 1,
+      "mode": "dev",
+      "node": "v25.7.0",
+      "startupMs": 70.67799999999997,
+      "shutdownMs": 6.1498750000000655,
+      "heapUsed": 41884760,
+      "rss": 202014720,
+      "snapshotMs": 0.005415999999968335,
+      "httpSnapshotMs": 43.68837499999995,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 4.786791999999991
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 4.5440830000000005
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 4.374207999999953
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 5.540832999999965
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 6.831958000000042
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 4.796375000000012
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 8.191540999999972
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 7.507458999999982
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 8.860083999999972
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 9.269042000000011
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 7.4777919999999645
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 11.551291999999991
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 10.293499999999995
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 7.042999999999949
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1402.639166666667
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2062.3644466666665
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1350.795553333334
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 1,
+      "mode": "live",
+      "node": "v25.7.0",
+      "startupMs": 18.61454200000003,
+      "shutdownMs": 4.592292000000043,
+      "heapUsed": 60225128,
+      "rss": 193789952,
+      "snapshotMs": 0.005582999999887761,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 5.228084000000025
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 4.752583999999956
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 5.588041999999973
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 7.244832999999971
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 3.9088330000000155
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 6.5321669999999585
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 6.4839170000000195
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 8.478165999999986
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 7.110749999999997
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 8.50449999999995
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 9.439542000000074
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 7.98275000000001
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 8.648667000000044
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 9.766875000000027
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1317.1097266666666
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1181.5711066666668
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1672.8352733333336
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 1,
+      "mode": "runner",
+      "node": "v25.7.0",
+      "startupMs": 13.077375000000018,
+      "shutdownMs": 2.2034159999998337,
+      "heapUsed": 31944704,
+      "rss": 142344192,
+      "snapshotMs": 0,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 2.308208000000036
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 2.144834000000003
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 2.81737499999997
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 2.3214159999999993
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 2.030749999999955
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 2.664958000000013
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 2.1447090000000344
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 3.979332999999997
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 5.151124999999979
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 3.454334000000017
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 4.274042000000009
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 3.665791000000013
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 4.208708999999943
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 3.783125000000041
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1515.2963866666664
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2032.6719400000002
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1710.3622200000002
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 1,
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 69.11325,
+      "shutdownMs": 6.73741699999664,
+      "heapUsed": 67176632,
+      "rss": 215302144,
+      "snapshotMs": 3.8231250000026193,
+      "httpSnapshotMs": 52.90966599999956,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 1124.4380419999998
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 725.6861659999995
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 542.5176670000002
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 769.3361670000004
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 888.5297079999991
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 774.9660829999995
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 1225.5660829999997
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 1641.867166
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 1762.4680410000003
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 1109.5875410000006
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 3190.8014170000024
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 2980.649874999999
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 1709.1838329999991
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 4033.5957499999968
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 6581.413613333328
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 4683.519166666665
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 3004.7216666666404
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 1,
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 87.91158299999995,
+      "shutdownMs": 6.905709000000115,
+      "heapUsed": 74290784,
+      "rss": 211402752,
+      "snapshotMs": 8.571541000000025,
+      "httpSnapshotMs": 76.16837499999997,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 5.911166999999978
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 4.244167000000061
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 6.707207999999923
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 6.485082999999918
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 7.266291000000024
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 7.463582999999971
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 9.950375000000006
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 9.669792000000031
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 9.798958999999968
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 7.642959000000019
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 9.429041999999981
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 9.185124999999971
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 9.737917000000152
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 8.139292000000069
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1332.505833333333
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1307.2302799999989
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 2374.7255533333328
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 1,
+      "mode": "dev",
+      "node": "v25.7.0",
+      "startupMs": 115.42599999999999,
+      "shutdownMs": 5.902584000000161,
+      "heapUsed": 61758280,
+      "rss": 206258176,
+      "snapshotMs": 0.004999999999881766,
+      "httpSnapshotMs": 55.534875000000056,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 6.521041000000082
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 4.867208000000005
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 5.459790999999996
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 5.656207999999992
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 8.841499999999996
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 5.059542000000079
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 8.103624999999965
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 9.259874999999965
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 9.981207999999924
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 10.203250000000025
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 7.551917000000003
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 10.436624999999934
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 12.644709000000036
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 7.251791000000026
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1249.2580599999997
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1283.2027799999998
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1433.2825000000003
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 1,
+      "mode": "live",
+      "node": "v25.7.0",
+      "startupMs": 35.49045799999999,
+      "shutdownMs": 4.109833999999864,
+      "heapUsed": 52372568,
+      "rss": 196952064,
+      "snapshotMs": 0.00891700000011042,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 20.764083000000028
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 8.188249999999925
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 22.876750000000015
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 18.874333000000092
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 10.989042000000042
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 17.79808300000002
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 5.352333999999928
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 10.877166999999988
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 10.073792000000028
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 8.33066599999995
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 10.32466599999998
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 8.901792000000002
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 16.936375
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 8.964707999999973
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 2144.1088933333335
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1921.9449999999993
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1941.3941666666658
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 1,
+      "mode": "runner",
+      "node": "v25.7.0",
+      "startupMs": 22.142957999999965,
+      "shutdownMs": 3.425666999999976,
+      "heapUsed": 39771776,
+      "rss": 139558912,
+      "snapshotMs": 0,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 4.854750000000081
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 4.784209000000033
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 10.72170900000003
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 2.9847919999999704
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 2.6883339999999407
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 2.61683400000004
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 4.219167000000084
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 8.329666999999972
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 5.679875000000038
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 10.653833000000077
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 5.121792000000028
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 5.073790999999915
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 3.4992919999999685
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 9.018208999999954
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 2346.6038866666663
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1879.2422199999994
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1889.1736066666665
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 2,
+      "mode": "runner",
+      "node": "v25.7.0",
+      "startupMs": 15.070832999999993,
+      "shutdownMs": 1.7212500000000546,
+      "heapUsed": 31250944,
+      "rss": 138854400,
+      "snapshotMs": 0,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 2.359625000000051
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 3.151124999999979
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 2.505457999999976
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 2.1803330000000187
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 3.4510830000000396
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 2.219167000000084
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 2.307749999999942
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 6.099042000000054
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 24.964707999999973
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 13.820500000000038
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 16.632458000000042
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 11.53220799999997
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 7.6670409999999265
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 6.587499999999977
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1822.2597200000002
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1964.6000000000004
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1917.8788866666657
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 2,
+      "mode": "live",
+      "node": "v25.7.0",
+      "startupMs": 28.100416999999993,
+      "shutdownMs": 5.399666000000025,
+      "heapUsed": 33933144,
+      "rss": 194871296,
+      "snapshotMs": 0.015041999999994005,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 7.789874999999938
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 6.092958999999951
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 5.363500000000045
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 5.077166000000034
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 8.114958000000001
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 7.17941600000006
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 5.224459000000024
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 11.603166999999985
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 8.608291999999892
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 7.700458000000026
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 12.318083999999999
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 9.716583000000128
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 12.633583999999928
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 14.342750000000024
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1605.2530533333343
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1693.9574999999998
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1728.2094466666663
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 2,
+      "mode": "dev",
+      "node": "v25.7.0",
+      "startupMs": 81.05512499999998,
+      "shutdownMs": 4.425000000000182,
+      "heapUsed": 60273592,
+      "rss": 205520896,
+      "snapshotMs": 0.01762500000018008,
+      "httpSnapshotMs": 232.50208300000008,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 9.031541999999945
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 13.273249999999962
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 4.116624999999999
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 6.16537500000004
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 25.991542000000095
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 8.097458999999958
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 33.22504199999992
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 7.553583000000003
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 9.036207999999988
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 29.932874999999967
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 29.33333300000004
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 43.774249999999945
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 23.013290999999985
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 41.19633399999998
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 2271.7794399999993
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2433.6997199999996
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 2022.5102799999997
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 2,
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 300.141833,
+      "shutdownMs": 3.487916000000041,
+      "heapUsed": 77410008,
+      "rss": 213237760,
+      "snapshotMs": 6.185457999999926,
+      "httpSnapshotMs": 40.52766699999984,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 13.226666000000023
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 8.635250000000042
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 13.781332999999904
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 15.769000000000005
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 11.396208999999999
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 9.60545900000011
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 4.218166999999994
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 12.932667000000038
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 12.840041000000156
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 8.917666999999938
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 15.115125000000035
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 12.754958999999872
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 8.639749999999822
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 11.012042000000065
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1869.568606666667
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1674.4491666666668
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1825.8733333333353
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "repetition": 2,
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 64.36866599999999,
+      "shutdownMs": 8.067333000006329,
+      "heapUsed": 43766408,
+      "rss": 211124224,
+      "snapshotMs": 2.73583299999882,
+      "httpSnapshotMs": 47.16295900000114,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 1356.1912919999995
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 758.350375
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 794.6995829999996
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 489.4174170000006
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 1557.3269580000015
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 937.6454169999996
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 994.8819160000003
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 1246.0462499999996
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 2102.59275
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 2347.895375
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 1528.393666
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 1267.1641249999993
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 4529.431499999999
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 6767.661708
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 7937.156666666658
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 6152.619446666649
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 2251.063060000015
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 2,
+      "mode": "runner",
+      "node": "v25.7.0",
+      "startupMs": 12.984834000000035,
+      "shutdownMs": 1.4712079999999332,
+      "heapUsed": 41642216,
+      "rss": 139673600,
+      "snapshotMs": 0,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 1.9840000000000373
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 2.0632080000000315
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 2.2766659999999774
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 2.400082999999995
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 1.9778749999999832
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 2.1154579999999896
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 2.3313340000000267
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 3.996208000000024
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 3.3131250000000136
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 3.993666000000019
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 3.6173329999999737
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 3.941750000000013
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 3.4681249999999864
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 3.524208999999985
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1337.40722
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1316.8994466666672
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1179.9549999999992
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 2,
+      "mode": "live",
+      "node": "v25.7.0",
+      "startupMs": 14.097082999999998,
+      "shutdownMs": 3.031833000000006,
+      "heapUsed": 61578840,
+      "rss": 193396736,
+      "snapshotMs": 0.009084000000029846,
+      "httpSnapshotMs": null,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 4.581000000000017
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 5.132916000000023
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 4.502916999999969
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 6.767790999999988
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 3.8340410000000134
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 7.3799999999999955
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 5.977250000000026
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 8.359541999999976
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 6.81212499999998
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 8.432125000000042
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 8.83170899999999
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 7.520582999999988
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 8.185541999999998
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 8.946750000000009
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1309.2683333333334
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1194.3177800000005
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1163.4199999999994
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 2,
+      "mode": "dev",
+      "node": "v25.7.0",
+      "startupMs": 70.208959,
+      "shutdownMs": 2.906458000000157,
+      "heapUsed": 62012656,
+      "rss": 205537280,
+      "snapshotMs": 0.005875000000060027,
+      "httpSnapshotMs": 39.993541999999934,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 5.123958000000016
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 4.514292000000013
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 4.93791699999997
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 5.757333000000017
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 6.130375000000014
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 5.328416000000005
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 9.19204099999996
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 7.261124999999993
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 8.604667000000006
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 7.516750000000002
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 7.349041999999998
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 8.050833000000011
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 8.26216599999998
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 7.311874999999986
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1293.4155533333335
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1199.951393333334
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1215.655
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 2,
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 53.271957999999984,
+      "shutdownMs": 3.802667000000156,
+      "heapUsed": 77341200,
+      "rss": 211140608,
+      "snapshotMs": 2.554499999999962,
+      "httpSnapshotMs": 36.803333000000066,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 5.125292000000001
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 4.566332999999986
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 6.567999999999984
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 5.296083000000009
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 5.3067080000000155
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 6.435790999999995
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 5.282959000000005
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 9.49275
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 9.695499999999981
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 8.640541999999984
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 9.876125000000002
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 9.288125000000036
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 10.662417000000005
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 13.160292000000027
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1296.646666666667
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1331.188886666667
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1227.191106666666
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "repetition": 2,
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 57.750833,
+      "shutdownMs": 19.784332999999833,
+      "heapUsed": 65616424,
+      "rss": 222625792,
+      "snapshotMs": 7.712541999999985,
+      "httpSnapshotMs": 141.21958299999983,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 18.598708000000045
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 38.07629199999997
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 14.263542000000031
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 48.005042
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 36.119666999999936
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 12.665374999999928
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 18.225624999999923
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 34.692999999999984
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 26.617083000000093
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 19.071749999999952
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 29.483500000000053
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 35.376041999999984
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 40.13312499999995
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 22.973833000000013
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1324.0680599999996
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1317.655000000001
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1303.6505533333336
+        }
+      ]
+    }
+  ],
+  "baselineCommit": "ae17dd1705dba0c445d54fe2521f48d356714d15",
+  "byteBudgetResults": [
+    {
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 287.489833,
+      "shutdownMs": 2.1499579999999696,
+      "heapUsed": 87535632,
+      "rss": 212844544,
+      "snapshotMs": 2.461667000000034,
+      "httpSnapshotMs": 82.16420800000014,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 11.42183399999999
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 11.173583000000008
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 15.232124999999996
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 9.023749999999836
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 16.058083000000124
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 25.473207999999886
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 138.4174579999999
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 27.568791000000147
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 24.638500000000022
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 24.824417000000036
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 22.57895899999994
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 29.863292
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 21.398124999999933
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 115.83691699999986
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1763.7819466666663
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 3588.569719999999
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 3654.864719999999
+        }
+      ],
+      "version": "candidate",
+      "repetition": 0,
+      "maxStorage": "1mb"
+    },
+    {
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 215.26529100000005,
+      "shutdownMs": 3.518833000000086,
+      "heapUsed": 85402912,
+      "rss": 218857472,
+      "snapshotMs": 2.421458000000257,
+      "httpSnapshotMs": 175.10474999999997,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 17.301332999999886
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 32.313499999999976
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 39.094958000000126
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 10.159708000000137
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 20.317333999999846
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 32.06187499999987
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 104.94562499999984
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 39.4597920000001
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 24.86587499999996
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 56.84937500000001
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 49.97112500000003
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 24.555875000000015
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 26.12304200000017
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 32.07529100000011
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 2710.8100000000013
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2707.9088866666675
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 3225.039999999999
+        }
+      ],
+      "version": "candidate",
+      "repetition": 1,
+      "maxStorage": "1mb"
+    },
+    {
+      "mode": "apm-memory",
+      "node": "v25.7.0",
+      "startupMs": 149.871333,
+      "shutdownMs": 6.932082999999693,
+      "heapUsed": 84656256,
+      "rss": 214679552,
+      "snapshotMs": 5.201625000000149,
+      "httpSnapshotMs": 77.01029199999994,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 31.170625000000086
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 41.17487500000004
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 16.11458300000004
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 10.329583999999956
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 18.07391700000005
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 21.67791699999998
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 12.928749999999924
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 79.73391599999991
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 42.61075000000005
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 22.438832999999935
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 13.220957999999882
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 30.369333000000097
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 15.770582999999988
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 35.104749999999974
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 4419.39222
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2587.100559999999
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 3604.2972266666648
+        }
+      ],
+      "version": "candidate",
+      "repetition": 2,
+      "maxStorage": "1mb"
+    },
+    {
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 120.84966699999995,
+      "shutdownMs": 22.45595800000001,
+      "heapUsed": 71030136,
+      "rss": 226377728,
+      "snapshotMs": 3.7437920000002123,
+      "httpSnapshotMs": 90.40250000000015,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 48.52283299999999
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 40.607291999999916
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 55.02637499999991
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 35.940209000000095
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 27.091666999999912
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 22.677584000000024
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 25.626666999999998
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 40.490624999999916
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 110.8565000000001
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 74.10595899999998
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 99.344292
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 58.57820800000013
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 62.518749999999955
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 68.73737499999993
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 2388.1372266666676
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 2055.5938933333314
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 2099.2591666666644
+        }
+      ],
+      "version": "candidate",
+      "repetition": 0,
+      "maxStorage": "1mb"
+    },
+    {
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 107.06345899999997,
+      "shutdownMs": 43.195334,
+      "heapUsed": 71616048,
+      "rss": 224739328,
+      "snapshotMs": 6.740541000000121,
+      "httpSnapshotMs": 74.25791700000036,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 71.94341599999996
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 113.48866700000008
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 45.79820799999993
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 43.099292000000105
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 39.28391599999987
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 24.919250000000144
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 44.35791700000004
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 52.87799999999993
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 45.83887499999991
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 64.08762500000012
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 52.47312499999999
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 60.11237499999993
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 44.151541999999836
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 45.63237499999991
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 1599.5163866666674
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 1601.3447200000003
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 1693.8677800000005
+        }
+      ],
+      "version": "candidate",
+      "repetition": 1,
+      "maxStorage": "1mb"
+    },
+    {
+      "mode": "apm-sqlite",
+      "node": "v25.7.0",
+      "startupMs": 437.277833,
+      "shutdownMs": 242.4105410000002,
+      "heapUsed": 57647664,
+      "rss": 215089152,
+      "snapshotMs": 4.671208000000661,
+      "httpSnapshotMs": 207.05095900000015,
+      "trials": [
+        {
+          "workload": "noop",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 29.37704099999996
+        },
+        {
+          "workload": "noop",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 60.77079099999992
+        },
+        {
+          "workload": "noop",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 45.979916
+        },
+        {
+          "workload": "noop",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 126.66104099999984
+        },
+        {
+          "workload": "noop",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 80.0475419999998
+        },
+        {
+          "workload": "noop",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 114.93279200000006
+        },
+        {
+          "workload": "noop",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 173.4648340000003
+        },
+        {
+          "workload": "nested",
+          "trial": 0,
+          "count": 1000,
+          "usPerCall": 64.15312499999982
+        },
+        {
+          "workload": "nested",
+          "trial": 1,
+          "count": 1000,
+          "usPerCall": 207.57475000000022
+        },
+        {
+          "workload": "nested",
+          "trial": 2,
+          "count": 1000,
+          "usPerCall": 93.53304200000001
+        },
+        {
+          "workload": "nested",
+          "trial": 3,
+          "count": 1000,
+          "usPerCall": 101.0339170000002
+        },
+        {
+          "workload": "nested",
+          "trial": 4,
+          "count": 1000,
+          "usPerCall": 80.19079199999987
+        },
+        {
+          "workload": "nested",
+          "trial": 5,
+          "count": 1000,
+          "usPerCall": 193.52366699999993
+        },
+        {
+          "workload": "nested",
+          "trial": 6,
+          "count": 1000,
+          "usPerCall": 98.63695899999993
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 0,
+          "count": 150,
+          "usPerCall": 3930.412500000002
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 1,
+          "count": 150,
+          "usPerCall": 3733.1486133333296
+        },
+        {
+          "workload": "io-1ms",
+          "trial": 2,
+          "count": 150,
+          "usPerCall": 3780.0311133333344
+        }
+      ],
+      "version": "candidate",
+      "repetition": 2,
+      "maxStorage": "1mb"
+    }
+  ]
+}

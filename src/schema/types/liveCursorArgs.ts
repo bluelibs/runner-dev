@@ -19,6 +19,11 @@ export const liveCursorArgs = {
     description: `Exclusive sequence cursor: only entries whose \`sequence\` is strictly greater. Pass the last received entry's \`sequence\` to page forward without gaps over the retained entries: each category keeps only its latest maxEntries, and an entry evicted before it is read is skipped without a signal. ${WINDOW_SEMANTICS}`,
     type: GraphQLFloat,
   },
+  beforeSequence: {
+    description:
+      "Exclusive upper sequence bound. Without an after cursor, last returns the newest N entries below it for backward pagination.",
+    type: GraphQLFloat,
+  },
   last: {
     description: `Maximum number of entries. ${WINDOW_SEMANTICS}`,
     type: GraphQLInt,
@@ -35,6 +40,7 @@ export const liveSequenceField = {
 interface NullableLiveCursorArgs {
   afterTimestamp?: number | null;
   afterSequence?: number | null;
+  beforeSequence?: number | null;
   last?: number | null;
 }
 
@@ -45,6 +51,7 @@ export function toLiveCursorOptions(
   return {
     afterTimestamp: args.afterTimestamp ?? undefined,
     afterSequence: args.afterSequence ?? undefined,
+    beforeSequence: args.beforeSequence ?? undefined,
     last: args.last ?? undefined,
   };
 }

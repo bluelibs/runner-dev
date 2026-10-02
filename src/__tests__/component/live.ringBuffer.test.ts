@@ -60,3 +60,23 @@ describe("RingBuffer", () => {
     expect(new RingBuffer<number>(2).findFirstIndex(() => true)).toBe(0);
   });
 });
+
+test("shifts and wraps a partially filled buffer without losing logical order", () => {
+  const buffer = new RingBuffer<number>(4);
+  [1, 2, 3].forEach((value) => buffer.push(value));
+  expect(buffer.shift()).toBe(1);
+  expect(buffer.at(0)).toBe(2);
+  buffer.push(4);
+  buffer.push(5);
+  expect([0, 1, 2, 3].map((index) => buffer.at(index))).toEqual([2, 3, 4, 5]);
+  expect(buffer.shift()).toBe(2);
+  expect(buffer.shift()).toBe(3);
+  buffer.push(6);
+  expect([0, 1, 2].map((index) => buffer.at(index))).toEqual([4, 5, 6]);
+  buffer.shift();
+  buffer.shift();
+  buffer.shift();
+  expect(buffer.shift()).toBeUndefined();
+  buffer.push(7);
+  expect(buffer.at(0)).toBe(7);
+});

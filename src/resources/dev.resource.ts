@@ -12,10 +12,13 @@ import { allowedHostsSchema } from "./allowedHosts.schema";
 import type { LivePersistenceSource } from "./live/persistence";
 import { persistenceSourceSchema } from "./live/persistenceProvider";
 
+import { apmConfigSchema, type ApmConfig } from "./live/apm";
+
 const MAX_ENTRIES_MESSAGE =
   "maxEntries must be a positive integer: the number of entries kept per live telemetry category.";
 
 export type DevConfig = {
+  apm?: ApmConfig;
   port?: number;
   host?: string;
   /** DNS names, besides localhost and IP addresses, requests may use. */
@@ -32,6 +35,7 @@ export const dev = defineResource({
       "Main development resource that registers all necessary components for Runner-Dev including server, GraphQL, telemetry, and HTTP routes",
   },
   configSchema: z.object({
+    apm: apmConfigSchema.optional(),
     persistence: persistenceSourceSchema.optional(),
     port: z.number().min(1).max(65535).optional(),
     host: z.string().min(1).optional(),
@@ -57,6 +61,7 @@ export const dev = defineResource({
     graphql,
     swapManager,
     live.with({
+      apm: config.apm,
       maxEntries: config.maxEntries,
       persistence: config.persistence,
     }),

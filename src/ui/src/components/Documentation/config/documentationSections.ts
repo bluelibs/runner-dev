@@ -31,6 +31,20 @@ export const createSections = (counts: {
             count: null,
             hasContent: true,
           },
+          {
+            id: "telemetry",
+            label: "Telemetry",
+            icon: getDocumentationIcon("telemetry"),
+            count: null,
+            hasContent: true,
+          },
+          {
+            id: "logs",
+            label: "Logs",
+            icon: getDocumentationIcon("logs"),
+            count: null,
+            hasContent: true,
+          },
         ]),
     {
       id: "diagnostics",

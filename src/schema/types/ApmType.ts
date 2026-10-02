@@ -59,6 +59,9 @@ export const ApmType = new GraphQLObjectType<ApmSnapshot, CustomGraphQLContext>(
       retainedSamples: { type: new GraphQLNonNull(GraphQLInt) },
       windowMinutes: { type: new GraphQLNonNull(GraphQLInt) },
       scope: { type: new GraphQLNonNull(ApmScopeType) },
+      pendingSamples: { type: GraphQLInt },
+      persistenceError: { type: GraphQLString },
+      cutoffTimestampMs: { type: GraphQLFloat },
       oldestTimestampMs: { type: GraphQLFloat },
       hooks: {
         type: new GraphQLNonNull(

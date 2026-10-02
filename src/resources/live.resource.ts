@@ -6,6 +6,10 @@ import {
   type Store,
   type TaskMiddlewareStoreElementType,
 } from "@bluelibs/runner";
+import {
+  apmPersistenceDefinition,
+  validateApmPersistence,
+} from "./live/apmPersistence";
 import { createApm } from "./live/apm";
 import { getCorrelationId } from "./telemetry.chain";
 import type {
@@ -111,16 +115,28 @@ const liveService = defineResource({
     description:
       "Core service for collecting and storing real-time telemetry data including logs, events, errors, and execution runs",
   },
-  register: (config: LiveConfig) =>
-    isPersistenceResource(config.persistence) ? [config.persistence] : [],
+  register: (config: LiveConfig) => [
+    ...(isPersistenceResource(config.persistence) ? [config.persistence] : []),
+    ...(typeof config.apm === "object" && config.apm.persistence
+      ? [config.apm.persistence]
+      : []),
+  ],
   dependencies: (config: LiveConfig) => {
     const provider = persistenceResourceDefinition(config.persistence);
+    const apmProvider = apmPersistenceDefinition(
+      typeof config.apm === "object" ? config.apm.persistence : undefined
+    );
     return {
       store: resources.store,
       ...(provider ? { persistence: provider } : {}),
+      ...(apmProvider ? { apmPersistence: apmProvider } : {}),
     };
   },
-  async init(c: LiveConfig, { store, persistence }, context): Promise<Live> {
+  async init(
+    c: LiveConfig,
+    { store, persistence, apmPersistence },
+    context
+  ): Promise<Live> {
     const maxEntries = c.maxEntries ?? DEFAULT_MAX_ENTRIES;
     const buffers = createEntryBuffers(maxEntries);
     const { logs, emissions, errors, runs } = buffers;
@@ -131,7 +147,28 @@ const liveService = defineResource({
       persistenceStore = restored.persistence;
       lastSequence = restored.lastSequence;
     }
-    const apm = createApm(c.apm);
+    let restoredApm;
+    const apmOptions = typeof c.apm === "object" ? c.apm : undefined;
+    if (apmOptions?.persistence) {
+      validateApmPersistence(apmPersistence);
+      const cutoffTimestampMs = Math.max(
+        apmOptions.cutoffDate ? Date.parse(apmOptions.cutoffDate) : -Infinity,
+        apmOptions.retentionDays
+          ? Date.now() - apmOptions.retentionDays * 86_400_000
+          : -Infinity
+      );
+      restoredApm = await apmPersistence.load({
+        maxSamples: apmOptions.maxSamples ?? 10_000,
+        cutoffTimestampMs: Number.isFinite(cutoffTimestampMs)
+          ? cutoffTimestampMs
+          : undefined,
+      });
+    }
+    const apm = createApm(
+      c.apm,
+      apmOptions?.persistence ? apmPersistence : undefined,
+      restoredApm
+    );
     context.apm = apm;
     // Seed above persisted entries even after a backwards clock adjustment.
     const nextSequence = createSequenceClock(lastSequence);
@@ -259,7 +296,7 @@ const liveService = defineResource({
   },
   async dispose(_instance, _config, _deps, context) {
     context.closed = true;
-    context.apm?.close();
+    await context.apm?.close();
   },
 });
 

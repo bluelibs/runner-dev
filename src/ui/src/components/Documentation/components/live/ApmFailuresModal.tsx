@@ -18,6 +18,9 @@ export function ApmFailuresModal({
   onClose: () => void;
 }) {
   const [failures, setFailures] = useState<FailureDetails[] | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [limit, setLimit] = useState(50);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [trace, setTrace] = useState<{
     correlationId: string;
@@ -28,7 +31,10 @@ export function ApmFailuresModal({
     let active = true;
     loadFailureDetails(selection)
       .then((entries) => {
-        if (active) setFailures(entries);
+        if (active) {
+          setFailures(entries.failures);
+          setHasMore(entries.hasMore);
+        }
       })
       .catch((cause) => {
         if (active)
@@ -42,6 +48,26 @@ export function ApmFailuresModal({
       active = false;
     };
   }, [selection]);
+  async function loadMore() {
+    setLoadingMore(true);
+    setError(null);
+    const nextLimit = limit + 50;
+    try {
+      // Re-read a larger recent window to keep run/error joins intact across page boundaries.
+      const page = await loadFailureDetails(selection, nextLimit);
+      setFailures(page.failures);
+      setHasMore(page.hasMore);
+      setLimit(nextLimit);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Could not load older failures."
+      );
+    } finally {
+      setLoadingMore(false);
+    }
+  }
   async function openTrace(correlationId: string) {
     setLoadingTrace(correlationId);
     setError(null);
@@ -66,17 +92,27 @@ export function ApmFailuresModal({
         className="apm-failures"
       >
         <p className="apm-failures__note">
-          Last {selection.windowMinutes} minutes · {selection.scope} calls · up
-          to 50 retained failures. Performance history and error details have
-          separate retention.
+          Last {selection.windowMinutes} minutes · {selection.scope} calls ·{" "}
+          {failures?.length ?? 0} failure details loaded. Performance history
+          and error details have separate retention.
         </p>
         {error && <p role="alert">{error}</p>}
         {!failures && !error && <p>Loading failure details…</p>}
         {failures?.length === 0 && (
           <p>
-            No matching failure details were found in the latest 50 retained
-            runs and errors. APM counts can remain after logs and execution
-            details expire.
+            No matching failure details were found in the latest {limit}{" "}
+            retained runs and errors. APM counts can remain after logs and
+            execution details expire.
+          </p>
+        )}
+        {hasMore && (
+          <button disabled={loadingMore} onClick={() => void loadMore()}>
+            {loadingMore ? "Loading older errors…" : "Load older errors"}
+          </button>
+        )}
+        {failures && !hasMore && (
+          <p className="apm-failures__note">
+            All matching retained details loaded.
           </p>
         )}
         {failures?.map((failure) => (

@@ -123,7 +123,7 @@ Notes:
 Enable with `dev.with({ apm: true })` (also supported by `resources.live.with()`).
 The **Telemetry** tab shows task and hook APM in separate views. The **Logs** tab provides focused log inspection
 and correlation traces. **Live** retains its original process health, logs, events and runs.
-Click a nonzero failure rate to inspect retained errors for that task or hook in the selected window and scope. Correlation IDs open the related trace and logs (up to 200 retained entries per category). Failure details inspect the latest 50 matching runs and errors; aggregate APM history may outlast those records.
+Click a nonzero failure rate to inspect retained errors for that task or hook in the selected window and scope. Correlation IDs open the related trace and logs (up to 200 retained entries per category). Failure details start with the latest 50 matching runs and errors; **Load older errors** expands the retained history on demand; aggregate APM history may outlast those records.
 APM records every completed application task and hook, including failed calls,
 and excludes internal GraphQL tasks. Hook reactions include delegated task work. Timing uses a monotonic clock. Duration is inclusive
 of child work; nested durations overlap and must not be summed as request latency.
@@ -173,6 +173,57 @@ query TaskPerformance {
 `scope` is `all` (default), `direct` or `nested`. `windowMinutes` defaults to 30
 and accepts integers from 1 through 1440. Event reactions are nested because
 the emitted event is their parent. APM is disabled by default.
+
+For larger histories, `maxSamples` supports up to 10,000,000 (default 10,000) and
+`windowMinutes` supports 1–525600 minutes. Increasing the sample cap increases memory
+and exact-percentile query work; it grows lazily. `retentionDays` and ISO `cutoffDate`
+are optional APM retention limits; the stricter boundary wins. SQLite expires old
+samples on restoration and snapshots. These limits are independent of live log retention.
+
+### ClickHouse APM archive
+
+Use a Runner persistence resource for batched compact APM samples:
+
+```ts
+import { dev, resources } from "@bluelibs/runner-dev";
+
+const devTools = dev.with({
+  apm: {
+    maxSamples: 100_000,
+    retentionDays: 7, // dashboard/restoration history
+    cutoffDate: "2026-01-01T00:00:00Z", // optional lower date boundary
+    persistence: resources.clickHouseApmPersistence.with({
+      url: "http://localhost:8123",
+      streamId: "orders-worker", // stable, unique per runtime; never share concurrently
+      retentionDays: 30, // archive TTL; independent of the dashboard cap
+    }),
+  },
+});
+```
+
+Set `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` in the environment; keep credentials out
+of URLs and resource config. Provision the database first (`database` defaults to
+`default`); `table` defaults to `runner_dev_apm`. The resource creates a MergeTree
+table if absent. TTL is set at creation; existing table TTL changes are operator-owned.
+ClickHouse removes expired rows during merges; restoration also filters expired
+rows immediately. The dashboard uses bounded local samples, while the archive can
+keep more samples for external analysis. The archive stores compact timings only;
+related error logs still use live telemetry retention.
+
+Defaults: batches of 1000, 1-second flush interval, 10,000 queued/in-flight samples,
+10-second request timeout. Configure `batchSize`, `flushIntervalMs`, `maxPendingSamples`
+and `timeoutMs` on the adapter resource. Writes are acknowledged before leaving the
+queue; failed writes are latched and exposed by the Telemetry panel and subsequent
+append/flush calls. There are no automatic retries or silent drops. Queue overflow
+throws; abrupt termination can lose unflushed samples. Graceful Runner disposal
+flushes before the provider closes. Explicit provider failures never fall back to memory.
+
+Custom resources return `ApmPersistence` (`storage`, async `load({ maxSamples,
+cutoffTimestampMs })`, synchronous enqueue-only `append(sample)`, async `flush()`,
+optional `status()`). `load` returns ascending unique `samples` and `lastSequence`;
+startup validates the snapshot. Config auto-registers and injects the provider,
+so Runner overrides, isolation and disposal apply. This asynchronous APM contract
+is additive; the synchronous `LivePersistence` contract for logs/traces is unchanged.
 
 ## Security Defaults
 

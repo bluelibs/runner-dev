@@ -2,17 +2,39 @@ import z from "zod";
 import { RingBuffer } from "./RingBuffer";
 import { createSequenceClock } from "./sequenceClock";
 import { sqlitePersistence, type SQLitePersistence } from "./sqlitePersistence";
+import {
+  apmPersistenceSourceSchema,
+  enqueueApmSample,
+  type ApmPersistence,
+  type ApmPersistenceSource,
+} from "./apmPersistence";
+import { validatePersistenceSnapshot } from "./persistence.schema";
 import type { RunRecord } from "./types";
 
 export const apmConfigSchema = z.union([
   z.boolean(),
   z
     .object({
-      maxSamples: z.number().int().positive().max(1_000_000).optional(),
+      maxSamples: z.number().int().positive().max(10_000_000).optional(),
       sqliteFile: z.string().trim().min(1).optional(),
       storage: z.enum(["auto", "memory"]).optional(),
+      persistence: apmPersistenceSourceSchema.optional(),
+      retentionDays: z.number().positive().max(3650).optional(),
+      cutoffDate: z.string().datetime({ offset: true }).optional(),
     })
-    .strict(),
+    .strict()
+    .superRefine((options, context) => {
+      if (
+        options.persistence &&
+        (options.storage === "memory" || options.sqliteFile)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "APM persistence cannot be combined with memory storage or sqliteFile.",
+        });
+      }
+    }),
 ]);
 export type ApmConfig =
   | boolean
@@ -20,6 +42,9 @@ export type ApmConfig =
       maxSamples?: number;
       sqliteFile?: string;
       storage?: "auto" | "memory";
+      persistence?: ApmPersistenceSource;
+      retentionDays?: number;
+      cutoffDate?: string;
     };
 export type ApmScope = "all" | "direct" | "nested";
 export interface PerformanceMetrics {
@@ -39,6 +64,9 @@ export interface HookPerformance extends PerformanceMetrics {
   hookId: string;
 }
 export interface ApmSnapshot {
+  cutoffTimestampMs?: number | null;
+  pendingSamples?: number;
+  persistenceError?: string | null;
   enabled: boolean;
   storage: string;
   maxSamples: number;
@@ -88,19 +116,44 @@ export function summarizeHooks(samples: RunRecord[]): HookPerformance[] {
 }
 
 /** Separate bounded samples prevent trace retention from biasing APM queries. */
-export function createApm(config: ApmConfig | undefined) {
+export function createApm(
+  config: ApmConfig | undefined,
+  remote?: ApmPersistence,
+  restored?: { samples: RunRecord[]; lastSequence: number }
+) {
   const parsed = config === undefined ? false : apmConfigSchema.parse(config);
   const enabled = parsed !== false;
   const options = typeof parsed === "object" ? parsed : {};
   const maxSamples = options.maxSamples ?? 10_000;
-  const samples = new RingBuffer<RunRecord>(maxSamples);
+  let samples = new RingBuffer<RunRecord>(maxSamples);
   let persistence: SQLitePersistence | undefined;
-  let lastSequence = 0;
-  if (enabled && options.storage !== "memory") {
+  let lastSequence = restored?.lastSequence ?? 0;
+  if (restored)
+    validatePersistenceSnapshot({
+      entries: restored.samples.map((entry) => ({ kind: "run", entry })),
+      lastSequence: restored.lastSequence,
+    });
+  for (const sample of restored?.samples ?? []) {
+    if (sample.durationMs < 0)
+      throw new Error("Invalid persisted APM duration.");
+    samples.push(sample);
+  }
+  if (options.persistence && !remote)
+    throw new Error("APM persistence provider was not initialized.");
+  const cutoff = (now: number) =>
+    Math.max(
+      options.cutoffDate ? Date.parse(options.cutoffDate) : -Infinity,
+      options.retentionDays
+        ? now - options.retentionDays * 86_400_000
+        : -Infinity
+    );
+  if (enabled && !remote && options.storage !== "memory") {
     try {
       persistence = sqlitePersistence({
         file: options.sqliteFile ?? "./.runner-dev/apm.sqlite",
       });
+      if (Number.isFinite(cutoff(Date.now())))
+        persistence.pruneRunsBefore?.(cutoff(Date.now()));
       const snapshot = persistence.load({ maxEntries: maxSamples });
       lastSequence = snapshot.lastSequence;
       for (const record of snapshot.entries) {
@@ -135,6 +188,8 @@ export function createApm(config: ApmConfig | undefined) {
         ok: run.ok,
         parentId: run.parentId ? "nested" : null,
       };
+      if (sample.timestampMs < cutoff(Date.now())) return;
+      if (remote) enqueueApmSample(remote, sample);
       persistence?.append(
         { kind: "run", entry: sample },
         { maxEntries: maxSamples }
@@ -149,18 +204,29 @@ export function createApm(config: ApmConfig | undefined) {
       if (
         !Number.isInteger(windowMinutes) ||
         windowMinutes < 1 ||
-        windowMinutes > 1440
+        windowMinutes > 525600
       )
         throw new Error(
-          "APM windowMinutes must be an integer between 1 and 1440."
+          "APM windowMinutes must be an integer between 1 and 525600."
         );
       if (!["all", "direct", "nested"].includes(scope))
         throw new Error("Invalid APM scope.");
+      const retentionCutoff = cutoff(now);
+      if (Number.isFinite(retentionCutoff)) {
+        const retained = new RingBuffer<RunRecord>(maxSamples);
+        for (let i = 0; i < samples.size; i++) {
+          const sample = samples.at(i);
+          if (sample.timestampMs >= retentionCutoff) retained.push(sample);
+        }
+        samples = retained;
+        persistence?.pruneRunsBefore?.(retentionCutoff);
+      }
       const selected: RunRecord[] = [];
       for (let i = 0; i < samples.size; i++) {
         const run = samples.at(i);
         if (
-          run.timestampMs < now - windowMinutes * 60_000 ||
+          run.timestampMs <
+            Math.max(now - windowMinutes * 60_000, cutoff(now)) ||
           run.timestampMs > now
         )
           continue;
@@ -170,7 +236,14 @@ export function createApm(config: ApmConfig | undefined) {
       }
       return {
         enabled,
-        storage: !enabled ? "disabled" : persistence ? "sqlite" : "memory",
+        pendingSamples: remote?.status?.().pendingSamples ?? 0,
+        persistenceError: remote?.status?.().error ?? null,
+        cutoffTimestampMs: Number.isFinite(retentionCutoff)
+          ? retentionCutoff
+          : null,
+        storage: !enabled
+          ? "disabled"
+          : remote?.storage ?? (persistence ? "sqlite" : "memory"),
         maxSamples,
         retainedSamples: samples.size,
         windowMinutes,
@@ -182,6 +255,7 @@ export function createApm(config: ApmConfig | undefined) {
     },
     close() {
       persistence?.close();
+      return remote?.flush();
     },
   };
 }

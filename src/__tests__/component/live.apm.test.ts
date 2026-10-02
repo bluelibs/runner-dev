@@ -80,7 +80,7 @@ describe("task APM", () => {
     expect(() => createApm({ sqliteFile: " " })).toThrow();
     const apm = createApm({ storage: "memory" });
     expect(() => apm.snapshot(0)).toThrow("windowMinutes");
-    expect(() => apm.snapshot(1441)).toThrow("windowMinutes");
+    expect(() => apm.snapshot(525601)).toThrow("windowMinutes");
     expect(() => apm.record(sample(NaN))).toThrow("duration");
     expect(() => apm.record(sample(-1))).toThrow("duration");
   });

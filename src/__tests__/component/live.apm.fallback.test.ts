@@ -34,6 +34,7 @@ test("closes a database whose restoration failed", () => {
     },
     append: () => undefined,
     close,
+    pruneRunsBefore: () => undefined,
   });
   expect(() => createApm(true)).toThrow("corrupt data");
   expect(close).toHaveBeenCalledTimes(1);

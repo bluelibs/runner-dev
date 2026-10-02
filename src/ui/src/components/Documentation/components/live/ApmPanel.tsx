@@ -3,13 +3,16 @@ import { graphqlRequest } from "../../utils/graphqlClient";
 import type {
   ApmSnapshot,
   ApmScope,
-  PerformanceMetrics,
 } from "../../../../../../resources/live/apm";
 import { ApmFailuresModal } from "./ApmFailuresModal";
 import type { FailureSelection } from "./apmFailureDetails";
 import "./ApmPanel.scss";
 
-type PerformanceRow = PerformanceMetrics & { nodeId: string };
+import {
+  ApmPerformanceTable,
+  formatApmDuration as ms,
+  type PerformanceRow,
+} from "./ApmPerformanceTable";
 type PerformanceSnapshot = Omit<ApmSnapshot, "tasks" | "hooks"> & {
   tasks: PerformanceRow[];
   hooks: PerformanceRow[];
@@ -17,13 +20,11 @@ type PerformanceSnapshot = Omit<ApmSnapshot, "tasks" | "hooks"> & {
 
 const QUERY = `query TaskPerformance($window: Int!, $scope: ApmScope!) {
   live { apm(windowMinutes: $window, scope: $scope) {
-    enabled storage maxSamples retainedSamples windowMinutes scope oldestTimestampMs
+    enabled storage maxSamples retainedSamples windowMinutes scope oldestTimestampMs cutoffTimestampMs pendingSamples persistenceError
     tasks { nodeId: taskId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
     hooks { nodeId: hookId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
   } }
 }`;
-const ms = (value: number) =>
-  value >= 1000 ? `${(value / 1000).toFixed(2)} s` : `${value.toFixed(2)} ms`;
 
 export function ApmPanel({
   active,
@@ -120,9 +121,18 @@ export function ApmPanel({
           <i />
           {snapshot.storage === "sqlite"
             ? "SQLite · persisted"
-            : "Memory · this session"}
+            : snapshot.storage === "clickhouse"
+            ? "ClickHouse · archive"
+            : snapshot.storage === "memory"
+            ? "Memory · this session"
+            : `${snapshot.storage} · archive`}
         </span>
       </div>
+      {snapshot.persistenceError && (
+        <p role="alert" className="apm-empty">
+          Archive writes failed: {snapshot.persistenceError}
+        </p>
+      )}
       <div className="apm-toolbar apm-kind-toolbar">
         <div className="apm-scopes" role="group" aria-label="Execution kind">
           {(["tasks", "hooks"] as const).map((value) => (
@@ -168,6 +178,8 @@ export function ApmPanel({
             <option value={30}>Last 30 minutes</option>
             <option value={60}>Last hour</option>
             <option value={1440}>Last 24 hours</option>
+            <option value={10080}>Last 7 days</option>
+            <option value={43200}>Last 30 days</option>
           </select>
         </label>
       </div>
@@ -205,82 +217,20 @@ export function ApmPanel({
           onChange={(event) => setSearch(event.target.value)}
         />
       </div>
-      <div className="apm-table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>{kind === "tasks" ? "Task" : "Hook"}</th>
-              <th>Calls</th>
-              <th>Failed</th>
-              <th>Mean</th>
-              <th>p50</th>
-              <th>p95</th>
-              <th>p99</th>
-              <th>Max</th>
-              <th aria-label="Relative p95">Tail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((task) => (
-              <tr key={task.nodeId}>
-                <td>
-                  <a href={`#element-${task.nodeId}`}>{task.nodeId}</a>
-                  {task.count < 100 && (
-                    <small className="apm-sample-note">
-                      Small sample · {task.count} calls
-                    </small>
-                  )}
-                </td>
-                <td data-label="Calls">{task.count.toLocaleString()}</td>
-                <td
-                  data-label="Failed"
-                  className={task.failures ? "apm-warning" : ""}
-                >
-                  {task.failures ? (
-                    <button
-                      className="apm-failure-link"
-                      aria-label={`View failures for ${task.nodeId}`}
-                      onClick={() =>
-                        setFailureSelection({
-                          nodeId: task.nodeId,
-                          nodeKind: kind === "tasks" ? "TASK" : "HOOK",
-                          windowMinutes,
-                          scope,
-                          endTimestampMs: Date.now(),
-                        })
-                      }
-                    >
-                      {(task.errorRate * 100).toFixed(1)}%
-                    </button>
-                  ) : (
-                    "0.0%"
-                  )}
-                </td>
-                <td data-label="Mean">{ms(task.meanMs)}</td>
-                <td data-label="p50">{ms(task.p50Ms)}</td>
-                <td data-label="p95" className="apm-p95">
-                  {ms(task.p95Ms)}
-                </td>
-                <td data-label="p99">{ms(task.p99Ms)}</td>
-                <td data-label="Max">{ms(task.maxMs)}</td>
-                <td>
-                  <div className="apm-tail">
-                    <span
-                      style={{
-                        width: `${
-                          slowest?.p95Ms
-                            ? (task.p95Ms / slowest.p95Ms) * 100
-                            : 0
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ApmPerformanceTable
+        entries={tasks}
+        kind={kind}
+        highestP95={slowest?.p95Ms ?? 0}
+        onFailure={(nodeId) =>
+          setFailureSelection({
+            nodeId,
+            nodeKind: kind === "tasks" ? "TASK" : "HOOK",
+            windowMinutes,
+            scope,
+            endTimestampMs: Date.now(),
+          })
+        }
+      />
       {!tasks.length && (
         <p className="apm-empty">
           {count
@@ -304,6 +254,13 @@ export function ApmPanel({
             snapshot.oldestTimestampMs
           ).toLocaleString()}.`}
       </p>
+      {snapshot.storage === "clickhouse" && (
+        <p className="apm-empty">
+          Dashboard uses the retained sample cap; the ClickHouse archive has
+          separate TTL retention. {snapshot.pendingSamples ?? 0} samples
+          awaiting confirmation.
+        </p>
+      )}
       {failureSelection && (
         <ApmFailuresModal
           selection={failureSelection}

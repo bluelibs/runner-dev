@@ -30,10 +30,14 @@ export interface RetainedTrace {
   errors: ErrorEntry[];
   runs: RunRecord[];
 }
-const FAILURES_QUERY = `query ApmFailureDetails($runs: RunFilterInput!, $errors: ErrorFilterInput!) {
+export interface FailureDetailsPage {
+  failures: FailureDetails[];
+  hasMore: boolean;
+}
+const FAILURES_QUERY = `query ApmFailureDetails($runs: RunFilterInput!, $errors: ErrorFilterInput!, $limit: Int!) {
   live {
-    runs(last: 50, filter: $runs) { sequence timestampMs nodeId nodeKind ok durationMs error correlationId parentId }
-    errors(last: 50, filter: $errors) { sequence timestampMs sourceId sourceKind message stack correlationId }
+    runs(last: $limit, filter: $runs) { sequence timestampMs nodeId nodeKind ok durationMs error correlationId parentId }
+    errors(last: $limit, filter: $errors) { sequence timestampMs sourceId sourceKind message stack correlationId }
   }
 }`;
 const TRACE_QUERY = `query ApmFailureTrace($ids: [String!]!) {
@@ -46,12 +50,14 @@ const TRACE_QUERY = `query ApmFailureTrace($ids: [String!]!) {
 }`;
 
 export async function loadFailureDetails(
-  selection: FailureSelection
-): Promise<FailureDetails[]> {
+  selection: FailureSelection,
+  limit = 50
+): Promise<FailureDetailsPage> {
   const { nodeId, nodeKind, scope, endTimestampMs, windowMinutes } = selection;
   const { live } = await graphqlRequest<{
     live: { runs: FailureRun[]; errors: ErrorEntry[] };
   }>(FAILURES_QUERY, {
+    limit,
     runs: { nodeIds: [nodeId], nodeKinds: [nodeKind], ok: false },
     errors: { sourceIds: [nodeId], sourceKinds: [nodeKind] },
   });
@@ -101,7 +107,10 @@ export async function loadFailureDetails(
           correlationId: error.correlationId,
         });
     }
-  return failures.sort((a, b) => b.sequence - a.sequence).slice(0, 50);
+  return {
+    failures: failures.sort((a, b) => b.sequence - a.sequence),
+    hasMore: live.runs.length >= limit || live.errors.length >= limit,
+  };
 }
 
 export async function loadRetainedTrace(

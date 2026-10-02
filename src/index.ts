@@ -1,3 +1,4 @@
+import { clickHouseApmPersistenceResource } from "./resources/live/clickHouseApmPersistence.resource";
 import { serverResource } from "./resources/server.resource";
 import { introspector } from "./resources/introspector.resource";
 import { live } from "./resources/live.resource";
@@ -70,6 +71,7 @@ export const resources = {
   dev,
   coverage,
   sqlitePersistence: sqlitePersistenceResource,
+  clickHouseApmPersistence: clickHouseApmPersistenceResource,
 };
 
 export { dev };
@@ -102,3 +104,16 @@ export type {
   HookPerformance,
   PerformanceMetrics,
 } from "./resources/live/apm";
+
+export { clickHouseApmPersistenceResource };
+export { clickHouseApmPersistence } from "./resources/live/clickHouseApmPersistence";
+export type {
+  ClickHouseApmPersistence,
+  ClickHouseApmPersistenceOptions,
+} from "./resources/live/clickHouseApmPersistence";
+export type {
+  ApmPersistence,
+  ApmPersistenceSource,
+  ApmPersistenceResourceDefinition,
+  ApmRetention,
+} from "./resources/live/apmPersistence";

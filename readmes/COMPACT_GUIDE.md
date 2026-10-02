@@ -123,6 +123,7 @@ Notes:
 Enable with `dev.with({ apm: true })` (also supported by `resources.live.with()`).
 The **Telemetry** tab shows task and hook APM in separate views. The **Logs** tab provides focused log inspection
 and correlation traces. **Live** retains its original process health, logs, events and runs.
+Click a nonzero failure rate to inspect retained errors for that task or hook in the selected window and scope. Correlation IDs open the related trace and logs (up to 200 retained entries per category). Failure details inspect the latest 50 matching runs and errors; aggregate APM history may outlast those records.
 APM records every completed application task and hook, including failed calls,
 and excludes internal GraphQL tasks. Hook reactions include delegated task work. Timing uses a monotonic clock. Duration is inclusive
 of child work; nested durations overlap and must not be summed as request latency.

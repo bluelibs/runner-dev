@@ -4,6 +4,17 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ApmPanel } from "./ApmPanel";
 import { graphqlRequest } from "../../utils/graphqlClient";
 
+jest.mock("./ApmFailuresModal", () => ({
+  ApmFailuresModal: ({
+    selection,
+  }: {
+    selection: { nodeId: string; nodeKind: string };
+  }) => (
+    <div>
+      Failures for {selection.nodeKind}:{selection.nodeId}
+    </div>
+  ),
+}));
 jest.mock("../../utils/graphqlClient", () => ({ graphqlRequest: jest.fn() }));
 const request = jest.mocked(graphqlRequest);
 const snapshot = {
@@ -100,4 +111,15 @@ it("separates hook calls and latency from delegated task metrics", async () => {
   expect(screen.queryByRole("link", { name: "app.checkout" })).toBeNull();
   expect(screen.getByText("Highest hook p95")).toBeTruthy();
   expect(screen.getByText("3 calls", { exact: false })).toBeTruthy();
+});
+
+it("opens failure details for the selected execution kind", async () => {
+  request.mockResolvedValue({ live: { apm: snapshot } });
+  renderPanel();
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: "View failures for app.checkout",
+    })
+  );
+  expect(screen.getByText("Failures for TASK:app.checkout")).toBeTruthy();
 });

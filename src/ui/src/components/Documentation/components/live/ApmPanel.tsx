@@ -5,6 +5,8 @@ import type {
   ApmScope,
   PerformanceMetrics,
 } from "../../../../../../resources/live/apm";
+import { ApmFailuresModal } from "./ApmFailuresModal";
+import type { FailureSelection } from "./apmFailureDetails";
 import "./ApmPanel.scss";
 
 type PerformanceRow = PerformanceMetrics & { nodeId: string };
@@ -37,6 +39,8 @@ export function ApmPanel({
   const [windowMinutes, setWindowMinutes] = useState(30);
   const [scope, setScope] = useState<ApmScope>("all");
   const [kind, setKind] = useState<"tasks" | "hooks">("tasks");
+  const [failureSelection, setFailureSelection] =
+    useState<FailureSelection | null>(null);
   const [search, setSearch] = useState("");
   useEffect(() => {
     let disposed = false;
@@ -232,7 +236,25 @@ export function ApmPanel({
                   data-label="Failed"
                   className={task.failures ? "apm-warning" : ""}
                 >
-                  {(task.errorRate * 100).toFixed(1)}%
+                  {task.failures ? (
+                    <button
+                      className="apm-failure-link"
+                      aria-label={`View failures for ${task.nodeId}`}
+                      onClick={() =>
+                        setFailureSelection({
+                          nodeId: task.nodeId,
+                          nodeKind: kind === "tasks" ? "TASK" : "HOOK",
+                          windowMinutes,
+                          scope,
+                          endTimestampMs: Date.now(),
+                        })
+                      }
+                    >
+                      {(task.errorRate * 100).toFixed(1)}%
+                    </button>
+                  ) : (
+                    "0.0%"
+                  )}
                 </td>
                 <td data-label="Mean">{ms(task.meanMs)}</td>
                 <td data-label="p50">{ms(task.p50Ms)}</td>
@@ -282,6 +304,12 @@ export function ApmPanel({
             snapshot.oldestTimestampMs
           ).toLocaleString()}.`}
       </p>
+      {failureSelection && (
+        <ApmFailuresModal
+          selection={failureSelection}
+          onClose={() => setFailureSelection(null)}
+        />
+      )}
     </section>
   );
 }

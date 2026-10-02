@@ -5,7 +5,7 @@
   overflow: hidden;
   background: var(--docs-bg-secondary);
   color: var(--docs-text-primary);
-  .apm-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 24px; border-top: 3px solid var(--apm-accent); }
+  .apm-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 24px; }
   .apm-eyebrow { color: var(--apm-accent); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
   h3 { margin: 6px 0; font-size: 23px; letter-spacing: -.03em; }
   p { color: var(--docs-text-secondary); font-size: 13px; margin: 0; }
@@ -17,6 +17,8 @@
   button[aria-pressed="true"] { background: var(--docs-bg-secondary); color: var(--apm-accent); box-shadow: 0 1px 4px #0002; }
   label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--docs-text-muted); }
   select, input { background: var(--docs-bg-primary); color: var(--docs-text-primary); border: 1px solid var(--docs-border-primary); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 12px; }
+  .apm-toolbar select { appearance: none; height: 34px; line-height: normal; padding: 0 30px 0 10px; margin: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%238a9099' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; }
+  .apm-failure-link { padding: 0; color: #d79643; font: inherit; border-radius: 0; text-decoration: underline; text-underline-offset: 3px; }
   .apm-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--docs-border-primary); }
   .apm-summary > div { display: flex; flex-direction: column; gap: 9px; min-width: 0; padding: 22px 24px; border-right: 1px solid var(--docs-border-primary); }
   .apm-summary > div:last-child { border-right: 0; }

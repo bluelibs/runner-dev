@@ -60,6 +60,7 @@ export type LivePersistenceResource =
 export type LivePersistenceSource = LivePersistenceResource;
 
 export interface LiveConfig {
+  apm?: import("./apm").ApmConfig;
   maxEntries?: number;
   persistence?: LivePersistenceSource;
 }

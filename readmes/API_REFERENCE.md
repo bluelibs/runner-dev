@@ -416,3 +416,7 @@ Or from the repo without a running server:
 ```bash
 runner-dev schema sdl --entry-file src/main.ts
 ```
+
+## Task performance
+
+`live.apm(windowMinutes: Int = 30, scope: ApmScope = all)` returns opt-in APM status, actual storage, retained sample cap/count, oldest completion, and per-task `count`, `failures`, `errorRate` (0–1), `meanMs`, `p50Ms`, `p95Ms`, `p99Ms`, `maxMs`. `ApmScope` is `all`, `direct`, `nested`. Windows must be 1–1440 minutes. Exact nearest-rank statistics include failed completions, exclude hooks/internal GraphQL tasks, and use inclusive durations. Samples are independently bounded; see README for storage and opt-in configuration.

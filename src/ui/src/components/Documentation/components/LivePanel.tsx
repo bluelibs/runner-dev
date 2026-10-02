@@ -11,6 +11,7 @@ import {
 } from "../hooks/useLiveStream";
 import type { ConnectionMode } from "../hooks/useLiveStream";
 import { DocIcon } from "./common/DocIcon";
+import { ApmPanel } from "./live/ApmPanel";
 import { SystemInfoPanel } from "./live/SystemInfoPanel";
 
 interface LivePanelProps {
@@ -70,6 +71,9 @@ export const LivePanel: React.FC<LivePanelProps> = ({
     null
   );
 
+  const [view, setView] = useState<"execution" | "performance">("execution");
+  const [apmRefresh, setApmRefresh] = useState(0);
+
   const badge = CONNECTION_BADGES[connectionMode];
 
   if (error) {
@@ -117,7 +121,13 @@ export const LivePanel: React.FC<LivePanelProps> = ({
             >
               {isActive ? "⏸ Pause" : "▶ Resume"} Live Updates
             </button>
-            <button onClick={() => refresh()} className="clean-button">
+            <button
+              onClick={() => {
+                refresh();
+                setApmRefresh((value) => value + 1);
+              }}
+              className="clean-button"
+            >
               Refresh
             </button>
 
@@ -146,79 +156,105 @@ export const LivePanel: React.FC<LivePanelProps> = ({
         }
       />
 
-      {/* Main Grid Layout */}
-      <div className="live-main-grid">
-        <SystemInfoPanel />
-        {/* System Health - Full Width */}
-        <div className="live-section live-section--health">
-          <h3>Process health</h3>
-          <div className="health-metrics">
-            <div className="metric">
-              <span className="metric-label">V8 heap</span>
-              <span className="metric-value">
-                {formatBytes(liveData.memory.heapUsed)} /{" "}
-                {formatBytes(liveData.memory.heapTotal)}
-              </span>
-              <div className="metric-detail">
-                RSS: {formatBytes(liveData.memory.rss)}
-              </div>
-            </div>
-            <div className="metric">
-              <span className="metric-label">Event loop utilization</span>
-              <span className="metric-value">
-                {(liveData.cpu.usage * 100).toFixed(1)}%
-              </span>
-              <div className="metric-detail">
-                Load: {liveData.cpu.loadAverage.toFixed(2)}
-              </div>
-            </div>
-            <div className="metric">
-              <span className="metric-label">Event Loop</span>
-              <span className="metric-value">
-                {liveData.eventLoop.lag.toFixed(2)}ms
-              </span>
-              <div className="metric-detail">Lag</div>
-            </div>
-            <div className="metric">
-              <span className="metric-label">GC (30s)</span>
-              <span className="metric-value">{liveData.gc.collections}</span>
-              <div className="metric-detail">
-                {liveData.gc.duration.toFixed(1)}ms total
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Logs - Full Width */}
-        <div className="live-logs-section">
-          <RecentLogs
-            introspector={_introspector}
-            logs={liveData.logs}
-            onCorrelationIdClick={setTraceCorrelationId}
-          />
-        </div>
-
-        {/* Recent Events and Runs - stacked */}
-        <div className="live-events-runs-grid">
-          <div className="live-section">
-            <RecentEvents
-              emissions={liveData.emissions}
-              detailed={detailed}
-              onCorrelationIdClick={setTraceCorrelationId}
-            />
-          </div>
-
-          <div className="live-section">
-            <RecentRuns
-              runs={liveData.runs}
-              errors={liveData.errors}
-              detailed={detailed}
-              onCorrelationIdClick={setTraceCorrelationId}
-            />
-          </div>
-        </div>
+      <div className="live-view-tabs" role="group" aria-label="Telemetry view">
+        <button
+          aria-pressed={view === "execution"}
+          onClick={() => setView("execution")}
+        >
+          Execution & traces
+        </button>
+        <button
+          aria-pressed={view === "performance"}
+          onClick={() => setView("performance")}
+        >
+          Task performance · APM
+        </button>
       </div>
+      {view === "performance" && (
+        <ApmPanel
+          active={isActive}
+          pollInterval={pollInterval}
+          refreshKey={apmRefresh}
+        />
+      )}
+      {view === "execution" && (
+        <>
+          {/* Main Grid Layout */}
+          <div className="live-main-grid">
+            <SystemInfoPanel />
+            {/* System Health - Full Width */}
+            <div className="live-section live-section--health">
+              <h3>Process health</h3>
+              <div className="health-metrics">
+                <div className="metric">
+                  <span className="metric-label">V8 heap</span>
+                  <span className="metric-value">
+                    {formatBytes(liveData.memory.heapUsed)} /{" "}
+                    {formatBytes(liveData.memory.heapTotal)}
+                  </span>
+                  <div className="metric-detail">
+                    RSS: {formatBytes(liveData.memory.rss)}
+                  </div>
+                </div>
+                <div className="metric">
+                  <span className="metric-label">Event loop utilization</span>
+                  <span className="metric-value">
+                    {(liveData.cpu.usage * 100).toFixed(1)}%
+                  </span>
+                  <div className="metric-detail">
+                    Load: {liveData.cpu.loadAverage.toFixed(2)}
+                  </div>
+                </div>
+                <div className="metric">
+                  <span className="metric-label">Event Loop</span>
+                  <span className="metric-value">
+                    {liveData.eventLoop.lag.toFixed(2)}ms
+                  </span>
+                  <div className="metric-detail">Lag</div>
+                </div>
+                <div className="metric">
+                  <span className="metric-label">GC (30s)</span>
+                  <span className="metric-value">
+                    {liveData.gc.collections}
+                  </span>
+                  <div className="metric-detail">
+                    {liveData.gc.duration.toFixed(1)}ms total
+                  </div>
+                </div>
+              </div>
+            </div>
 
+            {/* Logs - Full Width */}
+            <div className="live-logs-section">
+              <RecentLogs
+                introspector={_introspector}
+                logs={liveData.logs}
+                onCorrelationIdClick={setTraceCorrelationId}
+              />
+            </div>
+
+            {/* Recent Events and Runs - stacked */}
+            <div className="live-events-runs-grid">
+              <div className="live-section">
+                <RecentEvents
+                  emissions={liveData.emissions}
+                  detailed={detailed}
+                  onCorrelationIdClick={setTraceCorrelationId}
+                />
+              </div>
+
+              <div className="live-section">
+                <RecentRuns
+                  runs={liveData.runs}
+                  errors={liveData.errors}
+                  detailed={detailed}
+                  onCorrelationIdClick={setTraceCorrelationId}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       {/* Trace View Modal */}
       {traceCorrelationId && liveData && (
         <TraceView

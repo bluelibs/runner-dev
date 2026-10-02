@@ -62,7 +62,7 @@ const hookInterceptors = defineResource({
   dependencies: { live, eventManager: resources.eventManager },
   async init(_, { live, eventManager }) {
     eventManager.interceptHook(async (next, hook, emission) => {
-      const startedAt = Date.now();
+      const startedAt = performance.now();
       const { parentId, rootId } = deriveParentAndRoot(hook.id);
       let error = undefined;
       try {
@@ -73,7 +73,7 @@ const hookInterceptors = defineResource({
         error = _error;
         throw _error;
       } finally {
-        const durationMs = Date.now() - startedAt;
+        const durationMs = performance.now() - startedAt;
         live.recordRun(
           hook.id,
           "HOOK",
@@ -113,40 +113,31 @@ const taskInterceptors = defineResource({
 
       const { parentId, rootId } = deriveParentAndRoot(id);
 
-      const startedAt = Date.now();
+      const startedAt = performance.now();
       return withTaskRunContext(id, async () => {
+        let ok = false;
+        let taskError: unknown;
+        let durationMs = 0;
         try {
           const result = await next(input);
-          const durationMs = Date.now() - startedAt;
+          durationMs = performance.now() - startedAt;
+          ok = true;
+          return result;
+        } catch (error) {
+          durationMs = performance.now() - startedAt;
+          taskError = error;
+          live.recordError(id, "TASK", error);
+          throw error;
+        } finally {
           live.recordRun(
             id,
             "TASK",
             durationMs,
-            true,
-            undefined,
+            ok,
+            taskError,
             parentId,
             rootId
           );
-          return result as any;
-        } catch (error) {
-          const durationMs = Date.now() - startedAt;
-          // Best-effort error capture via Live (errors buffer)
-          live.recordError(id, "TASK", error);
-
-          try {
-            live.recordRun(
-              id,
-              "TASK",
-              durationMs,
-              false,
-              error,
-              parentId,
-              rootId
-            );
-          } catch {
-            // ignore if live lacks recordRun
-          }
-          throw error;
         }
       });
     });

@@ -6,6 +6,7 @@ import {
   type Store,
   type TaskMiddlewareStoreElementType,
 } from "@bluelibs/runner";
+import { createApm } from "./live/apm";
 import { getCorrelationId } from "./telemetry.chain";
 import type {
   LiveConfig,
@@ -97,8 +98,9 @@ function describeRunError(error: unknown): string | null {
 
 function createPersistenceContext(): {
   closed: boolean;
+  apm: ReturnType<typeof createApm> | undefined;
 } {
-  return { closed: false };
+  return { closed: false, apm: undefined };
 }
 
 const liveService = defineResource({
@@ -129,6 +131,8 @@ const liveService = defineResource({
       persistenceStore = restored.persistence;
       lastSequence = restored.lastSequence;
     }
+    const apm = createApm(c.apm);
+    context.apm = apm;
     // Seed above persisted entries even after a backwards clock adjustment.
     const nextSequence = createSequenceClock(lastSequence);
 
@@ -161,6 +165,7 @@ const liveService = defineResource({
         parsePersistedEntry(record);
         commitPersistence(persistenceStore, record, maxEntries);
       }
+      if (record.kind === "run") apm.record(record.entry);
       buffers.append(record);
       notifyRecordListeners(record.kind);
     };
@@ -171,6 +176,7 @@ const liveService = defineResource({
     };
 
     return {
+      getApm: (windowMinutes, scope) => apm.snapshot(windowMinutes, scope),
       recordLog(level, message, data, correlationId, sourceId) {
         append({
           kind: "log",
@@ -253,6 +259,7 @@ const liveService = defineResource({
   },
   async dispose(_instance, _config, _deps, context) {
     context.closed = true;
+    context.apm?.close();
   },
 });
 
@@ -270,6 +277,7 @@ export const live = defineResource({
   },
   register: (config: LiveConfig) => [
     liveService.with({
+      apm: config?.apm,
       maxEntries: config?.maxEntries,
       persistence: config?.persistence,
     }),

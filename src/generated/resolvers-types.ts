@@ -52,6 +52,24 @@ export type AllFileContentsArgs = {
   startLine: InputMaybe<Scalars['Int']['input']>;
 };
 
+export type ApmScope =
+  | 'all'
+  | 'direct'
+  | 'nested';
+
+/** Exact nearest-rank percentiles of retained task completions. Durations include nested work; hooks are excluded. */
+export type ApmSnapshot = {
+  __typename?: 'ApmSnapshot';
+  enabled: Scalars['Boolean']['output'];
+  maxSamples: Scalars['Int']['output'];
+  oldestTimestampMs: Maybe<Scalars['Float']['output']>;
+  retainedSamples: Scalars['Int']['output'];
+  scope: ApmScope;
+  storage: Scalars['String']['output'];
+  tasks: Array<TaskPerformance>;
+  windowMinutes: Scalars['Int']['output'];
+};
+
 /** An async context definition for async call-chain data propagation */
 export type AsyncContext = BaseElement & {
   __typename?: 'AsyncContext';
@@ -445,6 +463,7 @@ export type IsolationWhitelistEntry = {
 /** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
 export type Live = {
   __typename?: 'Live';
+  apm: Maybe<ApmSnapshot>;
   /** CPU-related statistics */
   cpu: CpuStats;
   /** Event emissions with optional cursor (afterSequence or afterTimestamp), filters and last N */
@@ -465,6 +484,13 @@ export type Live = {
   runs: Array<RunRecord>;
   /** Host CPU, RAM, platform and Node.js version */
   systemInfo: SystemInfo;
+};
+
+
+/** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
+export type LiveApmArgs = {
+  scope: InputMaybe<ApmScope>;
+  windowMinutes: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1517,6 +1543,19 @@ export type TaskMiddlewareUsage = {
   subtreeOwnerId: Maybe<Scalars['ID']['output']>;
 };
 
+export type TaskPerformance = {
+  __typename?: 'TaskPerformance';
+  count: Scalars['Int']['output'];
+  errorRate: Scalars['Float']['output'];
+  failures: Scalars['Int']['output'];
+  maxMs: Scalars['Float']['output'];
+  meanMs: Scalars['Float']['output'];
+  p50Ms: Scalars['Float']['output'];
+  p95Ms: Scalars['Float']['output'];
+  p99Ms: Scalars['Float']['output'];
+  taskId: Scalars['String']['output'];
+};
+
 export type WithIndex<TObject> = TObject & Record<string, any>;
 export type ResolversObject<TObject> = WithIndex<TObject>;
 
@@ -1594,6 +1633,8 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   All: ResolverTypeWrapper<Omit<All, 'tags'> & { tags: Maybe<Array<ResolversTypes['Tag']>> }>;
+  ApmScope: ApmScope;
+  ApmSnapshot: ResolverTypeWrapper<ApmSnapshot>;
   AsyncContext: ResolverTypeWrapper<Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<ResolversTypes['Resource']>, requiredBy: Array<ResolversTypes['BaseElement']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['BaseElement']> }>;
   BaseElement: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['BaseElement']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
@@ -1671,11 +1712,13 @@ export type ResolversTypes = ResolversObject<{
   TaskInterceptorOwnersEntry: ResolverTypeWrapper<TaskInterceptorOwnersEntry>;
   TaskMiddleware: ResolverTypeWrapper<Omit<TaskMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: ResolversTypes['MiddlewareAutoApply'], emits: Array<ResolversTypes['Event']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Task']>, usedByDetailed: Array<ResolversTypes['MiddlewareTaskUsage']> }>;
   TaskMiddlewareUsage: ResolverTypeWrapper<Omit<TaskMiddlewareUsage, 'node'> & { node: ResolversTypes['TaskMiddleware'] }>;
+  TaskPerformance: ResolverTypeWrapper<TaskPerformance>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
   All: Omit<All, 'tags'> & { tags: Maybe<Array<ResolversParentTypes['Tag']>> };
+  ApmSnapshot: ApmSnapshot;
   AsyncContext: Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<ResolversParentTypes['Resource']>, requiredBy: Array<ResolversParentTypes['BaseElement']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['BaseElement']> };
   BaseElement: ResolversInterfaceTypes<ResolversParentTypes>['BaseElement'];
   Boolean: Scalars['Boolean']['output'];
@@ -1746,6 +1789,7 @@ export type ResolversParentTypes = ResolversObject<{
   TaskInterceptorOwnersEntry: TaskInterceptorOwnersEntry;
   TaskMiddleware: Omit<TaskMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: ResolversParentTypes['MiddlewareAutoApply'], emits: Array<ResolversParentTypes['Event']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Task']>, usedByDetailed: Array<ResolversParentTypes['MiddlewareTaskUsage']> };
   TaskMiddlewareUsage: Omit<TaskMiddlewareUsage, 'node'> & { node: ResolversParentTypes['TaskMiddleware'] };
+  TaskPerformance: TaskPerformance;
 }>;
 
 export type AllResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['All'] = ResolversParentTypes['All']> = ResolversObject<{
@@ -1760,6 +1804,18 @@ export type AllResolvers<ContextType = CustomGraphQLContext, ParentType extends 
   tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
   visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ApmSnapshotResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ApmSnapshot'] = ResolversParentTypes['ApmSnapshot']> = ResolversObject<{
+  enabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  maxSamples: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  oldestTimestampMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  retainedSamples: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  scope: Resolver<ResolversTypes['ApmScope'], ParentType, ContextType>;
+  storage: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  tasks: Resolver<Array<ResolversTypes['TaskPerformance']>, ParentType, ContextType>;
+  windowMinutes: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1961,6 +2017,7 @@ export type IsolationWhitelistEntryResolvers<ContextType = CustomGraphQLContext,
 }>;
 
 export type LiveResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Live'] = ResolversParentTypes['Live']> = ResolversObject<{
+  apm: Resolver<Maybe<ResolversTypes['ApmSnapshot']>, ParentType, ContextType, LiveApmArgs>;
   cpu: Resolver<ResolversTypes['CpuStats'], ParentType, ContextType>;
   emissions: Resolver<Array<ResolversTypes['EmissionEntry']>, ParentType, ContextType, LiveEmissionsArgs>;
   errors: Resolver<Array<ResolversTypes['ErrorEntry']>, ParentType, ContextType, LiveErrorsArgs>;
@@ -2478,8 +2535,22 @@ export type TaskMiddlewareUsageResolvers<ContextType = CustomGraphQLContext, Par
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type TaskPerformanceResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskPerformance'] = ResolversParentTypes['TaskPerformance']> = ResolversObject<{
+  count: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  errorRate: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  failures: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  maxMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  meanMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  p50Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  p95Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  p99Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  taskId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   All: AllResolvers<ContextType>;
+  ApmSnapshot: ApmSnapshotResolvers<ContextType>;
   AsyncContext: AsyncContextResolvers<ContextType>;
   BaseElement: BaseElementResolvers<ContextType>;
   CoverageInfo: CoverageInfoResolvers<ContextType>;
@@ -2543,5 +2614,6 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   TaskInterceptorOwnersEntry: TaskInterceptorOwnersEntryResolvers<ContextType>;
   TaskMiddleware: TaskMiddlewareResolvers<ContextType>;
   TaskMiddlewareUsage: TaskMiddlewareUsageResolvers<ContextType>;
+  TaskPerformance: TaskPerformanceResolvers<ContextType>;
 }>;
 

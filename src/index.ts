@@ -93,3 +93,10 @@ export type {
 export type { DevConfig } from "./resources/dev.resource";
 
 export { sqlitePersistenceResource };
+
+export type {
+  ApmConfig,
+  ApmScope,
+  ApmSnapshot,
+  TaskPerformance,
+} from "./resources/live/apm";

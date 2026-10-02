@@ -120,6 +120,10 @@ export interface RunQueryOptions extends LiveCursorOptions {
  * shorthand for `{ afterTimestamp: number }`.
  */
 export interface Live {
+  getApm?(
+    windowMinutes?: number,
+    scope?: import("./apm").ApmScope
+  ): import("./apm").ApmSnapshot;
   getLogs(options?: number | LogQueryOptions): LogEntry[];
   getEmissions(options?: number | EmissionQueryOptions): EmissionEntry[];
   getErrors(options?: number | ErrorQueryOptions): ErrorEntry[];

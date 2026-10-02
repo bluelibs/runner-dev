@@ -117,6 +117,57 @@ Notes:
 - this works well in CI too: upload the export folder as a build artifact and inspect it after the pipeline finishes
 - in this repository, `npm run play:export` is the same pattern wired to the reference commerce app used by `npm run play`
 
+
+### Opt-in task performance (APM)
+
+Enable with `dev.with({ apm: true })` (also supported by `resources.live.with()`).
+The Live UI has separate **Execution & traces** and **Task performance · APM** views.
+APM records every completed application task, including failed calls, and excludes
+hooks and internal GraphQL tasks. Timing uses a monotonic clock. Duration is inclusive
+of child work; nested durations overlap and must not be summed as request latency.
+Direct calls have no parent task or event; nested calls run inside a task or event.
+
+```ts
+const devTools = dev.with({
+  apm: {
+    maxSamples: 10_000,
+    storage: "auto", // default; use "memory" to avoid filesystem writes
+    sqliteFile: "./.runner-dev/apm.sqlite", // default; one file per runtime
+  },
+});
+```
+
+SQLite is loaded lazily from Node's built-in `node:sqlite`. If the builtin is
+unavailable, collection falls back to memory and the UI reports the actual storage.
+Other database failures throw. SQLite samples restore on restart and are committed
+synchronously before publication; disposal closes the database. Gitignore the database
+directory. APM uses a separate bounded sample history from trace `maxEntries` and
+`persistence`; configuring live persistence alone does not enable APM. Only task ID,
+completion timestamp, duration, success and direct/nested classification are stored;
+inputs, outputs, error text and correlation IDs are excluded.
+
+The dashboard filters all/direct/nested calls and 5-minute, 30-minute, 1-hour or
+24-hour windows, sorts tasks by p95 and shows calls, failure rate, mean, p50, p95,
+p99 and maximum. Percentiles use exact nearest rank over retained completions in the
+selected window, including failures. Small samples are labeled. The global cap
+(default 10,000, configurable up to 1,000,000) can shorten the selected window during
+high traffic; the UI reports the retained count and oldest retained completion.
+These are retained-window statistics, not lifetime totals or sampled distributed traces.
+
+```graphql
+query TaskPerformance {
+  live {
+    apm(windowMinutes: 30, scope: direct) {
+      enabled storage maxSamples retainedSamples oldestTimestampMs
+      tasks { taskId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
+    }
+  }
+}
+```
+
+`scope` is `all` (default), `direct` or `nested`. `windowMinutes` defaults to 30
+and accepts integers from 1 through 1440. APM is disabled by default.
+
 ## Security Defaults
 
 - The server listens on `127.0.0.1` unless `host` is set. On every bind, requests whose `Host` header is a DNS name other than `localhost`, the configured `host` or an `allowedHosts` entry get `403` (DNS-rebinding guard); IP addresses always pass, while hosts-file aliases and `*.localhost` names are refused unless listed.

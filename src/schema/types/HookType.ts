@@ -153,6 +153,7 @@ export const HookType = new GraphQLObjectType({
         ctx.live.getRuns({
           ...ctx.introspector.buildRunOptionsForHook(node.id, args),
           afterSequence: args.afterSequence ?? undefined,
+          beforeSequence: args.beforeSequence ?? undefined,
         }),
     },
     ...baseElementCommonFields(),

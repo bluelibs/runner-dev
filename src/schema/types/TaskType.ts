@@ -267,6 +267,7 @@ export const TaskType = new GraphQLObjectType<Task, CustomGraphQLContext>({
         ctx.live.getRuns({
           ...ctx.introspector.buildRunOptionsForTask(node.id, args),
           afterSequence: args.afterSequence ?? undefined,
+          beforeSequence: args.beforeSequence ?? undefined,
         }),
     },
 

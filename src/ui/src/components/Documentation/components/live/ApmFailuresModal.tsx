@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BaseModal } from "../modals";
 import { TraceView } from "./TraceView";
 import {
   loadFailureDetails,
   loadRetainedTrace,
   type FailureSelection,
-  type FailureDetails,
+  mergeFailurePages,
+  type FailureDetailsPage,
   type RetainedTrace,
 } from "./apmFailureDetails";
+import { VirtualFailureList } from "./VirtualFailureList";
 import "./ApmFailuresModal.scss";
 
 export function ApmFailuresModal({
@@ -17,9 +19,12 @@ export function ApmFailuresModal({
   selection: FailureSelection;
   onClose: () => void;
 }) {
-  const [failures, setFailures] = useState<FailureDetails[] | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [limit, setLimit] = useState(50);
+  const [retryKey, setRetryKey] = useState(0);
+  const [page, setPage] = useState<FailureDetailsPage | null>(null);
+  const failures = page?.failures;
+  const hasMore = page?.hasMore ?? false;
+  const inFlight = useRef(false);
+  const generation = useRef(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [trace, setTrace] = useState<{
@@ -29,11 +34,15 @@ export function ApmFailuresModal({
   const [loadingTrace, setLoadingTrace] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
+    generation.current++;
+    setPage(null);
+    setError(null);
+    setLoadingMore(false);
+    inFlight.current = false;
     loadFailureDetails(selection)
       .then((entries) => {
         if (active) {
-          setFailures(entries.failures);
-          setHasMore(entries.hasMore);
+          setPage(entries);
         }
       })
       .catch((cause) => {
@@ -46,26 +55,31 @@ export function ApmFailuresModal({
       });
     return () => {
       active = false;
+      generation.current++;
     };
-  }, [selection]);
+  }, [selection, retryKey]);
   async function loadMore() {
+    if (inFlight.current || !page?.hasMore) return;
+    const currentGeneration = generation.current;
+    inFlight.current = true;
     setLoadingMore(true);
     setError(null);
-    const nextLimit = limit + 50;
     try {
-      // Re-read a larger recent window to keep run/error joins intact across page boundaries.
-      const page = await loadFailureDetails(selection, nextLimit);
-      setFailures(page.failures);
-      setHasMore(page.hasMore);
-      setLimit(nextLimit);
+      const next = await loadFailureDetails(selection, page.cursor);
+      if (currentGeneration === generation.current)
+        setPage((current) => mergeFailurePages(selection, current, next));
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Could not load older failures."
-      );
+      if (currentGeneration === generation.current)
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Could not load older failures."
+        );
     } finally {
-      setLoadingMore(false);
+      if (currentGeneration === generation.current) {
+        inFlight.current = false;
+        setLoadingMore(false);
+      }
     }
   }
   async function openTrace(correlationId: string) {
@@ -97,54 +111,34 @@ export function ApmFailuresModal({
           and error details have separate retention.
         </p>
         {error && <p role="alert">{error}</p>}
+        {!page && error && (
+          <button onClick={() => setRetryKey((value) => value + 1)}>
+            Retry loading errors
+          </button>
+        )}
         {!failures && !error && <p>Loading failure details…</p>}
         {failures?.length === 0 && (
           <p>
-            No matching failure details were found in the latest {limit}{" "}
-            retained runs and errors. APM counts can remain after logs and
-            execution details expire.
+            No matching failure details were found in the loaded pages. APM
+            counts can remain after logs and execution details expire.
           </p>
         )}
-        {hasMore && (
+        {error && hasMore && (
           <button disabled={loadingMore} onClick={() => void loadMore()}>
-            {loadingMore ? "Loading older errors…" : "Load older errors"}
+            Retry loading older errors
           </button>
         )}
-        {failures && !hasMore && (
-          <p className="apm-failures__note">
-            All matching retained details loaded.
-          </p>
+        {failures && (
+          <VirtualFailureList
+            failures={failures}
+            hasMore={hasMore}
+            loading={loadingMore}
+            error={!!error}
+            onLoadMore={() => void loadMore()}
+            onTrace={(id) => void openTrace(id)}
+            loadingTrace={loadingTrace}
+          />
         )}
-        {failures?.map((failure) => (
-          <article key={failure.sequence} className="apm-failures__entry">
-            <div className="apm-failures__heading">
-              <time>{new Date(failure.timestampMs).toLocaleString()}</time>
-              {failure.correlationId ? (
-                <button
-                  disabled={loadingTrace !== null}
-                  onClick={() => {
-                    if (failure.correlationId)
-                      void openTrace(failure.correlationId);
-                  }}
-                >
-                  {loadingTrace === failure.correlationId
-                    ? "Loading trace…"
-                    : "View trace & logs"}
-                </button>
-              ) : (
-                <span>No correlation ID retained</span>
-              )}
-            </div>
-            <strong>{failure.message}</strong>
-            {failure.correlationId && <code>{failure.correlationId}</code>}
-            {failure.stack && (
-              <details>
-                <summary>Error stack</summary>
-                <pre>{failure.stack}</pre>
-              </details>
-            )}
-          </article>
-        ))}
         {trace && (
           <p className="apm-failures__note">
             Trace shows up to 200 retained records per category.

@@ -429,4 +429,6 @@ ISO `cutoffDate` and a Runner `ApmPersistence` resource (`load`, `append`, `flus
 The ClickHouse provider is `resources.clickHouseApmPersistence`; it archives compact
 samples beyond the dashboard cap with its own TTL. It does not replace synchronous
 live error/log persistence. Failure details begin with 50 records per category;
-Load older errors expands that window without changing the selected end time.
+Infinite scrolling loads fixed-size older pages with `beforeSequence` cursors while preserving the selected end time. The variable-height virtualized list mounts only the viewport and overscan; expanded stacks and correlation links remain available. Failed page loads require explicit retry.
+
+`beforeSequence: Float` is an exclusive upper bound on all live list fields and task/hook run lists. Without an after cursor, `last` selects the newest matching N below it. With an after cursor, it keeps the existing oldest-first semantics inside both bounds. Sequence cursors avoid timestamp collisions; evicted records remain unavailable.

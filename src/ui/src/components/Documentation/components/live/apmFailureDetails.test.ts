@@ -1,6 +1,7 @@
 import {
   loadFailureDetails,
   loadRetainedTrace,
+  mergeFailurePages,
   type FailureSelection,
 } from "./apmFailureDetails";
 import { graphqlRequest } from "../../utils/graphqlClient";
@@ -47,7 +48,10 @@ it("joins retained failure stacks by correlation and preserves one row per execu
     },
   ]);
   expect(request).toHaveBeenCalledWith(expect.any(String), {
-    limit: 50,
+    beforeRuns: null,
+    beforeErrors: null,
+    readRuns: true,
+    readErrors: true,
     runs: { nodeIds: [selection.nodeId], nodeKinds: ["TASK"], ok: false },
     errors: { sourceIds: [selection.nodeId], sourceKinds: ["TASK"] },
   });
@@ -112,7 +116,7 @@ it("loads all trace categories through a narrow correlation filter", async () =>
   });
 });
 
-it("reports a full retained window and permits loading more than 50 failures", async () => {
+it("pages backward with fixed-size requests and merges all 75 failures", async () => {
   const runs = Array.from({ length: 75 }, (_, i) => ({
     ...run,
     sequence: i + 1,
@@ -121,13 +125,28 @@ it("reports a full retained window and permits loading more than 50 failures", a
   request.mockResolvedValueOnce({
     live: { runs: runs.slice(-50), errors: [] },
   });
-  expect((await loadFailureDetails(selection)).hasMore).toBe(true);
-  request.mockResolvedValueOnce({ live: { runs, errors: [] } });
-  const page = await loadFailureDetails(selection, 100);
-  expect(page.failures).toHaveLength(75);
-  expect(page.hasMore).toBe(false);
+  const first = await loadFailureDetails(selection);
+  expect(first.cursor).toEqual({ runs: 26, errors: null });
+  request.mockResolvedValueOnce({ live: { runs: runs.slice(0, 25) } });
+  const second = await loadFailureDetails(selection, first.cursor);
+  const merged = mergeFailurePages(selection, first, second);
+  expect(merged.failures).toHaveLength(75);
+  expect(merged.hasMore).toBe(false);
   expect(request).toHaveBeenLastCalledWith(
     expect.any(String),
-    expect.objectContaining({ limit: 100 })
+    expect.objectContaining({ beforeRuns: 26, readErrors: false })
   );
+  expect(request.mock.calls[1][0]).toContain("last: 50");
+});
+it("joins run/error pairs split across pages without duplicate failure cards", async () => {
+  request.mockResolvedValueOnce({ live: { runs: [run], errors: [] } });
+  const first = await loadFailureDetails(selection);
+  request.mockResolvedValueOnce({ live: { runs: [], errors: [error] } });
+  const second = await loadFailureDetails(selection, {
+    runs: null,
+    errors: 10,
+  });
+  const merged = mergeFailurePages(selection, first, second);
+  expect(merged.failures).toHaveLength(1);
+  expect(merged.failures[0].stack).toBe(error.stack);
 });

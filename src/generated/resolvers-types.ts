@@ -434,6 +434,7 @@ export type HookFileContentsArgs = {
 export type HookRunsArgs = {
   afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
+  beforeSequence: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
 };
@@ -515,6 +516,7 @@ export type LiveApmArgs = {
 export type LiveEmissionsArgs = {
   afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
+  beforeSequence: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<EmissionFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
 };
@@ -524,6 +526,7 @@ export type LiveEmissionsArgs = {
 export type LiveErrorsArgs = {
   afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
+  beforeSequence: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<ErrorFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
 };
@@ -545,6 +548,7 @@ export type LiveGcArgs = {
 export type LiveLogsArgs = {
   afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
+  beforeSequence: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<LogFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
 };
@@ -554,6 +558,7 @@ export type LiveLogsArgs = {
 export type LiveRunsArgs = {
   afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
+  beforeSequence: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
 };
@@ -1479,6 +1484,7 @@ export type TaskFileContentsArgs = {
 export type TaskRunsArgs = {
   afterSequence: InputMaybe<Scalars['Float']['input']>;
   afterTimestamp: InputMaybe<Scalars['Float']['input']>;
+  beforeSequence: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<RunFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
 };

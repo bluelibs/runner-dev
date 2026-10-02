@@ -5,6 +5,7 @@ import { ApmFailuresModal } from "./ApmFailuresModal";
 import { loadFailureDetails, loadRetainedTrace } from "./apmFailureDetails";
 
 jest.mock("./apmFailureDetails", () => ({
+  ...jest.requireActual("./apmFailureDetails"),
   loadFailureDetails: jest.fn(),
   loadRetainedTrace: jest.fn(),
 }));
@@ -78,21 +79,28 @@ it("explains missing correlation and expired detailed history", async () => {
 it("loads older errors on demand and preserves the list if loading fails", async () => {
   const first = { sequence: 2, timestampMs: 90_000, message: "First error" };
   const older = { sequence: 1, timestampMs: 89_000, message: "Older error" };
-  failures.mockResolvedValueOnce({ failures: [first], hasMore: true });
+  failures.mockResolvedValueOnce({
+    failures: [first],
+    hasMore: true,
+    cursor: { runs: 2, errors: null },
+  });
   failures.mockRejectedValueOnce(new Error("Connection unavailable"));
   failures.mockResolvedValueOnce({ failures: [first, older], hasMore: false });
   render(<ApmFailuresModal selection={selection} onClose={() => undefined} />);
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Load older errors" })
-  );
+
   expect((await screen.findByRole("alert")).textContent).toBe(
     "Connection unavailable"
   );
   expect(screen.getByText("First error")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Load older errors" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Retry loading older errors" })
+  );
   expect(await screen.findByText("Older error")).toBeTruthy();
-  expect(failures).toHaveBeenLastCalledWith(selection, 100);
+  expect(failures).toHaveBeenLastCalledWith(selection, {
+    runs: 2,
+    errors: null,
+  });
   expect(
-    screen.queryByRole("button", { name: "Load older errors" })
+    screen.queryByRole("button", { name: "Retry loading older errors" })
   ).toBeNull();
 });

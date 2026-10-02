@@ -83,6 +83,8 @@ export interface LiveCursorOptions {
   afterTimestamp?: number;
   /** Exclusive sequence cursor; lossless even when entries share a millisecond. */
   afterSequence?: number;
+  /** Exclusive sequence cursor for newest-first backward pagination. */
+  beforeSequence?: number;
   /** Maximum number of entries to return. */
   last?: number;
 }

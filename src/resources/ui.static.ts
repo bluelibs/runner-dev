@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from "express";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
+import { createTextResponse } from "./textResponse";
 import {
   applyDocsUiRuntimeReplacements,
   type DocsUiRuntimeConfig,
@@ -34,29 +35,29 @@ export function createUiStaticRouter(
 
   // Keyed by the resolved file, not the raw request path: many spellings
   // (`/a/../x.js`, `//x.js`) reach one file and must not grow the cache.
-  const jsCache = new Map<string, string>();
+  const assetCache = new Map<string, ReturnType<typeof createTextResponse>>();
 
-  router.get(/.*\.js$/, async (req: Request, res: Response, next) => {
+  router.get(/.*\.(js|css)$/, async (req: Request, res: Response, next) => {
     const filePath = resolveUiAssetPath(uiDir, req.path);
     // Outside the UI directory: let express.static reject it.
     if (!filePath) return next();
     try {
-      const cached = jsCache.get(filePath);
+      const cached = assetCache.get(filePath);
       if (cached !== undefined) {
-        res.setHeader("Content-Type", "application/javascript");
-        res.setHeader("Cache-Control", "no-store");
-        return res.send(cached);
+        return await cached(req, res);
       }
 
-      const data = applyDocsUiRuntimeReplacements(
-        await fs.readFile(filePath, "utf8"),
-        runtimeConfig
+      const source = await fs.readFile(filePath, "utf8");
+      const isJavaScript = path.extname(filePath) === ".js";
+      const data = isJavaScript
+        ? applyDocsUiRuntimeReplacements(source, runtimeConfig)
+        : source;
+      const respond = createTextResponse(
+        data,
+        isJavaScript ? "application/javascript" : "text/css"
       );
-
-      jsCache.set(filePath, data);
-      res.setHeader("Content-Type", "application/javascript");
-      res.setHeader("Cache-Control", "no-store");
-      return res.send(data);
+      assetCache.set(filePath, respond);
+      return await respond(req, res);
     } catch (_e) {
       return next();
     }

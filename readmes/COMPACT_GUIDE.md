@@ -4,6 +4,14 @@ Runner-Dev is the developer-facing toolkit for inspecting, querying, and debuggi
 
 It also supports a static export path through `exportDocs(app, { output?, overwrite? })` when you want the visual catalog without keeping a live server around.
 
+## Large graph performance
+
+Docs keep every registered task, resource and other element; `maxEntries` caps retained live telemetry only. Embedded Runner definitions in config, context, tag and middleware display values are shown as `{ "$runner": "resource", "id": "..." }` references instead of expanding their dependency graphs. Configured references retain their settings. Display previews allow 10,000 values, 40 nested levels and 128,000 total string characters; larger previews include `[Truncated]` markers. These display limits do not change runtime configuration or cap the graph.
+
+Live `/docs/data` and exported catalogs carry compact tag relations; the bundled UI reconstructs them from the full element lists. Older exports still load. GraphQL tag queries retain their existing relation shape.
+
+The live docs response is prepared once for simultaneous requests and reused for five seconds for the current namespace. Hot swaps and coverage changes can take up to five seconds to appear; failed builds are retried. Eligible HTTP responses, including GraphQL and Durable API JSON, negotiate compression by default (1 KiB threshold, fast gzip/deflate and Brotli). SSE stays uncompressed for immediate delivery. Docs JSON and UI JavaScript/CSS reuse prepared gzip when accepted and `Cache-Control: private, no-cache` with ETags. Authentication still runs before every request, including revalidation. Reverse proxies should forward `Accept-Encoding` and `If-None-Match`, and preserve `Content-Encoding`, `Vary`, `ETag` and `Cache-Control`; a proxy that forces `no-store` or strips these headers bypasses the transport benefits.
+
 ## Use This When
 
 - The task touches `/docs/data`, docs UI, chat context, agent-facing documentation, or the topology graph / blast-radius / mindmap views.

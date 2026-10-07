@@ -61,8 +61,8 @@ function createMockReqRes() {
   const req = { query: {} } as Request;
   const res = {
     setHeader: (_name: string, _value: string) => res,
-    json: (payload: any) => {
-      payloadRef.value = payload;
+    send: (payload: string) => {
+      payloadRef.value = JSON.parse(payload);
       return res;
     },
   } as unknown as Response;

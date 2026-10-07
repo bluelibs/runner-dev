@@ -2,6 +2,7 @@ import express from "express";
 import type { Store } from "@bluelibs/runner";
 import { buildDocsPagePayload } from "../docsPayload";
 import { Introspector } from "../models/Introspector";
+import { createTextResponse } from "../textResponse";
 
 export interface DocsRouteConfig {
   store: Store;
@@ -10,9 +11,7 @@ export interface DocsRouteConfig {
     info: (message: string) => void;
     warn?: (message: string) => void;
   };
-  // Optional provider to obtain GraphQL SDL string
   getGraphqlSdl?: () => string;
-  // Optional coverage service to pre-populate element coverage percentage
   coverage?: {
     getSummaryForPath: (
       p: string | null | undefined
@@ -20,28 +19,52 @@ export interface DocsRouteConfig {
   };
 }
 
-// Serve JSON data for docs UI to fetch client-side
+// Hot swaps and coverage changes become visible within this short window.
+const DOCS_CACHE_MS = 5_000;
+
 export function createDocsDataRouteHandler(config: DocsRouteConfig) {
+  let cache:
+    | {
+        namespacePrefix: string | undefined;
+        expiresAt: number;
+        pending: Promise<ReturnType<typeof createTextResponse>>;
+      }
+    | undefined;
+
   return async (req: express.Request, res: express.Response) => {
-    const { introspector, logger } = config;
-    const namespacePrefix = req.query.namespace as string | undefined;
-
-    const message = namespacePrefix
-      ? ` with namespace: ${namespacePrefix}`
-      : "";
-    logger.info(`Serving documentation data${message}.`);
-
-    const payload = await buildDocsPagePayload({
-      store: config.store,
-      introspector,
-      namespacePrefix,
-      mode: "live",
-      logger,
-      coverage: config.coverage,
-      getGraphqlSdl: config.getGraphqlSdl,
-    });
-
-    res.setHeader("Content-Type", "application/json");
-    res.json(payload);
+    const namespacePrefix =
+      typeof req.query.namespace === "string" ? req.query.namespace : undefined;
+    if (
+      !cache ||
+      cache.namespacePrefix !== namespacePrefix ||
+      Date.now() >= cache.expiresAt
+    ) {
+      const entry = {
+        namespacePrefix,
+        expiresAt: Infinity,
+        pending: buildDocsPagePayload({
+          ...config,
+          namespacePrefix,
+          mode: "live",
+        })
+          .then((payload) => {
+            const response = createTextResponse(
+              JSON.stringify(payload),
+              "application/json; charset=utf-8"
+            );
+            entry.expiresAt = Date.now() + DOCS_CACHE_MS;
+            return response;
+          })
+          .catch((error: unknown) => {
+            // Failed builds must not poison subsequent requests.
+            if (cache === entry) cache = undefined;
+            throw error;
+          }),
+      };
+      cache = entry;
+      config.logger.info("Building documentation data.");
+    }
+    const respond = await cache.pending;
+    await respond(req, res);
   };
 }

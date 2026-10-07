@@ -69,6 +69,7 @@ export type SerializedIntrospector = {
   events: Event[];
   middlewares: Middleware[];
   tags: Tag[];
+  compactTagRelations?: boolean;
   errors?: ErrorModel[];
   asyncContexts?: AsyncContextModel[];
   diagnostics?: DiagnosticItem[];
@@ -441,6 +442,26 @@ export class Introspector {
     this.asyncContextMap = buildIdMap(this.asyncContexts);
 
     this.finalizeDerivedState();
+
+    if (data.compactTagRelations) {
+      // Reconstruct relations from the authoritative element lists. Older
+      // snapshots keep their embedded relations and remain readable.
+      this.tags = this.tags.map((tag) =>
+        stampElementKind(
+          {
+            ...tag,
+            tasks: this.getTasksWithTag(tag.id),
+            hooks: this.getHooksWithTag(tag.id),
+            resources: this.getResourcesWithTag(tag.id),
+            taskMiddlewares: this.getTaskMiddlewaresWithTag(tag.id),
+            resourceMiddlewares: this.getResourceMiddlewaresWithTag(tag.id),
+            events: this.getEventsWithTag(tag.id),
+            errors: this.getErrorsWithTag(tag.id),
+          },
+          "TAG"
+        )
+      );
+    }
 
     this.tagMap = new Map<string, Tag>();
     for (const tag of this.tags) {
@@ -1505,14 +1526,34 @@ export class Introspector {
     return taskStoreEntry.interceptors;
   }
 
-  serialize(): SerializedIntrospector {
+  serialize(options?: {
+    compactTagRelations?: boolean;
+  }): SerializedIntrospector {
     return {
       tasks: this.tasks,
       hooks: this.hooks,
       resources: this.resources,
       events: this.events,
       middlewares: this.middlewares,
-      tags: this.tags,
+      ...(options?.compactTagRelations ? { compactTagRelations: true } : {}),
+      tags: options?.compactTagRelations
+        ? this.tags.map((tag) => ({
+            id: tag.id,
+            meta: tag.meta,
+            filePath: tag.filePath,
+            configSchema: tag.configSchema,
+            targets: tag.targets,
+            isPrivate: tag.isPrivate,
+            visibilityReason: tag.visibilityReason,
+            tasks: [],
+            hooks: [],
+            resources: [],
+            taskMiddlewares: [],
+            resourceMiddlewares: [],
+            events: [],
+            errors: [],
+          }))
+        : this.tags,
       errors: this.errors,
       asyncContexts: this.asyncContexts,
       diagnostics: this.getDiagnostics(),

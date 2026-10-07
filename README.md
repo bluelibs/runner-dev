@@ -13,6 +13,16 @@ The way it works, is that this is a resource that opens a graphql server which o
 
 If your runner primitives expose `toJSONSchema()` (for example matcher-based normalized schemas), runner-dev uses that as first-class schema export. `zod` schemas are also supported and converted to JSON Schema.
 
+## Large graph performance
+
+Docs keep every registered task, resource and other element; `maxEntries` caps retained live telemetry only. Embedded Runner definitions in config, context, tag and middleware display values are shown as `{ "$runner": "resource", "id": "..." }` references instead of expanding their dependency graphs. Configured references retain their settings. Display previews allow 10,000 values, 40 nested levels and 128,000 total string characters; larger previews include `[Truncated]` markers. These display limits do not change runtime configuration or cap the graph.
+
+Live `/docs/data` and exported catalogs carry compact tag relations; the bundled UI reconstructs them from the full element lists. Older exports still load. GraphQL tag queries retain their existing relation shape.
+
+The live docs response is prepared once for simultaneous requests and reused for five seconds for the current namespace. Hot swaps and coverage changes can take up to five seconds to appear; failed builds are retried. Eligible HTTP responses, including GraphQL and Durable API JSON, negotiate compression by default (1 KiB threshold, fast gzip/deflate and Brotli). SSE stays uncompressed for immediate delivery. Docs JSON and UI JavaScript/CSS reuse prepared gzip when accepted and `Cache-Control: private, no-cache` with ETags. Authentication still runs before every request, including revalidation. Reverse proxies should forward `Accept-Encoding` and `If-None-Match`, and preserve `Content-Encoding`, `Vary`, `ETag` and `Cache-Control`; a proxy that forces `no-store` or strips these headers bypasses the transport benefits.
+
+See [the repeatable large-graph simulation](readmes/DOCS_PERFORMANCE.md) for measured payload sizes and methodology.
+
 ## Install
 
 ```bash

@@ -1,16 +1,26 @@
 # Changelog
 
-Notable changes to `@bluelibs/runner-dev`. Version numbers follow `@bluelibs/runner`, so the number for a release is chosen when it ships; until then, changes collect under "Unreleased".
+Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release ships; until then, changes collect under "Unreleased".
 
 ## Unreleased
 
+## 6.9.0 — 2026-10-07
+
 ### Added
 
+- **Opt-in task and hook APM** through `dev.with({ apm: true })`, with separate task/hook performance views, retained-window percentiles, direct/nested filtering and failure trace drill-down. APM stays disabled by default; the Logs tab separates log inspection from performance metrics.
+- **APM persistence and retention** with SQLite, ClickHouse, Redis and custom resource providers. Count, byte and date retention apply to stored samples and dashboard queries; remote adapters use bounded batches and expose queue/write failures. Redis uses optional `ioredis`; ClickHouse uses the native HTTP client.
+- **Durable Workflows dashboard** at `/durable`, discovered from the application's existing runtimes. It supports workflow and execution inspection, signals, schedules and supported operator actions behind the existing HTTP authentication and Host guards. Static catalogs do not expose this live dashboard.
 - **The docs UI works on phones.** At 768px and below the sidebar becomes a slide-in drawer behind a top bar with menu and search buttons; it closes when you navigate, tap outside it or press `Esc`. The layout is pure CSS, so server-rendered pages are correct before hydration and desktop is unchanged.
 - Below 560px, overview tables stack into one card per element (title, usage, full id, description), element card headers stack their actions under the title, the Diagnostics tabs become a swipeable row, and the overview tiles sit two per row.
 
 ### Changed
 
+- Newly generated projects depend on `@bluelibs/runner-dev` `^6.9.0`.
+- **Large docs graphs stay compact.** Config, context, tag and middleware display values replace embedded Runner definitions with `{ $runner, id }` references, preserving configured settings. Shared operator graphs no longer expand repeatedly inside root configuration. Display previews stop at 10,000 values, 40 levels and 128,000 string characters with explicit `[Truncated]` markers; registered elements are never capped.
+- Docs payloads and static catalogs omit duplicated tag element bodies. Hydration rebuilds all tag relations from the complete element lists; older catalogs remain readable and GraphQL keeps its existing tag relation shape.
+- `/docs/data` coalesces concurrent requests and reuses one prepared response for five seconds per current namespace. Hot swaps and coverage changes appear after that window. Failed builds retry normally.
+- Eligible HTTP responses, including GraphQL and Durable API JSON, negotiate compression by default above 1 KiB with fast settings. SSE stays uncompressed for immediate event delivery; non-compressible and `no-transform` responses are skipped. Docs JSON, JavaScript and CSS negotiate gzip, reuse compressed responses and support private ETag revalidation. Reverse proxies must forward encoding and conditional request headers to benefit from these transport optimizations.
 - **SQLite telemetry runs in worker threads.** Both APM samples and live logs, emissions, errors and runs use bounded queues with worker-owned connections and atomic batches. Recording accepts snapshots before their disk commit; graceful disposal drains them, while abrupt termination may lose the pending batch. Queue overflow and write failures remain visible. SQL, lock waits, restoration and retention no longer run on the application thread.
 - **Direct SQLite adapter callers must await `load()` and `close()`.** `sqlitePersistence({ file })` now exposes async restoration, `flush()` for disk acknowledgement, and `status()` with pending entries/errors. Runner-managed resources handle this automatically. Custom `LivePersistence.load()` may return a snapshot or a promise; `append()` still accepts synchronously and returns `undefined`.
 

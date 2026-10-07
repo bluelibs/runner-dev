@@ -26,7 +26,8 @@ describe("ui static router", () => {
       apiUrl: "http://x",
     }) as any;
     const jsLayer = router.stack.find(
-      (layer: any) => layer?.route && String(layer.route.path).includes("\\.js")
+      (layer: any) =>
+        layer?.route && String(layer.route.path).includes("js|css")
     );
     expect(jsLayer).toBeTruthy();
     const jsHandler = jsLayer.route.stack[0].handle;

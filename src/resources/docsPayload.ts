@@ -244,7 +244,9 @@ export async function buildDocsPagePayload(
   } = config;
 
   initializeFromStore(introspector, store);
-  const introspectorData = introspector.serialize();
+  const introspectorData = introspector.serialize({
+    compactTagRelations: true,
+  });
 
   enrichDurableTaskMetadata(introspectorData, introspector, store);
   if (coverage) {

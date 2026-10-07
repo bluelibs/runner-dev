@@ -31,6 +31,7 @@ import {
 import { isCodeExecutionAllowed } from "../schema/codeExecutionGate";
 import { allowedHostsSchema } from "./allowedHosts.schema";
 import { closeHttpServer } from "./httpServerShutdown";
+import { createResponseCompression } from "./responseCompression";
 import voyagerHtml from "./templates/voyager.html";
 import z from "zod";
 
@@ -152,6 +153,7 @@ export const serverResource = defineResource({
     // correlationId so that all logs / emissions / errors within the request
     // automatically receive a traceId — even outside task execution.
     app.use(createRequestCorrelationMiddleware());
+    app.use(createResponseCompression());
 
     app.use("/durable/api", createDurableRouter(store, logger));
 

@@ -87,7 +87,7 @@ describe("server password protection", () => {
             .get(assetUrl)
             .set("Authorization", AUTHORIZATION);
           expect(asset.status).toBe(200);
-          expect(asset.headers["cache-control"]).toBe("no-store");
+          expect(asset.headers["cache-control"]).toBe("private, no-cache");
           expect(asset.text).not.toContain(PASSWORD);
           const data = await request(server.httpServer)
             .get("/docs/data")

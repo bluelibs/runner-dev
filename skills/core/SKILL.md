@@ -17,6 +17,8 @@ Reference layout:
 - `./references/readmes/` mirrors the repo `readmes/` directory, including `COMPACT_GUIDE.md` and `API_REFERENCE.md` (a symlink in the repository, copied in when the package is packed)
 - When editing in the repository, change the originals and keep the links; `README.md`, this file, `./references/README.md` and `./references/readmes/COMPACT_GUIDE.md` are one documentation unit and change together
 
+Large graph docs use definition references and bounded display previews, complete element lists with compact tag relations, and five-second response reuse with gzip/private ETag revalidation. See the compact guide's "Large graph performance" section for limits and reverse proxy requirements. `maxEntries` limits telemetry history, not registered task definitions.
+
 Use this skill when the task involves:
 
 - the standalone `/durable` dashboard and `/durable/api` REST adapter (runtime discovery, workflow catalog, execution history/details, signals, schedules, operator actions),

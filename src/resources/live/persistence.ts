@@ -20,9 +20,12 @@ export interface LivePersistenceOptions {
 
 export interface LivePersistence {
   /** Trim each category to the cap before returning retained history. */
-  load(options: LivePersistenceOptions): LivePersistenceSnapshot;
+  load(
+    options: LivePersistenceOptions
+  ): LivePersistenceSnapshot | Promise<LivePersistenceSnapshot>;
   /**
-   * Commit the entry and evict overflow atomically before returning.
+   * Accept the entry synchronously, either committing it or enqueueing it in a bounded buffer.
+   * Buffered providers must drain accepted entries during disposal.
    * `undefined` (rather than `void`) prevents accidentally accepting async writes.
    */
   append(

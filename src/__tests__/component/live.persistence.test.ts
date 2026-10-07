@@ -94,7 +94,7 @@ describe("live persistence", () => {
     }
   });
 
-  test("commits immediately and caps disk and memory per category, including a smaller cap on reopen", async () => {
+  test("publishes queued records immediately and caps disk history after draining, including on reopen", async () => {
     const persistence = sqlitePersistenceResource.with({
       file: join(directory, "live.sqlite"),
     });
@@ -107,9 +107,10 @@ describe("live persistence", () => {
         store.recordError("source", "INTERNAL", `entry-${index}`);
         store.recordRun(`entry-${index}`, "HOOK", 1, true);
       }
+      await runtime.getResourceValue(sqlitePersistenceResource).flush();
       const reader = sqlitePersistence(persistence.config);
       try {
-        const entries = reader.load({ maxEntries: 3 }).entries;
+        const entries = (await reader.load({ maxEntries: 3 })).entries;
         for (const kind of ["log", "emission", "error", "run"]) {
           expect(entries.filter((record) => record.kind === kind)).toHaveLength(
             3
@@ -128,7 +129,7 @@ describe("live persistence", () => {
     }
     const reopened = sqlitePersistence(persistence.config);
     try {
-      const snapshot = reopened.load({ maxEntries: 1 });
+      const snapshot = await reopened.load({ maxEntries: 1 });
       expect(snapshot.entries).toHaveLength(4);
       expect(snapshot.entries.map((record) => record.entry.sequence)).toEqual(
         [...snapshot.entries.map((record) => record.entry.sequence)].sort(
@@ -250,7 +251,9 @@ describe("live persistence", () => {
     }
     const reopened = sqlitePersistence(persistence.config);
     try {
-      expect(reopened.load({ maxEntries: 3 }).entries[0].entry).toMatchObject({
+      expect(
+        (await reopened.load({ maxEntries: 3 })).entries[0].entry
+      ).toMatchObject({
         data: {
           count: "4",
           error: { name: "Error", message: "inner" },

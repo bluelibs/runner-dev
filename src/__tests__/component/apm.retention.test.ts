@@ -1,3 +1,4 @@
+import { initializeApm } from "../../resources/live/initializeApm";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -50,11 +51,11 @@ it("prunes expired SQLite samples before restoration and preserves sequence prog
   const file = join(directory, "apm.sqlite");
   const now = Date.now();
   try {
-    const original = createApm({ sqliteFile: file });
+    const original = await initializeApm({ sqliteFile: file });
     original.record(sample(now - 3 * 86_400_000));
     original.record(sample(now));
     await original.close();
-    const restored = createApm({
+    const restored = await initializeApm({
       sqliteFile: file,
       cutoffDate: new Date(now - 86_400_000).toISOString(),
     });
@@ -62,7 +63,7 @@ it("prunes expired SQLite samples before restoration and preserves sequence prog
     restored.record(sample(now + 1));
     expect(restored.snapshot(30, "all", now + 2).tasks[0].count).toBe(2);
     await restored.close();
-    const after = createApm({ sqliteFile: file });
+    const after = await initializeApm({ sqliteFile: file });
     expect(after.snapshot().retainedSamples).toBe(2);
     await after.close();
   } finally {

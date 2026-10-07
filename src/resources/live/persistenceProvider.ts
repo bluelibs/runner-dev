@@ -39,23 +39,23 @@ export function persistenceResourceDefinition(
   return undefined;
 }
 
-export function restorePersistence(
+export async function restorePersistence(
   provider: unknown,
   maxEntries: number,
   buffers: ReturnType<typeof createEntryBuffers>
-): { persistence: LivePersistence; lastSequence: number } {
+): Promise<{ persistence: LivePersistence; lastSequence: number }> {
   if (!isAdapter(provider)) {
     throw new Error(
       "Live persistence provider must return a store with load() and append() methods."
     );
   }
-  const snapshot = provider.load({ maxEntries });
+  const snapshot = await provider.load({ maxEntries });
   validatePersistenceSnapshot(snapshot);
   for (const record of snapshot.entries) buffers.append(record);
   return { persistence: provider, lastSequence: snapshot.lastSequence };
 }
 
-/** Reject async implementations without publishing a record before its commit. */
+/** Accept synchronous commit/enqueue operations; rejected entries must never be published. */
 export function commitPersistence(
   persistence: LivePersistence,
   record: Parameters<LivePersistence["append"]>[0],

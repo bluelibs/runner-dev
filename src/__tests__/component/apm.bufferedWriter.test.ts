@@ -53,3 +53,16 @@ it.each([
 ])("rejects invalid queue settings %p", (options) => {
   expect(() => bufferedApmWriter(() => undefined, options)).toThrow();
 });
+
+it("drains an append arriving between flush completion and shutdown", async () => {
+  const write = jest.fn(() => undefined);
+  const writer = bufferedApmWriter(write);
+  writer.append(sample);
+  const firstFlush = writer.flush();
+  await Promise.resolve();
+  writer.append({ ...sample, sequence: 2 });
+  await writer.close();
+  await firstFlush;
+  expect(write.mock.calls).toHaveLength(2);
+  expect(writer.status().pendingSamples).toBe(0);
+});

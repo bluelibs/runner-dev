@@ -6,12 +6,9 @@ import {
   type Store,
   type TaskMiddlewareStoreElementType,
 } from "@bluelibs/runner";
-import {
-  apmPersistenceDefinition,
-  validateApmPersistence,
-} from "./live/apmPersistence";
-import { resolveApmRetention } from "./live/apmRetention";
-import { createApm } from "./live/apm";
+import { apmPersistenceDefinition } from "./live/apmPersistence";
+import type { createApm } from "./live/apm";
+import { initializeApm } from "./live/initializeApm";
 import { getCorrelationId } from "./telemetry.chain";
 import type {
   LiveConfig,
@@ -144,21 +141,15 @@ const liveService = defineResource({
     let lastSequence = 0;
     let persistenceStore: LivePersistence | undefined;
     if (c.persistence !== undefined) {
-      const restored = restorePersistence(persistence, maxEntries, buffers);
+      const restored = await restorePersistence(
+        persistence,
+        maxEntries,
+        buffers
+      );
       persistenceStore = restored.persistence;
       lastSequence = restored.lastSequence;
     }
-    let restoredApm;
-    const apmOptions = typeof c.apm === "object" ? c.apm : undefined;
-    if (apmOptions?.persistence) {
-      validateApmPersistence(apmPersistence);
-      restoredApm = await apmPersistence.load(resolveApmRetention(c.apm));
-    }
-    const apm = createApm(
-      c.apm,
-      apmOptions?.persistence ? apmPersistence : undefined,
-      restoredApm
-    );
+    const apm = await initializeApm(c.apm, apmPersistence);
     context.apm = apm;
     // Seed above persisted entries even after a backwards clock adjustment.
     const nextSequence = createSequenceClock(lastSequence);
@@ -184,10 +175,10 @@ const liveService = defineResource({
       }
     };
 
-    /** Commits a new entry, stores it in memory, then notifies readers. */
+    /** Accepts persistence before publishing the new entry to readers. */
     const append = (record: LivePersistedEntry) => {
       if (context.closed) throw new Error("Live telemetry store is closed.");
-      // Commit before publishing: a failed write cannot appear persisted to readers.
+      // Rejected commits/enqueues must not appear in the live view.
       if (persistenceStore) {
         parsePersistedEntry(record);
         commitPersistence(persistenceStore, record, maxEntries);

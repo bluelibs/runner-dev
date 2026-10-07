@@ -9,6 +9,11 @@ Notable changes to `@bluelibs/runner-dev`. Version numbers follow `@bluelibs/run
 - **The docs UI works on phones.** At 768px and below the sidebar becomes a slide-in drawer behind a top bar with menu and search buttons; it closes when you navigate, tap outside it or press `Esc`. The layout is pure CSS, so server-rendered pages are correct before hydration and desktop is unchanged.
 - Below 560px, overview tables stack into one card per element (title, usage, full id, description), element card headers stack their actions under the title, the Diagnostics tabs become a swipeable row, and the overview tiles sit two per row.
 
+### Changed
+
+- **SQLite telemetry runs in worker threads.** Both APM samples and live logs, emissions, errors and runs use bounded queues with worker-owned connections and atomic batches. Recording accepts snapshots before their disk commit; graceful disposal drains them, while abrupt termination may lose the pending batch. Queue overflow and write failures remain visible. SQL, lock waits, restoration and retention no longer run on the application thread.
+- **Direct SQLite adapter callers must await `load()` and `close()`.** `sqlitePersistence({ file })` now exposes async restoration, `flush()` for disk acknowledgement, and `status()` with pending entries/errors. Runner-managed resources handle this automatically. Custom `LivePersistence.load()` may return a snapshot or a promise; `append()` still accepts synchronously and returns `undefined`.
+
 ### Fixed
 
 - The main content area included its padding on top of the viewport height, so jumping to a section scrolled a hidden outer container and slid the page up under the top edge.

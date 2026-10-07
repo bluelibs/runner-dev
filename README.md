@@ -746,7 +746,7 @@ const devTools = dev.with({
 
 SQLite is loaded lazily from Node's built-in `node:sqlite`. If the builtin is
 unavailable, collection falls back to memory and the UI reports the actual storage.
-Other database failures throw. SQLite samples restore on restart; buffered batches
+Other database failures throw. SQLite samples restore on restart; worker-owned buffered batches
 commit during collection and flush on graceful disposal. Gitignore the database
 directory. APM uses a separate bounded sample history from trace `maxEntries` and
 `persistence`; configuring live persistence alone does not enable APM. Only node ID and kind,
@@ -810,9 +810,9 @@ grows with retained history; buffers allocate lazily.
 `retentionDays` is a sliding age limit. ISO `cutoffDate` is an optional absolute
 lower boundary; the stricter date wins. In-memory queries immediately exclude expired
 samples; adapters trim on restoration and committed batches. SQLite is automatically
-available on supported Node versions, otherwise memory. SQLite APM writes use bounded
-batches and flush on graceful shutdown; existing APM files migrate automatically.
-Live logs/traces retain their separate synchronous persistence contract and caps.
+available on supported Node versions, otherwise memory. SQLite APM and live history use separate worker-owned connections with bounded
+batches and drain on graceful shutdown; existing APM files migrate automatically.
+Live logs/traces retain their independent history caps.
 
 ClickHouse uses Node's native HTTP client through `fetch`; choosing it requires no
 additional npm dependency. Set `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` in the
@@ -877,13 +877,15 @@ const devTools = dev.with({
 
 Register `devTools` in your app as usual. Like Runner's cache providers, `persistence` accepts a resource definition or its configured `.with(...)` entry. Runner-Dev automatically registers the provider and injects its initialized `LivePersistence` store. Provider dependencies, overrides and isolation participate in Runner's normal graph. The provider resource initializes its store and releases it in `dispose()`, entirely within Runner's lifecycle.
 
-The same option works on `resources.live.with({ persistence, maxEntries })` when composing the resources separately. Use `sqlitePersistence({ file })` inside a custom resource's `init()` if you need custom SQLite wiring, and call its `close()` in that resource's `dispose()`. `sqlitePersistenceResource` is the named export of `resources.sqlitePersistence`. Without `persistence`, telemetry stays in memory and is lost on restart.
+The same option works on `resources.live.with({ persistence, maxEntries })` when composing the resources separately. Use `sqlitePersistence({ file })` inside a custom resource's `init()` if you need custom SQLite wiring, await its `load()` before recording, and await its `close()` in that resource's `dispose()`. `sqlitePersistenceResource` is the named export of `resources.sqlitePersistence`. Without `persistence`, telemetry stays in memory and is lost on restart.
 
 SQLite restores retained logs, emissions, errors and runs before the runtime starts serving queries or live streams. Each category keeps at most `maxEntries` rows on disk and entries in memory; lowering the cap trims existing rows on the next startup. Sequences resume above the highest committed sequence, including when the clock moves backwards. GraphQL, the docs UI, and `/live/stream` all see the restored history through their existing APIs.
 
 The adapter uses Node's built-in `node:sqlite`, loaded only when enabled: use Node.js 22.13+ or 24+ (Node 22.5–22.12 requires `--experimental-sqlite`). No SQLite npm dependency is needed. Parent directories are created automatically. Keep the same file path between restarts, use a separate file for each app/runtime, and add the database directory to your `.gitignore`. The cap limits retained rows rather than file bytes; SQLite reuses freed database pages.
 
-Writes are synchronous: each entry and its cap eviction commit in one transaction before live readers are notified. There is no pending write queue to flush at shutdown. Database/open/write failures throw rather than silently falling back to memory; SQLite work adds latency to telemetry recording. The runtime closes its connection on disposal.
+Each SQLite store owns a dedicated worker thread. Opening, restoration, SQL writes, retention and connection cleanup run there. Recording validates and snapshots the entry, then synchronously accepts it into a bounded queue before notifying live readers; readers may see records before their disk commit. Batches of up to 1000 entries flush every second or when full, with at most 10,000 pending/in-flight entries per store. Each batch commits records, sequence metadata and retention atomically. A full queue rejects the new entry; a background write failure is latched and exposed through `status()`, subsequent recording and `flush()`/`close()`. Graceful Runner disposal drains the queue and closes the worker. Abrupt termination can lose pending records; committed history survives. Open/restore failures reject startup.
+
+For direct `sqlitePersistence({ file })` users, `load()` is now async and must be awaited before recording restored sequences; `flush()` acknowledges accepted disk commits, `status()` returns `{ pendingEntries, error }`, and `close()` must be awaited. Existing synchronous custom providers remain supported. Large payload snapshotting and in-memory queries still consume application-thread CPU; the worker removes SQLite I/O and lock waits from that thread.
 
 Payloads and log data are saved as JSON snapshots: ordinary JSON fields survive; dates use their JSON representation, bigint and symbols become strings, functions become `"[Function]"`, and circular/repeated object references become `"[Circular]"`. Errors keep their name, message and stack. JavaScript object identity and prototypes are not restored.
 
@@ -914,8 +916,8 @@ Register `database` in its owning app/module as usual, or register it inside the
 
 Your store implements two methods; connection setup and cleanup belong to its resource:
 
-- `load({ maxEntries })` synchronously trims each category to its cap and returns `{ entries, lastSequence }`. Entries are `{ kind, entry }` records where `kind` is `log`, `emission`, `error` or `run`, in strictly increasing, unique sequence order. `lastSequence` is the highest committed sequence, even if its entry was evicted; use `0` for a new store. Restore validates stamps and category fields and fails startup on invalid data.
-- `append(record, { maxEntries })` synchronously commits the entry, updates `lastSequence`, and evicts the oldest entries of that category atomically. It returns `undefined` and throws on failure. Promise returns are rejected by TypeScript and guarded at runtime because live recording is synchronous. Invalid provider values fail startup. Validate records before committing so a bad entry cannot poison the next restart.
+- `load({ maxEntries })` trims each category to its cap and returns, synchronously or through a promise, `{ entries, lastSequence }`. Entries are `{ kind, entry }` records where `kind` is `log`, `emission`, `error` or `run`, in strictly increasing, unique sequence order. `lastSequence` is the highest committed sequence, even if its entry was evicted; use `0` for a new store. Restore validates stamps and category fields and fails startup on invalid data.
+- `append(record, { maxEntries })` synchronously accepts the entry: either atomically commit the record, sequence and eviction, or enqueue an immutable snapshot in a bounded buffer whose committed batches provide those guarantees. Buffered providers must drain during resource disposal and expose write failures. It returns `undefined` and throws if acceptance fails. Promise returns are rejected by TypeScript and guarded at runtime because live recording is synchronous. Invalid provider values fail startup. Validate records before committing so a bad entry cannot poison the next restart.
 
 ### Queries and cursors
 

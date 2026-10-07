@@ -1,3 +1,4 @@
+import { initializeApm } from "../../resources/live/initializeApm";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -89,7 +90,7 @@ describe("task APM", () => {
     const directory = mkdtempSync(join(tmpdir(), "apm-"));
     const config = { sqliteFile: join(directory, "apm.sqlite"), maxSamples: 3 };
     try {
-      const first = createApm(config);
+      const first = await initializeApm(config);
       first.record(sample(10, { error: "sensitive", correlationId: "secret" }));
       first.record(sample(20));
       first.record(
@@ -101,7 +102,7 @@ describe("task APM", () => {
         })
       );
       await first.close();
-      const second = createApm({ ...config, maxSamples: 2 });
+      const second = await initializeApm({ ...config, maxSamples: 2 });
       try {
         expect(second.snapshot(30, "all", 100_000)).toMatchObject({
           storage: "sqlite",

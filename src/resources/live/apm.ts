@@ -3,7 +3,6 @@ import { storageSizeSchema, type StorageSize } from "./storageSize";
 import { resolveApmRetention } from "./apmRetention";
 import { RingBuffer } from "./RingBuffer";
 import { createSequenceClock } from "./sequenceClock";
-import { sqliteApmPersistence } from "./sqliteApmPersistence";
 import {
   apmPersistenceSourceSchema,
   enqueueApmSample,
@@ -125,7 +124,8 @@ export function summarizeHooks(samples: RunRecord[]): HookPerformance[] {
 export function createApm(
   config: ApmConfig | undefined,
   remote?: ApmPersistence,
-  restored?: { samples: RunRecord[]; lastSequence: number }
+  restored?: { samples: RunRecord[]; lastSequence: number },
+  closePersistence?: () => Promise<void>
 ) {
   const parsed = config === undefined ? false : apmConfigSchema.parse(config);
   const enabled = parsed !== false;
@@ -157,8 +157,7 @@ export function createApm(
     }
   };
   let samples = new RingBuffer<RunRecord>(maxSamples);
-  let persistence: ReturnType<typeof sqliteApmPersistence> | undefined;
-  let lastSequence = restored?.lastSequence ?? 0;
+  const lastSequence = restored?.lastSequence ?? 0;
   if (restored)
     validatePersistenceSnapshot({
       entries: restored.samples.map((entry) => ({ kind: "run", entry })),
@@ -178,27 +177,6 @@ export function createApm(
         ? now - options.retentionDays * 86_400_000
         : -Infinity
     );
-  if (enabled && !remote && options.storage !== "memory") {
-    try {
-      persistence = sqliteApmPersistence(
-        options.sqliteFile ?? "./.runner-dev/apm.sqlite"
-      );
-      const snapshot = persistence.load(policy);
-      lastSequence = snapshot.lastSequence;
-      for (const sample of snapshot.samples) storeSample(sample);
-    } catch (error) {
-      if (persistence) void persistence.close().catch(() => {});
-      persistence = undefined;
-      // Only an unavailable builtin warrants fallback; disk errors must be visible.
-      if (
-        !(error instanceof Error) ||
-        !(error.cause instanceof Error) ||
-        !("code" in error.cause) ||
-        error.cause.code !== "ERR_UNKNOWN_BUILTIN_MODULE"
-      )
-        throw error;
-    }
-  }
   const nextSequence = createSequenceClock(lastSequence);
   return {
     record(run: RunRecord) {
@@ -219,7 +197,6 @@ export function createApm(
       if (maxStorage && Buffer.byteLength(JSON.stringify(sample)) > maxStorage)
         throw new Error("APM sample exceeds maxStorage.");
       if (remote) enqueueApmSample(remote, sample);
-      persistence?.append(sample);
       storeSample(sample);
     },
     snapshot(
@@ -270,14 +247,12 @@ export function createApm(
       }
       return {
         enabled,
-        pendingSamples: (remote ?? persistence)?.status?.().pendingSamples ?? 0,
-        persistenceError: (remote ?? persistence)?.status?.().error ?? null,
+        pendingSamples: remote?.status?.().pendingSamples ?? 0,
+        persistenceError: remote?.status?.().error ?? null,
         cutoffTimestampMs: Number.isFinite(retentionCutoff)
           ? retentionCutoff
           : null,
-        storage: !enabled
-          ? "disabled"
-          : remote?.storage ?? (persistence ? "sqlite" : "memory"),
+        storage: !enabled ? "disabled" : remote?.storage ?? "memory",
         maxSamples,
         maxStorage: maxStorage ?? null,
         retainedBytes,
@@ -290,7 +265,7 @@ export function createApm(
       };
     },
     close() {
-      return persistence ? persistence.close() : remote?.flush();
+      return closePersistence ? closePersistence() : remote?.flush();
     },
   };
 }

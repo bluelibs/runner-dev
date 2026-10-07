@@ -21,6 +21,6 @@ export const sqlitePersistenceResource = defineResource({
     return sqlitePersistence(config);
   },
   async dispose(store) {
-    store.close();
+    await store.close();
   },
 });

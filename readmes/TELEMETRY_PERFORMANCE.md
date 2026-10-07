@@ -89,12 +89,52 @@ Redis and ClickHouse retention correctness was checked against real servers.
 
 APM SQLite now uses a bounded queue, 1-second flush interval and 1000-sample batches.
 Graceful Runner disposal drains it before closing. A process crash can lose pending
-samples; committed samples remain durable. Live log/trace persistence retains its
-existing synchronous contract. SQLite APM files migrate without losing sequence
+samples; committed samples remain durable. The measurements above describe the
+initial APM batching change, when live log/trace writes still ran synchronously.
+The subsequent worker change moves both SQLite connections and their I/O off the
+application thread, including restoration, retention and closing. Live history
+also accepts bounded queued snapshots, so live readers may see uncommitted entries;
+graceful disposal drains them and abrupt termination can lose them. Queue overflow
+rejects new records and background failures latch instead of silently dropping data.
+Payload snapshotting and in-memory aggregation remain on the application thread.
+SQLite APM files migrate without losing sequence
 progress. Memory eviction releases old payload references; age/count/byte limits
 are shared with SQLite, Redis and ClickHouse. The byte limit covers compact sample
 JSON, not database overhead, queues or total process memory. A 7-day policy is an
 upper age bound; count/byte caps may shorten the available history.
+
+## Worker responsiveness
+
+A follow-up lock-contention check compared the same live/APM SQL transactions on
+an application-thread connection and on the compiled worker adapter. A separate
+worker held SQLite's write lock for 100 ms; a 5 ms application heartbeat measured
+responsiveness while the write waited. Three runs per store/mode alternated order
+on macOS arm64, Node 25.7.0, after QA completed. Median maximum timer delays:
+
+| Store | Application-thread SQL | Worker-owned SQL | Heartbeats during worker write |
+| --- | ---: | ---: | ---: |
+| Live history | 119.02 ms | 1.18 ms | 22 |
+| APM | 120.08 ms | 0.97 ms | 22 |
+
+Both modes took about 119–123 ms to acknowledge the commit. The worker keeps the
+application responsive during SQLite I/O/lock waits; it does not make the lock or
+disk faster. These measurements isolate contention, not general application
+latency or maximum ingestion throughput. Worker startup and memory have additional
+cost; there is one worker per enabled SQLite store. Main-thread payload snapshotting
+and dashboard aggregation remain. [Raw worker measurements](telemetry-worker-performance.json).
+
+Reproduce after building:
+
+```sh
+node scripts/benchmark-sqlite-worker.cjs
+```
+
+The throughput benchmark below now yields every 250 calls by default so async
+worker completion acknowledgements can be observed. `--yield-every 0` selects the
+older microtask-only scheduling. This changes the benchmark scheduling; compare both
+versions with the same option instead of comparing against the historical numbers above.
+A producer that fills 10,000 pending/in-flight entries before yielding receives a
+queue-full error rather than unbounded memory growth.
 
 ## Reproduce
 

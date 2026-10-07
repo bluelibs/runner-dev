@@ -1,0 +1,122 @@
+{
+  "node": "v25.7.0",
+  "platform": "darwin-arm64",
+  "lockMs": 100,
+  "heartbeatMs": 5,
+  "runs": [
+    {
+      "kind": "live",
+      "mode": "main",
+      "commitMs": 119.631958,
+      "maxTimerLagMs": 119.015167,
+      "ticksDuringWrite": 0
+    },
+    {
+      "kind": "live",
+      "mode": "worker",
+      "commitMs": 120.46162499999997,
+      "maxTimerLagMs": 0.9985000000000355,
+      "ticksDuringWrite": 22
+    },
+    {
+      "kind": "apm",
+      "mode": "main",
+      "commitMs": 123.03200000000004,
+      "maxTimerLagMs": 120.70183299999997,
+      "ticksDuringWrite": 0
+    },
+    {
+      "kind": "apm",
+      "mode": "worker",
+      "commitMs": 117.43200000000002,
+      "maxTimerLagMs": 1.050375000000031,
+      "ticksDuringWrite": 22
+    },
+    {
+      "kind": "live",
+      "mode": "worker",
+      "commitMs": 120.42566699999998,
+      "maxTimerLagMs": 1.1773330000000897,
+      "ticksDuringWrite": 21
+    },
+    {
+      "kind": "live",
+      "mode": "main",
+      "commitMs": 124.84508400000004,
+      "maxTimerLagMs": 124.00983300000007,
+      "ticksDuringWrite": 0
+    },
+    {
+      "kind": "apm",
+      "mode": "worker",
+      "commitMs": 119.02691600000003,
+      "maxTimerLagMs": 0.86850000000004,
+      "ticksDuringWrite": 22
+    },
+    {
+      "kind": "apm",
+      "mode": "main",
+      "commitMs": 116.14412500000003,
+      "maxTimerLagMs": 115.23624999999993,
+      "ticksDuringWrite": 0
+    },
+    {
+      "kind": "live",
+      "mode": "main",
+      "commitMs": 118.22016600000006,
+      "maxTimerLagMs": 117.0212919999999,
+      "ticksDuringWrite": 0
+    },
+    {
+      "kind": "live",
+      "mode": "worker",
+      "commitMs": 121.984958,
+      "maxTimerLagMs": 1.414167000000134,
+      "ticksDuringWrite": 22
+    },
+    {
+      "kind": "apm",
+      "mode": "main",
+      "commitMs": 122.58908299999985,
+      "maxTimerLagMs": 120.08354199999985,
+      "ticksDuringWrite": 0
+    },
+    {
+      "kind": "apm",
+      "mode": "worker",
+      "commitMs": 122.39325000000008,
+      "maxTimerLagMs": 0.969749999999749,
+      "ticksDuringWrite": 23
+    }
+  ],
+  "summary": [
+    {
+      "kind": "live",
+      "mode": "main",
+      "medianCommitMs": 119.631958,
+      "medianMaxTimerLagMs": 119.015167,
+      "medianTicksDuringWrite": 0
+    },
+    {
+      "kind": "live",
+      "mode": "worker",
+      "medianCommitMs": 120.46162499999997,
+      "medianMaxTimerLagMs": 1.1773330000000897,
+      "medianTicksDuringWrite": 22
+    },
+    {
+      "kind": "apm",
+      "mode": "main",
+      "medianCommitMs": 122.58908299999985,
+      "medianMaxTimerLagMs": 120.08354199999985,
+      "medianTicksDuringWrite": 0
+    },
+    {
+      "kind": "apm",
+      "mode": "worker",
+      "medianCommitMs": 119.02691600000003,
+      "medianMaxTimerLagMs": 0.969749999999749,
+      "medianTicksDuringWrite": 22
+    }
+  ]
+}

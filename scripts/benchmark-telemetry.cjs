@@ -12,6 +12,10 @@ const option = (name, fallback) =>
 const median = (values) =>
   [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 async function measure() {
+  const yieldEvery = Number(option("--yield-every", 250));
+  if (!Number.isSafeInteger(yieldEvery) || yieldEvery < 0)
+    throw new Error("--yield-every must be a non-negative integer.");
+  const yieldTurn = () => new Promise((resolve) => setImmediate(resolve));
   const root = resolve(option("--root", ".")),
     mode = option("--mode", "runner");
   const load = createRequire(join(root, "package.json"));
@@ -74,13 +78,17 @@ async function measure() {
     ]) {
       const warmup =
         workload === "noop" ? 10000 : workload === "nested" ? 3000 : 20;
-      for (let index = 0; index < warmup; index++)
+      for (let index = 0; index < warmup; index++) {
         await runtime.runTask(target);
+        if (yieldEvery && (index + 1) % yieldEvery === 0) await yieldTurn();
+      }
       const count = workload === "io-1ms" ? 150 : 1000;
       for (let trial = 0; trial < (workload === "io-1ms" ? 3 : 7); trial++) {
         const start = performance.now();
-        for (let index = 0; index < count; index++)
+        for (let index = 0; index < count; index++) {
           await runtime.runTask(target);
+          if (yieldEvery && (index + 1) % yieldEvery === 0) await yieldTurn();
+        }
         trials.push({
           workload,
           trial,
@@ -119,6 +127,7 @@ async function measure() {
     disposed = true;
     const result = {
       mode,
+      yieldEvery,
       node: process.version,
       startupMs,
       shutdownMs: performance.now() - shutdown,
@@ -178,7 +187,17 @@ function matrix() {
         const file = `${directory}.${version}.${repetition}.${mode}.json`;
         const child = spawnSync(
           process.execPath,
-          [__filename, "--root", root, "--mode", mode, "--output", file],
+          [
+            __filename,
+            "--root",
+            root,
+            "--mode",
+            mode,
+            "--output",
+            file,
+            "--yield-every",
+            option("--yield-every", "250"),
+          ],
           { encoding: "utf8" }
         );
         if (child.status !== 0) throw new Error(child.stderr + child.stdout);

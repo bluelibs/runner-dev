@@ -38,10 +38,14 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
         `
       const { sqlitePersistence } = require('./src/resources/live/sqlitePersistence');
       const session = sqlitePersistence({ file: process.argv[1] });
+      (async () => {
+      await session.load({ maxEntries: 2 });
       for (let sequence = 1; sequence <= 4; sequence++) {
         session.append({ kind: 'log', entry: { sequence, timestampMs: sequence, level: 'info', message: 'crash-' + sequence } }, { maxEntries: 2 });
       }
+      await session.flush();
       process.kill(process.pid, 'SIGKILL');
+      })().catch(error => { console.error(error); process.exitCode = 1; });
     `,
         file,
       ],
@@ -56,7 +60,7 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
     expect(child.signal).toBe("SIGKILL");
     const session = await sqlitePersistence({ file });
     try {
-      expect(session.load({ maxEntries: 2 })).toMatchObject({
+      expect(await session.load({ maxEntries: 2 })).toMatchObject({
         lastSequence: 4,
         entries: [
           { kind: "log", entry: { message: "crash-3" } },
@@ -68,28 +72,46 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
     }
   });
 
-  test("rolls back rejected sequences and failed inserts, and continues recording", async () => {
+  test("rolls back failed batches, exposes the failure and restores the committed cursor", async () => {
     const file = join(directory, "rollback.sqlite");
-    const session = await sqlitePersistence({ file });
+    const session = sqlitePersistence({ file });
+    await session.load({ maxEntries: 3 });
+    session.append(log(1), { maxEntries: 3 });
+    await session.flush();
+    expect(() => session.append(log(1), { maxEntries: 3 })).toThrow(
+      "sequences must increase"
+    );
     const database = new DatabaseSync(file);
     try {
-      session.append(log(1), { maxEntries: 2 });
-      expect(() => session.append(log(1), { maxEntries: 2 })).toThrow(
-        "sequences must increase"
-      );
       database.exec(
-        "CREATE TRIGGER fail_insert BEFORE INSERT ON runner_dev_live_entries BEGIN SELECT RAISE(ABORT, 'forced write failure'); END;"
+        "CREATE TRIGGER fail_insert BEFORE INSERT ON runner_dev_live_entries WHEN NEW.sequence = 3 BEGIN SELECT RAISE(ABORT, 'forced write failure'); END;"
       );
-      expect(() => session.append(log(2), { maxEntries: 2 })).toThrow(
+      session.append(log(2), { maxEntries: 3 });
+      session.append(log(3), { maxEntries: 3 });
+      await expect(session.flush()).rejects.toThrow("forced write failure");
+      expect(session.status().error).toContain("forced write failure");
+      expect(() => session.append(log(4), { maxEntries: 3 })).toThrow(
         "forced write failure"
       );
-      expect(session.load({ maxEntries: 2 }).lastSequence).toBe(1);
+      await expect(session.close()).rejects.toThrow("forced write failure");
       database.exec("DROP TRIGGER fail_insert");
-      session.append(log(2), { maxEntries: 2 });
-      expect(session.load({ maxEntries: 2 }).entries).toEqual([log(1), log(2)]);
     } finally {
       database.close();
-      await session.close();
+      await session.close().catch(() => {});
+    }
+    const reopened = sqlitePersistence({ file });
+    try {
+      expect(await reopened.load({ maxEntries: 3 })).toEqual({
+        entries: [log(1)],
+        lastSequence: 1,
+      });
+      reopened.append(log(2), { maxEntries: 3 });
+      expect((await reopened.load({ maxEntries: 3 })).entries).toEqual([
+        log(1),
+        log(2),
+      ]);
+    } finally {
+      await reopened.close();
     }
   });
 
@@ -99,7 +121,7 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
     const first = await sqlitePersistence(options);
     try {
       first.append(log(5), { maxEntries: 0 });
-      expect(first.load({ maxEntries: 0 })).toEqual({
+      expect(await first.load({ maxEntries: 0 })).toEqual({
         entries: [],
         lastSequence: 5,
       });
@@ -108,7 +130,7 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
     }
     const second = await sqlitePersistence(options);
     try {
-      expect(second.load({ maxEntries: 0 })).toEqual({
+      expect(await second.load({ maxEntries: 0 })).toEqual({
         entries: [],
         lastSequence: 5,
       });
@@ -139,7 +161,7 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
           { maxEntries: 2 }
         )
       ).toThrow();
-      expect(first.load({ maxEntries: 2 })).toEqual({
+      expect(await first.load({ maxEntries: 2 })).toEqual({
         entries: [log(1)],
         lastSequence: 1,
       });
@@ -149,7 +171,7 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
     }
     const second = await sqlitePersistence(options);
     try {
-      expect(second.load({ maxEntries: 2 })).toEqual({
+      expect(await second.load({ maxEntries: 2 })).toEqual({
         entries: [log(1), log(2)],
         lastSequence: 2,
       });
@@ -169,7 +191,7 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
     expect(() => invalid.append(log(1), { maxEntries: -1 })).toThrow(
       "non-negative integer"
     );
-    invalid.close();
+    await invalid.close();
     const file = join(directory, "version.sqlite");
     const session = await sqlitePersistence({ file });
     await session.close();
@@ -179,17 +201,22 @@ describe("SQLite telemetry persistence failures and crash recovery", () => {
     } finally {
       database.close();
     }
-    expect(() => sqlitePersistence({ file })).toThrow("Unsupported");
+    const unsupported = sqlitePersistence({ file });
+    await expect(unsupported.load({ maxEntries: 2 })).rejects.toThrow(
+      "Unsupported"
+    );
+    await expect(unsupported.close()).rejects.toThrow("Unsupported");
   });
 
   test("rejects corrupted retained records at restore", async () => {
     const file = join(directory, "corrupt.sqlite");
     const session = await sqlitePersistence({ file });
     session.append(log(1), { maxEntries: 2 });
+    await session.flush();
     const database = new DatabaseSync(file);
     try {
       database.exec("UPDATE runner_dev_live_entries SET record = '{}' ");
-      expect(() => session.load({ maxEntries: 2 })).toThrow();
+      await expect(session.load({ maxEntries: 2 })).rejects.toThrow();
     } finally {
       database.close();
       await session.close();

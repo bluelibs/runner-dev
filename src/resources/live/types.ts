@@ -83,6 +83,8 @@ export interface LiveCursorOptions {
   afterTimestamp?: number;
   /** Exclusive sequence cursor; lossless even when entries share a millisecond. */
   afterSequence?: number;
+  /** Exclusive sequence cursor for newest-first backward pagination. */
+  beforeSequence?: number;
   /** Maximum number of entries to return. */
   last?: number;
 }
@@ -120,6 +122,10 @@ export interface RunQueryOptions extends LiveCursorOptions {
  * shorthand for `{ afterTimestamp: number }`.
  */
 export interface Live {
+  getApm?(
+    windowMinutes?: number,
+    scope?: import("./apm").ApmScope
+  ): import("./apm").ApmSnapshot;
   getLogs(options?: number | LogQueryOptions): LogEntry[];
   getEmissions(options?: number | EmissionQueryOptions): EmissionEntry[];
   getErrors(options?: number | ErrorQueryOptions): ErrorEntry[];

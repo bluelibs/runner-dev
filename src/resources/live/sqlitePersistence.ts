@@ -13,6 +13,8 @@ export interface SQLitePersistenceOptions {
 
 export interface SQLitePersistence extends LivePersistence {
   close(): void;
+  /** APM uses this to remove expired compact runs; live telemetry does not call it. */
+  pruneRunsBefore?(timestampMs: number): void;
 }
 
 const KINDS = ["log", "emission", "error", "run"] as const;
@@ -68,6 +70,8 @@ function createStore(database: DatabaseSync): SQLitePersistence {
     );
     CREATE INDEX IF NOT EXISTS runner_dev_live_kind_sequence
       ON runner_dev_live_entries (kind, sequence);
+    CREATE INDEX IF NOT EXISTS runner_dev_live_timestamp
+      ON runner_dev_live_entries (kind, json_extract(record, '$.entry.timestampMs'));
   `);
   const meta = database
     .prepare(
@@ -125,6 +129,15 @@ function createStore(database: DatabaseSync): SQLitePersistence {
         insert.run(sequence, record.kind, serialized);
         trim.run(record.kind, record.kind, maxEntries);
       });
+    },
+    pruneRunsBefore(timestampMs) {
+      if (!Number.isFinite(timestampMs))
+        throw new Error("Invalid APM retention cutoff.");
+      database
+        .prepare(
+          "DELETE FROM runner_dev_live_entries WHERE kind = 'run' AND json_extract(record, '$.entry.timestampMs') < ?"
+        )
+        .run(timestampMs);
     },
     close() {
       database.close();

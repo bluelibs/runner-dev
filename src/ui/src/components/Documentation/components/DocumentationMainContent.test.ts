@@ -19,6 +19,12 @@ jest.mock("./ErrorCard", () => ({ ErrorCard: () => null }));
 jest.mock("./AsyncContextCard", () => ({ AsyncContextCard: () => null }));
 jest.mock("./DiagnosticsPanel", () => ({ DiagnosticsPanel: () => null }));
 jest.mock("./LivePanel", () => ({ LivePanel: () => null }));
+jest.mock("./TelemetryPanel", () => ({
+  TelemetryPanel: () => React.createElement("div", null, "Task APM panel"),
+}));
+jest.mock("./LogsPanel", () => ({
+  LogsPanel: () => React.createElement("div", null, "Focused logs panel"),
+}));
 const elementTableMock = jest.fn(() => null);
 jest.mock("./ElementTable", () => ({
   ElementTable: (props: any) => elementTableMock(props),
@@ -1039,4 +1045,40 @@ describe("DocumentationMainContent table order and pager", () => {
     navigateTo("#tasks");
     expect(lastTableProps().view).toEqual(DEFAULT_ELEMENT_TABLE_VIEW);
   });
+});
+
+it.each([
+  ["telemetry", "Telemetry", "Task APM panel"],
+  ["logs", "Logs", "Focused logs panel"],
+])("opens the %s tab from its hash", (id, label, content) => {
+  window.location.hash = `#${id}`;
+  Element.prototype.scrollIntoView = jest.fn();
+  render(
+    React.createElement(DocumentationMainContent, {
+      introspector: createIntrospectorStub(),
+      sidebarWidth: 0,
+      tasks: [],
+      resources: [],
+      events: [],
+      hooks: [],
+      middlewares: [],
+      errors: [],
+      asyncContexts: [],
+      tags: [],
+      topologyConnections: 0,
+      sections: [
+        {
+          id,
+          label,
+          icon: getDocumentationIcon(id),
+          count: null,
+          hasContent: true,
+        },
+      ],
+    })
+  );
+  expect(
+    screen.getByRole("tab", { name: label }).getAttribute("aria-selected")
+  ).toBe("true");
+  expect(screen.getByText(content)).toBeTruthy();
 });

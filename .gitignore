@@ -19,3 +19,5 @@ yarn.lock
 .aider*
 /.agents
 .tmp-shell/
+
+/.runner-dev/

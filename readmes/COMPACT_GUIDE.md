@@ -117,6 +117,147 @@ Notes:
 - this works well in CI too: upload the export folder as a build artifact and inspect it after the pipeline finishes
 - in this repository, `npm run play:export` is the same pattern wired to the reference commerce app used by `npm run play`
 
+
+### Opt-in task and hook performance (APM)
+
+Enable with `dev.with({ apm: true })` (also supported by `resources.live.with()`).
+The **Telemetry** tab shows task and hook APM in separate views. The **Logs** tab provides focused log inspection
+and correlation traces. **Live** retains its original process health, logs, events and runs.
+Click a nonzero failure rate to inspect retained errors for that task or hook in the selected window and scope. Correlation IDs open the related trace and logs (up to 200 retained entries per category). Failure details start with the latest 50 matching runs and errors; scrolling automatically loads older retained errors in fixed-size pages; aggregate APM history may outlast those records.
+APM records every completed application task and hook, including failed calls,
+and excludes internal GraphQL tasks. Hook reactions include delegated task work. Timing uses a monotonic clock. Duration is inclusive
+of child work; nested durations overlap and must not be summed as request latency.
+Direct calls have no parent task, hook or event; nested calls run inside one.
+Tasks delegated by hooks retain the hook as their trace parent. Task and hook
+counts and percentiles stay separate; their durations overlap.
+
+```ts
+const devTools = dev.with({
+  apm: {
+    maxSamples: 10_000,
+    storage: "auto", // default; use "memory" to avoid filesystem writes
+    sqliteFile: "./.runner-dev/apm.sqlite", // default; one file per runtime
+  },
+});
+```
+
+SQLite is loaded lazily from Node's built-in `node:sqlite`. If the builtin is
+unavailable, collection falls back to memory and the UI reports the actual storage.
+Other database failures throw. SQLite samples restore on restart; buffered batches
+commit during collection and flush on graceful disposal. Gitignore the database
+directory. APM uses a separate bounded sample history from trace `maxEntries` and
+`persistence`; configuring live persistence alone does not enable APM. Only node ID and kind,
+completion timestamp, duration, success and direct/nested classification are stored;
+inputs, outputs, error text and correlation IDs are excluded.
+
+The dashboard filters all/direct/nested calls and 5-minute, 30-minute, 1-hour or
+24-hour windows, switches between Tasks and Hooks, sorts each by p95 and shows calls, failure rate, mean, p50, p95,
+p99 and maximum. Percentiles use exact nearest rank over retained completions in the
+selected window, including failures. Small samples are labeled. The global cap
+(shared by tasks and hooks; default 10,000, configurable up to 1,000,000) can shorten the selected window during
+high traffic; the UI reports the retained count and oldest retained completion.
+These are retained-window statistics, not lifetime totals or sampled distributed traces.
+
+```graphql
+query TaskPerformance {
+  live {
+    apm(windowMinutes: 30, scope: all) {
+      enabled storage maxSamples retainedSamples oldestTimestampMs
+      tasks { taskId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
+      hooks { hookId count failures errorRate meanMs p50Ms p95Ms p99Ms maxMs }
+    }
+  }
+}
+```
+
+`scope` is `all` (default), `direct` or `nested`. `windowMinutes` defaults to 30
+and accepts integers from 1 through 525600. Event reactions are nested because
+the emitted event is their parent. APM is disabled by default.
+
+### APM persistence and retention
+
+Configure retention once under `apm`; the same policy applies to the dashboard and
+stored samples. Choose a sample count or a byte budget, and optionally an age limit:
+
+```ts
+import { dev, resources } from "@bluelibs/runner-dev";
+
+const devTools = dev.with({
+  apm: {
+    retentionDays: 7,
+    maxStorage: "1mb",
+    // maxSamples: 100_000, // optional additional cap
+    persistence: resources.clickHouseApmPersistence.with({
+      url: "http://localhost:8123",
+      streamId: "orders-worker", // stable, unique per runtime; never share concurrently
+    }),
+  },
+});
+```
+
+`maxStorage` accepts integer bytes or strings such as `"512kb"`, `"1mb"`, and
+`"1.5 MiB"` (binary units). The minimum is 512 KiB. It measures UTF-8 compact sample
+JSON, excluding database/index/file overhead, write queues and JavaScript object
+bookkeeping. It is a retained-data budget, not a hard process-memory or physical
+file-size limit. Oldest samples are evicted first. Without a byte budget,
+`maxSamples` defaults to 10,000; with one, the count has a 10,000,000 safety ceiling
+unless explicitly set lower. Both limits apply when supplied. Percentile query cost
+grows with retained history; buffers allocate lazily.
+
+`retentionDays` is a sliding age limit. ISO `cutoffDate` is an optional absolute
+lower boundary; the stricter date wins. In-memory queries immediately exclude expired
+samples; adapters trim on restoration and committed batches. SQLite is automatically
+available on supported Node versions, otherwise memory. SQLite APM writes use bounded
+batches and flush on graceful shutdown; existing APM files migrate automatically.
+Live logs/traces retain their separate synchronous persistence contract and caps.
+
+ClickHouse uses Node's native HTTP client through `fetch`; choosing it requires no
+additional npm dependency. Set `CLICKHOUSE_USER` / `CLICKHOUSE_PASSWORD` in the
+environment, keeping credentials out of URLs/config. Provision the database first
+(`database` defaults to `default`; `table` to `runner_dev_apm`). The resource creates
+or upgrades the table with per-row expiration, so workers in the same table can use
+different age limits. Count/byte/date eviction is scoped to `streamId`; ClickHouse TTL
+also removes expired rows during merges. Mutations finish before flush acknowledges
+retention, while physical disk reclamation follows database housekeeping. Sequence
+metadata survives eviction. Existing rows keep their previous TTL until rewritten.
+
+For Redis, install the optional peer dependency `ioredis` and substitute:
+
+```ts
+persistence: resources.redisApmPersistence.with({
+  url: "redis://localhost:6379",
+  streamId: "orders-worker",
+})
+```
+
+Redis loads lazily only when selected. Credentials use `REDIS_USERNAME` /
+`REDIS_PASSWORD`. A Lua transaction atomically appends samples and applies age,
+count and byte eviction. Keys share a Redis Cluster hash tag; stream IDs isolate
+workers. Sample keys expire after the configured retention period when idle;
+sequence metadata remains. Redis server persistence (AOF/RDB) determines survival
+across Redis server restarts. Use one active runtime per stream or SQLite file.
+
+Defaults for buffered adapters: batches of 1000, 1-second flush interval, 10,000
+queued/in-flight samples and 10-second remote request timeout. Configure `batchSize`,
+`flushIntervalMs`, `maxPendingSamples` and `timeoutMs` on remote adapter resources.
+Writes are acknowledged after committing; failures are latched and exposed in the
+Telemetry panel and subsequent append/flush calls. There are no automatic retries
+or silent fallback. Overflow throws. Abrupt termination can lose unflushed samples;
+graceful Runner disposal drains them before closing. APM stores compact timings only;
+related error logs still depend on live telemetry retention.
+
+Custom resources return `ApmPersistence`: `storage`, async
+`load({ maxSamples, maxStorage, retentionDays, cutoffTimestampMs })`, synchronous
+enqueue-only `append(sample)`, async `flush()`, and optional `status()`. `maxStorage`
+is normalized to bytes before `load`; adapters must enforce the supplied policy.
+`load` returns ascending unique `samples` and highest committed `lastSequence`,
+including evicted samples. Startup validates the snapshot. Config auto-registers
+and injects the provider, so Runner overrides, isolation and disposal apply.
+
+See [the performance measurements](TELEMETRY_PERFORMANCE.md) for overhead,
+methodology and a repeatable comparison script.
+
+
 ## Security Defaults
 
 - The server listens on `127.0.0.1` unless `host` is set. On every bind, requests whose `Host` header is a DNS name other than `localhost`, the configured `host` or an `allowedHosts` entry get `403` (DNS-rebinding guard); IP addresses always pass, while hosts-file aliases and `*.localhost` names are refused unless listed.

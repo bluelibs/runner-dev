@@ -416,3 +416,19 @@ Or from the repo without a running server:
 ```bash
 runner-dev schema sdl --entry-file src/main.ts
 ```
+
+## Task and hook performance
+
+`live.apm(windowMinutes: Int = 30, scope: ApmScope = all)` returns opt-in APM status, actual storage, retained sample cap/count, oldest completion, and separate `tasks { taskId }` / `hooks { hookId }` lists with `count`, `failures`, `errorRate` (0–1), `meanMs`, `p50Ms`, `p95Ms`, `p99Ms`, `maxMs`. `ApmScope` is `all`, `direct`, `nested`. Windows must be 1–525600 minutes. Exact nearest-rank statistics include failed completions, exclude internal GraphQL tasks, and use inclusive durations. Hook durations include delegated tasks; their counts and latency distributions stay separate. Delegated tasks retain the hook as their trace parent. Task and hook samples share an APM cap independent of execution traces; see README for storage and opt-in configuration.
+
+The Telemetry failure drill-down uses existing `live.runs` and `live.errors` filters for node identity, then applies the selected window and call scope. Correlated traces use `correlationIds` across logs, errors, emissions and runs. These details depend on live retention, independently of APM samples.
+
+APM snapshots additionally expose `cutoffTimestampMs`, `pendingSamples` and
+`persistenceError`. Config supports `maxSamples` up to 10,000,000, `retentionDays`,
+ISO `cutoffDate` and a Runner `ApmPersistence` resource (`load`, `append`, `flush`).
+The ClickHouse provider is `resources.clickHouseApmPersistence`; it archives compact
+samples beyond the dashboard cap with its own TTL. It does not replace synchronous
+live error/log persistence. Failure details begin with 50 records per category;
+Infinite scrolling loads fixed-size older pages with `beforeSequence` cursors while preserving the selected end time. The variable-height virtualized list mounts only the viewport and overscan; expanded stacks and correlation links remain available. Failed page loads require explicit retry.
+
+`beforeSequence: Float` is an exclusive upper bound on all live list fields and task/hook run lists. Without an after cursor, `last` selects the newest matching N below it. With an after cursor, it keeps the existing oldest-first semantics inside both bounds. Sequence cursors avoid timestamp collisions; evicted records remain unavailable.

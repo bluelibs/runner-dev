@@ -24,7 +24,7 @@ export function queryEntries<T extends LiveEntryStamp>(
   options: LiveCursorOptions,
   matches: (entry: T) => boolean
 ): T[] {
-  const { afterSequence, afterTimestamp, last } = options;
+  const { afterSequence, afterTimestamp, beforeSequence, last } = options;
   const limit = typeof last === "number" ? Math.trunc(last) : Infinity;
   if (limit <= 0) return [];
 
@@ -32,30 +32,36 @@ export function queryEntries<T extends LiveEntryStamp>(
     typeof afterSequence === "number"
       ? buffer.findFirstIndex((entry) => entry.sequence > afterSequence)
       : 0;
+  const endIndex =
+    typeof beforeSequence === "number"
+      ? buffer.findFirstIndex((entry) => entry.sequence >= beforeSequence)
+      : buffer.size;
   // Timestamps are not guaranteed monotonic (clock adjustments), so the
   // timestamp cursor stays a plain filter rather than a search bound.
   const isWanted = (entry: T) =>
     (typeof afterTimestamp !== "number" ||
       entry.timestampMs > afterTimestamp) &&
+    (typeof beforeSequence !== "number" || entry.sequence < beforeSequence) &&
     matches(entry);
 
   const hasCursor =
     typeof afterSequence === "number" || typeof afterTimestamp === "number";
   return hasCursor || limit === Infinity
-    ? collectOldestFirst(buffer, startIndex, isWanted, limit)
-    : collectNewestFirst(buffer, isWanted, limit).reverse();
+    ? collectOldestFirst(buffer, startIndex, isWanted, limit, endIndex)
+    : collectNewestFirst(buffer, isWanted, limit, endIndex).reverse();
 }
 
 function collectOldestFirst<T>(
   buffer: RingBuffer<T>,
   startIndex: number,
   isWanted: (entry: T) => boolean,
-  limit: number
+  limit: number,
+  endIndex: number
 ): T[] {
   const collected: T[] = [];
   for (
     let index = startIndex;
-    index < buffer.size && collected.length < limit;
+    index < endIndex && collected.length < limit;
     index++
   ) {
     const entry = buffer.at(index);
@@ -67,11 +73,12 @@ function collectOldestFirst<T>(
 function collectNewestFirst<T>(
   buffer: RingBuffer<T>,
   isWanted: (entry: T) => boolean,
-  limit: number
+  limit: number,
+  endIndex: number
 ): T[] {
   const collected: T[] = [];
   for (
-    let index = buffer.size - 1;
+    let index = endIndex - 1;
     index >= 0 && collected.length < limit;
     index--
   ) {

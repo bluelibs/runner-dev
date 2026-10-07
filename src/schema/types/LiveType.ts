@@ -23,6 +23,7 @@ import type {
   EmissionEntry as LiveEmissionEntry,
   ErrorEntry as LiveErrorEntry,
 } from "../../resources/live.resource";
+import { ApmType, ApmScopeType } from "./ApmType";
 import { BaseElementInterface } from "./AllType";
 import { EventType } from "./EventType";
 import { RunRecordType, RunFilterInput } from "./RunTypes";
@@ -374,6 +375,16 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
   description:
     "Real-time telemetry access: logs, event emissions, errors, runs, and system health.",
   fields: () => ({
+    apm: {
+      type: ApmType,
+      args: {
+        windowMinutes: { type: GraphQLInt },
+        scope: { type: ApmScopeType },
+      },
+      resolve: (_source, args, context) =>
+        context.live.getApm?.(args.windowMinutes ?? 30, args.scope ?? "all") ??
+        null,
+    },
     systemInfo: {
       description: "Host CPU, RAM, platform and Node.js version",
       type: new GraphQLNonNull(SystemInfoType),

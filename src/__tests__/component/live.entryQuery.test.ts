@@ -153,3 +153,31 @@ describe("createSequenceClock", () => {
     expect(restartedRun(5_001)).toBeGreaterThan(lastOfPreviousRun);
   });
 });
+
+it("pages newest-first without gaps when timestamps collide or new entries arrive", () => {
+  const buffer = new RingBuffer<{ sequence: number; timestampMs: number }>(200);
+  for (let sequence = 1; sequence <= 125; sequence++)
+    buffer.push({ sequence, timestampMs: 100 });
+  const first = queryEntries(buffer, { last: 50 }, () => true);
+  buffer.push({ sequence: 126, timestampMs: 100 });
+  const second = queryEntries(
+    buffer,
+    { last: 50, beforeSequence: first[0].sequence },
+    () => true
+  );
+  const third = queryEntries(
+    buffer,
+    { last: 50, beforeSequence: second[0].sequence },
+    () => true
+  );
+  expect(
+    [...third, ...second, ...first].map((entry) => entry.sequence)
+  ).toEqual(Array.from({ length: 125 }, (_, i) => i + 1));
+  expect(
+    queryEntries(
+      buffer,
+      { afterSequence: 20, beforeSequence: 30, last: 3 },
+      () => true
+    ).map((entry) => entry.sequence)
+  ).toEqual([21, 22, 23]);
+});

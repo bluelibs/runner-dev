@@ -19,6 +19,7 @@ Reference layout:
 
 Use this skill when the task involves:
 
+- the standalone `/durable` dashboard and `/durable/api` REST adapter (runtime discovery, workflow catalog, execution history/details, signals, schedules, operator actions),
 - docs UI behavior, `/docs/data`, in-app documentation delivery, or the topology graph / blast-radius / mindmap views
 - the runtime shell (REPL), the `⌘K` command palette, keyboard shortcuts, or the docs tables (search-first filters, sorting, detail pager)
 - MCP helpers (`graphql_query`, `graphql_mutation`, `graphql_introspect`, `graphql_schema_sdl`, `graphql_ping`, `project_overview`), GraphQL tooling, introspection resources, or chat context wiring
@@ -29,6 +30,10 @@ Use this skill when the task involves:
 - GraphQL schema and MCP contract work grounded in `./references/readmes/API_REFERENCE.md`
 
 Reach for the general Runner skill when the problem is about framework design rather than runner-dev's tooling surface.
+
+## Durable dashboard
+
+The docs sidebar exposes **Durable** only when the backend's `/docs/data` payload has `hasDurable: true`, based on discovered application runtimes; absent/false availability and static catalogs hide the link. It navigates to `/durable`. `/durable` is an isolated live-only Studio page that uses existing application durable runtimes and the server's Host/password guards. `/durable/api` is REST, outside GraphQL/MCP. Scope every request with the selected `runtimeId`; never create a second runtime or assume global workflow discovery establishes ownership. Use public `DurableResource`/operator APIs and real signal definitions for validation. Keep core Runner 6.6 compatibility; lifecycle/state controls require advertised runtime capabilities. Audit remains application-owned and optional; repair reasons go to DevTools logs because Runner 6.6 does not expose a public audit-write boundary. Retry must reject cancelled executions because Runner 6.6 retains their cancellation state. Observed timelines must not invent future branches. When signal metadata is omitted, an observed signal wait supplies its registered event ID for the dialog. `metadata.studio.presets` can supply named start inputs. Keep docs and dashboard bundles separate so static docs exports remain self-contained. Use `npm run play:durable` after building the UI for a real-runtime local preview.
 
 ## Telemetry persistence
 

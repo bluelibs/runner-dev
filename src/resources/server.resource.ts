@@ -14,6 +14,8 @@ import type http from "node:http";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { createUiStaticRouter } from "./ui.static";
+import { createDurableRouter } from "../durable/router";
+import { createDurableServeHandler } from "./routeHandlers/createDurableServeHandler";
 import { printSchema } from "graphql/utilities/printSchema";
 import { createDocsDataRouteHandler } from "./routeHandlers/getDocsData";
 import { createDocsServeHandler } from "./routeHandlers/createDocsServeHandler";
@@ -151,6 +153,8 @@ export const serverResource = defineResource({
     // automatically receive a traceId — even outside task execution.
     app.use(createRequestCorrelationMiddleware());
 
+    app.use("/durable/api", createDurableRouter(store, logger));
+
     // GraphQL endpoint
     app.use(
       "/graphql",
@@ -229,6 +233,7 @@ export const serverResource = defineResource({
 
     // Serve minimal HTML for /docs that loads the built docs entry from the Vite manifest
     app.get("/docs", createDocsServeHandler(uiDir, logger));
+    app.get("/durable", createDurableServeHandler(uiDir, logger));
 
     // Convenience redirect
     app.get("/", (_req: Request, res: Response) => res.redirect("/voyager"));

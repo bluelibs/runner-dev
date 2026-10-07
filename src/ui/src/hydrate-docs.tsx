@@ -225,6 +225,7 @@ function renderDocumentation(
   const element = React.createElement(Documentation as any, {
     introspector,
     mode: payload.mode,
+    hasDurable: payload.hasDurable,
     namespacePrefix: payload.namespacePrefix,
     runnerFrameworkMd: payload.runnerFrameworkMd,
     runnerDevMd: payload.runnerDevMd,

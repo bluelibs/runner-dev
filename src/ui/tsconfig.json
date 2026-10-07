@@ -12,6 +12,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "vite.config.ts",
+    "vite.durable.config.ts",
     "../__tests__/component/search-utils.test.ts"
   ],
   "exclude": []

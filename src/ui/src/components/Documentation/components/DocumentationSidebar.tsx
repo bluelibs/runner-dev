@@ -7,6 +7,7 @@ import { DocIcon } from "./common/DocIcon";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
 
 export interface DocumentationSidebarProps {
+  hasDurable?: boolean;
   sidebarWidth: number;
   sidebarRef: React.RefObject<HTMLElement>;
   isChatOpen?: boolean;
@@ -64,6 +65,7 @@ export function getFilterPopoverPosition(
 }
 
 export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
+  hasDurable = false,
   sidebarWidth,
   sidebarRef,
   isChatOpen: _isChatOpen,
@@ -334,6 +336,19 @@ export const DocumentationSidebar: React.FC<DocumentationSidebarProps> = ({
       {/* Docs & Support Section */}
       <div className="docs-support-section">
         <div className="docs-support-title">Docs & Support</div>
+
+        {!isCatalogMode && hasDurable && (
+          <a
+            href="/durable"
+            className="docs-support-link"
+            title="Open durable workflows dashboard"
+          >
+            <span className="docs-support-icon">
+              <DocIcon name="topology" size={14} />
+            </span>
+            <span className="docs-support-text">Durable</span>
+          </a>
+        )}
 
         {!isCatalogMode && (
           <button

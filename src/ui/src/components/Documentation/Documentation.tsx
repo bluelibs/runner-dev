@@ -48,6 +48,7 @@ export type Section =
 export interface DocumentationProps {
   introspector: Introspector;
   mode?: DocumentationMode;
+  hasDurable?: boolean;
   namespacePrefix?: string;
   runnerFrameworkMd?: string;
   runnerDevMd?: string;
@@ -59,6 +60,7 @@ export interface DocumentationProps {
 export const Documentation: React.FC<DocumentationProps> = ({
   introspector,
   mode = "live",
+  hasDurable = false,
   namespacePrefix,
   // [AI-CHAT-DISABLED] These props were used by ChatSidebar
   runnerFrameworkMd: _runnerFrameworkMd,
@@ -616,6 +618,7 @@ export const Documentation: React.FC<DocumentationProps> = ({
 
           {/* Fixed Navigation Sidebar (an off-canvas drawer at phone width) */}
           <DocumentationSidebar
+            hasDurable={hasDurable}
             sidebarWidth={sidebarHook.sidebarWidth}
             sidebarRef={sidebarHook.sidebarRef}
             // [AI-CHAT-DISABLED] isChatOpen={isChatOpen}

@@ -128,6 +128,18 @@ Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](h
 - [Changelog](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md)
 - [Contributing & Local Dev](https://github.com/bluelibs/runner-dev/blob/main/CONTRIBUTING.md)
 
+## Durable Workflow Dashboard
+
+The docs sidebar shows **Durable** only when the backend reports an available application durable runtime in `/docs/data` (`hasDurable`). It opens `/durable` on the same Runner Dev server for a separate Durable Workflows dashboard. It attaches to the application's existing durable runtimes and uses the same Host checks and optional `RUNNER_DEV_HTTP_PASSWORD` authentication as `/docs`. It does not start another runtime or configure a backend.
+
+Select a runtime to browse its workflows, cursor-paginated execution history, current waits, persisted steps, signals, audit, and schedules. Lists contain bounded summaries; full input/result/error payloads are read when opening execution details. The dashboard also exposes start, signal, cancel, retry, recovery, schedule management, and operator repair actions. Retry is available for failed or compensation-failed runs and resumes from memoized progress; recovery applies to the selected runtime's backend. Operators have the same full-access trust boundary as the other DevTools endpoints.
+
+Runner 6.6 supports the core views and operations. Execution pause/resume/restart and workflow state are shown only when the runtime supports them. Durable audit must already be enabled by the application; an empty audit view does not imply no activity. Repair reasons are logged by DevTools; the public Runner 6.6 operator API does not persist those reasons into durable audit.
+
+The timeline shows observed persisted steps and the current activity, rather than guessing future branches. The signal dialog uses declared signal metadata or the event ID of the execution's current wait. Optional `tags.durableWorkflow.with({ metadata: { studio: { presets: [{ name, payload }] } } })` supplies named JSON inputs to the start dialog. Runtime selection scopes requests with `runtimeId`; the REST API is under `/durable/api` and is separate from GraphQL/MCP. The dashboard is live-only and is not part of static catalog exports.
+
+For a local example in this repository, run `npm run build:ui` followed by `npm run play:durable`, then open `http://localhost:31339/durable`. This starts a real in-memory application with example executions, audit, and schedules.
+
 ## Quickstart
 
 Register the Dev resources in your Runner root:

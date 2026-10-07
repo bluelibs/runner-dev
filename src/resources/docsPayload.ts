@@ -1,4 +1,5 @@
 import { Store } from "@bluelibs/runner";
+import { discoverRuntimes } from "../durable/runtime";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -24,6 +25,8 @@ export type DocumentationMode = "live" | "catalog";
 
 export interface DocsPagePayload {
   mode: DocumentationMode;
+  /** Live durable dashboard availability; absent in older snapshots. */
+  hasDurable?: boolean;
   namespacePrefix?: string;
   introspectorData: SerializedIntrospector;
   runnerFrameworkMd: string;
@@ -260,6 +263,7 @@ export async function buildDocsPagePayload(
 
   return {
     mode: config.mode ?? "live",
+    hasDurable: config.mode !== "catalog" && discoverRuntimes(store).length > 0,
     namespacePrefix,
     introspectorData,
     runnerFrameworkMd: docsContent.minimalMd,

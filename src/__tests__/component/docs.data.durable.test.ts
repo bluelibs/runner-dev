@@ -8,6 +8,7 @@ import type { Request, Response } from "express";
 import { createDocsDataRouteHandler } from "../../resources/routeHandlers/getDocsData";
 import * as packageDocs from "../../docs/packageDocs";
 import { Introspector } from "../../resources/models/Introspector";
+import { buildDocsPagePayload } from "../../resources/docsPayload";
 
 function createDurableDocsFixtureApp() {
   const appId = "tests-docs-app";
@@ -87,6 +88,7 @@ describe("/docs/data durable enrichment", () => {
       const { req, res, payloadRef } = createMockReqRes();
       await handler(req, res);
 
+      expect(payloadRef.value.hasDurable).toBe(true);
       const tasks: any[] = payloadRef.value?.introspectorData?.tasks || [];
       const workflow = tasks.find(
         (item) => item.id === `tests-docs-app.tasks.${durableWorkflowTask.id}`
@@ -101,6 +103,53 @@ describe("/docs/data durable enrichment", () => {
       await runtime.dispose();
     }
   });
+
+  test.each([
+    {
+      name: "a durable runtime without workflows",
+      withRuntime: true,
+      mode: "live" as const,
+      expected: true,
+    },
+    {
+      name: "durable support alone",
+      withRuntime: false,
+      mode: "live" as const,
+      expected: false,
+    },
+    {
+      name: "a static catalog with durable resources",
+      withRuntime: true,
+      mode: "catalog" as const,
+      expected: false,
+    },
+  ])(
+    "reports dashboard availability for $name",
+    async ({ withRuntime, mode, expected }) => {
+      const durable = memoryDurableResource.fork("availability-runtime");
+      const runtime = await run(
+        defineResource<void>({
+          id: "availability-app",
+          register: [
+            durableSupportResource,
+            ...(withRuntime ? [durable.with({})] : []),
+          ],
+        }),
+        { logs: { printThreshold: null } }
+      );
+      try {
+        const store = runtime.getResourceValue(resources.store);
+        const payload = await buildDocsPagePayload({
+          store,
+          introspector: new Introspector({ store }),
+          mode,
+        });
+        expect(payload.hasDurable).toBe(expected);
+      } finally {
+        await runtime.dispose();
+      }
+    }
+  );
 
   test("fails when a required Runner guide is missing", async () => {
     const { app } = createDurableDocsFixtureApp();

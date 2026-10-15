@@ -9,6 +9,7 @@ Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release sh
 - Restore CI coverage thresholds with durable dashboard interaction, pagination and API contract tests.
 - Update the MCP SDK and vulnerable runtime/tooling dependencies. Pin a reviewed braces depth-guard derivative and use scoped coverage-tooling overrides to remove unpatched dependency chains without suppressing audit findings.
 - Require Node.js 22.15+ for the patched GraphQL dependency chain and align generated project requirements.
+- Work that starts through a handle opened during a task or hook (an HTTP listener from a `ready` hook, a timer, a poller) no longer inherits that run's APM parent, root and correlation id once the run has finished. Such work opens its own chain and APM counts it as direct; before, every request served by a listener started in a `ready` hook was attributed to `system.events.ready` under one correlation id.
 
 ## 6.9.0 — 2026-10-07
 

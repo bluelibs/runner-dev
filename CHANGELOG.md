@@ -4,6 +4,8 @@ Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release sh
 
 ## Unreleased
 
+## 6.9.1 — 2026-10-15
+
 ### Fixed
 
 - Restore CI coverage thresholds with durable dashboard interaction, pagination and API contract tests.

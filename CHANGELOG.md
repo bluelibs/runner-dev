@@ -4,6 +4,12 @@ Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release sh
 
 ## Unreleased
 
+### Fixed
+
+- Restore CI coverage thresholds with durable dashboard interaction, pagination and API contract tests.
+- Update the MCP SDK and vulnerable runtime/tooling dependencies. Pin a reviewed braces depth-guard derivative and use scoped coverage-tooling overrides to remove unpatched dependency chains without suppressing audit findings.
+- Require Node.js 22.15+ for the patched GraphQL dependency chain and align generated project requirements.
+
 ## 6.9.0 — 2026-10-07
 
 ### Added

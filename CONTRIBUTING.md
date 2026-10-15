@@ -20,7 +20,7 @@ The play server does not set `NODE_ENV`, so the code-execution gate is closed: t
 RUNNER_DEV_EVAL=1 npm run play
 ```
 
-Requires Node.js 22+ (see `engines` in `package.json`).
+Requires Node.js 22.15+ (see `engines` in `package.json`); the patched GraphQL runtime and schema generator dependencies require that minimum.
 
 2. **Build the CLI and run demo commands:**
 

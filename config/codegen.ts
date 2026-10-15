@@ -1,9 +1,11 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
+import { lexicographicSortSchema } from "graphql";
 import * as path from "path";
+import { schema } from "../src/schema";
 
 const config: CodegenConfig = {
-  // Load schema from code-first module (TypeScript)
-  schema: path.join(__dirname, "../src/schema/index.ts"),
+  // Preserve internal enum values and avoid native TS imports bypassing CommonJS resolution.
+  schema: lexicographicSortSchema(schema),
   generates: {
     [path.join(__dirname, "../src/generated/resolvers-types.ts")]: {
       plugins: ["typescript", "typescript-resolvers"],
@@ -20,10 +22,6 @@ const config: CodegenConfig = {
       },
     },
   },
-  // Ensure TS schema module is loaded
-  require: [path.join(__dirname, "ts-node-register.js")],
-  // Allow referencing tsconfig relative to this file or root
-  // codegen CLI usually runs from root, but we import this file.
 };
 
 export default config;

@@ -2,11 +2,6 @@ import { GraphQLResolveInfo } from 'graphql';
 import { CustomGraphQLContext } from '../schema/context';
 export type Maybe<T> = T | null | undefined;
 export type InputMaybe<T> = T | null | undefined;
-export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
-export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
-export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
-export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
@@ -1590,7 +1585,7 @@ export type ResolverTypeWrapper<T> = Promise<T> | T;
 export type ResolverWithResolve<TResult, TParent, TContext, TArgs> = {
   resolve: ResolverFn<TResult, TParent, TContext, TArgs>;
 };
-export type Resolver<TResult, TParent = {}, TContext = {}, TArgs = {}> = ResolverFn<TResult, TParent, TContext, TArgs> | ResolverWithResolve<TResult, TParent, TContext, TArgs>;
+export type Resolver<TResult, TParent = Record<PropertyKey, never>, TContext = Record<PropertyKey, never>, TArgs = Record<PropertyKey, never>> = ResolverFn<TResult, TParent, TContext, TArgs> | ResolverWithResolve<TResult, TParent, TContext, TArgs>;
 
 export type ResolverFn<TResult, TParent, TContext, TArgs> = (
   parent: TParent,
@@ -1627,21 +1622,21 @@ export type SubscriptionObject<TResult, TKey extends string, TParent, TContext, 
   | SubscriptionSubscriberObject<TResult, TKey, TParent, TContext, TArgs>
   | SubscriptionResolverObject<TResult, TParent, TContext, TArgs>;
 
-export type SubscriptionResolver<TResult, TKey extends string, TParent = {}, TContext = {}, TArgs = {}> =
+export type SubscriptionResolver<TResult, TKey extends string, TParent = Record<PropertyKey, never>, TContext = Record<PropertyKey, never>, TArgs = Record<PropertyKey, never>> =
   | ((...args: any[]) => SubscriptionObject<TResult, TKey, TParent, TContext, TArgs>)
   | SubscriptionObject<TResult, TKey, TParent, TContext, TArgs>;
 
-export type TypeResolveFn<TTypes, TParent = {}, TContext = {}> = (
+export type TypeResolveFn<TTypes, TParent = Record<PropertyKey, never>, TContext = Record<PropertyKey, never>> = (
   parent: TParent,
   context: TContext,
   info: GraphQLResolveInfo
 ) => Maybe<TTypes> | Promise<Maybe<TTypes>>;
 
-export type IsTypeOfResolverFn<T = {}, TContext = {}> = (obj: T, context: TContext, info: GraphQLResolveInfo) => boolean | Promise<boolean>;
+export type IsTypeOfResolverFn<T = Record<PropertyKey, never>, TContext = Record<PropertyKey, never>> = (obj: T, context: TContext, info: GraphQLResolveInfo) => boolean | Promise<boolean>;
 
 export type NextResolverFn<T> = () => Promise<T>;
 
-export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs = {}> = (
+export type DirectiveResolverFn<TResult = Record<PropertyKey, never>, TParent = Record<PropertyKey, never>, TContext = Record<PropertyKey, never>, TArgs = Record<PropertyKey, never>> = (
   next: NextResolverFn<TResult>,
   parent: TParent,
   args: TArgs,
@@ -1650,9 +1645,23 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 ) => TResult | Promise<TResult>;
 
 
+
+
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  BaseElement: ( Omit<All, 'tags'> & { tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<_RefType['Resource']>, requiredBy: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['BaseElement']> } ) | ( Omit<Error, 'tags' | 'thrownBy'> & { tags: Maybe<Array<_RefType['Tag']>>, thrownBy: Array<_RefType['All']> } ) | ( Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved' | 'tags'> & { emittedByResolved: Array<_RefType['BaseElement']>, listenedToByResolved: Array<_RefType['Hook']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<Middleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedByResourcesDetailed: Array<_RefType['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<_RefType['Resource']>, usedByTasksDetailed: Array<_RefType['MiddlewareTaskUsage']>, usedByTasksResolved: Array<_RefType['Task']> } ) | ( Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<_RefType['Resource']>, emits: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['ResourceMiddleware']>, middlewareResolvedDetailed: Array<_RefType['ResourceMiddlewareUsage']>, overridesResolved: Array<_RefType['BaseElement']>, registeredByResolved: Maybe<_RefType['Resource']>, registersResolved: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']> } ) | ( Omit<ResourceMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Resource']>, usedByDetailed: Array<_RefType['MiddlewareResourceUsage']> } ) | ( Omit<Tag, 'all' | 'errors' | 'events' | 'hooks' | 'resourceMiddlewares' | 'resources' | 'tags' | 'taskMiddlewares' | 'tasks'> & { all: Array<_RefType['BaseElement']>, errors: Array<_RefType['Error']>, events: Array<_RefType['Event']>, hooks: Array<_RefType['Hook']>, resourceMiddlewares: Array<_RefType['ResourceMiddleware']>, resources: Array<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, taskMiddlewares: Array<_RefType['TaskMiddleware']>, tasks: Array<_RefType['Task']> } ) | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, durableResource: Maybe<_RefType['Resource']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } ) | ( Omit<TaskMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']>, usedByDetailed: Array<_RefType['MiddlewareTaskUsage']> } );
+  BaseElement:
+    | ( Omit<All, 'tags'> & { tags: Maybe<Array<_RefType['Tag']>> } )
+    | ( Omit<AsyncContext, 'providedBy' | 'requiredBy' | 'tags' | 'usedBy'> & { providedBy: Array<_RefType['Resource']>, requiredBy: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['BaseElement']> } )
+    | ( Omit<Error, 'tags' | 'thrownBy'> & { tags: Maybe<Array<_RefType['Tag']>>, thrownBy: Array<_RefType['All']> } )
+    | ( Omit<Event, 'emittedByResolved' | 'listenedToByResolved' | 'registeredByResolved' | 'tags'> & { emittedByResolved: Array<_RefType['BaseElement']>, listenedToByResolved: Array<_RefType['Hook']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>> } )
+    | ( Omit<Hook, 'depenendsOnResolved' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { depenendsOnResolved: Array<_RefType['BaseElement']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } )
+    | ( Omit<Middleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedByResourcesDetailed' | 'usedByResourcesResolved' | 'usedByTasksDetailed' | 'usedByTasksResolved'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedByResourcesDetailed: Array<_RefType['MiddlewareResourceUsage']>, usedByResourcesResolved: Array<_RefType['Resource']>, usedByTasksDetailed: Array<_RefType['MiddlewareTaskUsage']>, usedByTasksResolved: Array<_RefType['Task']> } )
+    | ( Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<_RefType['Resource']>, emits: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['ResourceMiddleware']>, middlewareResolvedDetailed: Array<_RefType['ResourceMiddlewareUsage']>, overridesResolved: Array<_RefType['BaseElement']>, registeredByResolved: Maybe<_RefType['Resource']>, registersResolved: Array<_RefType['BaseElement']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']> } )
+    | ( Omit<ResourceMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Resource']>, usedByDetailed: Array<_RefType['MiddlewareResourceUsage']> } )
+    | ( Omit<Tag, 'all' | 'errors' | 'events' | 'hooks' | 'resourceMiddlewares' | 'resources' | 'tags' | 'taskMiddlewares' | 'tasks'> & { all: Array<_RefType['BaseElement']>, errors: Array<_RefType['Error']>, events: Array<_RefType['Event']>, hooks: Array<_RefType['Hook']>, resourceMiddlewares: Array<_RefType['ResourceMiddleware']>, resources: Array<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, taskMiddlewares: Array<_RefType['TaskMiddleware']>, tasks: Array<_RefType['Task']> } )
+    | ( Omit<Task, 'dependsOnResolved' | 'depenendsOnResolved' | 'durableResource' | 'emitsResolved' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'registeredByResolved' | 'runs' | 'tags'> & { dependsOnResolved: _RefType['TaskDependsOn'], depenendsOnResolved: Array<_RefType['BaseElement']>, durableResource: Maybe<_RefType['Resource']>, emitsResolved: Array<_RefType['Event']>, middlewareResolved: Array<_RefType['TaskMiddleware']>, middlewareResolvedDetailed: Array<_RefType['TaskMiddlewareUsage']>, registeredByResolved: Maybe<_RefType['Resource']>, runs: Array<_RefType['RunRecord']>, tags: Maybe<Array<_RefType['Tag']>> } )
+    | ( Omit<TaskMiddleware, 'autoApply' | 'emits' | 'registeredByResolved' | 'tags' | 'usedBy' | 'usedByDetailed'> & { autoApply: _RefType['MiddlewareAutoApply'], emits: Array<_RefType['Event']>, registeredByResolved: Maybe<_RefType['Resource']>, tags: Maybe<Array<_RefType['Tag']>>, usedBy: Array<_RefType['Task']>, usedByDetailed: Array<_RefType['MiddlewareTaskUsage']> } )
+  ;
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
@@ -1700,7 +1709,7 @@ export type ResolversTypes = ResolversObject<{
   MiddlewareResourceUsage: ResolverTypeWrapper<Omit<MiddlewareResourceUsage, 'node'> & { node: ResolversTypes['Resource'] }>;
   MiddlewareTaskUsage: ResolverTypeWrapper<Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversTypes['BaseElement'] }>;
   NodeKindEnum: NodeKindEnum;
-  Query: ResolverTypeWrapper<{}>;
+  Query: ResolverTypeWrapper<Record<PropertyKey, never>>;
   Resource: ResolverTypeWrapper<Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<ResolversTypes['Resource']>, emits: Array<ResolversTypes['Event']>, middlewareResolved: Array<ResolversTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversTypes['ResourceMiddlewareUsage']>, overridesResolved: Array<ResolversTypes['BaseElement']>, registeredByResolved: Maybe<ResolversTypes['Resource']>, registersResolved: Array<ResolversTypes['BaseElement']>, tags: Maybe<Array<ResolversTypes['Tag']>>, usedBy: Array<ResolversTypes['Task']> }>;
   ResourceBoundary: ResolverTypeWrapper<ResourceBoundary>;
   ResourceHealthEntry: ResolverTypeWrapper<ResourceHealthEntry>;
@@ -1781,7 +1790,7 @@ export type ResolversParentTypes = ResolversObject<{
   MiddlewareInterceptorOwnersSnapshot: MiddlewareInterceptorOwnersSnapshot;
   MiddlewareResourceUsage: Omit<MiddlewareResourceUsage, 'node'> & { node: ResolversParentTypes['Resource'] };
   MiddlewareTaskUsage: Omit<MiddlewareTaskUsage, 'node'> & { node: ResolversParentTypes['BaseElement'] };
-  Query: {};
+  Query: Record<PropertyKey, never>;
   Resource: Omit<Resource, 'dependsOnResolved' | 'emits' | 'middlewareResolved' | 'middlewareResolvedDetailed' | 'overridesResolved' | 'registeredByResolved' | 'registersResolved' | 'tags' | 'usedBy'> & { dependsOnResolved: Array<ResolversParentTypes['Resource']>, emits: Array<ResolversParentTypes['Event']>, middlewareResolved: Array<ResolversParentTypes['ResourceMiddleware']>, middlewareResolvedDetailed: Array<ResolversParentTypes['ResourceMiddlewareUsage']>, overridesResolved: Array<ResolversParentTypes['BaseElement']>, registeredByResolved: Maybe<ResolversParentTypes['Resource']>, registersResolved: Array<ResolversParentTypes['BaseElement']>, tags: Maybe<Array<ResolversParentTypes['Tag']>>, usedBy: Array<ResolversParentTypes['Task']> };
   ResourceBoundary: ResourceBoundary;
   ResourceHealthEntry: ResourceHealthEntry;
@@ -1849,7 +1858,6 @@ export type ApmSnapshotResolvers<ContextType = CustomGraphQLContext, ParentType 
   storage: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   tasks: Resolver<Array<ResolversTypes['TaskPerformance']>, ParentType, ContextType>;
   windowMinutes: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type AsyncContextResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['AsyncContext'] = ResolversParentTypes['AsyncContext']> = ResolversObject<{
@@ -1874,15 +1882,6 @@ export type AsyncContextResolvers<ContextType = CustomGraphQLContext, ParentType
 
 export type BaseElementResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['BaseElement'] = ResolversParentTypes['BaseElement']> = ResolversObject<{
   __resolveType: TypeResolveFn<'All' | 'AsyncContext' | 'Error' | 'Event' | 'Hook' | 'Middleware' | 'Resource' | 'ResourceMiddleware' | 'Tag' | 'Task' | 'TaskMiddleware', ParentType, ContextType>;
-  fileContents: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, BaseElementFileContentsArgs>;
-  filePath: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  isPrivate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  markdownDescription: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  meta: Resolver<Maybe<ResolversTypes['Meta']>, ParentType, ContextType>;
-  tags: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
-  tagsDetailed: Resolver<Maybe<Array<ResolversTypes['TagUsage']>>, ParentType, ContextType>;
-  visibilityReason: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
 }>;
 
 export type CoverageInfoResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['CoverageInfo'] = ResolversParentTypes['CoverageInfo']> = ResolversObject<{
@@ -1890,13 +1889,11 @@ export type CoverageInfoResolvers<ContextType = CustomGraphQLContext, ParentType
   details: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   percentage: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   totalStatements: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type CpuStatsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['CpuStats'] = ResolversParentTypes['CpuStats']> = ResolversObject<{
   loadAverage: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   usage: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type DiagnosticResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Diagnostic'] = ResolversParentTypes['Diagnostic']> = ResolversObject<{
@@ -1905,7 +1902,6 @@ export type DiagnosticResolvers<ContextType = CustomGraphQLContext, ParentType e
   nodeId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   nodeKind: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   severity: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type EmissionEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['EmissionEntry'] = ResolversParentTypes['EmissionEntry']> = ResolversObject<{
@@ -1917,7 +1913,6 @@ export type EmissionEntryResolvers<ContextType = CustomGraphQLContext, ParentTyp
   payload: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ErrorResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Error'] = ResolversParentTypes['Error']> = ResolversObject<{
@@ -1947,7 +1942,6 @@ export type ErrorEntryResolvers<ContextType = CustomGraphQLContext, ParentType e
   sourceResolved: Resolver<Maybe<ResolversTypes['BaseElement']>, ParentType, ContextType>;
   stack: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type EventResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Event'] = ResolversParentTypes['Event']> = ResolversObject<{
@@ -1981,18 +1975,15 @@ export type EventLaneSummaryResolvers<ContextType = CustomGraphQLContext, Parent
   laneId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   metadata: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   orderingKey: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type EventLoopStatsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['EventLoopStats'] = ResolversParentTypes['EventLoopStats']> = ResolversObject<{
   lag: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type GcStatsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['GcStats'] = ResolversParentTypes['GcStats']> = ResolversObject<{
   collections: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   duration: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type HookResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Hook'] = ResolversParentTypes['Hook']> = ResolversObject<{
@@ -2036,13 +2027,11 @@ export type HookPerformanceResolvers<ContextType = CustomGraphQLContext, ParentT
   p50Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   p95Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   p99Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type InterceptorOwnersSnapshotResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['InterceptorOwnersSnapshot'] = ResolversParentTypes['InterceptorOwnersSnapshot']> = ResolversObject<{
   middleware: Resolver<ResolversTypes['MiddlewareInterceptorOwnersSnapshot'], ParentType, ContextType>;
   tasksById: Resolver<Array<ResolversTypes['TaskInterceptorOwnersEntry']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type IsolationChannelsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['IsolationChannels'] = ResolversParentTypes['IsolationChannels']> = ResolversObject<{
@@ -2050,7 +2039,6 @@ export type IsolationChannelsResolvers<ContextType = CustomGraphQLContext, Paren
   listening: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   middleware: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   tagging: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type IsolationExportsModeResolvers = { LIST: 'list', NONE: 'none', UNSET: 'unset' };
@@ -2059,7 +2047,6 @@ export type IsolationWhitelistEntryResolvers<ContextType = CustomGraphQLContext,
   channels: Resolver<Maybe<ResolversTypes['IsolationChannels']>, ParentType, ContextType>;
   for: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   targets: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type LiveResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Live'] = ResolversParentTypes['Live']> = ResolversObject<{
@@ -2074,7 +2061,6 @@ export type LiveResolvers<ContextType = CustomGraphQLContext, ParentType extends
   memory: Resolver<ResolversTypes['MemoryStats'], ParentType, ContextType>;
   runs: Resolver<Array<ResolversTypes['RunRecord']>, ParentType, ContextType, LiveRunsArgs>;
   systemInfo: Resolver<ResolversTypes['SystemInfo'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type LogEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['LogEntry'] = ResolversParentTypes['LogEntry']> = ResolversObject<{
@@ -2085,27 +2071,23 @@ export type LogEntryResolvers<ContextType = CustomGraphQLContext, ParentType ext
   sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   sourceId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MemoryStatsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MemoryStats'] = ResolversParentTypes['MemoryStats']> = ResolversObject<{
   heapTotal: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   heapUsed: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   rss: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MetaResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Meta'] = ResolversParentTypes['Meta']> = ResolversObject<{
   description: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   tags: Resolver<Array<ResolversTypes['MetaTagUsage']>, ParentType, ContextType>;
   title: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MetaTagUsageResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MetaTagUsage'] = ResolversParentTypes['MetaTagUsage']> = ResolversObject<{
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Middleware'] = ResolversParentTypes['Middleware']> = ResolversObject<{
@@ -2142,13 +2124,11 @@ export type MiddlewareAutoApplyResolvers<ContextType = CustomGraphQLContext, Par
   enabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hasPredicate: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   scope: Resolver<Maybe<ResolversTypes['MiddlewareApplyScope']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MiddlewareInterceptorOwnersEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MiddlewareInterceptorOwnersEntry'] = ResolversParentTypes['MiddlewareInterceptorOwnersEntry']> = ResolversObject<{
   middlewareId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   ownerResourceIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MiddlewareInterceptorOwnersSnapshotResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MiddlewareInterceptorOwnersSnapshot'] = ResolversParentTypes['MiddlewareInterceptorOwnersSnapshot']> = ResolversObject<{
@@ -2156,7 +2136,6 @@ export type MiddlewareInterceptorOwnersSnapshotResolvers<ContextType = CustomGra
   globalTaskInterceptorOwnerIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   perResourceMiddlewareInterceptorOwnerIds: Resolver<Array<ResolversTypes['MiddlewareInterceptorOwnersEntry']>, ParentType, ContextType>;
   perTaskMiddlewareInterceptorOwnerIds: Resolver<Array<ResolversTypes['MiddlewareInterceptorOwnersEntry']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MiddlewareResourceUsageResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MiddlewareResourceUsage'] = ResolversParentTypes['MiddlewareResourceUsage']> = ResolversObject<{
@@ -2165,7 +2144,6 @@ export type MiddlewareResourceUsageResolvers<ContextType = CustomGraphQLContext,
   node: Resolver<ResolversTypes['Resource'], ParentType, ContextType>;
   origin: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   subtreeOwnerId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MiddlewareTaskUsageResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['MiddlewareTaskUsage'] = ResolversParentTypes['MiddlewareTaskUsage']> = ResolversObject<{
@@ -2174,7 +2152,6 @@ export type MiddlewareTaskUsageResolvers<ContextType = CustomGraphQLContext, Par
   node: Resolver<ResolversTypes['BaseElement'], ParentType, ContextType>;
   origin: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   subtreeOwnerId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type QueryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
@@ -2256,7 +2233,6 @@ export type ResourceBoundaryResolvers<ContextType = CustomGraphQLContext, Parent
   exportsDeclared: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   ownerId: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   privateDefinitions: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceHealthEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceHealthEntry'] = ResolversParentTypes['ResourceHealthEntry']> = ResolversObject<{
@@ -2265,13 +2241,11 @@ export type ResourceHealthEntryResolvers<ContextType = CustomGraphQLContext, Par
   initialized: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   message: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   status: Resolver<ResolversTypes['ResourceHealthStatus'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceHealthReportResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceHealthReport'] = ResolversParentTypes['ResourceHealthReport']> = ResolversObject<{
   report: Resolver<Array<ResolversTypes['ResourceHealthEntry']>, ParentType, ContextType>;
   totals: Resolver<ResolversTypes['ResourceHealthTotals'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceHealthTotalsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceHealthTotals'] = ResolversParentTypes['ResourceHealthTotals']> = ResolversObject<{
@@ -2279,7 +2253,6 @@ export type ResourceHealthTotalsResolvers<ContextType = CustomGraphQLContext, Pa
   healthy: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   resources: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   unhealthy: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceIsolationResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceIsolation'] = ResolversParentTypes['ResourceIsolation']> = ResolversObject<{
@@ -2288,7 +2261,6 @@ export type ResourceIsolationResolvers<ContextType = CustomGraphQLContext, Paren
   exportsMode: Resolver<ResolversTypes['IsolationExportsMode'], ParentType, ContextType>;
   only: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   whitelist: Resolver<Array<ResolversTypes['IsolationWhitelistEntry']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceMiddleware'] = ResolversParentTypes['ResourceMiddleware']> = ResolversObject<{
@@ -2321,26 +2293,22 @@ export type ResourceMiddlewareUsageResolvers<ContextType = CustomGraphQLContext,
   node: Resolver<ResolversTypes['ResourceMiddleware'], ParentType, ContextType>;
   origin: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   subtreeOwnerId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceSubtreeIdentityRequirementResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceSubtreeIdentityRequirement'] = ResolversParentTypes['ResourceSubtreeIdentityRequirement']> = ResolversObject<{
   roles: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   tenant: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   user: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceSubtreeIdentityScopeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceSubtreeIdentityScope'] = ResolversParentTypes['ResourceSubtreeIdentityScope']> = ResolversObject<{
   required: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   tenant: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   user: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceSubtreeMiddlewareScopeResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceSubtreeMiddlewareScope'] = ResolversParentTypes['ResourceSubtreeMiddlewareScope']> = ResolversObject<{
   identityScope: Resolver<Maybe<ResolversTypes['ResourceSubtreeIdentityScope']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceSubtreePolicyResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceSubtreePolicy'] = ResolversParentTypes['ResourceSubtreePolicy']> = ResolversObject<{
@@ -2352,43 +2320,36 @@ export type ResourceSubtreePolicyResolvers<ContextType = CustomGraphQLContext, P
   tags: Resolver<Maybe<ResolversTypes['ResourceSubtreeValidationBranch']>, ParentType, ContextType>;
   taskMiddleware: Resolver<Maybe<ResolversTypes['ResourceSubtreeValidationBranch']>, ParentType, ContextType>;
   tasks: Resolver<Maybe<ResolversTypes['ResourceSubtreeTaskBranch']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceSubtreeResourceBranchResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceSubtreeResourceBranch'] = ResolversParentTypes['ResourceSubtreeResourceBranch']> = ResolversObject<{
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   validatorCount: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceSubtreeTaskBranchResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceSubtreeTaskBranch'] = ResolversParentTypes['ResourceSubtreeTaskBranch']> = ResolversObject<{
   identity: Resolver<Array<ResolversTypes['ResourceSubtreeIdentityRequirement']>, ParentType, ContextType>;
   middleware: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   validatorCount: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceSubtreeValidationBranchResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ResourceSubtreeValidationBranch'] = ResolversParentTypes['ResourceSubtreeValidationBranch']> = ResolversObject<{
   validatorCount: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type RpcLaneSummaryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RpcLaneSummary'] = ResolversParentTypes['RpcLaneSummary']> = ResolversObject<{
   laneId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type RunDisposeOptionsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunDisposeOptions'] = ResolversParentTypes['RunDisposeOptions']> = ResolversObject<{
   cooldownWindowMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   drainingBudgetMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   totalBudgetMs: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type RunExecutionContextOptionsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunExecutionContextOptions'] = ResolversParentTypes['RunExecutionContextOptions']> = ResolversObject<{
   cycleDetection: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   enabled: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type RunOptionsResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunOptions'] = ResolversParentTypes['RunOptions']> = ResolversObject<{
@@ -2408,7 +2369,6 @@ export type RunOptionsResolvers<ContextType = CustomGraphQLContext, ParentType e
   mode: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   rootId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   shutdownHooks: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type RunRecordResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['RunRecord'] = ResolversParentTypes['RunRecord']> = ResolversObject<{
@@ -2423,34 +2383,29 @@ export type RunRecordResolvers<ContextType = CustomGraphQLContext, ParentType ex
   rootId: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sequence: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   timestampMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ShellCompletionResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ShellCompletion'] = ResolversParentTypes['ShellCompletion']> = ResolversObject<{
   from: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   options: Resolver<Array<ResolversTypes['ShellCompletionOption']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ShellCompletionOptionResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['ShellCompletionOption'] = ResolversParentTypes['ShellCompletionOption']> = ResolversObject<{
   detail: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   label: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   type: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type SwapResultResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['SwapResult'] = ResolversParentTypes['SwapResult']> = ResolversObject<{
   error: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   success: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   taskId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type SwappedTaskResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['SwappedTask'] = ResolversParentTypes['SwappedTask']> = ResolversObject<{
   originalCode: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   swappedAt: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   taskId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type SystemInfoResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['SystemInfo'] = ResolversParentTypes['SystemInfo']> = ResolversObject<{
@@ -2460,7 +2415,6 @@ export type SystemInfoResolvers<ContextType = CustomGraphQLContext, ParentType e
   nodeVersion: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   platform: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   totalMemory: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type TagResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Tag'] = ResolversParentTypes['Tag']> = ResolversObject<{
@@ -2495,7 +2449,6 @@ export type TagUsageResolvers<ContextType = CustomGraphQLContext, ParentType ext
   config: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   configSchema: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type TaskResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['Task'] = ResolversParentTypes['Task']> = ResolversObject<{
@@ -2539,13 +2492,11 @@ export type TaskDependsOnResolvers<ContextType = CustomGraphQLContext, ParentTyp
   hooks: Resolver<Array<ResolversTypes['Hook']>, ParentType, ContextType>;
   resources: Resolver<Array<ResolversTypes['Resource']>, ParentType, ContextType>;
   tasks: Resolver<Array<ResolversTypes['BaseElement']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type TaskInterceptorOwnersEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskInterceptorOwnersEntry'] = ResolversParentTypes['TaskInterceptorOwnersEntry']> = ResolversObject<{
   ownerResourceIds: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   taskId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type TaskMiddlewareResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskMiddleware'] = ResolversParentTypes['TaskMiddleware']> = ResolversObject<{
@@ -2578,7 +2529,6 @@ export type TaskMiddlewareUsageResolvers<ContextType = CustomGraphQLContext, Par
   node: Resolver<ResolversTypes['TaskMiddleware'], ParentType, ContextType>;
   origin: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   subtreeOwnerId: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type TaskPerformanceResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['TaskPerformance'] = ResolversParentTypes['TaskPerformance']> = ResolversObject<{
@@ -2591,7 +2541,6 @@ export type TaskPerformanceResolvers<ContextType = CustomGraphQLContext, ParentT
   p95Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   p99Ms: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
   taskId: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{

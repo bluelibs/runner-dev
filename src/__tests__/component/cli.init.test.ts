@@ -391,7 +391,7 @@ describe("CLI init", () => {
     // The override must mirror the direct dependency (npm rejects a mismatch).
     expect(pkg.overrides?.vitest).toBe(pkg.devDependencies?.vitest);
     expect(pkg.scripts?.audit).toBe("npm audit");
-    expect(pkg.engines?.node).toBe("^22.12.0 || >=24.0.0");
+    expect(pkg.engines?.node).toBe("^22.15.0 || >=24.0.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
@@ -512,7 +512,7 @@ describe("CLI init", () => {
     // The override must mirror the direct dependency (npm rejects a mismatch).
     expect(pkg.overrides?.vitest).toBe(pkg.devDependencies?.vitest);
     expect(pkg.scripts?.audit).toBe("npm audit");
-    expect(pkg.engines?.node).toBe("^22.12.0 || >=24.0.0");
+    expect(pkg.engines?.node).toBe("^22.15.0 || >=24.0.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"
@@ -572,7 +572,7 @@ describe("CLI init", () => {
     // The override must mirror the direct dependency (npm rejects a mismatch).
     expect(pkg.overrides?.vitest).toBe(pkg.devDependencies?.vitest);
     expect(pkg.scripts?.audit).toBe("npm audit");
-    expect(pkg.engines?.node).toBe("^22.12.0 || >=24.0.0");
+    expect(pkg.engines?.node).toBe("^22.15.0 || >=24.0.0");
     expect(pkg.scripts?.qa).toBe("npm run build && npm run test");
     expect(pkg.scripts?.["skills:extract"]).toBe(
       "npm-skills extract --skip-production --override"

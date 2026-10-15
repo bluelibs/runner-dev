@@ -22,8 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Mirrors package.json "engines" (>=22): @bluelibs/runner and
-        # npm-skills both require Node 22+, so older lines are unsupported.
+        # Mirrors package.json "engines" (>=22.15): the patched GraphQL
+        # dependencies require a recent Node 22 release or a newer line.
         node-version: [22, 24]
 
     steps:

@@ -31,7 +31,7 @@ npm install -g @bluelibs/runner-dev
 npx @bluelibs/runner-dev
 ```
 
-Requirements: Node.js 22+ (`engines: ">=22"`, the same floor as Runner 6.6) and `@bluelibs/runner` ^6.6.0 as a peer dependency. `typescript` is an optional peer declared as `*`, so npm installs runner-dev next to any TypeScript version, including prereleases such as `typescript@next`, and never replaces yours; only `swapTask`, `eval` and `shell` need it, and they need TypeScript 5 or 6 (see [Hot-Swapping](#hot-swapping-debugging-system)).
+Requirements: Node.js 22.15+ (`engines: ">=22.15.0"`, required by the patched GraphQL dependencies) and `@bluelibs/runner` ^6.6.0 as a peer dependency. `typescript` is an optional peer declared as `*`, so npm installs runner-dev next to any TypeScript version, including prereleases such as `typescript@next`, and never replaces yours; only `swapTask`, `eval` and `shell` need it, and they need TypeScript 5 or 6 (see [Hot-Swapping](#hot-swapping-debugging-system)).
 
 For local `AGENTS.md`-style workflows, this repo now extracts Runner skills from `@bluelibs/runner` into `.agents/skills` via `npm-skills` on `postinstall`.
 Runner-Dev also publishes its own skill from `skills/core`. Treat `README.md`, `skills/core/SKILL.md`, `skills/core/references/README.md` and `skills/core/references/readmes/COMPACT_GUIDE.md` as one documentation unit and keep them aligned (together with `readmes/API_REFERENCE.md`). `skills/core/references/README.md` and `skills/core/references/readmes/` are symlinks to this `README.md` and to `readmes/`, so edit the originals and leave the links in place; `npm pack` copies both in for the published package, since npm drops symlinks, and puts the links back afterwards. If a pack fails or is interrupted in between, the next `npm run build` restores them (or run `npm run skills:pack:restore`); a copy that no longer matches its original is left in place with an error, so move any edits made to it into the original first. The docs UI now includes a topology view for blast-radius and resource mindmap exploration. Release notes live in [CHANGELOG.md](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md).
@@ -403,8 +403,8 @@ runner-dev new my-awesome-app
 This command creates a new Runner project with:
 
 - Complete TypeScript setup with `tsx watch` for development
-- Runner 6.6 and Vitest 4.1.11+ for the generated runtime and smoke tests
-- Node.js 22.12+ or 24+ (Runner 6.6 needs Node 22+, and the generated Vitest/Vite toolchain needs 22.12+)
+- Runner 6.7 and Vitest 5.0.1+ for the generated runtime and smoke tests
+- Node.js 22.15+ or 24+ (required by runner-dev's patched GraphQL dependencies)
 - Package.json with all necessary dependencies
 - Basic project structure with main.ts entry point
 - README and .gitignore files
@@ -413,7 +413,9 @@ Run `npm run audit` in the generated project to check all dependencies, includin
 
 The generated `npm run dev` (`tsx watch`) does not set `NODE_ENV`, so the docs UI shell, file editing, `swapTask` and `eval` stay off until you start it with `RUNNER_DEV_EVAL=1 npm run dev` or `NODE_ENV=development npm run dev` (see [Code-execution gate](#code-execution-gate)).
 
-Before releasing runner-dev, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`. The scaffold check installs the packed release into a fresh project, audits its full dependency tree, and runs its build and tests. The repository audit also covers the bundled frontend tooling. `npm run check:runtime-deps` (run by CI after the build, and by `npm pack` after a clean build) fails when `dist` requires a package that is not a dependency or peer, or when loading the package entry pulls in an optional peer such as `typescript`. A scoped Lodash override keeps the existing GraphQL codegen plugins on patched Lodash 4.18.1+ despite their older minor-version constraint.
+Repository development also requires Node.js 22.15+ or 24+ for schema generator tooling. Before releasing runner-dev, run `npm run build`, `npm run audit`, and `npm run audit:scaffold`. The scaffold check installs the packed release into a fresh project, audits its full dependency tree, and runs its build and tests. The repository audit also covers the bundled frontend tooling. `npm run check:runtime-deps` (run by CI after the build, and by `npm pack` after a clean build) fails when `dist` requires a package that is not a dependency or peer, or when loading the package entry pulls in an optional peer such as `typescript`. A scoped Lodash override keeps the existing GraphQL codegen plugins on patched Lodash 4.18.1+ despite their older minor-version constraint.
+
+The development dependency overrides also keep `shell-quote` on 1.12+ and the coverage configuration loader on `js-yaml` 4, removing its vulnerable `sprintf-js` chain. Until upstream `braces` publishes a depth fix, glob tooling uses the exact reviewed `@dieub/braces-depth-guard@3.0.3-pn.3` derivative. It rejects nesting above 100 levels, including direct AST traversal, and guards invalid limits and cyclic expansion parents; it does not bound expansion cardinality or AST width. Regression tests exercise those guards and ordinary glob/YAML behavior. Keep the exact pin and review a replacement before changing it. Repository overrides are not inherited by consumers; the scaffold audit checks their separate dependency tree.
 
 Flags for `new`:
 

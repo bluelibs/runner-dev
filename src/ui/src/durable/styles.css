@@ -839,15 +839,31 @@ button {
 /* ─── Detail pane ────────────────────────────────────────── */
 
 .detail-pane {
+  position: relative;
   overflow-y: auto;
   min-width: 0;
   background: var(--bg);
 }
 
+.detail-loading {
+  position: absolute;
+  top: 6px;
+  right: 16px;
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .detail {
+  min-width: 0;
+  width: 100%;
   max-width: 860px;
   margin: 0 auto;
   padding: 28px 32px 64px;
+  border: 0;
 }
 
 .detail-head {

@@ -12,6 +12,7 @@ import {
 import { ApiError, type StudioApi } from "./api";
 import type { DurableRuntimeDescriptor } from "../../../durable/shared/runtime";
 import { useExecutionFeed } from "./executionFeed";
+import { useExecutionDetail } from "./useExecutionDetail";
 import { WorkflowApiContext } from "./workflowFeed";
 import type { DashboardStatusFilter } from "./dashboard";
 import { ExecutionDetail } from "./components/ExecutionDetail";
@@ -68,8 +69,12 @@ export function App({
   const [selectedId, setSelectedId] = useState<string | null>(() =>
     readParams().get("select")
   );
-  const [detailError, setDetailError] = useState("");
-  const [detail, setDetail] = useState<StudioExecutionDetail | null>(null);
+  const {
+    detail,
+    error: detailError,
+    switching: switchingExecution,
+    loading: loadingDetail,
+  } = useExecutionDetail(api, selectedId);
   const [workflowFilter, setWorkflowFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
@@ -215,26 +220,6 @@ export function App({
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (!selectedId || locked) {
-      if (!selectedId) setDetail(null);
-      return;
-    }
-    setDetail(null);
-    setDetailError("");
-    return api.subscribeExecution(
-      selectedId,
-      (next) => {
-        setDetail(next);
-        setDetailError("");
-      },
-      (error) =>
-        setDetailError(
-          error instanceof Error ? error.message : "Could not load execution."
-        )
-    );
-  }, [api, selectedId, locked]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -555,7 +540,12 @@ export function App({
                 }
               />
             </section>
-            <main className="detail-pane">
+            <main className="detail-pane" aria-busy={loadingDetail}>
+              {loadingDetail ? (
+                <p className="detail-loading" role="status">
+                  Loading execution…
+                </p>
+              ) : null}
               {detailError ? (
                 <p className="error-banner" role="alert">
                   {detailError}
@@ -563,6 +553,7 @@ export function App({
               ) : null}
               {detail ? (
                 <ExecutionDetail
+                  disabled={switchingExecution}
                   capabilities={runtime.capabilities}
                   detail={detail}
                   workflow={selectedWorkflow}
@@ -588,7 +579,7 @@ export function App({
                   onExport={() => exportExecution(detail)}
                   onOpenExecution={setSelectedId}
                 />
-              ) : (
+              ) : !selectedId ? (
                 <div className="empty-detail">
                   <p className="empty-title">Select an execution</p>
                   <p className="empty-sub">
@@ -605,7 +596,7 @@ export function App({
                     )}
                   </div>
                 </div>
-              )}
+              ) : null}
             </main>
           </>
         )}

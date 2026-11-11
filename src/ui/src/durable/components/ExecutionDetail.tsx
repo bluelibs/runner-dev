@@ -28,6 +28,7 @@ const AUDIT_LABELS: Record<string, string> = {
 };
 
 export function ExecutionDetail({
+  disabled = false,
   capabilities,
   detail,
   workflow,
@@ -44,6 +45,7 @@ export function ExecutionDetail({
   onExport,
   onOpenExecution,
 }: {
+  disabled?: boolean;
   capabilities: DurableRuntimeCapabilities;
   detail: StudioExecutionDetail;
   workflow: StudioWorkflow | undefined;
@@ -84,7 +86,11 @@ export function ExecutionDetail({
   }
 
   return (
-    <div className="detail">
+    <fieldset
+      className="detail"
+      disabled={disabled}
+      aria-label="Execution details"
+    >
       <header className="detail-head">
         <div className="detail-title-row">
           <div>
@@ -316,6 +322,6 @@ export function ExecutionDetail({
           </ol>
         ) : null}
       </div>
-    </div>
+    </fieldset>
   );
 }

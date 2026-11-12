@@ -121,8 +121,10 @@ export function ApmPanel({
           <i />
           {snapshot.storage === "sqlite"
             ? "SQLite · persisted"
-            : ["sqlite", "clickhouse", "redis"].includes(snapshot.storage)
+            : snapshot.storage === "clickhouse"
             ? "ClickHouse · archive"
+            : snapshot.storage === "redis"
+            ? "Redis · archive"
             : snapshot.storage === "memory"
             ? "Memory · this session"
             : `${snapshot.storage} · archive`}

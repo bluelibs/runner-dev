@@ -91,6 +91,32 @@ it("shows persisted metrics, small sample context, scope controls and task filte
   expect(screen.getByText("No tasks match your filter.")).toBeTruthy();
 });
 
+it.each([
+  ["redis", "Redis · archive"],
+  ["clickhouse", "ClickHouse · archive"],
+])(
+  "identifies the %s archive and retains persistence status",
+  async (storage, label) => {
+    request.mockResolvedValue({
+      live: {
+        apm: {
+          ...snapshot,
+          storage,
+          pendingSamples: 3,
+          persistenceError: "Storage temporarily unavailable",
+        },
+      },
+    });
+    renderPanel();
+    expect(await screen.findByText(label)).toBeTruthy();
+    expect(screen.getByText(/3 samples awaiting confirmation/)).toBeTruthy();
+    expect(screen.getByRole("alert")).toHaveProperty(
+      "textContent",
+      "Archive writes failed: Storage temporarily unavailable"
+    );
+  }
+);
+
 it("shows fetch failures instead of inventing zero metrics", async () => {
   request.mockRejectedValue(new Error("Network unavailable"));
   renderPanel();

@@ -12,7 +12,9 @@ export function registerGraphQLQuery(server: McpServer) {
         "Execute a GraphQL query against the configured live endpoint or exported snapshot",
       inputSchema: {
         query: z.string(),
-        variables: z.union([z.string(), z.record(z.unknown())]).optional(),
+        variables: z
+          .union([z.string(), z.record(z.string(), z.unknown())])
+          .optional(),
         operationName: z.string().optional(),
         format: z.enum(["json", "markdown"]).optional(),
         markdownStyle: z.enum(["summary", "story"]).optional(),

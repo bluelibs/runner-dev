@@ -7,6 +7,16 @@ export class DurableHttpError extends Error {
   }
 }
 
+export function isZodValidationError(error: unknown): error is Error {
+  // Consumer schemas can use another Zod major or a separate package copy.
+  return (
+    error instanceof Error &&
+    error.name === "ZodError" &&
+    "issues" in error &&
+    Array.isArray(error.issues)
+  );
+}
+
 export function requireValue<T>(
   value: T | null | undefined,
   message: string
@@ -16,7 +26,7 @@ export function requireValue<T>(
 }
 
 export function bodyRecord(input: unknown): Record<string, unknown> {
-  return z.record(z.unknown()).parse(input ?? {});
+  return z.record(z.string(), z.unknown()).parse(input ?? {});
 }
 
 export function nonEmpty(value: unknown): string {

@@ -15,24 +15,31 @@ import type { Server } from "node:http";
 import { once } from "node:events";
 import request from "supertest";
 import z from "zod";
+import { z as z3 } from "zod/v3";
 import { createDurableRouter } from "../../durable/router";
 import { createHttpPasswordGuard } from "../../resources/routeHandlers/httpPasswordGuard";
 
-export async function fixture(withRuntimes = true) {
+export async function fixture(withRuntimes = true, legacySchemas = false) {
   const left = memoryDurableResource.fork("left");
   const right = memoryDurableResource.fork("right");
   const approved = defineEvent({
     id: "approved",
     payloadSchema: z.object({ approved: z.boolean() }),
   });
+  const inputSchema = legacySchemas
+    ? z3.object({
+        name: z3.string().min(1),
+        wait: z3.boolean().default(false),
+      })
+    : z.object({
+        name: z.string().min(1),
+        wait: z.boolean().default(false),
+      });
   const makeWorkflow = (id: string, durable: typeof left) =>
     defineTask({
       id,
       dependencies: { durable },
-      inputSchema: z.object({
-        name: z.string().min(1),
-        wait: z.boolean().default(false),
-      }),
+      inputSchema,
       tags: [
         durableWorkflowTag.with({
           key: id,

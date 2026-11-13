@@ -4,6 +4,16 @@ Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release sh
 
 ## Unreleased
 
+## 6.9.2 — 2026-11-12
+
+### Fixed
+
+- Clear dependency audit findings in the repository and generated projects, including runtime HTTP parsing, MCP, schema validation and development tooling. Use patched glob tooling and a reviewed Jest configuration merger without suppressing findings.
+- Upgrade runtime validation to Zod 4 while preserving Zod 3 and Zod 4 schema exports and HTTP 400 responses for consumer validation failures. Keep Apollo Server at 5.5.1 so consumer installs can resolve patched GraphQL utilities.
+- Keep the previous durable execution detail and active tab visible while switching executions; disable detail controls until the selected execution loads.
+- Identify Redis and ClickHouse APM storage separately while preserving persistence status.
+- Generate new projects with `@bluelibs/runner-dev` `^6.9.2`.
+
 ## 6.9.1 — 2026-10-15
 
 ### Fixed

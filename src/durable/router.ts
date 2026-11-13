@@ -4,7 +4,7 @@ import express from "express";
 import type { ErrorRequestHandler, Request, Response } from "express";
 import z from "zod";
 import { discoverRuntimes, selectRuntime, workflowCatalog } from "./runtime";
-import { DurableHttpError, requireValue } from "./errors";
+import { DurableHttpError, isZodValidationError, requireValue } from "./errors";
 import { getExecutionDetail, listExecutions } from "./executions";
 import { toSummary } from "./projection";
 import { executionAction, startExecution } from "./actions";
@@ -166,7 +166,7 @@ export function createDurableRouter(
     let status = 500;
     if (error instanceof DurableHttpError) status = error.status;
     else if (
-      error instanceof z.ZodError ||
+      isZodValidationError(error) ||
       error instanceof SyntaxError ||
       error instanceof URIError ||
       errors.matchError.is(error) ||

@@ -13,7 +13,9 @@ export function registerGraphQLMutation(server: McpServer) {
         "Execute a GraphQL mutation against the configured live source. Requires ALLOW_MUTATIONS=true and is not supported for snapshots.",
       inputSchema: {
         mutation: z.string(),
-        variables: z.union([z.string(), z.record(z.unknown())]).optional(),
+        variables: z
+          .union([z.string(), z.record(z.string(), z.unknown())])
+          .optional(),
         operationName: z.string().optional(),
         format: z.enum(["json", "markdown"]).optional(),
         markdownStyle: z.enum(["summary", "story"]).optional(),

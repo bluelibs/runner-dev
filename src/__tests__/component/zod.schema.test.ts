@@ -1,5 +1,10 @@
-import { z } from "zod";
-import { formatSchemaIfZod, isZodSchema } from "../../utils/schemaFormat";
+import { z } from "zod/v3";
+import { z as z4 } from "zod/v4";
+import {
+  formatSchemaIfZod,
+  formatZodSchemaNicely,
+  isZodSchema,
+} from "../../utils/schemaFormat";
 import {
   mapStoreTaskToTaskModel,
   mapStoreResourceToResourceModel,
@@ -7,6 +12,24 @@ import {
 import { definitions } from "@bluelibs/runner";
 
 describe("Zod schema conversion", () => {
+  test("recognizes and exports Zod 4 schemas alongside legacy schemas", () => {
+    const schema = z4.object({
+      name: z4.string(),
+      age: z4.number().int().optional(),
+    });
+    expect(isZodSchema(schema)).toBe(true);
+    for (const formatted of [
+      formatSchemaIfZod(schema),
+      formatZodSchemaNicely(schema),
+    ]) {
+      const json = JSON.parse(String(formatted));
+      expect(json.type).toBe("object");
+      expect(json.properties.name.type).toBe("string");
+      expect(json.properties.age.type).toBe("integer");
+      expect(json.required).toEqual(["name"]);
+    }
+  });
+
   test("formatSchemaIfZod returns JSON schema string", () => {
     const schema = z.object({
       name: z.string(),

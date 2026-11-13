@@ -1,9 +1,9 @@
-import { z } from "zod";
 import { z as z4 } from "zod/v4";
+import type { ZodTypeAny as Zod3Type } from "zod/v3";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { jsonSchemaToReadableText } from "./json-schema-to-readable";
 
-export type ZodTypeAny = z.ZodTypeAny;
+export type ZodTypeAny = Zod3Type | z4.ZodType;
 
 type JsonSchemaExporter = {
   toJSONSchema: () => unknown;
@@ -22,16 +22,28 @@ type MatchPatternLike = {
 };
 
 export function isZodSchema(value: unknown): value is ZodTypeAny {
+  if (isZod4Schema(value)) return true;
   return (
     typeof value === "object" &&
     value !== null &&
-    (value as any)?._def?.typeName?.startsWith("Zod")
-    // (value instanceof z.ZodAny || value instanceof z4.ZodAny)
+    "_def" in value &&
+    typeof value._def === "object" &&
+    value._def !== null &&
+    "typeName" in value._def &&
+    typeof value._def.typeName === "string" &&
+    value._def.typeName.startsWith("Zod")
   );
 }
 
-function isZ4(schema: ZodTypeAny) {
-  return "transformAsync" in schema;
+function isZod4Schema(value: unknown): value is z4.ZodType {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "_zod" in value &&
+    typeof value._zod === "object" &&
+    value._zod !== null &&
+    "def" in value._zod
+  );
 }
 
 function hasToJSONSchema(value: unknown): value is JsonSchemaExporter {
@@ -273,8 +285,8 @@ function formatSchemaFromToJSONSchema(
 
 export function formatZodSchemaNicely(schema: ZodTypeAny): string {
   try {
-    const jsonSchema = isZ4(schema)
-      ? z4.toJSONSchema(schema as any)
+    const jsonSchema = isZod4Schema(schema)
+      ? z4.toJSONSchema(schema)
       : zodToJsonSchema(schema, { name: "Schema" });
 
     return JSON.stringify(jsonSchema, null, 2);

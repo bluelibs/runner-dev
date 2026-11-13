@@ -116,7 +116,7 @@ export async function getExecutionDetail(
         at: at.toISOString(),
         kind,
         attempt,
-        detail: z.record(z.unknown()).parse(jsonSafe(detail)),
+        detail: z.record(z.string(), z.unknown()).parse(jsonSafe(detail)),
       })
     ),
     signals: signals.map((signal) => {

@@ -64,3 +64,58 @@ test("aborts detail reads and discards late results when leaving an execution", 
   await Promise.resolve();
   expect(onDetail).not.toHaveBeenCalled();
 });
+
+test.each(["response", "body"])(
+  "aborts stalled read %s after the deadline and permits a fresh retry",
+  async (phase) => {
+    jest.useFakeTimers();
+    const fetchMock = jest
+      .fn()
+      .mockImplementation((_url: URL, options: RequestInit) => {
+        const stalled = new Promise<never>((_resolve, reject) => {
+          options.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true }
+          );
+        });
+        return phase === "response"
+          ? stalled
+          : Promise.resolve({ ok: true, json: () => stalled });
+      });
+    global.fetch = fetchMock;
+    const api = createLiveApi("orders");
+    const result = api.listSchedules().catch((error: unknown) => error);
+    await jest.advanceTimersByTimeAsync(30_000);
+    expect(await result).toEqual(
+      new ApiError(408, "Read request timed out after 30 seconds. Try again.")
+    );
+    expect(fetchMock.mock.calls[0][1].signal?.aborted).toBe(true);
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ schedules: [] }) });
+    await expect(api.listSchedules()).resolves.toEqual([]);
+  }
+);
+
+test("does not time out mutating requests or leave read deadlines after completion", async () => {
+  jest.useFakeTimers();
+  let finish!: (value: unknown) => void;
+  const fetchMock = jest.fn().mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  global.fetch = fetchMock;
+  const pending = createLiveApi("orders").startExecution("fulfill", {});
+  expect(fetchMock.mock.calls[0][1].signal).toBeUndefined();
+  await jest.advanceTimersByTimeAsync(60_000);
+  finish({ ok: true, json: async () => ({ executionId: "created" }) });
+  await expect(pending).resolves.toBe("created");
+  global.fetch = jest
+    .fn()
+    .mockResolvedValue({ ok: true, json: async () => ({ schedules: [] }) });
+  await createLiveApi("orders").listSchedules();
+  expect(jest.getTimerCount()).toBe(0);
+});

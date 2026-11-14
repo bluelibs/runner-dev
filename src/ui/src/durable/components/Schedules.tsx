@@ -4,12 +4,16 @@ import type {
   StudioWorkflow,
 } from "../../../../durable/shared/types";
 import { formatDateTime } from "../format";
+import { ConfirmDialog } from "./Modal";
 import { ScheduleModal } from "./ScheduleModal";
 
 export function Schedules({
   schedules,
   workflows,
   busy,
+  loading = false,
+  available = true,
+  dialogsAllowed = true,
   now: _now,
   onCreate,
   onUpdate,
@@ -21,9 +25,12 @@ export function Schedules({
   schedules: StudioSchedule[];
   workflows: StudioWorkflow[];
   busy: boolean;
+  loading?: boolean;
+  available?: boolean;
+  dialogsAllowed?: boolean;
   now: number;
-  onCreate: (body: Record<string, unknown>) => void;
-  onUpdate: (id: string, body: Record<string, unknown>) => void;
+  onCreate: (body: Record<string, unknown>) => Promise<void>;
+  onUpdate: (id: string, body: Record<string, unknown>) => Promise<void>;
   onPreview: (body: Record<string, unknown>) => Promise<string[]>;
   onPause: (id: string) => void;
   onResume: (id: string) => void;
@@ -31,13 +38,27 @@ export function Schedules({
 }) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<StudioSchedule | null>(null);
+  const [deleting, setDeleting] = useState<StudioSchedule | null>(null);
+  useEffect(() => {
+    if (!dialogsAllowed) {
+      setCreating(false);
+      setEditing(null);
+      setDeleting(null);
+    }
+  }, [dialogsAllowed]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [visibleLimit, setVisibleLimit] = useState(40);
   void _now;
   const statuses = useMemo(
-    () => [...new Set(schedules.map((schedule) => schedule.status))].sort(),
-    [schedules]
+    () =>
+      [
+        ...new Set([
+          ...schedules.map((schedule) => schedule.status),
+          ...(status === "all" ? [] : [status]),
+        ]),
+      ].sort(),
+    [schedules, status]
   );
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -58,7 +79,8 @@ export function Schedules({
     });
   }, [query, schedules, status]);
   const visible = filtered.slice(0, visibleLimit);
-  const showScaleTools = schedules.length > 5;
+  const showScaleTools =
+    schedules.length > 5 || query !== "" || status !== "all";
 
   useEffect(() => setVisibleLimit(40), [query, schedules.length, status]);
 
@@ -75,7 +97,7 @@ export function Schedules({
         <button
           type="button"
           className="btn primary"
-          disabled={workflows.length === 0}
+          disabled={workflows.length === 0 || busy}
           onClick={() => setCreating(true)}
         >
           New schedule
@@ -106,6 +128,17 @@ export function Schedules({
               </option>
             ))}
           </select>
+          {query || status !== "all" ? (
+            <button
+              className="btn ghost small"
+              onClick={() => {
+                setQuery("");
+                setStatus("all");
+              }}
+            >
+              Clear filters
+            </button>
+          ) : null}
           <span className="schedule-result-count">
             {visible.length} of {filtered.length}
           </span>
@@ -113,7 +146,13 @@ export function Schedules({
       ) : null}
       {schedules.length === 0 ? (
         <div className="empty-list">
-          <p className="empty-title">No schedules</p>
+          <p className="empty-title">
+            {loading
+              ? "Loading schedules…"
+              : available
+              ? "No schedules"
+              : "Schedules have not loaded"}
+          </p>
           <p className="empty-sub">
             Schedules fire workflows without anyone pressing start.
           </p>
@@ -180,7 +219,7 @@ export function Schedules({
                     type="button"
                     className="btn small danger-ghost"
                     disabled={busy}
-                    onClick={() => onRemove(schedule.id)}
+                    onClick={() => setDeleting(schedule)}
                   >
                     Delete
                   </button>
@@ -202,26 +241,39 @@ export function Schedules({
           ) : null}
         </>
       )}
-      {creating ? (
+      {dialogsAllowed && deleting ? (
+        <ConfirmDialog
+          title="Delete schedule"
+          message={`Delete ${deleting.id} for ${deleting.workflowTitle}? Future scheduled starts will stop. Existing executions will continue.`}
+          confirmLabel="Delete schedule"
+          danger
+          onConfirm={() => {
+            onRemove(deleting.id);
+            setDeleting(null);
+          }}
+          onClose={() => setDeleting(null)}
+        />
+      ) : null}
+      {dialogsAllowed && creating ? (
         <ScheduleModal
           workflows={workflows}
           busy={busy}
           onPreview={onPreview}
-          onSave={(body) => {
-            onCreate(body);
+          onSave={async (body) => {
+            await onCreate(body);
             setCreating(false);
           }}
           onClose={() => setCreating(false)}
         />
       ) : null}
-      {editing ? (
+      {dialogsAllowed && editing ? (
         <ScheduleModal
           schedule={editing}
           workflows={workflows}
           busy={busy}
           onPreview={onPreview}
-          onSave={(body) => {
-            onUpdate(editing.id, body);
+          onSave={async (body) => {
+            await onUpdate(editing.id, body);
             setEditing(null);
           }}
           onClose={() => setEditing(null)}

@@ -69,24 +69,49 @@ export function createLiveApi(runtimeId: string): StudioApi {
   async function request<T>(
     method: string,
     path: string,
-    body?: unknown
+    body?: unknown,
+    controller?: AbortController
   ): Promise<T> {
     const url = new URL(`/durable${path}`, window.location.origin);
     url.searchParams.set("runtimeId", runtimeId);
-    const response = await fetch(url, {
-      method,
-      headers:
-        body === undefined ? undefined : { "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const parsed = await response.json();
-    if (!response.ok) {
-      throw new ApiError(
-        response.status,
-        typeof parsed?.error === "string" ? parsed.error : response.statusText
-      );
+    // Only reads have a deadline: cancelling a write cannot prove it was not applied.
+    const readController =
+      method === "GET" ? controller ?? new AbortController() : undefined;
+    let timedOut = false;
+    const timeout = readController
+      ? window.setTimeout(() => {
+          timedOut = true;
+          readController.abort();
+        }, 30_000)
+      : undefined;
+    try {
+      const response = await fetch(url, {
+        method,
+        headers:
+          body === undefined
+            ? undefined
+            : { "content-type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        ...(readController ? { signal: readController.signal } : {}),
+      });
+      const parsed = await response.json();
+      if (!response.ok) {
+        throw new ApiError(
+          response.status,
+          typeof parsed?.error === "string" ? parsed.error : response.statusText
+        );
+      }
+      return parsed as T;
+    } catch (error) {
+      if (timedOut)
+        throw new ApiError(
+          408,
+          "Read request timed out after 30 seconds. Try again."
+        );
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
     }
-    return parsed as T;
   }
 
   async function listExecutionPage(
@@ -238,21 +263,17 @@ export function createLiveApi(runtimeId: string): StudioApi {
     subscribeExecution: (id, onDetail, onError) => {
       let stopped = false;
       let timer: number | undefined;
-      const controller = new AbortController();
+      let controller: AbortController | undefined;
       const poll = async () => {
         try {
-          const url = new URL(
-            `/durable/api/executions/${encodeURIComponent(id)}`,
-            window.location.origin
+          if (document.hidden) return;
+          controller = new AbortController();
+          const parsed = await request<{ execution: StudioExecutionDetail }>(
+            "GET",
+            `/api/executions/${encodeURIComponent(id)}`,
+            undefined,
+            controller
           );
-          url.searchParams.set("runtimeId", runtimeId);
-          const response = await fetch(url, { signal: controller.signal });
-          const parsed = await response.json();
-          if (!response.ok)
-            throw new ApiError(
-              response.status,
-              parsed.error ?? response.statusText
-            );
           if (!stopped) onDetail(parsed.execution);
         } catch (error) {
           if (!stopped) onError?.(error);
@@ -263,7 +284,7 @@ export function createLiveApi(runtimeId: string): StudioApi {
       void poll();
       return () => {
         stopped = true;
-        controller.abort();
+        controller?.abort();
         window.clearTimeout(timer);
       };
     },

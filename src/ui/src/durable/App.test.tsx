@@ -218,16 +218,171 @@ test("retries failed executions and switches selection to a fresh restart", asyn
   ).toBeInTheDocument();
 });
 
-test("surfaces authentication failures as runtime unavailability", async () => {
+test("surfaces authentication failures separately from transient errors", async () => {
   const api = studioApi();
   api.listWorkflowPage.mockRejectedValue(new ApiError(401, "Unauthorized"));
   api.listSchedules.mockRejectedValue(new ApiError(401, "Unauthorized"));
   render(<App api={api} runtime={runtime} />);
   expect(
-    await screen.findByRole("heading", { name: "Runtime unavailable" })
+    await screen.findByRole("heading", { name: "Authentication required" })
   ).toBeInTheDocument();
   expect(
     screen.getByRole("link", { name: "Back to documentation" })
   ).toHaveAttribute("href", "/docs");
   expect(api.startExecution).not.toHaveBeenCalled();
+});
+
+test("blocks duplicate execution mutations while leaving data inspection available and recovers after rejection", async () => {
+  window.history.replaceState(null, "", "/durable?select=run-1");
+  const api = studioApi();
+  let reject!: (error: Error) => void;
+  api.pauseExecution.mockReturnValueOnce(
+    new Promise<void>((_resolve, no) => {
+      reject = no;
+    })
+  );
+  render(<App api={api} runtime={runtime} />);
+  const pause = await screen.findByRole("button", { name: "Pause" });
+  fireEvent.click(pause);
+  fireEvent.click(pause);
+  expect(api.pauseExecution).toHaveBeenCalledTimes(1);
+  expect(pause).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Data" }));
+  expect(screen.getByRole("heading", { name: "Input" })).toBeInTheDocument();
+  reject(new Error("Pause rejected"));
+  await waitFor(() => expect(pause).toBeEnabled());
+  expect(await screen.findByText("Pause: Pause rejected")).toBeInTheDocument();
+  fireEvent.click(pause);
+  await waitFor(() => expect(api.pauseExecution).toHaveBeenCalledTimes(2));
+});
+
+test("keeps execution errors visible when auxiliary reads succeed and allows a local retry", async () => {
+  const api = studioApi();
+  api.listExecutionPage.mockRejectedValue(new ApiError(503, "History offline"));
+  render(<App api={api} runtime={runtime} />);
+  expect(await screen.findByText("Executions unavailable")).toBeInTheDocument();
+  expect(screen.queryByText("Runtime unavailable")).toBeNull();
+  expect(screen.queryByText("No failures in view")).toBeNull();
+  expect(screen.getByRole("button", { name: "Schedules" })).toBeEnabled();
+  api.listExecutionPage.mockResolvedValue({
+    executions: [],
+    total: 0,
+    nextCursor: null,
+    nextOffset: null,
+    hasMore: false,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Retry executions" }));
+  await screen.findByText("No finished runs in view");
+  expect(screen.queryByText("Executions unavailable")).toBeNull();
+});
+
+test("isolates schedule failures, retries them, and keeps a successful save successful when refreshing fails", async () => {
+  const api = studioApi();
+  api.listSchedules.mockRejectedValue(new Error("Schedule store offline"));
+  render(<App api={api} runtime={runtime} />);
+  expect(await screen.findByText("Schedules unavailable")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "Workflow health" })
+  ).toBeInTheDocument();
+  api.listSchedules.mockResolvedValue([]);
+  fireEvent.click(screen.getByRole("button", { name: "Retry schedules" }));
+  await waitFor(() =>
+    expect(screen.queryByText("Schedules unavailable")).toBeNull()
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Schedules" }));
+  fireEvent.click(await screen.findByRole("button", { name: "New schedule" }));
+  const dialog = screen.getByRole("dialog", { name: "New schedule" });
+  const save = within(dialog).getByRole("button", { name: "Create schedule" });
+  await waitFor(() => expect(save).toBeEnabled());
+  api.listSchedules.mockRejectedValue(new Error("Refresh offline"));
+  fireEvent.click(save);
+  expect(await screen.findByText("Schedule created.")).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(await screen.findByText("Schedules unavailable")).toBeInTheDocument();
+  expect(api.createSchedule).toHaveBeenCalledTimes(1);
+});
+
+test("suppresses global shortcuts inside a schedule dialog", async () => {
+  render(<App api={studioApi()} runtime={runtime} />);
+  fireEvent.click(screen.getByRole("button", { name: "Schedules" }));
+  fireEvent.click(await screen.findByRole("button", { name: "New schedule" }));
+  fireEvent.keyDown(screen.getByRole("button", { name: "Close" }), {
+    key: "n",
+  });
+  expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  expect(screen.getByRole("dialog")).toHaveAccessibleName("New schedule");
+});
+
+test.each(["failed", "cancelled", "completed"] as const)(
+  "shows accurate result state for %s executions",
+  async (status) => {
+    window.history.replaceState(null, "", "/durable?select=run-1");
+    render(
+      <App
+        api={studioApi(executionDetail({ status, result: null }))}
+        runtime={runtime}
+      />
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Data" }));
+    expect(
+      screen.queryByText("No result yet — the workflow is still running.")
+    ).toBeNull();
+    if (status === "completed")
+      expect(screen.getByText("null", { selector: "pre" })).toBeInTheDocument();
+    else
+      expect(
+        screen.getByText(`No result recorded. Execution status: ${status}.`)
+      ).toBeInTheDocument();
+  }
+);
+
+test("shows rejected start input inside the focused dialog and retains the editable draft", async () => {
+  const api = studioApi();
+  api.startExecution.mockRejectedValueOnce(
+    new ApiError(400, "Order ID required")
+  );
+  render(<App api={api} runtime={runtime} />);
+  await waitFor(() => expect(api.listWorkflowPage).toHaveBeenCalled());
+  fireEvent.keyDown(window, { key: "n" });
+  const dialog = await screen.findByRole("dialog", { name: "Start execution" });
+  const input = within(dialog).getByRole("textbox", { name: "JSON input" });
+  fireEvent.change(input, { target: { value: '{"draft":42}' } });
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Start execution" })
+  );
+  expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+    "Order ID required"
+  );
+  expect(input).toHaveValue('{"draft":42}');
+  expect(dialog).toBeInTheDocument();
+});
+
+test("groups concurrent execution and schedule failures and retries only the chosen feed", async () => {
+  const api = studioApi();
+  api.listExecutionPage.mockRejectedValue(new Error("History offline"));
+  api.listSchedules.mockRejectedValue(new Error("Schedules offline"));
+  render(<App api={api} runtime={runtime} />);
+  const count = await screen.findByText("2 feeds unavailable");
+  const details = count.closest("details");
+  const summary = details?.querySelector("summary");
+  if (!details || !summary) throw new Error("Failure disclosure not found");
+  expect(details).not.toHaveAttribute("open");
+  fireEvent.click(summary);
+  const scheduleCalls = api.listSchedules.mock.calls.length;
+  api.listExecutionPage.mockResolvedValue({
+    executions: [],
+    total: 0,
+    hasMore: false,
+    nextCursor: null,
+    nextOffset: null,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Retry executions" }));
+  await waitFor(() =>
+    expect(screen.queryByText("2 feeds unavailable")).toBeNull()
+  );
+  expect(api.listSchedules).toHaveBeenCalledTimes(scheduleCalls);
+  expect(
+    screen.getByRole("button", { name: "Retry schedules" })
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Retry executions" })).toBeNull();
 });

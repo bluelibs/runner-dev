@@ -45,3 +45,7 @@
     grid-template-columns: 1fr;
   }
 }
+
+.error-banner + .schedule-fields {
+  margin-block-start: 20px;
+}

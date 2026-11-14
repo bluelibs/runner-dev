@@ -38,7 +38,7 @@ export interface DashboardModel {
     failed: number;
     cancelled: number;
     stuck: number;
-    successRate: number;
+    successRate: number | null;
     activeSchedules: number;
     pausedSchedules: number;
   };
@@ -54,7 +54,7 @@ export interface DashboardModel {
     total: number;
     live: number;
     failed: number;
-    successRate: number;
+    successRate: number | null;
   }>;
   insights: DashboardInsight[];
 }
@@ -62,8 +62,8 @@ export interface DashboardModel {
 const ACTIVITY_BUCKETS = 12;
 const ACTIVITY_BUCKET_MS = 30 * 60_000;
 
-function percent(part: number, total: number, emptyValue = 0): number {
-  if (total === 0) return emptyValue;
+function percent(part: number, total: number): number | null {
+  if (total === 0) return null;
   return Math.round((part / total) * 100);
 }
 
@@ -110,7 +110,14 @@ function buildActivity(
 
 function buildInsights(metrics: DashboardModel["metrics"]): DashboardInsight[] {
   const reliability: DashboardInsight =
-    metrics.failed > 0
+    metrics.successRate === null
+      ? {
+          tone: "info",
+          label: "Reliability",
+          title: "No finished runs in view",
+          detail: "Success rate will appear after an execution finishes.",
+        }
+      : metrics.failed > 0
       ? {
           tone: "danger",
           label: "Reliability",
@@ -141,11 +148,11 @@ function buildInsights(metrics: DashboardModel["metrics"]): DashboardInsight[] {
           title:
             metrics.live > 0
               ? `${metrics.live} moving now`
-              : "Runtime is quiet",
+              : "Loaded runs are quiet",
           detail:
             metrics.live > 0
               ? "Live work is refreshing every few seconds."
-              : "No execution currently needs runtime capacity.",
+              : "No live execution appears in the loaded history.",
         };
   const automation: DashboardInsight =
     metrics.pausedSchedules > 0
@@ -241,7 +248,7 @@ export function buildDashboardModel({
     failed,
     cancelled,
     stuck: stuck.length,
-    successRate: percent(completed, finished, 100),
+    successRate: percent(completed, finished),
     activeSchedules: schedules.filter(
       (schedule) => schedule.status === "active"
     ).length,
@@ -273,8 +280,7 @@ export function buildDashboardModel({
         failed: workflowFailed,
         successRate: percent(
           workflowCompleted,
-          workflowCompleted + workflowFailed + workflowCancelled,
-          100
+          workflowCompleted + workflowFailed + workflowCancelled
         ),
       };
     })

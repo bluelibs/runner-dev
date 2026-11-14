@@ -78,11 +78,13 @@ export function Timeline({
   edges,
   now,
   onSignal,
+  disabled = false,
 }: {
   nodes: StudioTimelineNode[];
   edges: StudioGraphEdge[];
   now: number;
   onSignal: (signalId: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <ol className="timeline">
@@ -129,6 +131,7 @@ export function Timeline({
                 <button
                   type="button"
                   className="btn small primary"
+                  disabled={disabled}
                   onClick={() => onSignal(node.wait!.signalId!)}
                 >
                   Send {node.wait.signalId}

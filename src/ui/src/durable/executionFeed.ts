@@ -40,8 +40,11 @@ export function useExecutionFeed({
     loading: true,
     loadingMore: false,
     error: null,
+    updatedAt: null,
   });
   const pagerRef = useRef<ExecutionPager>();
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
   useEffect(() => {
     const pager = new ExecutionPager(
       api,
@@ -51,19 +54,33 @@ export function useExecutionFeed({
     );
     pagerRef.current = pager;
     setSnapshot(pager.snapshot);
-    if (paused) return () => pager.dispose();
     const debounce = window.setTimeout(
       () => void pager.refreshHead(),
       executionId ? 250 : 0
     );
-    const timer = window.setInterval(() => void pager.poll(), 2500);
-    return () => {
-      pager.dispose();
-      window.clearTimeout(debounce);
-      window.clearInterval(timer);
+    let stopped = false;
+    let timer: number | undefined;
+    const poll = async () => {
+      if (!document.hidden && !pausedRef.current) await pager.poll();
+      if (!stopped) timer = window.setTimeout(poll, 2500);
     };
-  }, [api, paused, onError, workflowKey, status, executionId]);
+    timer = window.setTimeout(poll, 2500);
+    const onVisible = () => {
+      if (!document.hidden && !pausedRef.current) void pager.poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      pager.dispose();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearTimeout(debounce);
+      window.clearTimeout(timer);
+    };
+  }, [api, onError, workflowKey, status, executionId]);
   const actions = useRef({
+    retry: async () => {
+      await pagerRef.current?.retry();
+    },
     loadMore: async () => {
       await pagerRef.current?.loadMore();
     },

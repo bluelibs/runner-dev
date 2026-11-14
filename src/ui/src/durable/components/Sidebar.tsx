@@ -16,6 +16,7 @@ export function Sidebar({
   totalExecutionCount,
   hasMoreExecutions,
   stuckCount,
+  stuckAvailable = true,
   onRecover,
   recovering,
 }: {
@@ -28,9 +29,11 @@ export function Sidebar({
   totalExecutionCount?: number;
   hasMoreExecutions?: boolean;
   stuckCount: number;
+  stuckAvailable?: boolean;
   onRecover: () => void;
   recovering: boolean;
 }) {
+  const [catalogExpanded, setCatalogExpanded] = useState(false);
   const [workflowQuery, setWorkflowQuery] = useState("");
   const feed = useWorkflowFeed(workflows, workflowQuery);
   const visibleWorkflows = feed.workflows;
@@ -40,7 +43,7 @@ export function Sidebar({
     totalExecutionCount === undefined && hasMoreExecutions;
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${catalogExpanded ? " catalog-expanded" : ""}`}>
       <div className="brand">
         <span className="brand-mark" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 32 32">
@@ -115,13 +118,25 @@ export function Sidebar({
         </div>
         <div className="stat">
           <span className={`stat-num${stuckCount > 0 ? " warn" : ""}`}>
-            {stuckCount}
+            {stuckAvailable ? stuckCount : "—"}
           </span>
           <span className="stat-label">stuck loaded</span>
         </div>
       </div>
 
-      <div className="side-section workflows-section">
+      <button
+        type="button"
+        className="btn ghost small mobile-workflow-toggle"
+        aria-expanded={catalogExpanded}
+        aria-controls="durable-workflow-navigation"
+        onClick={() => setCatalogExpanded((open) => !open)}
+      >
+        {catalogExpanded ? "Hide workflows" : "Browse workflows"}
+      </button>
+      <div
+        id="durable-workflow-navigation"
+        className="side-section workflows-section"
+      >
         <div className="side-heading-row">
           <p className="side-heading">Workflows</p>
           {searchable ? (
@@ -166,7 +181,10 @@ export function Sidebar({
           key={workflowQuery}
           workflows={visibleWorkflows}
           selectedKey={workflowFilter}
-          onSelect={onWorkflowFilter}
+          onSelect={(key) => {
+            onWorkflowFilter(key);
+            setCatalogExpanded(false);
+          }}
           query={workflowQuery}
           hasMore={feed.nextCursor !== null && !feed.error}
           loading={feed.loading}

@@ -160,11 +160,7 @@ export function ExecutionList({
       )}
       <div ref={loadMoreRef} className="exec-load-zone" aria-live="polite">
         {error ? (
-          <button
-            type="button"
-            className="load-more-btn"
-            onClick={hasMore ? onLoadMore : onRefresh}
-          >
+          <button type="button" className="load-more-btn" onClick={onRefresh}>
             {error} · Retry
           </button>
         ) : null}

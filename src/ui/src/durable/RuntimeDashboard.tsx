@@ -27,11 +27,26 @@ export function RuntimeDashboard() {
         const requested = new URLSearchParams(window.location.search).get(
           "runtimeId"
         );
-        setSelected(
+        const selectedId =
           payload.runtimes.find((item) => item.id === requested)?.id ??
-            payload.runtimes[0]?.id ??
-            ""
-        );
+          payload.runtimes[0]?.id ??
+          "";
+        if (selectedId) {
+          const url = new URL(window.location.href);
+          url.searchParams.set("runtimeId", selectedId);
+          if (requested && requested !== selectedId) {
+            for (const key of [
+              "select",
+              "modal",
+              "workflow",
+              "status",
+              "query",
+            ])
+              url.searchParams.delete(key);
+          }
+          window.history.replaceState(null, "", url);
+        }
+        setSelected(selectedId);
       } catch (failure) {
         if (!controller.signal.aborted)
           setError(
@@ -46,14 +61,28 @@ export function RuntimeDashboard() {
     void load();
     return () => controller.abort();
   }, [revision]);
+  useEffect(() => {
+    const restore = () => {
+      const requested = new URLSearchParams(window.location.search).get(
+        "runtimeId"
+      );
+      setSelected(
+        runtimes.find((item) => item.id === requested)?.id ??
+          runtimes[0]?.id ??
+          ""
+      );
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [runtimes]);
   const api = useMemo(() => createLiveApi(selected), [selected]);
   const runtime = runtimes.find((item) => item.id === selected);
   function selectRuntime(id: string) {
     const url = new URL(window.location.href);
     url.searchParams.set("runtimeId", id);
-    url.searchParams.delete("select");
-    url.searchParams.delete("modal");
-    window.history.replaceState(null, "", url);
+    for (const key of ["select", "modal", "workflow", "status", "query"])
+      url.searchParams.delete(key);
+    window.history.pushState(null, "", url);
     setSelected(id);
   }
   if (loading || error || !runtime) {

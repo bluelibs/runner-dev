@@ -11,12 +11,14 @@ export function SignalModal({
   signals,
   initialSignal,
   busy,
+  error,
   onSend,
   onClose,
 }: {
   signals: StudioSignal[];
   initialSignal?: string;
   busy: boolean;
+  error?: string;
   onSend: (signal: string, payload: unknown) => void;
   onClose: () => void;
 }) {
@@ -44,7 +46,13 @@ export function SignalModal({
       title="Send signal"
       subtitle="Deliver an event to the waiting execution."
       onClose={onClose}
+      busy={busy}
     >
+      {error ? (
+        <p className="error-banner" role="alert">
+          {error}
+        </p>
+      ) : null}
       <label className="field">
         <span className="field-label">Signal</span>
         <select
@@ -74,7 +82,12 @@ export function SignalModal({
         />
       </div>
       <div className="modal-actions">
-        <button type="button" className="btn ghost" onClick={onClose}>
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={busy}
+          onClick={onClose}
+        >
           Cancel
         </button>
         <button

@@ -29,6 +29,7 @@ const AUDIT_LABELS: Record<string, string> = {
 
 export function ExecutionDetail({
   disabled = false,
+  busy = false,
   capabilities,
   detail,
   workflow,
@@ -46,6 +47,7 @@ export function ExecutionDetail({
   onOpenExecution,
 }: {
   disabled?: boolean;
+  busy?: boolean;
   capabilities: DurableRuntimeCapabilities;
   detail: StudioExecutionDetail;
   workflow: StudioWorkflow | undefined;
@@ -126,7 +128,12 @@ export function ExecutionDetail({
             Updated <strong>{timeAgo(detail.updatedAt, now)}</strong>
           </span>
         </div>
-        <div className="detail-actions">
+        <fieldset
+          className="detail-actions"
+          disabled={busy}
+          aria-busy={busy}
+          aria-label="Execution actions"
+        >
           {(workflow?.signals.length ?? 0) > 0 || waitingSignals.length > 0 ? (
             <button
               type="button"
@@ -191,7 +198,12 @@ export function ExecutionDetail({
               </button>
             </div>
           </details>
-        </div>
+          {busy ? (
+            <span className="muted" role="status">
+              Operation in progress…
+            </span>
+          ) : null}
+        </fieldset>
         {detail.error ? (
           <div className="error-banner">
             <strong>
@@ -237,6 +249,7 @@ export function ExecutionDetail({
             edges={detail.edges}
             now={now}
             onSignal={onSignal}
+            disabled={busy}
           />
         ) : null}
         {tab === "relations" ? (
@@ -255,12 +268,18 @@ export function ExecutionDetail({
             </section>
             <section>
               <h3>Result</h3>
-              {detail.result === null || detail.result === undefined ? (
-                <p className="muted">
-                  No result yet — the workflow is still running.
-                </p>
-              ) : (
+              {detail.status === "completed" ||
+              (detail.result !== null && detail.result !== undefined) ? (
                 <JsonView value={detail.result} label="result" />
+              ) : (
+                <p className="muted">
+                  {live
+                    ? "No result yet — the workflow is still running."
+                    : `No result recorded. Execution status: ${detail.status.replaceAll(
+                        "_",
+                        " "
+                      )}.`}
+                </p>
               )}
             </section>
             <section>

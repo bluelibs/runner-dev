@@ -16,6 +16,7 @@ export interface PagerSnapshot {
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
+  updatedAt: number | null;
 }
 
 /** Keeps ten pages, not an ever-growing copy of the database, in browser memory. */
@@ -25,6 +26,7 @@ export class ExecutionPager {
   private active = true;
   private busy = false;
   private failure: string | null = null;
+  private failedDirection: "head" | "next" | "previous" | null = null;
   snapshot: PagerSnapshot = {
     executions: [],
     startOffset: 0,
@@ -34,6 +36,7 @@ export class ExecutionPager {
     loading: true,
     loadingMore: false,
     error: null,
+    updatedAt: null,
   };
 
   constructor(
@@ -59,6 +62,7 @@ export class ExecutionPager {
       loading: loading && !this.pages.length,
       loadingMore: loading && this.pages.length > 0,
       error: this.failure,
+      updatedAt: this.snapshot.updatedAt,
     };
     this.changed(this.snapshot);
   }
@@ -77,7 +81,6 @@ export class ExecutionPager {
         ? this.previous[this.previous.length - 1]
         : undefined;
     this.busy = true;
-    this.failure = null;
     this.publish(true);
     try {
       const page = await this.api.listExecutionPage({
@@ -88,6 +91,9 @@ export class ExecutionPager {
       if (!this.active) return;
       if (page.nextCursor && page.nextCursor === cursor)
         throw new Error("Execution cursor did not advance.");
+      this.failure = null;
+      this.failedDirection = null;
+      this.snapshot.updatedAt = Date.now();
       if (direction === "head") {
         this.pages = [{ cursor, page }];
         this.previous = [];
@@ -102,6 +108,7 @@ export class ExecutionPager {
       }
     } catch (error) {
       if (this.active) {
+        this.failedDirection = direction;
         this.failure =
           error instanceof Error ? error.message : "Could not load executions.";
         this.onError(error);
@@ -112,6 +119,7 @@ export class ExecutionPager {
     }
   }
 
+  retry = (): Promise<void> => this.request(this.failedDirection ?? "head");
   loadMore = (): Promise<void> => this.request("next");
   loadPrevious = (): Promise<void> => this.request("previous");
   refreshHead = (): Promise<void> => this.request("head");

@@ -149,3 +149,37 @@ test("updates exact execution identities and maintains stable chronological orde
   ]);
   expect(current[0].status).toBe("running");
 });
+
+test("retries the failed page direction and retains freshness until a read succeeds", async () => {
+  const listExecutionPage = jest
+    .fn()
+    .mockResolvedValueOnce(page(0))
+    .mockRejectedValueOnce(new Error("Head failed"))
+    .mockResolvedValueOnce(page(0))
+    .mockRejectedValueOnce(new Error("Next failed"))
+    .mockResolvedValueOnce(page(1));
+  const pager = new ExecutionPager(
+    { listExecutionPage },
+    {},
+    jest.fn(),
+    jest.fn()
+  );
+  await pager.refreshHead();
+  const updatedAt = pager.snapshot.updatedAt;
+  await pager.refreshHead();
+  expect(pager.snapshot.updatedAt).toBe(updatedAt);
+  expect(pager.snapshot.executions).toHaveLength(1);
+  await pager.retry();
+  expect(listExecutionPage).toHaveBeenLastCalledWith({
+    limit: 40,
+    cursor: undefined,
+  });
+  expect(pager.snapshot.error).toBeNull();
+  await pager.loadMore();
+  await pager.retry();
+  expect(listExecutionPage).toHaveBeenLastCalledWith({
+    limit: 40,
+    cursor: "1",
+  });
+  expect(pager.snapshot.executions).toHaveLength(2);
+});

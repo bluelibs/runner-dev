@@ -241,6 +241,7 @@ export function createLiveApi(runtimeId: string): StudioApi {
       const controller = new AbortController();
       const poll = async () => {
         try {
+          if (document.hidden) return;
           const url = new URL(
             `/durable/api/executions/${encodeURIComponent(id)}`,
             window.location.origin

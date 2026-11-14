@@ -13,6 +13,7 @@ import {
 import { timeAgo, truncateId } from "../format";
 import { ActivityChart, StatusMixChart } from "./DashboardCharts";
 import { StatusPill } from "./StatusPill";
+import { FeedNotice } from "./FeedNotice";
 import { WorkflowSelect } from "./WorkflowSelect";
 
 const FILTERS: Array<{ id: DashboardStatusFilter; label: string }> = [
@@ -27,6 +28,12 @@ const FILTERS: Array<{ id: DashboardStatusFilter; label: string }> = [
 
 export function Overview({
   supportsPause = false,
+  loading = false,
+  error = null,
+  onRetry = () => {},
+  onBrowse,
+  schedulesAvailable = true,
+  stuckAvailable = true,
   executions,
   schedules,
   stuck,
@@ -46,6 +53,12 @@ export function Overview({
   onStatusChange,
 }: {
   supportsPause?: boolean;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  onBrowse?: () => void;
+  schedulesAvailable?: boolean;
+  stuckAvailable?: boolean;
   executions: StudioExecutionSummary[];
   schedules: StudioSchedule[];
   stuck: StudioExecutionSummary[];
@@ -55,7 +68,7 @@ export function Overview({
   onOpenExecution: (executionId: string) => void;
   onStart: () => void;
   searchRef: RefObject<HTMLInputElement>;
-  refreshedAt: number;
+  refreshedAt: number | null;
   now: number;
   totalExecutionCount?: number;
   hasMoreExecutions?: boolean;
@@ -119,7 +132,15 @@ export function Overview({
         </div>
         <div className="overview-head-actions">
           <span className="sync-state">
-            <i /> Updated {timeAgo(new Date(refreshedAt).toISOString(), now)}
+            <i />{" "}
+            {error
+              ? "Execution data is stale"
+              : refreshedAt === null
+              ? "Waiting for execution data"
+              : `Executions updated ${timeAgo(
+                  new Date(refreshedAt).toISOString(),
+                  now
+                )}`}
           </span>
           <button type="button" className="btn primary" onClick={onStart}>
             + Start execution
@@ -168,142 +189,194 @@ export function Overview({
         </div>
       </section>
 
-      <section className="metric-grid" aria-label="Key metrics">
-        <Metric
-          label={
-            totalExecutionCount === undefined
-              ? "Executions loaded"
-              : "Total executions"
-          }
-          value={
-            totalExecutionCount ??
-            `${model.metrics.total}${hasMoreExecutions ? "+" : ""}`
-          }
-          detail={
-            totalExecutionCount === undefined
-              ? hasMoreExecutions
-                ? "older runs available"
-                : `${model.metrics.live} live now`
-              : `${model.metrics.total} loaded · ${model.metrics.live} live`
-          }
-          tone="blue"
-        />
-        <Metric
-          label="Success rate"
-          value={`${model.metrics.successRate}%`}
-          detail="of loaded finished runs"
-          tone="green"
-        />
-        <Metric
-          label="Needs attention"
-          value={attentionCount}
-          detail={`${model.metrics.failed} failed · ${model.metrics.stuck} stuck`}
-          tone={attentionCount > 0 ? "red" : "green"}
-        />
-        <Metric
-          label="Active schedules"
-          value={model.metrics.activeSchedules}
-          detail={`${model.metrics.pausedSchedules} paused`}
-          tone="amber"
-        />
-      </section>
+      <FeedNotice
+        label="Executions"
+        loading={loading}
+        error={error}
+        updatedAt={refreshedAt}
+        now={now}
+        onRetry={onRetry}
+      />
+      <p className="overview-scope">
+        {refreshedAt === null
+          ? "Execution metrics are unavailable until history loads."
+          : `Execution metrics describe ${filtered.length} loaded runs${
+              hasMoreExecutions ? "; older history is available" : ""
+            }.`}
+        {onBrowse ? (
+          <button type="button" className="btn ghost small" onClick={onBrowse}>
+            Browse execution history →
+          </button>
+        ) : null}
+      </p>
+      {refreshedAt !== null || (!loading && !error) ? (
+        <>
+          <section className="metric-grid" aria-label="Key metrics">
+            <Metric
+              label={
+                totalExecutionCount === undefined
+                  ? "Executions loaded"
+                  : "Total executions"
+              }
+              value={
+                totalExecutionCount ??
+                `${model.metrics.total}${hasMoreExecutions ? "+" : ""}`
+              }
+              detail={
+                totalExecutionCount === undefined
+                  ? hasMoreExecutions
+                    ? "older runs available"
+                    : `${model.metrics.live} live now`
+                  : `${model.metrics.total} loaded · ${model.metrics.live} live`
+              }
+              tone="blue"
+            />
+            <Metric
+              label="Success rate"
+              value={
+                model.metrics.successRate === null
+                  ? "—"
+                  : `${model.metrics.successRate}%`
+              }
+              detail={
+                model.metrics.successRate === null
+                  ? "no finished runs loaded"
+                  : "of loaded finished runs"
+              }
+              tone="green"
+            />
+            <Metric
+              label="Needs attention"
+              value={
+                stuckAvailable ? attentionCount : `${model.metrics.failed}+`
+              }
+              detail={`${model.metrics.failed} failed · ${
+                stuckAvailable
+                  ? `${model.metrics.stuck} stuck`
+                  : "stuck data unavailable"
+              } in loaded runs`}
+              tone={attentionCount > 0 ? "red" : "green"}
+            />
+            <Metric
+              label="Active schedules"
+              value={schedulesAvailable ? model.metrics.activeSchedules : "—"}
+              detail={
+                schedulesAvailable
+                  ? `${model.metrics.pausedSchedules} paused`
+                  : "schedule data unavailable"
+              }
+              tone="amber"
+            />
+          </section>
 
-      <section className="insight-strip" aria-label="Insights">
-        {model.insights.map((insight) => (
-          <article
-            key={insight.label}
-            className={`insight-card ${insight.tone}`}
-          >
-            <p>{insight.label}</p>
-            <strong>{insight.title}</strong>
-            <span>{insight.detail}</span>
-          </article>
-        ))}
-      </section>
+          <section className="insight-strip" aria-label="Insights">
+            {model.insights
+              .filter(
+                (insight) =>
+                  (insight.label !== "Automation" || schedulesAvailable) &&
+                  (insight.label !== "Flow" || stuckAvailable)
+              )
+              .map((insight) => (
+                <article
+                  key={insight.label}
+                  className={`insight-card ${insight.tone}`}
+                >
+                  <p>{insight.label}</p>
+                  <strong>{insight.title}</strong>
+                  <span>{insight.detail}</span>
+                </article>
+              ))}
+          </section>
 
-      <section className="dashboard-chart-grid">
-        <article className="dashboard-panel activity-panel">
-          <PanelHead
-            title="Execution activity"
-            detail="Created in the last 6 hours"
-          />
-          <ActivityChart activity={model.activity} />
-        </article>
-        <article className="dashboard-panel">
-          <PanelHead title="Status mix" detail="Current loaded view" />
-          <StatusMixChart statusMix={model.statusMix} />
-        </article>
-      </section>
+          <section className="dashboard-chart-grid">
+            <article className="dashboard-panel activity-panel">
+              <PanelHead
+                title="Execution activity"
+                detail="Loaded runs created in the last 6 hours"
+              />
+              <ActivityChart activity={model.activity} />
+            </article>
+            <article className="dashboard-panel">
+              <PanelHead title="Status mix" detail="Current loaded view" />
+              <StatusMixChart statusMix={model.statusMix} />
+            </article>
+          </section>
 
-      <section className="dashboard-bottom-grid">
-        <article className="dashboard-panel latest-panel">
-          <PanelHead
-            title="Latest activity"
-            detail={`${filtered.length} matching loaded execution${
-              filtered.length === 1 ? "" : "s"
-            }`}
-          />
-          <div className="latest-list">
-            {filtered.slice(0, 7).map((execution) => (
-              <button
-                key={execution.id}
-                type="button"
-                className="latest-row"
-                onClick={() => onOpenExecution(execution.id)}
-              >
-                <span className="latest-identity">
-                  <StatusPill status={execution.status} showDot={false} />
-                  <span>
-                    <strong>{execution.workflowTitle}</strong>
-                    <code>{truncateId(execution.id, 18)}</code>
-                  </span>
-                </span>
-                <span className="latest-position">
-                  {execution.position ??
-                    EXECUTION_STATUS_META[execution.status].label}
-                </span>
-                <time>{timeAgo(execution.updatedAt, now)}</time>
-                <span className="latest-arrow" aria-hidden="true">
-                  ↗
-                </span>
-              </button>
-            ))}
-            {filtered.length === 0 ? (
-              <div className="overview-empty">
-                <strong>No matching executions</strong>
-                <span>Try a broader search or remove a filter.</span>
+          <section className="dashboard-bottom-grid">
+            <article className="dashboard-panel latest-panel">
+              <PanelHead
+                title="Latest activity"
+                detail={`${filtered.length} matching loaded execution${
+                  filtered.length === 1 ? "" : "s"
+                }`}
+              />
+              <div className="latest-list">
+                {filtered.slice(0, 7).map((execution) => (
+                  <button
+                    key={execution.id}
+                    type="button"
+                    className="latest-row"
+                    onClick={() => onOpenExecution(execution.id)}
+                  >
+                    <span className="latest-identity">
+                      <StatusPill status={execution.status} showDot={false} />
+                      <span>
+                        <strong>{execution.workflowTitle}</strong>
+                        <code>{truncateId(execution.id, 18)}</code>
+                      </span>
+                    </span>
+                    <span className="latest-position">
+                      {execution.position ??
+                        EXECUTION_STATUS_META[execution.status].label}
+                    </span>
+                    <time>{timeAgo(execution.updatedAt, now)}</time>
+                    <span className="latest-arrow" aria-hidden="true">
+                      ↗
+                    </span>
+                  </button>
+                ))}
+                {filtered.length === 0 ? (
+                  <div className="overview-empty">
+                    <strong>No matching executions</strong>
+                    <span>Try a broader search or remove a filter.</span>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        </article>
+            </article>
 
-        <article className="dashboard-panel workflow-panel">
-          <PanelHead
-            title="Workflow health"
-            detail="Across loaded finished runs"
-          />
-          <div className="workflow-health-list">
-            {model.workflowHealth.map((workflow) => (
-              <button
-                key={workflow.key}
-                type="button"
-                onClick={() => onWorkflowFilter(workflow.key)}
-              >
-                <span>
-                  <strong>{workflow.title}</strong>
-                  <em>
-                    {workflow.total} total · {workflow.live} live
-                  </em>
-                </span>
-                <span className="health-value">{workflow.successRate}%</span>
-                <span className="health-track">
-                  <i style={{ width: `${workflow.successRate}%` }} />
-                </span>
-              </button>
-            ))}
-          </div>
-        </article>
-      </section>
+            <article className="dashboard-panel workflow-panel">
+              <PanelHead
+                title="Workflow health"
+                detail="Across loaded finished runs"
+              />
+              <div className="workflow-health-list">
+                {model.workflowHealth.map((workflow) => (
+                  <button
+                    key={workflow.key}
+                    type="button"
+                    onClick={() => onWorkflowFilter(workflow.key)}
+                  >
+                    <span>
+                      <strong>{workflow.title}</strong>
+                      <em>
+                        {workflow.total} total · {workflow.live} live
+                      </em>
+                    </span>
+                    <span className="health-value">
+                      {workflow.successRate === null
+                        ? "—"
+                        : `${workflow.successRate}%`}
+                    </span>
+                    <span className="health-track">
+                      <i style={{ width: `${workflow.successRate ?? 0}%` }} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </article>
+          </section>
+        </>
+      ) : null}
     </div>
   );
 }

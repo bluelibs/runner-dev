@@ -13,6 +13,7 @@ export function Schedules({
   busy,
   loading = false,
   available = true,
+  dialogsAllowed = true,
   now: _now,
   onCreate,
   onUpdate,
@@ -26,6 +27,7 @@ export function Schedules({
   busy: boolean;
   loading?: boolean;
   available?: boolean;
+  dialogsAllowed?: boolean;
   now: number;
   onCreate: (body: Record<string, unknown>) => Promise<void>;
   onUpdate: (id: string, body: Record<string, unknown>) => Promise<void>;
@@ -37,6 +39,13 @@ export function Schedules({
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<StudioSchedule | null>(null);
   const [deleting, setDeleting] = useState<StudioSchedule | null>(null);
+  useEffect(() => {
+    if (!dialogsAllowed) {
+      setCreating(false);
+      setEditing(null);
+      setDeleting(null);
+    }
+  }, [dialogsAllowed]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [visibleLimit, setVisibleLimit] = useState(40);
@@ -232,7 +241,7 @@ export function Schedules({
           ) : null}
         </>
       )}
-      {deleting ? (
+      {dialogsAllowed && deleting ? (
         <ConfirmDialog
           title="Delete schedule"
           message={`Delete ${deleting.id} for ${deleting.workflowTitle}? Future scheduled starts will stop. Existing executions will continue.`}
@@ -245,7 +254,7 @@ export function Schedules({
           onClose={() => setDeleting(null)}
         />
       ) : null}
-      {creating ? (
+      {dialogsAllowed && creating ? (
         <ScheduleModal
           workflows={workflows}
           busy={busy}
@@ -257,7 +266,7 @@ export function Schedules({
           onClose={() => setCreating(false)}
         />
       ) : null}
-      {editing ? (
+      {dialogsAllowed && editing ? (
         <ScheduleModal
           schedule={editing}
           workflows={workflows}

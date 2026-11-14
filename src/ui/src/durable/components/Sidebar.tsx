@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useWorkflowFeed } from "../workflowFeed";
 import type { StudioWorkflow } from "../../../../durable/shared/types";
 import { WorkflowNavigation } from "./WorkflowNavigation";
@@ -33,6 +33,7 @@ export function Sidebar({
   onRecover: () => void;
   recovering: boolean;
 }) {
+  const catalogToggle = useRef<HTMLButtonElement>(null);
   const [catalogExpanded, setCatalogExpanded] = useState(false);
   const [workflowQuery, setWorkflowQuery] = useState("");
   const feed = useWorkflowFeed(workflows, workflowQuery);
@@ -41,6 +42,12 @@ export function Sidebar({
   const displayedExecutionCount = totalExecutionCount ?? counts.total;
   const executionCountIsLowerBound =
     totalExecutionCount === undefined && hasMoreExecutions;
+
+  function selectWorkflow(key: string | null) {
+    onWorkflowFilter(key);
+    setCatalogExpanded(false);
+    if (window.innerWidth <= 920) catalogToggle.current?.focus();
+  }
 
   return (
     <aside className={`sidebar${catalogExpanded ? " catalog-expanded" : ""}`}>
@@ -126,6 +133,7 @@ export function Sidebar({
 
       <button
         type="button"
+        ref={catalogToggle}
         className="btn ghost small mobile-workflow-toggle"
         aria-expanded={catalogExpanded}
         aria-controls="durable-workflow-navigation"
@@ -173,7 +181,7 @@ export function Sidebar({
           className={`side-link small${
             workflowFilter === null ? " active" : ""
           }`}
-          onClick={() => onWorkflowFilter(null)}
+          onClick={() => selectWorkflow(null)}
         >
           All workflows
         </button>
@@ -181,10 +189,7 @@ export function Sidebar({
           key={workflowQuery}
           workflows={visibleWorkflows}
           selectedKey={workflowFilter}
-          onSelect={(key) => {
-            onWorkflowFilter(key);
-            setCatalogExpanded(false);
-          }}
+          onSelect={selectWorkflow}
           query={workflowQuery}
           hasMore={feed.nextCursor !== null && !feed.error}
           loading={feed.loading}

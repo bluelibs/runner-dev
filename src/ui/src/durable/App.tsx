@@ -92,7 +92,7 @@ export function App({
   useEffect(() => {
     setConfirming(null);
     setOperatorAction(null);
-  }, [selectedId]);
+  }, [selectedId, modal]);
   const [busy, setBusy] = useState(false);
   const [modalError, setModalError] = useState("");
   useEffect(() => setModalError(""), [modal]);
@@ -100,6 +100,17 @@ export function App({
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [unauthorized, setUnauthorized] = useState(false);
   const actionPending = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const ownsRuntime = () =>
+    mounted.current &&
+    (new URLSearchParams(window.location.search).get("runtimeId") ??
+      runtime.id) === runtime.id;
   const [now, setNow] = useState(() => Date.now());
   const searchRef = useRef<HTMLInputElement>(null);
   const overviewSearchRef = useRef<HTMLInputElement>(null);
@@ -253,7 +264,7 @@ export function App({
       return await fn();
     } finally {
       actionPending.current = false;
-      setBusy(false);
+      if (ownsRuntime()) setBusy(false);
     }
   }
 
@@ -261,8 +272,10 @@ export function App({
     if (actionPending.current) return;
     try {
       await mutate(fn);
+      if (!ownsRuntime()) return;
       await refreshLists();
     } catch (error) {
+      if (!ownsRuntime()) return;
       if (!noteUnauthorized(error))
         pushToast(
           "error",
@@ -280,6 +293,7 @@ export function App({
       noteUnauthorized(error);
       throw error;
     }
+    if (!ownsRuntime()) return;
     pushToast("success", message);
     // Read failures belong to their feeds; the write already succeeded.
     void refreshLists();
@@ -292,6 +306,7 @@ export function App({
       const executionId = await mutate(() =>
         api.startExecution(workflow, input)
       );
+      if (!ownsRuntime()) return;
       navigate({
         modal: null,
         view: "executions",
@@ -303,6 +318,7 @@ export function App({
       pushToast("success", `Started ${truncateMiddle(executionId)}.`);
       void refreshLists();
     } catch (error) {
+      if (!ownsRuntime()) return;
       if (!noteUnauthorized(error))
         setModalError(
           error instanceof Error ? error.message : "Failed to start."
@@ -311,13 +327,30 @@ export function App({
   }
 
   async function sendSignal(signal: string, payload: unknown) {
-    if (!selectedId || actionPending.current) return;
+    if (
+      !selectedId ||
+      actionPending.current ||
+      switchingExecution ||
+      detail?.id !== selectedId
+    )
+      return;
+    const targetId = selectedId;
     setModalError("");
     try {
-      await mutate(() => api.sendSignal(selectedId, signal, payload));
+      await mutate(() => api.sendSignal(targetId, signal, payload));
+      if (
+        !ownsRuntime() ||
+        new URLSearchParams(window.location.search).get("select") !== targetId
+      )
+        return;
       setSignalling(false);
       pushToast("success", `Delivered ${signal}.`);
     } catch (error) {
+      if (
+        !ownsRuntime() ||
+        new URLSearchParams(window.location.search).get("select") !== targetId
+      )
+        return;
       if (!noteUnauthorized(error))
         setModalError(
           error instanceof Error ? error.message : "Failed to signal."
@@ -329,10 +362,12 @@ export function App({
     if (actionPending.current) return;
     try {
       const nextId = await mutate(() => api.restartExecution(id));
+      if (!ownsRuntime()) return;
       navigate({ selectedId: nextId, modal: null });
       pushToast("success", `Restarted as ${truncateMiddle(nextId)}.`);
       void refreshLists();
     } catch (error) {
+      if (!ownsRuntime()) return;
       if (!noteUnauthorized(error))
         pushToast(
           "error",
@@ -491,6 +526,7 @@ export function App({
               schedules={schedules}
               workflows={workflows}
               busy={busy}
+              dialogsAllowed={!modal}
               loading={scheduleFeed.loading}
               available={scheduleFeed.updatedAt !== null}
               now={now}
@@ -656,9 +692,20 @@ export function App({
             onClose={() => setStarting(false)}
           />
         ) : null}
-        {signalling && detail ? (
-          detailSignals.length > 0 ? (
+        {signalling && selectedId ? (
+          switchingExecution || !detail || detail.id !== selectedId ? (
+            <Modal
+              title="Send signal"
+              subtitle="Loading the selected execution"
+              onClose={() => setSignalling(false)}
+            >
+              <p role={detailError ? "alert" : "status"}>
+                {detailError || "Loading execution…"}
+              </p>
+            </Modal>
+          ) : detailSignals.length > 0 ? (
             <SignalModal
+              key={selectedId}
               signals={detailSignals}
               error={modalError}
               initialSignal={signalPreset ?? waitingSignalId}
@@ -689,7 +736,7 @@ export function App({
             </Modal>
           )
         ) : null}
-        {confirming === "cancel" && selectedId ? (
+        {!modal && confirming === "cancel" && selectedId ? (
           <ConfirmDialog
             title="Cancel execution"
             message="Request cancellation? Running steps observe it cooperatively; waits resolve as cancelled."
@@ -702,7 +749,7 @@ export function App({
             onClose={() => setConfirming(null)}
           />
         ) : null}
-        {confirming === "retry" && selectedId ? (
+        {!modal && confirming === "retry" && selectedId ? (
           <ConfirmDialog
             title="Retry execution"
             message="Roll the execution back to pending and resume it from memoized steps?"
@@ -714,7 +761,7 @@ export function App({
             onClose={() => setConfirming(null)}
           />
         ) : null}
-        {confirming === "restart" && selectedId ? (
+        {!modal && confirming === "restart" && selectedId ? (
           <ConfirmDialog
             title="Restart execution"
             message="Start a fresh run from this execution's input? Steps re-run from the beginning with no carried state."
@@ -727,7 +774,7 @@ export function App({
             onClose={() => setConfirming(null)}
           />
         ) : null}
-        {confirming === "force-fail" && selectedId ? (
+        {!modal && confirming === "force-fail" && selectedId ? (
           <ReasonDialog
             title="Force fail"
             message="Mark the execution failed immediately."
@@ -742,7 +789,7 @@ export function App({
             onClose={() => setConfirming(null)}
           />
         ) : null}
-        {operatorAction && detail ? (
+        {!modal && operatorAction && detail ? (
           <OperatorDialog
             action={operatorAction}
             detail={detail}

@@ -13,7 +13,6 @@ import {
 import { timeAgo, truncateId } from "../format";
 import { ActivityChart, StatusMixChart } from "./DashboardCharts";
 import { StatusPill } from "./StatusPill";
-import { FeedNotice } from "./FeedNotice";
 import { WorkflowSelect } from "./WorkflowSelect";
 
 const FILTERS: Array<{ id: DashboardStatusFilter; label: string }> = [
@@ -30,7 +29,6 @@ export function Overview({
   supportsPause = false,
   loading = false,
   error = null,
-  onRetry = () => {},
   onBrowse,
   schedulesAvailable = true,
   stuckAvailable = true,
@@ -55,7 +53,6 @@ export function Overview({
   supportsPause?: boolean;
   loading?: boolean;
   error?: string | null;
-  onRetry?: () => void;
   onBrowse?: () => void;
   schedulesAvailable?: boolean;
   stuckAvailable?: boolean;
@@ -189,14 +186,6 @@ export function Overview({
         </div>
       </section>
 
-      <FeedNotice
-        label="Executions"
-        loading={loading}
-        error={error}
-        updatedAt={refreshedAt}
-        now={now}
-        onRetry={onRetry}
-      />
       <p className="overview-scope">
         {refreshedAt === null
           ? "Execution metrics are unavailable until history loads."

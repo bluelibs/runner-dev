@@ -356,3 +356,33 @@ test("shows rejected start input inside the focused dialog and retains the edita
   expect(input).toHaveValue('{"draft":42}');
   expect(dialog).toBeInTheDocument();
 });
+
+test("groups concurrent execution and schedule failures and retries only the chosen feed", async () => {
+  const api = studioApi();
+  api.listExecutionPage.mockRejectedValue(new Error("History offline"));
+  api.listSchedules.mockRejectedValue(new Error("Schedules offline"));
+  render(<App api={api} runtime={runtime} />);
+  const count = await screen.findByText("2 feeds unavailable");
+  const details = count.closest("details");
+  const summary = details?.querySelector("summary");
+  if (!details || !summary) throw new Error("Failure disclosure not found");
+  expect(details).not.toHaveAttribute("open");
+  fireEvent.click(summary);
+  const scheduleCalls = api.listSchedules.mock.calls.length;
+  api.listExecutionPage.mockResolvedValue({
+    executions: [],
+    total: 0,
+    hasMore: false,
+    nextCursor: null,
+    nextOffset: null,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Retry executions" }));
+  await waitFor(() =>
+    expect(screen.queryByText("2 feeds unavailable")).toBeNull()
+  );
+  expect(api.listSchedules).toHaveBeenCalledTimes(scheduleCalls);
+  expect(
+    screen.getByRole("button", { name: "Retry schedules" })
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Retry executions" })).toBeNull();
+});

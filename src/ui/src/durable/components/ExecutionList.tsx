@@ -19,6 +19,7 @@ export function ExecutionList({
   onLoadPrevious,
   error,
   onRefresh,
+  showErrorNotice = true,
 }: {
   executions: StudioExecutionSummary[];
   selectedId: string | null;
@@ -35,6 +36,7 @@ export function ExecutionList({
   onLoadPrevious?: () => void;
   error?: string | null;
   onRefresh?: () => void;
+  showErrorNotice?: boolean;
 }) {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -159,7 +161,7 @@ export function ExecutionList({
         </ul>
       )}
       <div ref={loadMoreRef} className="exec-load-zone" aria-live="polite">
-        {error ? (
+        {error && showErrorNotice ? (
           <button type="button" className="load-more-btn" onClick={onRefresh}>
             {error} · Retry
           </button>

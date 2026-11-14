@@ -17,7 +17,7 @@ import { WorkflowApiContext } from "./workflowFeed";
 import type { DashboardStatusFilter } from "./dashboard";
 import { usePollingFeed } from "./usePollingFeed";
 import { useStudioNavigation } from "./navigation";
-import { FeedNotice } from "./components/FeedNotice";
+import { FeedNotices, type FeedNoticeState } from "./components/FeedNotice";
 import { ExecutionDetail } from "./components/ExecutionDetail";
 import { ExecutionList } from "./components/ExecutionList";
 import { ConfirmDialog, Modal, ReasonDialog } from "./components/Modal";
@@ -430,34 +430,36 @@ export function App({
     );
   }
 
+  const visibleFeeds: FeedNoticeState[] = [
+    { label: "Workflow catalog", ...catalog, onRetry: catalog.refresh },
+    ...(view !== "executions"
+      ? [{ label: "Schedules", ...scheduleFeed, onRetry: scheduleFeed.refresh }]
+      : []),
+    ...(view === "overview"
+      ? [
+          {
+            label: "Stuck executions",
+            ...stuckFeed,
+            onRetry: stuckFeed.refresh,
+          },
+        ]
+      : []),
+    ...(view !== "schedules"
+      ? [
+          {
+            label: "Executions",
+            ...executionFeed,
+            onRetry: executionFeed.retry,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <WorkflowApiContext.Provider value={api}>
       <div className="studio">
         <div className="studio-notices">
-          <FeedNotice
-            label="Workflow catalog"
-            {...catalog}
-            now={now}
-            onRetry={catalog.refresh}
-          />
-          {view !== "executions" ? (
-            <>
-              <FeedNotice
-                label="Schedules"
-                {...scheduleFeed}
-                now={now}
-                onRetry={scheduleFeed.refresh}
-              />
-              {view === "overview" ? (
-                <FeedNotice
-                  label="Stuck executions"
-                  {...stuckFeed}
-                  now={now}
-                  onRetry={stuckFeed.refresh}
-                />
-              ) : null}
-            </>
-          ) : null}
+          <FeedNotices feeds={visibleFeeds} now={now} />
         </div>
         <Sidebar
           workflows={workflows}
@@ -509,7 +511,6 @@ export function App({
               refreshedAt={executionFeed.updatedAt}
               loading={executionFeed.loading}
               error={executionFeed.error}
-              onRetry={executionFeed.retry}
               schedulesAvailable={
                 scheduleFeed.updatedAt !== null && !scheduleFeed.error
               }
@@ -611,7 +612,7 @@ export function App({
                 hasPrevious={executionFeed.hasPrevious}
                 onLoadPrevious={executionFeed.loadPrevious}
                 error={executionFeed.error}
-                onRefresh={executionFeed.retry}
+                showErrorNotice={false}
                 loadedCount={executions.length}
                 filtered={
                   query.trim() !== "" ||

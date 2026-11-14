@@ -1818,3 +1818,20 @@ fieldset.detail-actions, .schedule-fields { min-width: 0; margin: 0; padding: 0;
   .modal-backdrop { padding: 12px; }
   .modal { max-height: calc(100dvh - 24px); }
 }
+
+.feed-errors { border-left: 3px solid var(--warning); background: var(--bg-raised); border-bottom: 1px solid var(--border); font-size: 12px; }
+.feed-errors > summary { display: flex; align-items: center; gap: 12px; padding: 12px 18px; cursor: pointer; list-style: none; }
+.feed-errors > summary::-webkit-details-marker { display: none; }
+.feed-errors > summary::before { content: "▸"; color: var(--warning); }
+.feed-errors[open] > summary::before { content: "▾"; }
+.feed-errors-summary { display: grid; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.feed-errors-summary > span { color: var(--text-muted); font-size: 11px; }
+.feed-errors-toggle { margin-left: auto; color: var(--text-dim); white-space: nowrap; }
+.feed-errors:not([open]) .feed-errors-hide, .feed-errors[open] .feed-errors-show { display: none; }
+.feed-errors-body { max-height: min(38vh, 320px); overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--border); }
+.feed-errors-body .feed-notice.stale { border-left: 0; }
+.feed-errors-body .feed-notice:last-child { border-bottom: 0; }
+@media (max-width: 600px) {
+  .feed-errors > summary { padding: 12px; gap: 9px; }
+  .feed-errors-toggle { font-size: 11px; }
+}

@@ -28,6 +28,7 @@ import { OverviewIdLink } from "./common/OverviewIdLink";
 import { MiddlewareUsagesSection } from "./common/MiddlewareUsagesSection";
 import type { DocumentationMode } from "../../../../../resources/docsPayload";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
+import { getDurableWorkflowVersionFromTags } from "../../../../../resources/models/durable.tools";
 
 export interface TaskCardProps {
   task: Task;
@@ -54,6 +55,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const durableResourceId = task.durableResourceId || null;
   const durableWorkflowKey = task.durableWorkflowKey || null;
   const canonicalWorkflowKey = durableWorkflowKey ?? task.id;
+  const durableVersion = isDurable
+    ? getDurableWorkflowVersionFromTags(task.tagsDetailed)
+    : null;
 
   // Check for async context usage (placeholder for future implementation)
   // This will be populated when we parse context usage from source code
@@ -385,6 +389,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <InfoBlock prefix="task-card" label="Workflow Key:">
               <code>{canonicalWorkflowKey}</code>
             </InfoBlock>
+
+            {durableVersion !== null && (
+              <InfoBlock prefix="task-card" label="Version:">
+                <code>v{durableVersion}</code>
+              </InfoBlock>
+            )}
           </CardSection>
         )}
 

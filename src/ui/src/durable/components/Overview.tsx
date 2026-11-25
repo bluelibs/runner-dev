@@ -254,7 +254,12 @@ export function Overview({
                 <span className="latest-identity">
                   <StatusPill status={execution.status} showDot={false} />
                   <span>
-                    <strong>{execution.workflowTitle}</strong>
+                    <strong>
+                      {execution.workflowTitle}
+                      {execution.workflowVersion !== undefined
+                        ? ` · v${execution.workflowVersion}`
+                        : ""}
+                    </strong>
                     <code>{truncateId(execution.id, 18)}</code>
                   </span>
                 </span>

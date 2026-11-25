@@ -9,13 +9,21 @@ import {
 } from "@testing-library/react";
 import { App } from "./App";
 import { ApiError } from "./api";
-import { executionDetail, timestamp } from "./__tests__/fixtures";
+import { executionDetail, timestamp, workflow } from "./__tests__/fixtures";
 import { studioApi } from "./__tests__/studioApi";
 
 const runtime = {
   id: "runtime-1",
   title: "Orders runtime",
-  capabilities: { pause: true, resume: true, restart: true, state: true },
+  capabilities: {
+    pause: true,
+    resume: true,
+    restart: true,
+    state: true,
+    command: true,
+    reset: true,
+    replay: true,
+  },
 };
 const originalResizeObserver = global.ResizeObserver;
 beforeEach(() => {
@@ -230,4 +238,217 @@ test("surfaces authentication failures as runtime unavailability", async () => {
     screen.getByRole("link", { name: "Back to documentation" })
   ).toHaveAttribute("href", "/docs");
   expect(api.startExecution).not.toHaveBeenCalled();
+});
+
+test("starts a selected workflow version from the multi-version StartModal", async () => {
+  const versionedWorkflow = {
+    ...workflow,
+    version: 2,
+    versions: [
+      {
+        version: 2,
+        taskId: "app.ordersV2",
+        title: "Order fulfillment",
+        description: "Latest fulfillment",
+        signals: [],
+        commands: [],
+        presets: [{ name: "v2 preset", payload: { orderId: "order-v2" } }],
+      },
+      {
+        version: 1,
+        taskId: "app.ordersV1",
+        title: "Order fulfillment",
+        description: "Legacy fulfillment",
+        signals: [],
+        commands: [],
+        presets: [{ name: "v1 preset", payload: { orderId: "order-v1" } }],
+      },
+    ],
+  };
+  const api = studioApi();
+  api.listWorkflowPage.mockResolvedValue({
+    workflows: [versionedWorkflow],
+    total: 1,
+    nextCursor: null,
+  });
+  api.getWorkflow.mockResolvedValue(versionedWorkflow);
+  render(<App api={api} runtime={runtime} />);
+  await waitFor(() => expect(api.listExecutionPage).toHaveBeenCalled());
+
+  fireEvent.click(screen.getByRole("button", { name: "+ Start execution" }));
+  const startDialog = await screen.findByRole("dialog", {
+    name: "Start execution",
+  });
+  fireEvent.change(within(startDialog).getByRole("textbox"), {
+    target: { value: "{" },
+  });
+  expect(
+    within(startDialog).getByText("Invalid JSON — fix the syntax to continue.")
+  ).toBeInTheDocument();
+  fireEvent.change(within(startDialog).getByLabelText("Version"), {
+    target: { value: "1" },
+  });
+  expect(
+    within(startDialog).queryByText(
+      "Invalid JSON — fix the syntax to continue."
+    )
+  ).toBeNull();
+  fireEvent.click(
+    within(startDialog).getByRole("button", { name: "Start execution" })
+  );
+  await waitFor(() =>
+    expect(api.startExecution).toHaveBeenCalledWith(
+      "orders",
+      { orderId: "order-v1" },
+      1
+    )
+  );
+});
+
+test("sends tracked commands and opens ResetDialog from Timeline Reset before", async () => {
+  window.history.replaceState(null, "", "/durable?select=run-1");
+  const versionedWorkflow = {
+    ...workflow,
+    version: 2,
+    commands: [
+      {
+        taskKey: "orders.update-address",
+        title: "Update address",
+        description: "Change delivery city",
+      },
+    ],
+    versions: [
+      {
+        version: 2,
+        taskId: "app.ordersV2",
+        title: "Order fulfillment",
+        description: "Latest fulfillment",
+        signals: [],
+        commands: [
+          {
+            taskKey: "orders.update-address",
+            title: "Update address",
+            description: "Change delivery city",
+          },
+        ],
+        presets: [{ name: "v2 preset", payload: { orderId: "order-v2" } }],
+      },
+    ],
+  };
+  const api = studioApi(
+    executionDetail({
+      status: "paused",
+      workflowVersion: 2,
+      historyRecorded: true,
+      resettableSteps: ["validate"],
+      history: [
+        {
+          stepId: "validate",
+          kind: "step",
+          startedOrder: 1,
+          completedOrder: 1,
+        },
+      ],
+      timeline: [
+        {
+          id: "validate",
+          kind: "step",
+          label: "validate",
+          description: "Persisted workflow step.",
+          state: "completed",
+          branchTaken: null,
+          result: { ok: true },
+          completedAt: timestamp,
+          resettable: true,
+          wait: null,
+        },
+      ],
+    })
+  );
+  api.listWorkflowPage.mockResolvedValue({
+    workflows: [versionedWorkflow],
+    total: 1,
+    nextCursor: null,
+  });
+  api.getWorkflow.mockResolvedValue(versionedWorkflow);
+  render(<App api={api} runtime={runtime} />);
+
+  // Send tracked command on live paused execution
+  fireEvent.click(await screen.findByRole("button", { name: "Send command" }));
+  const commandDialog = await screen.findByRole("dialog", {
+    name: "Send command",
+  });
+  fireEvent.change(
+    within(commandDialog).getByPlaceholderText("cmd-request-123"),
+    { target: { value: "req-42" } }
+  );
+  fireEvent.click(
+    within(commandDialog).getByRole("button", { name: "Send command" })
+  );
+  await waitFor(() =>
+    expect(api.sendCommand).toHaveBeenCalledWith(
+      "run-1",
+      "orders.update-address",
+      {},
+      { idempotencyKey: "req-42" }
+    )
+  );
+  expect(
+    await screen.findByText("Command orders.update-address completed.")
+  ).toBeInTheDocument();
+
+  // Inline Timeline "Reset before" opens ResetDialog with step preselected
+  fireEvent.click(screen.getByRole("button", { name: "Reset before" }));
+  const resetDialog = await screen.findByRole("dialog", {
+    name: "Reset to checkpoint",
+  });
+  fireEvent.change(within(resetDialog).getByLabelText("Reason"), {
+    target: { value: "Re-run settlement" },
+  });
+  fireEvent.click(
+    within(resetDialog).getByRole("button", { name: "Create branch" })
+  );
+  await waitFor(() =>
+    expect(api.resetExecution).toHaveBeenCalledWith(
+      "run-1",
+      "validate",
+      "Re-run settlement",
+      undefined
+    )
+  );
+  expect(
+    await screen.findByText("Branched as branch-run.")
+  ).toBeInTheDocument();
+});
+
+test("displays checkpoint branch lineage, retention schedule and collected history guardrails", async () => {
+  window.history.replaceState(null, "", "/durable?select=run-1");
+  const api = studioApi(
+    executionDetail({
+      status: "completed",
+      workflowVersion: 2,
+      resetFromExecutionId: "source-run-0",
+      resetBeforeStep: "settle",
+      resetReason: "Gateway fix",
+      historyRecorded: true,
+      historyCollectedAt: timestamp,
+      retention: {
+        onComplete: "delete",
+        receipts: { afterMs: 86_400_000 },
+        historyCollectAt: timestamp,
+        receiptExpireAt: timestamp,
+      },
+      result: { receipt: "RCPT-1" },
+    })
+  );
+  render(<App api={api} runtime={runtime} />);
+
+  expect(await screen.findByText(/History collected on/)).toBeInTheDocument();
+  expect(screen.getByText(/Branched from/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Restart" })).toBeDisabled();
+
+  fireEvent.click(screen.getByRole("button", { name: "Data" }));
+  expect(await screen.findByText("Retention")).toBeInTheDocument();
+  expect(screen.getByText("Delete immediately")).toBeInTheDocument();
+  expect(screen.getByText("After 1d")).toBeInTheDocument();
 });

@@ -119,11 +119,13 @@ const app = r
 - Event Lane routing now comes from `r.eventLane(...).applyTo([...])` instead of `tags.eventLane`, and Event Lane topology profiles use `consume: [{ lane, hooks?: { only } }]`.
 - Runner now supports `run(app, { signal })`, `run(app, { identity })`, and `runtime.dispose({ force: true })`; runner-dev remains compatible with those lifecycle additions while avoiding deprecated lane-tag assumptions.
 
-## Runner 6.6 Compatibility
+## Runner 6.6 & 6.10 Compatibility
 
 Register `resources.durable` (also exported as `durableSupportResource`) from `@bluelibs/runner/node` alongside durable runtime resources. It registers the durable runtime/workflow tags, events, and lifecycle hook; registering only `durableWorkflowTag` is insufficient.
 
 Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](https://github.com/bluelibs/runner-dev/blob/main/CHANGELOG.md) first: code execution (`eval`, `shell`, `swapTask`, `evalInput`, `editFile`) is now off unless `RUNNER_DEV_EVAL=1` or `NODE_ENV=development`/`test`, the server listens on `127.0.0.1` by default (set `host: "0.0.0.0"` for Docker or remote access), and requests whose `Host` header is a DNS name other than `localhost` or an `allowedHosts` entry get `403`.
+
+Runner 6.10 adds built-in SQLite (`SqliteStore` / `resources.sqliteWorkflow`) and PostgreSQL (`PostgresStore` / `resources.postgresWorkflow`) durable backends, explicit workflow `version` registration under a shared workflow `key`, tracked workflow `commands` (`durable.command(...)`), ordered execution history (`listExecutionHistory`), checkpoint branching (`operator.reset(...)`) and replay fixture exports (`operator.exportReplay(...)`), two-stage completion/receipt `retention`, `tags.durableEvent` bridge metadata, and `timers: { pollIntervalMs }` configuration. Runner-Dev keeps `@bluelibs/runner` `^6.6.0` as its peer range and detects 6.10 store/operator capabilities dynamically, while `runner-dev new` scaffolds new projects targeting `@bluelibs/runner` `^6.10.0`.
 
 ## Table of Contents
 
@@ -142,13 +144,13 @@ Upgrading runner-dev past 6.6.0? Read the "Breaking changes" in [CHANGELOG.md](h
 
 The docs sidebar shows **Durable** only when the backend reports an available application durable runtime in `/docs/data` (`hasDurable`). It opens `/durable` on the same Runner Dev server for a separate Durable Workflows dashboard. It attaches to the application's existing durable runtimes and uses the same Host checks and optional `RUNNER_DEV_HTTP_PASSWORD` authentication as `/docs`. It does not start another runtime or configure a backend.
 
-Select a runtime to browse its workflows, cursor-paginated execution history, current waits, persisted steps, signals, audit, and schedules. Lists contain bounded summaries; full input/result/error payloads are read when opening execution details. Switching executions keeps the previous detail and active tab visible while the selected run loads; detail controls stay disabled until its data arrives. The dashboard also exposes start, signal, cancel, retry, recovery, schedule management, and operator repair actions. Retry is available for failed or compensation-failed runs and resumes from memoized progress; recovery applies to the selected runtime's backend. Operators have the same full-access trust boundary as the other DevTools endpoints.
+Select a runtime (identified with its backend badge such as `SQLITE`, `POSTGRES`, `REDIS`, `FILE MEMORY`, `MEMORY`, or `CUSTOM`) to browse its workflows, version variants, cursor-paginated execution history, ordered timeline, current waits, persisted steps, signals, audit, retention metadata, and schedules. Lists contain bounded summaries; full input/result/error payloads are read when opening execution details. Switching executions keeps the previous detail and active tab visible while the selected run loads; detail controls stay disabled until its data arrives. The dashboard also exposes version-targeted start and schedule creation, tracked `Send command` submission (`POST /durable/api/executions/:id/commands`), signal, cancel, retry, pause/resume/restart, `Reset to checkpoint` / inline `Reset before` branching (`POST /durable/api/executions/:id/reset`), portable replay fixture downloads (`GET /durable/api/executions/:id/replay`), recovery, schedule management, and operator repair actions. Retry is available for failed or compensation-failed runs and resumes from memoized progress; recovery applies to the selected runtime's backend. Operators have the same full-access trust boundary as the other DevTools endpoints.
 
-Runner 6.6 supports the core views and operations. Execution pause/resume/restart and workflow state are shown only when the runtime supports them. Durable audit must already be enabled by the application; an empty audit view does not imply no activity. Repair reasons are logged by DevTools; the public Runner 6.6 operator API does not persist those reasons into durable audit.
+Runner 6.6 supports the core views and operations; Runner 6.10 runtimes unlock ordered history (`command`, `state`, `continue`, nested child steps), multi-version workflows sharing one key, tracked commands, checkpoint branching with `Branched from` lineage, replay exports, and two-stage retention visibility (blocking uncollectable resets and restarts once history is collected while preserving receipts and results). Execution pause/resume/restart, workflow state, command, reset, and replay controls are shown only when the runtime advertises support for them. Durable audit must already be enabled by the application; an empty audit view does not imply no activity. Repair and checkpoint-reset reasons are logged by DevTools; `resetReason` is also retained on the branched execution record.
 
-The timeline shows observed persisted steps and the current activity, rather than guessing future branches. The signal dialog uses declared signal metadata or the event ID of the execution's current wait. Optional `tags.durableWorkflow.with({ metadata: { studio: { presets: [{ name, payload }] } } })` supplies named JSON inputs to the start dialog. Runtime selection scopes requests with `runtimeId`; the REST API is under `/durable/api` and is separate from GraphQL/MCP. The dashboard is live-only and is not part of static catalog exports.
+The timeline shows observed persisted history and the current activity, rather than guessing future branches. The signal dialog uses declared signal metadata or the event ID of the execution's current wait. Optional `tags.durableWorkflow.with({ metadata: { studio: { presets: [{ name, payload }] } } })` supplies named JSON inputs to the start dialog, including per-version presets. Runtime selection scopes requests with `runtimeId`; the REST API is under `/durable/api` and is separate from GraphQL/MCP. Docs UI `TaskCard` and `EventCard` also surface durable workflow `Version` and `DURABLE` event bridge metadata (`key`, `compensation`). The dashboard is live-only and is not part of static catalog exports.
 
-For a local example in this repository, run `npm run build:ui` followed by `npm run play:durable`, then open `http://localhost:31339/durable`. This starts a real in-memory application with example executions, audit, and schedules.
+For a local example in this repository, run `npm run build:ui` followed by `npm run play:durable`, then open `http://localhost:31339/durable`. This starts a two-runtime application (`operations-sqlite` on in-memory SQLite + `finance-memory` on memory) with multi-version workflows, tracked commands, a checkpoint branch, a paused run, and a history-collected retention example.
 
 ## Quickstart
 
@@ -403,7 +405,7 @@ runner-dev new my-awesome-app
 This command creates a new Runner project with:
 
 - Complete TypeScript setup with `tsx watch` for development
-- Runner 6.7 and Vitest 5.0.1+ for the generated runtime and smoke tests
+- Runner 6.10 and Vitest 5.0.1+ for the generated runtime and smoke tests
 - Node.js 22.15+ or 24+ (required by runner-dev's patched GraphQL dependencies)
 - Package.json with all necessary dependencies
 - Basic project structure with main.ts entry point

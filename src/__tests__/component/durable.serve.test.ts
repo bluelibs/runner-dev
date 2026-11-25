@@ -1,3 +1,4 @@
+import path from "node:path";
 import express from "express";
 import request from "supertest";
 import type { Logger } from "@bluelibs/runner";
@@ -23,7 +24,7 @@ test("serves the isolated durable bundle and its styles", async () => {
   expect(response.text).toContain("/durable/assets/studio.js");
   expect(response.text).toContain("/durable/assets/studio.css");
   expect(response.text).toContain("Runner Dev · Durable Workflows");
-  expect(read).toHaveBeenCalledWith("/ui/durable");
+  expect(read).toHaveBeenCalledWith(path.join("/ui", "durable"));
 });
 
 test("fails visibly when the dashboard has not been built", async () => {

@@ -15,6 +15,7 @@ import { useExecutionFeed } from "./executionFeed";
 import { useExecutionDetail } from "./useExecutionDetail";
 import { WorkflowApiContext } from "./workflowFeed";
 import type { DashboardStatusFilter } from "./dashboard";
+import { CommandModal } from "./components/CommandModal";
 import { ExecutionDetail } from "./components/ExecutionDetail";
 import { ExecutionList } from "./components/ExecutionList";
 import { ConfirmDialog, Modal, ReasonDialog } from "./components/Modal";
@@ -23,6 +24,7 @@ import {
   OperatorDialog,
   type OperatorAction,
 } from "./components/OperatorDialog";
+import { ResetDialog } from "./components/ResetDialog";
 import { Schedules } from "./components/Schedules";
 import { Sidebar, type StudioView } from "./components/Sidebar";
 import { SignalModal } from "./components/SignalModal";
@@ -74,6 +76,7 @@ export function App({
     error: detailError,
     switching: switchingExecution,
     loading: loadingDetail,
+    refresh: refreshDetail,
   } = useExecutionDetail(api, selectedId);
   const [workflowFilter, setWorkflowFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -84,6 +87,8 @@ export function App({
   const [signalling, setSignalling] = useState(
     () => readParams().get("modal") === "signal"
   );
+  const [commanding, setCommanding] = useState(false);
+  const [resettingStep, setResettingStep] = useState<string | null>(null);
   const [signalPreset, setSignalPreset] = useState<string | undefined>(
     undefined
   );
@@ -224,7 +229,15 @@ export function App({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (starting || signalling || confirming || operatorAction || locked)
+      if (
+        starting ||
+        signalling ||
+        commanding ||
+        resettingStep !== null ||
+        confirming ||
+        operatorAction ||
+        locked
+      )
         return;
       const target = event.target as HTMLElement | null;
       const typing =
@@ -242,7 +255,16 @@ export function App({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [starting, signalling, confirming, operatorAction, locked, view]);
+  }, [
+    starting,
+    signalling,
+    commanding,
+    resettingStep,
+    confirming,
+    operatorAction,
+    locked,
+    view,
+  ]);
 
   const counts = useMemo(
     () => ({
@@ -257,6 +279,7 @@ export function App({
     setBusy(true);
     try {
       await fn();
+      refreshDetail();
       await refreshLists();
     } catch (error) {
       if (noteUnauthorized(error)) return;
@@ -271,10 +294,17 @@ export function App({
     }
   }
 
-  async function startWorkflow(workflow: string, input: unknown) {
+  async function startWorkflow(
+    workflow: string,
+    input: unknown,
+    version?: number | null
+  ) {
     setBusy(true);
     try {
-      const executionId = await api.startExecution(workflow, input);
+      const executionId =
+        version === undefined
+          ? await api.startExecution(workflow, input)
+          : await api.startExecution(workflow, input, version);
       setStarting(false);
       setView("executions");
       setWorkflowFilter(null);
@@ -302,11 +332,102 @@ export function App({
       await api.sendSignal(selectedId, signal, payload);
       setSignalling(false);
       pushToast("success", `Delivered ${signal}.`);
+      refreshDetail();
     } catch (error) {
       if (!noteUnauthorized(error)) {
         pushToast(
           "error",
           error instanceof ApiError ? error.message : "Failed to signal."
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendCommand(
+    command: string,
+    input: unknown,
+    idempotencyKey?: string
+  ) {
+    if (!selectedId) return;
+    setBusy(true);
+    try {
+      const outcome = await api.sendCommand(selectedId, command, input, {
+        ...(idempotencyKey ? { idempotencyKey } : {}),
+      });
+      setCommanding(false);
+      pushToast(
+        outcome.completed ? "success" : "info",
+        outcome.completed
+          ? `Command ${command} completed.`
+          : outcome.message ?? `Command ${command} queued.`
+      );
+      refreshDetail();
+      await refreshLists();
+    } catch (error) {
+      if (!noteUnauthorized(error)) {
+        pushToast(
+          "error",
+          error instanceof ApiError ? error.message : "Failed to send command."
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resetExecution(
+    beforeStep: string,
+    reason: string,
+    idempotencyKey?: string
+  ) {
+    if (!selectedId) return;
+    setBusy(true);
+    try {
+      const branchId = await api.resetExecution(
+        selectedId,
+        beforeStep,
+        reason,
+        idempotencyKey
+      );
+      setResettingStep(null);
+      setSelectedId(branchId);
+      pushToast("success", `Branched as ${truncateMiddle(branchId)}.`);
+      await refreshLists();
+    } catch (error) {
+      if (!noteUnauthorized(error)) {
+        pushToast(
+          "error",
+          error instanceof ApiError ? error.message : "Failed to reset."
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function exportReplayFixture(detailToExport: StudioExecutionDetail) {
+    setBusy(true);
+    try {
+      const fixture = await api.exportReplay(detailToExport.id);
+      const payload = JSON.stringify(fixture, null, 2);
+      const url = URL.createObjectURL(
+        new Blob([payload], { type: "application/json" })
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${detailToExport.workflowKey}-${detailToExport.id}-replay.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      pushToast("success", "Replay fixture exported.");
+    } catch (error) {
+      if (!noteUnauthorized(error)) {
+        pushToast(
+          "error",
+          error instanceof ApiError
+            ? error.message
+            : "Failed to export replay fixture."
         );
       }
     } finally {
@@ -349,12 +470,19 @@ export function App({
   const selectedWorkflow = workflows.find(
     (workflow) => workflow.key === detail?.workflowKey
   );
+  const selectedWorkflowVersion = selectedWorkflow?.versions?.find(
+    (entry) => entry.version === (detail?.workflowVersion ?? null)
+  );
+  const configuredSignals =
+    selectedWorkflowVersion?.signals ?? selectedWorkflow?.signals ?? [];
+  const detailCommands =
+    selectedWorkflowVersion?.commands ?? selectedWorkflow?.commands ?? [];
   const waitingSignalId = detail?.timeline.find(
     (node) => node.state === "waiting" && node.wait?.signalId
   )?.wait?.signalId;
   // Signals metadata is optional; an observed wait still provides its actual event ID.
-  const detailSignals = selectedWorkflow?.signals.length
-    ? selectedWorkflow.signals
+  const detailSignals = configuredSignals.length
+    ? configuredSignals
     : waitingSignalId
     ? [
         {
@@ -562,6 +690,7 @@ export function App({
                     setSignalPreset(signalId);
                     setSignalling(true);
                   }}
+                  onCommand={() => setCommanding(true)}
                   onCancel={() => setConfirming("cancel")}
                   onRetry={() => setConfirming("retry")}
                   onPause={() =>
@@ -573,6 +702,8 @@ export function App({
                     void act("Resume", () => api.resumeExecution(selectedId))
                   }
                   onRestart={() => setConfirming("restart")}
+                  onReset={(beforeStep) => setResettingStep(beforeStep ?? "")}
+                  onExportReplay={() => void exportReplayFixture(detail)}
                   onForceFail={() => setConfirming("force-fail")}
                   onSkip={() => setOperatorAction("skip")}
                   onEdit={() => setOperatorAction("edit")}
@@ -641,6 +772,23 @@ export function App({
               </div>
             </Modal>
           )
+        ) : null}
+        {commanding && detail && detailCommands.length > 0 ? (
+          <CommandModal
+            commands={detailCommands}
+            busy={busy}
+            onSend={sendCommand}
+            onClose={() => setCommanding(false)}
+          />
+        ) : null}
+        {resettingStep !== null && detail ? (
+          <ResetDialog
+            detail={detail}
+            initialStepId={resettingStep || undefined}
+            busy={busy}
+            onReset={resetExecution}
+            onClose={() => setResettingStep(null)}
+          />
         ) : null}
         {confirming === "cancel" && selectedId ? (
           <ConfirmDialog

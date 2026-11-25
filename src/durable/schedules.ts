@@ -5,8 +5,11 @@ import type {
   UpdateScheduleOptions,
 } from "@bluelibs/runner/node";
 import z from "zod";
-import type { DashboardRuntime } from "./runtime";
-import { requireWorkflow } from "./runtime";
+import {
+  type DashboardRuntime,
+  findWorkflowForExecution,
+  requireWorkflow,
+} from "./runtime";
 import { bodyRecord, DurableHttpError, nonEmpty, requireValue } from "./errors";
 import { jsonSafe } from "./projection";
 import type { StudioSchedule } from "./shared/types";
@@ -50,12 +53,19 @@ export function toSchedule(
   runtime: DashboardRuntime,
   schedule: Schedule
 ): StudioSchedule {
+  const workflowTask =
+    findWorkflowForExecution(
+      runtime,
+      schedule.workflowKey,
+      schedule.workflowVersion
+    ) ?? runtime.workflows.get(schedule.workflowKey);
   return {
     id: schedule.id,
     workflowKey: schedule.workflowKey,
-    workflowTitle:
-      runtime.workflows.get(schedule.workflowKey)?.meta?.title ??
-      schedule.workflowKey,
+    workflowTitle: workflowTask?.meta?.title ?? schedule.workflowKey,
+    ...(schedule.workflowVersion !== undefined
+      ? { workflowVersion: schedule.workflowVersion }
+      : {}),
     type: schedule.type,
     pattern: schedule.pattern,
     timezone: schedule.timezone,
@@ -68,25 +78,30 @@ export function toSchedule(
   };
 }
 
+const optionalVersionSchema = z
+  .union([z.number().int().positive(), z.null()])
+  .optional();
+
 export async function createSchedule(
   runtime: DashboardRuntime,
   input: unknown
 ): Promise<{ scheduleId: string }> {
   const body = bodyRecord(input);
-  const task = requireWorkflow(runtime, nonEmpty(body.workflow));
+  const version = optionalVersionSchema.parse(body.version);
+  const task = requireWorkflow(runtime, nonEmpty(body.workflow), version);
   const options = parseCadence(body);
   if (body.id !== undefined) {
     const id = nonEmpty(body.id);
     if (options.cron !== undefined)
       return {
-        scheduleId: await runtime.durable.ensureSchedule(task.id, body.input, {
+        scheduleId: await runtime.durable.ensureSchedule(task, body.input, {
           ...options,
           id,
         }),
       };
     if (options.interval !== undefined)
       return {
-        scheduleId: await runtime.durable.ensureSchedule(task.id, body.input, {
+        scheduleId: await runtime.durable.ensureSchedule(task, body.input, {
           ...options,
           id,
         }),
@@ -94,7 +109,7 @@ export async function createSchedule(
     throw new DurableHttpError(400, "One-time schedules cannot specify an id.");
   }
   return {
-    scheduleId: await runtime.durable.schedule(task.id, body.input, options),
+    scheduleId: await runtime.durable.schedule(task, body.input, options),
   };
 }
 
@@ -139,14 +154,19 @@ export async function scheduleAction(
         "A recurring schedule can update input, cron or interval only."
       );
     }
-    const task = requireWorkflow(runtime, existing.workflowKey);
-    if (
-      "input" in body &&
-      task.inputSchema &&
-      typeof task.inputSchema === "object" &&
-      "parse" in task.inputSchema
-    ) {
-      task.inputSchema.parse(body.input);
+    if ("input" in body) {
+      const task = requireWorkflow(
+        runtime,
+        existing.workflowKey,
+        existing.workflowVersion ?? null
+      );
+      if (
+        task.inputSchema &&
+        typeof task.inputSchema === "object" &&
+        "parse" in task.inputSchema
+      ) {
+        task.inputSchema.parse(body.input);
+      }
     }
     let updates: UpdateScheduleOptions;
     if (body.cron !== undefined || body.interval !== undefined) {

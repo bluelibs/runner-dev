@@ -111,6 +111,12 @@ async function restoreSymlink({
   const current = await lstatOrNull(destinationPath);
   if (current?.isSymbolicLink()) {
     if ((await fs.readlink(destinationPath)) === symlinkTarget) return;
+  } else if (
+    current?.isFile() &&
+    (await fs.readFile(destinationPath, "utf8")) === symlinkTarget
+  ) {
+    // Git checkouts on Windows without core.symlinks represent symlinks as text stubs.
+    return;
   } else if (current && !(await hasSameContent(destinationPath, sourcePath))) {
     const relativeSource = path.relative(projectRoot, sourcePath);
     throw new Error(

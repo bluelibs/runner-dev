@@ -70,3 +70,21 @@ test("reports discovery errors and retries without inventing a connected runtime
   fireEvent.click(screen.getByText("Retry connection"));
   expect(await screen.findByTestId("studio")).toBeTruthy();
 });
+
+test("displays backend badges when runtimes advertise a storage backend", async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      runtimes: [
+        { id: "ops", title: "Operations", backend: "sqlite", capabilities },
+        { id: "fin", title: "Finance", backend: "memory", capabilities },
+      ],
+    }),
+  });
+  render(<RuntimeDashboard />);
+  expect(await screen.findByText("SQLITE")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Runtime"), {
+    target: { value: "fin" },
+  });
+  expect(await screen.findByText("MEMORY")).toBeTruthy();
+});

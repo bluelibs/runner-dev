@@ -60,6 +60,16 @@ export function ExecutionRelations({
   };
 
   const lineage: Array<{ role: string; id: string }> = [
+    ...(detail.resetFromExecutionId
+      ? [
+          {
+            role: detail.resetBeforeStep
+              ? `Branched from (before ${detail.resetBeforeStep})`
+              : "Branched from",
+            id: detail.resetFromExecutionId,
+          },
+        ]
+      : []),
     ...(detail.continuedFromExecutionId
       ? [{ role: "Continued from", id: detail.continuedFromExecutionId }]
       : []),

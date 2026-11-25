@@ -87,6 +87,21 @@
   color: var(--docs-text-primary);
 }
 
+.event-card__global-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: $spacing-sm;
+  padding: 2px 7px;
+  border-radius: $border-radius-pill;
+  border: 1px solid var(--docs-border-primary);
+  background: var(--docs-hover-bg);
+  color: var(--docs-text-secondary);
+  font-size: $font-size-xs;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
 .event-card__id {
   font-size: $font-size-base;
   opacity: 0.9;

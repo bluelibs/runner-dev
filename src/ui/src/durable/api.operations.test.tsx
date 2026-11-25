@@ -103,9 +103,30 @@ test("encodes execution identities and sends JSON only when the operation has a 
       body: { workflow: "orders", input: { id: 1 } },
     },
     {
+      run: () => api.startExecution("orders", { id: 2 }, 2),
+      path: "/executions",
+      body: { workflow: "orders", input: { id: 2 }, version: 2 },
+    },
+    {
       run: () => api.sendSignal("run/1", "paid", { amount: 5 }),
       path: "/executions/run%2F1/signals",
       body: { signal: "paid", payload: { amount: 5 } },
+    },
+    {
+      run: () =>
+        api.sendCommand(
+          "run/1",
+          "update-address",
+          { city: "Vienna" },
+          { idempotencyKey: "cmd-1", waitTimeoutMs: 5000 }
+        ),
+      path: "/executions/run%2F1/commands",
+      body: {
+        command: "update-address",
+        input: { city: "Vienna" },
+        idempotencyKey: "cmd-1",
+        waitTimeoutMs: 5000,
+      },
     },
     {
       run: () => api.cancelExecution("run/1"),
@@ -131,6 +152,16 @@ test("encodes execution identities and sends JSON only when the operation has a 
       run: () => api.restartExecution("run/1", { changed: true }),
       path: "/executions/run%2F1/restart",
       body: { input: { changed: true } },
+    },
+    {
+      run: () =>
+        api.resetExecution("run/1", "settle", "Retry settle", "reset-1"),
+      path: "/executions/run%2F1/reset",
+      body: {
+        beforeStep: "settle",
+        reason: "Retry settle",
+        idempotencyKey: "reset-1",
+      },
     },
     {
       run: () => api.forceFailExecution("run/1", "operator decision"),
@@ -160,9 +191,29 @@ test("encodes execution identities and sends JSON only when the operation has a 
         body === undefined ? undefined : { "content-type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    if (path === "/executions" || path.endsWith("/restart"))
+    if (
+      path === "/executions" ||
+      path.endsWith("/restart") ||
+      path.endsWith("/reset")
+    )
       expect(result).toBe("new-run");
   }
+
+  const fixture = { execution: { id: "run-1" }, history: [], steps: [] };
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ fixture }),
+  });
+  expect(await api.exportReplay("run/1")).toEqual(fixture);
+  const [replayUrl, replayOptions] = fetchMock.mock.calls.at(-1)!;
+  expect(new URL(String(replayUrl)).pathname).toBe(
+    "/durable/api/executions/run%2F1/replay"
+  );
+  expect(replayOptions).toEqual({
+    method: "GET",
+    headers: undefined,
+    body: undefined,
+  });
 });
 
 test("uses the schedule REST methods and unwraps creation and preview responses", async () => {

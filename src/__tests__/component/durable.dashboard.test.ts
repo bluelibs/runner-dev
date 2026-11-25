@@ -1,3 +1,21 @@
+import {
+  defineEvent,
+  defineResource,
+  defineTask,
+  resources,
+  run,
+} from "@bluelibs/runner";
+import {
+  durableSupportResource,
+  durableWorkflowTag,
+  sqliteDurableResource,
+} from "@bluelibs/runner/node";
+import express from "express";
+import { once } from "node:events";
+import request from "supertest";
+import z from "zod";
+import { createDurableRouter } from "../../durable/router";
+import { createHttpPasswordGuard } from "../../resources/routeHandlers/httpPasswordGuard";
 import { fixture, close } from "./durable.dashboard.fixtures";
 
 describe("Durable dashboard generic application integration", () => {
@@ -29,11 +47,15 @@ describe("Durable dashboard generic application integration", () => {
     );
     const runtimes = (await testApp.get("/runtimes")).body.runtimes;
     expect(runtimes).toHaveLength(2);
+    expect(runtimes[0].backend).toBe("memory");
     expect(runtimes[0].capabilities).toEqual({
-      pause: false,
-      resume: false,
-      restart: false,
-      state: false,
+      pause: true,
+      resume: true,
+      restart: true,
+      state: true,
+      command: true,
+      reset: true,
+      replay: true,
     });
   });
 
@@ -268,3 +290,434 @@ test("application without durable resources exposes an empty catalog of runtimes
     await app.runtime.dispose();
   }
 });
+
+describe("Durable dashboard Runner 6.10 SQLite, versioning, commands, reset, replay and retention", () => {
+  async function waitForStatus(
+    get: (path: string) => request.Test,
+    executionId: string,
+    runtimeId: string,
+    expected: string[]
+  ) {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      const response = await get(
+        `/executions/${executionId}?runtimeId=${runtimeId}`
+      );
+      if (
+        response.status === 200 &&
+        expected.includes(response.body.execution.status)
+      ) {
+        return response.body.execution;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    throw new Error(
+      `Timed out waiting for ${executionId} to reach ${expected.join(", ")}`
+    );
+  }
+
+  test("supports sqlite backend, multi-version workflows, tracked commands, reset, replay and retention collection", async () => {
+    const sqliteDurable = sqliteDurableResource.fork("sqlite-ops");
+    const approved = defineEvent({
+      id: "approved",
+      payloadSchema: z.object({ approved: z.boolean() }),
+    });
+    const updateAddress = defineTask({
+      id: "update-address",
+      dependencies: { sqliteDurable },
+      inputSchema: z.object({ city: z.string().min(1) }),
+      async run(input, { sqliteDurable }) {
+        const ctx = sqliteDurable.use();
+        await ctx.setState({ city: input.city });
+        return { updated: true, city: input.city };
+      },
+    });
+    const undeclaredCommand = defineTask({
+      id: "undeclared-command",
+      dependencies: { sqliteDurable },
+      inputSchema: z.object({}),
+      async run() {
+        return { ok: true };
+      },
+    });
+    const orderV1 = defineTask({
+      id: "order-v1",
+      dependencies: { sqliteDurable },
+      inputSchema: z.object({
+        name: z.string().min(1),
+        wait: z.boolean().default(false),
+      }),
+      tags: [
+        durableWorkflowTag.with({
+          key: "orders",
+          version: 1,
+          signals: [approved],
+        }),
+      ],
+      async run(input, { sqliteDurable }) {
+        const ctx = sqliteDurable.use();
+        await ctx.step("validate", async () => ({ name: input.name, v: 1 }));
+        return { version: 1, name: input.name };
+      },
+    });
+    const orderV2 = defineTask({
+      id: "order-v2",
+      dependencies: { sqliteDurable },
+      inputSchema: z.object({
+        name: z.string().min(1),
+        wait: z.boolean().default(false),
+      }),
+      tags: [
+        durableWorkflowTag.with({
+          key: "orders",
+          version: 2,
+          signals: [approved],
+          commands: [updateAddress],
+          concurrency: 4,
+          retention: {
+            onComplete: { afterMs: 86_400_000 },
+            receipts: { afterMs: 604_800_000 },
+          },
+        }),
+      ],
+      async run(input, { sqliteDurable }) {
+        const ctx = sqliteDurable.use();
+        await ctx.replaceState({ name: input.name, city: "Bucharest" });
+        await ctx.step("validate", async () => ({ name: input.name, v: 2 }));
+        if (input.wait) {
+          await ctx.waitForSignal(approved, { stepId: "review-approval" });
+        }
+        const receipt = await ctx.step("settle", async () => ({
+          version: 2,
+          name: input.name,
+        }));
+        return receipt;
+      },
+    });
+    const ephemeralFlow = defineTask({
+      id: "ephemeral-check",
+      dependencies: { sqliteDurable },
+      inputSchema: z.object({ checkId: z.string().min(1) }),
+      tags: [
+        durableWorkflowTag.with({
+          key: "ephemeral",
+          version: 1,
+          retention: {
+            onComplete: "delete",
+            receipts: { afterMs: 86_400_000 },
+          },
+        }),
+      ],
+      async run(input, { sqliteDurable }) {
+        return await sqliteDurable.use().step("verify", async () => ({
+          checkId: input.checkId,
+          ok: true,
+        }));
+      },
+    });
+
+    const runtime = await run(
+      defineResource<void>({
+        id: "sqliteDashboardTests",
+        register: [
+          durableSupportResource,
+          sqliteDurable.with({
+            persist: { filename: ":memory:" },
+            audit: { enabled: true },
+            timers: { pollIntervalMs: 50 },
+            garbageCollection: { enabled: false },
+          }),
+          approved,
+          updateAddress,
+          undeclaredCommand,
+          orderV1,
+          orderV2,
+          ephemeralFlow,
+        ],
+      }),
+      { logs: { printThreshold: null } }
+    );
+    const store = runtime.getResourceValue(resources.store);
+    const service = runtime.getResourceValue(sqliteDurable);
+    const logger = { info: jest.fn() };
+    const app = express();
+    app.use(createHttpPasswordGuard("dashboard-test"));
+    app.use("/durable/api", createDurableRouter(store, logger));
+    const server = app.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const client = request(server);
+    const auth = `Basic ${Buffer.from("runner:dashboard-test").toString(
+      "base64"
+    )}`;
+    const prefix = "/durable/api";
+    const get = (path: string) =>
+      client.get(prefix + path).set("Authorization", auth);
+    const post = (path: string, body?: Record<string, unknown>) =>
+      client
+        .post(prefix + path)
+        .set("Authorization", auth)
+        .send(body);
+
+    try {
+      const runtimesRes = await get("/runtimes");
+      expect(runtimesRes.status).toBe(200);
+      expect(runtimesRes.body.runtimes).toHaveLength(1);
+      const rt = runtimesRes.body.runtimes[0];
+      expect(rt.backend).toBe("sqlite");
+      expect(rt.capabilities).toEqual({
+        pause: true,
+        resume: true,
+        restart: true,
+        state: true,
+        command: true,
+        reset: true,
+        replay: true,
+      });
+
+      const workflowsRes = await get(`/workflows?runtimeId=${rt.id}`);
+      expect(workflowsRes.status).toBe(200);
+      const ordersWf = workflowsRes.body.workflows.find(
+        (wf: { key: string }) => wf.key === "orders"
+      );
+      expect(ordersWf.version).toBe(2);
+      expect(
+        ordersWf.versions.map((v: { version: number | null }) => v.version)
+      ).toEqual([2, 1]);
+      expect(ordersWf.commands).toHaveLength(1);
+      expect(ordersWf.concurrency).toBe("max 4 concurrent");
+      expect(ordersWf.retention).toEqual({
+        onComplete: { afterMs: 86_400_000 },
+        receipts: { afterMs: 604_800_000 },
+      });
+
+      // Unknown explicit version returns 404
+      expect(
+        (
+          await post(`/executions?runtimeId=${rt.id}`, {
+            workflow: "orders",
+            version: 99,
+            input: { name: "Ada" },
+          })
+        ).status
+      ).toBe(404);
+
+      // Explicit v1 execution
+      const v1Start = await post(`/executions?runtimeId=${rt.id}`, {
+        workflow: "orders",
+        version: 1,
+        input: { name: "Legacy" },
+      });
+      expect({ status: v1Start.status, body: v1Start.body }).toEqual({
+        status: 201,
+        body: expect.objectContaining({ executionId: expect.any(String) }),
+      });
+      const v1Detail = await waitForStatus(
+        get,
+        v1Start.body.executionId,
+        rt.id,
+        ["completed"]
+      );
+      expect(v1Detail.workflowVersion).toBe(1);
+      expect(v1Detail.result).toEqual({ version: 1, name: "Legacy" });
+
+      // Versioned schedule
+      const schedRes = await post(`/schedules?runtimeId=${rt.id}`, {
+        workflow: "orders",
+        version: 2,
+        input: { name: "Scheduled", wait: false },
+        interval: 600_000,
+      });
+      expect(schedRes.status).toBe(201);
+      const schedules = (await get(`/schedules?runtimeId=${rt.id}`)).body
+        .schedules;
+      expect(schedules[0].workflowVersion).toBe(2);
+
+      // Live v2 execution + tracked commands + reset + replay
+      const liveStart = await post(`/executions?runtimeId=${rt.id}`, {
+        workflow: "orders",
+        input: { name: "Live", wait: true },
+      });
+      expect(liveStart.status).toBe(201);
+      const liveId = liveStart.body.executionId as string;
+      await waitUntilWaiting(service, liveId);
+
+      // Undeclared command rejected
+      expect(
+        (
+          await post(`/executions/${liveId}/commands?runtimeId=${rt.id}`, {
+            command: undeclaredCommand.id,
+            input: {},
+          })
+        ).status
+      ).toBe(400);
+
+      // Declared command executes synchronously and updates state/history
+      const commandKey = ordersWf.commands[0].taskKey as string;
+      const cmdRes = await post(
+        `/executions/${liveId}/commands?runtimeId=${rt.id}`,
+        {
+          command: commandKey,
+          input: { city: "Vienna" },
+          idempotencyKey: "cmd-vienna",
+        }
+      );
+      expect(cmdRes.status).toBe(202);
+      expect(cmdRes.body).toEqual({
+        accepted: true,
+        completed: true,
+        result: { updated: true, city: "Vienna" },
+      });
+
+      const liveDetail = (await get(`/executions/${liveId}?runtimeId=${rt.id}`))
+        .body.execution;
+      expect(liveDetail.state.state).toEqual({
+        name: "Live",
+        city: "Vienna",
+      });
+      expect(
+        liveDetail.timeline.some(
+          (node: { kind: string; result: unknown }) =>
+            node.kind === "command" &&
+            (node.result as { city?: string } | null)?.city === "Vienna"
+        )
+      ).toBe(true);
+
+      // Reset before pausing fails with 409
+      expect(
+        (
+          await post(`/executions/${liveId}/reset?runtimeId=${rt.id}`, {
+            beforeStep: "validate",
+            reason: "Too early",
+          })
+        ).status
+      ).toBe(409);
+
+      // Pause then enqueue pending command -> returns accepted & pending promptly
+      expect(
+        (await post(`/executions/${liveId}/pause?runtimeId=${rt.id}`)).status
+      ).toBe(202);
+      await waitForStatus(get, liveId, rt.id, ["paused"]);
+
+      const pendingCmdRes = await post(
+        `/executions/${liveId}/commands?runtimeId=${rt.id}`,
+        {
+          command: commandKey,
+          input: { city: "Prague" },
+        }
+      );
+      expect(pendingCmdRes.status).toBe(202);
+      expect(pendingCmdRes.body).toMatchObject({
+        accepted: true,
+        completed: false,
+        pending: true,
+      });
+
+      // Completed v2 run for clean checkpoint branch + replay export
+      const completedStart = await post(`/executions?runtimeId=${rt.id}`, {
+        workflow: "orders",
+        input: { name: "ResetSource", wait: false },
+      });
+      const completedId = completedStart.body.executionId as string;
+      await waitForStatus(get, completedId, rt.id, ["completed"]);
+
+      const replayRes = await get(
+        `/executions/${completedId}/replay?runtimeId=${rt.id}`
+      );
+      expect(replayRes.status).toBe(200);
+      expect(replayRes.body.fixture.execution.id).toBe(completedId);
+      expect(replayRes.body.fixture.history.length).toBeGreaterThan(0);
+
+      const branchRes = await post(
+        `/executions/${completedId}/reset?runtimeId=${rt.id}`,
+        {
+          beforeStep: "settle",
+          reason: "Re-run settle",
+        }
+      );
+      expect(branchRes.status).toBe(202);
+      const branchId = branchRes.body.executionId as string;
+      const branchDetail = await waitForStatus(get, branchId, rt.id, [
+        "completed",
+      ]);
+      expect(branchDetail.resetFromExecutionId).toBe(completedId);
+      expect(branchDetail.resetBeforeStep).toBe("settle");
+      expect(branchDetail.resetReason).toBe("Re-run settle");
+      expect(logger.info).toHaveBeenCalledWith(
+        "Durable dashboard reset before 'settle': Re-run settle",
+        expect.objectContaining({
+          data: expect.objectContaining({
+            executionId: completedId,
+            branchExecutionId: branchId,
+            beforeStep: "settle",
+          }),
+        })
+      );
+
+      // History collection retention check
+      const ephemStart = await post(`/executions?runtimeId=${rt.id}`, {
+        workflow: "ephemeral",
+        input: { checkId: "CHK-1" },
+      });
+      const ephemId = ephemStart.body.executionId as string;
+      await waitForStatus(get, ephemId, rt.id, ["completed"]);
+      await service
+        .getStore()
+        .collectCompletedHistory?.(new Date(Date.now() + 60_000), 20);
+
+      const collectedDetail = (
+        await get(`/executions/${ephemId}?runtimeId=${rt.id}`)
+      ).body.execution;
+      expect(collectedDetail.historyCollectedAt).toBeTruthy();
+      expect(collectedDetail.result).toEqual({ checkId: "CHK-1", ok: true });
+      expect(
+        (await post(`/executions/${ephemId}/restart?runtimeId=${rt.id}`)).status
+      ).toBe(409);
+      expect(
+        (
+          await post(`/executions/${ephemId}/reset?runtimeId=${rt.id}`, {
+            beforeStep: "verify",
+            reason: "Cannot reset collected",
+          })
+        ).status
+      ).toBe(409);
+      expect(
+        (await get(`/executions/${ephemId}/replay?runtimeId=${rt.id}`)).status
+      ).toBe(409);
+      const blockedRestart = await post(
+        `/executions/${ephemId}/restart?runtimeId=${rt.id}`,
+        { input: { checkId: "CHK-2" } }
+      );
+      expect(blockedRestart.status).toBe(409);
+      const freshRun = await post(`/executions?runtimeId=${rt.id}`, {
+        workflow: "ephemeral",
+        input: { checkId: "CHK-2" },
+      });
+      expect(freshRun.status).toBe(201);
+      expect(freshRun.body.executionId).toBeTruthy();
+    } finally {
+      await close(server);
+      await runtime.dispose();
+    }
+  });
+});
+
+async function waitUntilWaiting(
+  service: {
+    operator: {
+      getExecutionDetail: (id: string) => Promise<{
+        execution: { current?: { kind?: string } } | null;
+      }>;
+    };
+    getStore: () => { hasExecutionLease?: (id: string) => Promise<boolean> };
+  },
+  executionId: string
+) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const detail = await service.operator.getExecutionDetail(executionId);
+    const leased = await service.getStore().hasExecutionLease?.(executionId);
+    if (detail.execution?.current?.kind === "waitForSignal" && !leased) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`Timed out waiting for ${executionId} to park at signal.`);
+}

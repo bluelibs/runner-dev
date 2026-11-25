@@ -226,4 +226,51 @@ describe("TaskCard middleware rendering", () => {
     expect(screen.getByText("Workflow Key:")).toBeTruthy();
     expect(screen.getByText("orders.approval.workflow")).toBeTruthy();
   });
+
+  it("shows the configured durable workflow version badge", () => {
+    const task: Task = {
+      id: "app.tasks.orderV2",
+      meta: { title: "Order Approval v2" },
+      emits: [],
+      dependsOn: [],
+      middleware: [],
+      middlewareDetailed: [],
+      tags: ["runner.tags.durableWorkflow"],
+      tagsDetailed: [
+        {
+          id: "runner.tags.durableWorkflow",
+          config: JSON.stringify({
+            key: "orders.approval.workflow",
+            version: 2,
+          }),
+        },
+      ],
+      filePath: null,
+      isDurable: true as any,
+      durableWorkflowKey: "orders.approval.workflow",
+    };
+
+    const introspector = {
+      getDependencies: () => ({
+        tasks: [],
+        hooks: [],
+        resources: [],
+        errors: [],
+      }),
+      getMiddlewareUsagesForTask: () => [],
+      getEmittedEvents: () => [],
+      getTagsByIds: () => [],
+      getEvent: () => null,
+    } as any;
+
+    render(
+      React.createElement(TaskCard, {
+        task,
+        introspector,
+      })
+    );
+
+    expect(screen.getByText("Version:")).toBeTruthy();
+    expect(screen.getByText("v2")).toBeTruthy();
+  });
 });

@@ -4,13 +4,21 @@ import z from "zod";
 import type {
   StudioExecutionDetail,
   StudioExecutionPage,
+  StudioExecutionStatus,
 } from "./shared/types";
-import type { DashboardRuntime } from "./runtime";
+import {
+  type DashboardRuntime,
+  getBackingStore,
+  safeGetOperator,
+} from "./runtime";
 import { DurableHttpError, requireValue } from "./errors";
 import {
+  computeResettableSteps,
+  formatRetention,
   isTerminal,
   jsonSafe,
   observedTimeline,
+  toStudioHistory,
   toSummary,
 } from "./projection";
 
@@ -79,6 +87,29 @@ const detailExtras = z.object({
     .optional(),
 });
 
+async function resolveContinuedTipStatus(
+  runtime: DashboardRuntime,
+  execution: Execution
+): Promise<StudioExecutionStatus | undefined> {
+  if (
+    execution.status !== "continued_as_new" ||
+    !execution.continuedAsExecutionId
+  ) {
+    return undefined;
+  }
+  let nextId: string | undefined = execution.continuedAsExecutionId;
+  for (let hops = 0; hops < 25 && nextId; hops += 1) {
+    const tipDetail = await runtime.durable.operator.getExecutionDetail(nextId);
+    const tip = tipDetail.execution;
+    if (!tip) break;
+    if (tip.status !== "continued_as_new" || !tip.continuedAsExecutionId) {
+      return tip.status;
+    }
+    nextId = tip.continuedAsExecutionId;
+  }
+  return undefined;
+}
+
 export async function getExecutionDetail(
   runtime: DashboardRuntime,
   id: string
@@ -88,14 +119,27 @@ export async function getExecutionDetail(
     raw.execution,
     `Unknown execution '${id}' in '${runtime.descriptor.id}'.`
   );
-  const [children, signals, parent] = await Promise.all([
-    runtime.durable.operator.listChildExecutions(id, { limit: 100 }),
-    runtime.durable.operator.listSignals(id),
-    execution.parentExecutionId
-      ? runtime.durable.operator.getExecutionState(execution.parentExecutionId)
-      : null,
-  ]);
+  const backingStore = getBackingStore(runtime.durable);
+  const [children, signals, parent, rawHistory, continuedChainTipStatus] =
+    await Promise.all([
+      runtime.durable.operator.listChildExecutions(id, { limit: 100 }),
+      runtime.durable.operator.listSignals(id),
+      execution.parentExecutionId
+        ? runtime.durable.operator.getExecutionState(
+            execution.parentExecutionId
+          )
+        : null,
+      backingStore?.listExecutionHistory
+        ? backingStore.listExecutionHistory(id)
+        : Promise.resolve([]),
+      resolveContinuedTipStatus(runtime, execution),
+    ]);
   const extras = detailExtras.parse({ ...raw, ...execution });
+  const resettableSteps =
+    execution.historyRecorded && !execution.historyCollectedAt
+      ? computeResettableSteps(rawHistory)
+      : [];
+  const retention = formatRetention(execution.retention, execution.completedAt);
   return {
     ...toSummary(runtime, execution),
     maxAttempts: execution.maxAttempts,
@@ -103,13 +147,22 @@ export async function getExecutionDetail(
     result: jsonSafe(execution.result ?? null),
     error: execution.error ?? null,
     pausedFrom: extras.pausedFrom,
-    timeline: observedTimeline(execution, raw.steps),
+    ...(continuedChainTipStatus !== undefined
+      ? { continuedChainTipStatus }
+      : {}),
+    ...(execution.historyRecorded !== undefined
+      ? { historyRecorded: execution.historyRecorded }
+      : {}),
+    ...(retention !== null ? { retention } : {}),
+    timeline: observedTimeline(execution, raw.steps, rawHistory),
     edges: [],
     steps: raw.steps.map((step) => ({
       stepId: step.stepId,
       result: jsonSafe(step.result),
       completedAt: step.completedAt.toISOString(),
     })),
+    ...(rawHistory.length > 0 ? { history: toStudioHistory(rawHistory) } : {}),
+    ...(resettableSteps.length > 0 ? { resettableSteps } : {}),
     audit: raw.audit.map(
       ({ id, at, kind, attempt, executionId: _executionId, ...detail }) => ({
         id,
@@ -142,6 +195,37 @@ export async function getExecutionDetail(
       children: children.map((child) => toSummary(runtime, child)),
     },
   };
+}
+
+export async function exportReplayFixture(
+  runtime: DashboardRuntime,
+  id: string
+): Promise<{ fixture: unknown }> {
+  const execution = await requireExecution(runtime, id);
+  const operator = safeGetOperator(runtime.durable);
+  if (
+    !runtime.descriptor.capabilities.replay ||
+    typeof operator?.exportReplay !== "function"
+  ) {
+    throw new DurableHttpError(
+      409,
+      "Replay export is unavailable with this Runner version."
+    );
+  }
+  if (execution.historyCollectedAt) {
+    throw new DurableHttpError(
+      409,
+      "Execution history was collected and cannot be exported."
+    );
+  }
+  if (!execution.historyRecorded) {
+    throw new DurableHttpError(
+      409,
+      "No ordered history was recorded for this execution."
+    );
+  }
+  const fixture = await operator.exportReplay(id);
+  return { fixture: jsonSafe(fixture) };
 }
 
 export function requireActive(execution: Execution): void {

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { WorkflowApiContext } from "../workflowFeed";
 import type {
   StudioSchedule,
@@ -31,15 +31,44 @@ export function ScheduleModal({
   const [workflow, setWorkflow] = useState(
     workflows.find((item) => item.key === workflowKey)
   );
+  const [selectedVersion, setSelectedVersion] = useState<
+    number | null | undefined
+  >(() =>
+    schedule
+      ? schedule.workflowVersion
+      : workflow?.versions && workflow.versions.length > 1
+      ? workflow.versions[0].version
+      : workflow?.version
+  );
   const api = useContext(WorkflowApiContext);
   const [workflowError, setWorkflowError] = useState("");
+  const inputEditedRef = useRef(false);
   useEffect(() => {
     if (workflow || !api) return;
     let active = true;
     void api
       .getWorkflow(workflowKey)
       .then((next) => {
-        if (active) setWorkflow(next);
+        if (!active) return;
+        setWorkflow(next);
+        setWorkflowKey((current) => current || next.key);
+        if (!schedule) {
+          const nextVersion =
+            next.versions && next.versions.length > 1
+              ? next.versions[0].version
+              : next.version;
+          setSelectedVersion(nextVersion);
+          const matched = next.versions?.find(
+            (entry) => entry.version === (nextVersion ?? null)
+          );
+          const presetPayload =
+            matched?.presets[0]?.payload ?? next.presets[0]?.payload;
+          if (!inputEditedRef.current && presetPayload !== undefined) {
+            setText(JSON.stringify(presetPayload, null, 2));
+            setParsed(presetPayload);
+            setValid(true);
+          }
+        }
       })
       .catch((error: unknown) => {
         if (active)
@@ -50,7 +79,7 @@ export function ScheduleModal({
     return () => {
       active = false;
     };
-  }, [api, workflowKey, workflow]);
+  }, [api, workflowKey, workflow, schedule]);
   const [cadence, setCadence] = useState<Cadence>(
     schedule?.type === "cron" ? "cron" : "interval"
   );
@@ -101,10 +130,27 @@ export function ScheduleModal({
       </Modal>
     );
 
+  const versions = workflow.versions ?? [];
+  const hasMultipleVersions = !schedule && versions.length > 1;
+  const matchedVersion = versions.find(
+    (entry) => entry.version === (selectedVersion ?? null)
+  );
+  const effectivePresets = matchedVersion?.presets ?? workflow.presets;
+
   function chooseWorkflow(nextKey: string, next: StudioWorkflow) {
     setWorkflowKey(nextKey);
     setWorkflow(next);
-    const nextInput = next?.presets[0]?.payload ?? {};
+    const nextVersion =
+      next.versions && next.versions.length > 1
+        ? next.versions[0].version
+        : next.version;
+    setSelectedVersion(nextVersion);
+    const matched = next.versions?.find(
+      (entry) => entry.version === (nextVersion ?? null)
+    );
+    const nextInput =
+      matched?.presets[0]?.payload ?? next?.presets[0]?.payload ?? {};
+    inputEditedRef.current = false;
     setText(JSON.stringify(nextInput, null, 2));
     setParsed(nextInput);
     setValid(true);
@@ -115,7 +161,12 @@ export function ScheduleModal({
       input: parsed,
       ...cadenceBody(cadence, cadenceValue, timezone),
     };
-    if (!schedule) body.workflow = workflowKey;
+    if (!schedule) {
+      body.workflow = workflowKey;
+      if (selectedVersion !== undefined) {
+        body.version = selectedVersion;
+      }
+    }
     onSave(body);
   }
 
@@ -131,7 +182,14 @@ export function ScheduleModal({
     >
       <div className="field-row">
         <div className="field">
-          <span className="field-label">Workflow</span>
+          <span className="field-label">
+            Workflow{" "}
+            {schedule?.workflowVersion !== undefined ? (
+              <span className="version-badge">v{schedule.workflowVersion}</span>
+            ) : !hasMultipleVersions && workflow.version !== undefined ? (
+              <span className="version-badge">v{workflow.version}</span>
+            ) : null}
+          </span>
           <WorkflowSelect
             workflows={workflows}
             value={workflowKey}
@@ -152,6 +210,46 @@ export function ScheduleModal({
           </select>
         </label>
       </div>
+      {hasMultipleVersions ? (
+        <label className="field">
+          <span className="field-label">Version</span>
+          <select
+            className="select"
+            value={
+              selectedVersion === null
+                ? "unversioned"
+                : String(selectedVersion ?? "")
+            }
+            onChange={(event) => {
+              const raw = event.target.value;
+              const nextVersion = raw === "unversioned" ? null : Number(raw);
+              setSelectedVersion(nextVersion);
+              const nextMatched = versions.find(
+                (entry) => entry.version === nextVersion
+              );
+              const nextInput = nextMatched?.presets[0]?.payload ?? {};
+              setText(JSON.stringify(nextInput, null, 2));
+              setParsed(nextInput);
+              setValid(true);
+            }}
+          >
+            {versions.map((entry, index) => (
+              <option
+                key={entry.version === null ? "unversioned" : entry.version}
+                value={
+                  entry.version === null ? "unversioned" : String(entry.version)
+                }
+              >
+                {entry.version === null
+                  ? "Unversioned (legacy)"
+                  : index === 0
+                  ? `v${entry.version} (latest)`
+                  : `v${entry.version}`}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <div className="field-row">
         <label className="field">
           <span className="field-label">
@@ -192,10 +290,11 @@ export function ScheduleModal({
       <div className="field">
         <span className="field-label">Input</span>
         <JsonEditor
-          presets={schedule ? [] : workflow.presets}
+          presets={schedule ? [] : effectivePresets}
           value={text}
           validationMessage="Checked against this workflow's runtime input schema before the schedule is saved."
           onChange={(next, nextParsed, nextValid) => {
+            inputEditedRef.current = true;
             setText(next);
             setParsed(nextParsed);
             setValid(nextValid);

@@ -26,7 +26,10 @@ export type StudioNodeKind =
   | "signal"
   | "switch"
   | "child"
-  | "note";
+  | "note"
+  | "command"
+  | "state"
+  | "continue";
 
 /** Runtime state of a single timeline node. */
 export type StudioNodeState =
@@ -66,6 +69,56 @@ export interface StudioWorkflowGraph {
   edges: StudioGraphEdge[];
 }
 
+/** A tracked command task declared on a durable workflow version. */
+export interface StudioCommand {
+  taskKey: string;
+  title: string;
+  description: string;
+}
+
+/** One registered implementation version of a durable workflow. */
+export interface StudioWorkflowVersion {
+  version: number | null;
+  taskId: string;
+  title: string;
+  description: string;
+  signals: StudioSignal[];
+  commands: StudioCommand[];
+  presets: StudioInputPreset[];
+}
+
+/** Retention delay schedule for completed-execution history or receipt cleanup. */
+export type StudioRetentionSchedule = "retain" | "delete" | { afterMs: number };
+
+/** Resolved retention policy and derived cleanup deadlines. */
+export interface StudioExecutionRetention {
+  onComplete: StudioRetentionSchedule;
+  receipts?: StudioRetentionSchedule;
+  historyCollectAt?: string | null;
+  receiptExpireAt?: string | null;
+}
+
+/** Ordered operation checkpoint metadata recorded by Runner 6.10+. */
+export interface StudioHistoryEntry {
+  stepId: string;
+  kind: string;
+  parentStepId?: string;
+  taskKey?: string;
+  workflowVersion?: number;
+  startedOrder: number;
+  completedOrder?: number;
+  hasStateSnapshot?: boolean;
+}
+
+/** Result of submitting a tracked workflow command from Studio. */
+export interface StudioCommandResult {
+  accepted: true;
+  completed: boolean;
+  pending?: boolean;
+  result?: unknown;
+  message?: string;
+}
+
 /** A runnable workflow presented in the studio sidebar. */
 export interface StudioWorkflow {
   key: string;
@@ -74,8 +127,18 @@ export interface StudioWorkflow {
   title: string;
   category: string;
   description: string;
+  /** Primary implementation version when versioned. */
+  version?: number;
+  /** All discovered implementations sharing this durable workflow key. */
+  versions?: StudioWorkflowVersion[];
   /** Signals this workflow can receive. */
   signals: StudioSignal[];
+  /** Declared tracked commands accepted by this workflow. */
+  commands?: StudioCommand[];
+  /** Default completion retention policy configured on this workflow. */
+  retention?: StudioExecutionRetention;
+  /** Human-readable global attempt concurrency/rate-limit policy. */
+  concurrency?: string;
   /** Named input presets for the start dialog. */
   presets: StudioInputPreset[];
   graph: StudioWorkflowGraph;
@@ -100,6 +163,8 @@ export interface StudioExecutionSummary {
   id: string;
   workflowKey: string;
   workflowTitle: string;
+  /** Pinned workflow implementation version when versioned. */
+  workflowVersion?: number;
   status: StudioExecutionStatus;
   attempt: number;
   createdAt: string;
@@ -117,6 +182,14 @@ export interface StudioExecutionSummary {
   restartedAsExecutionId?: string;
   /** Source execution when this run was created via restart. */
   restartedFromExecutionId?: string;
+  /** Source execution when this run was created via checkpoint reset. */
+  resetFromExecutionId?: string;
+  /** First top-level step omitted from the branched checkpoint prefix. */
+  resetBeforeStep?: string;
+  /** Operator explanation retained on a checkpoint branch. */
+  resetReason?: string;
+  /** Timestamp when bulky history was collected, leaving only receipt metadata. */
+  historyCollectedAt?: string | null;
 }
 
 /** A JSON-safe persisted step result. */
@@ -157,6 +230,14 @@ export interface StudioTimelineNode extends StudioGraphNode {
   branchTaken: string | null;
   result: unknown;
   completedAt: string | null;
+  /** Enclosing step when recorded inside a callback. */
+  parentStepId?: string;
+  /** Canonical task key or child workflow key from ordered history. */
+  taskKey?: string;
+  /** Pinned child workflow version observed at the call site. */
+  workflowVersion?: number;
+  /** True when checkpoint reset can branch immediately before this node. */
+  resettable?: boolean;
   /** Live wait metadata (signal waits, sleeps) for countdowns. */
   wait: {
     signalId?: string;
@@ -179,12 +260,26 @@ export interface StudioExecutionDetail {
   restartedAsExecutionId?: string;
   /** Source execution when this run was created via restart. */
   restartedFromExecutionId?: string;
+  /** Source execution when this run was created via checkpoint reset. */
+  resetFromExecutionId?: string;
+  /** First top-level step omitted from the branched checkpoint prefix. */
+  resetBeforeStep?: string;
+  /** Operator explanation retained on a checkpoint branch. */
+  resetReason?: string;
   /** Status the execution held when it was paused; set only while paused. */
   pausedFrom?: StudioExecutionStatus;
   /** Current continuation tip status, when this execution continued as new. */
   continuedChainTipStatus?: StudioExecutionStatus;
   workflowKey: string;
   workflowTitle: string;
+  /** Pinned workflow implementation version when versioned. */
+  workflowVersion?: number;
+  /** Ordered operation history was captured from admission. */
+  historyRecorded?: boolean;
+  /** Timestamp when bulky history was collected, leaving receipt only. */
+  historyCollectedAt?: string | null;
+  /** Admission-time retention policy and deadlines. */
+  retention?: StudioExecutionRetention | null;
   status: StudioExecutionStatus;
   attempt: number;
   maxAttempts: number;
@@ -198,6 +293,10 @@ export interface StudioExecutionDetail {
   timeline: StudioTimelineNode[];
   edges: StudioGraphEdge[];
   steps: StudioStepResult[];
+  /** Ordered operation history recorded for replay and checkpoint reset. */
+  history?: StudioHistoryEntry[];
+  /** Top-level step IDs eligible as checkpoint reset boundaries. */
+  resettableSteps?: string[];
   audit: StudioAuditEntry[];
   signals: StudioSignalJournal[];
   /** Workflow-owned typed state; null until the workflow first sets state. */
@@ -237,6 +336,7 @@ export interface StudioSchedule {
   id: string;
   workflowKey: string;
   workflowTitle: string;
+  workflowVersion?: number;
   type: string;
   pattern: string;
   timezone?: string;

@@ -1,17 +1,30 @@
 import type { Logger } from "@bluelibs/runner";
+import { errors } from "@bluelibs/runner";
 import z from "zod";
-import type { DashboardRuntime } from "./runtime";
-import { requireWorkflow, resolveSignal } from "./runtime";
+import {
+  type DashboardRuntime,
+  findWorkflowForExecution,
+  requireWorkflow,
+  resolveCommand,
+  resolveSignal,
+  safeGetOperator,
+} from "./runtime";
 import { bodyRecord, DurableHttpError, nonEmpty } from "./errors";
 import { requireActive, requireExecution } from "./executions";
+import { isTerminal, jsonSafe } from "./projection";
+
+const optionalVersionSchema = z
+  .union([z.number().int().positive(), z.null()])
+  .optional();
 
 export async function startExecution(
   runtime: DashboardRuntime,
   input: unknown
 ): Promise<{ executionId: string }> {
   const body = bodyRecord(input);
-  const task = requireWorkflow(runtime, nonEmpty(body.workflow));
-  return { executionId: await runtime.durable.start(task.id, body.input) };
+  const version = optionalVersionSchema.parse(body.version);
+  const task = requireWorkflow(runtime, nonEmpty(body.workflow), version);
+  return { executionId: await runtime.durable.start(task, body.input) };
 }
 
 export async function executionAction(
@@ -26,10 +39,76 @@ export async function executionAction(
   const durable = runtime.durable;
   if (action === "signals") {
     requireActive(execution);
-    const task = requireWorkflow(runtime, execution.workflowKey);
+    const task =
+      findWorkflowForExecution(
+        runtime,
+        execution.workflowKey,
+        execution.workflowVersion
+      ) ?? requireWorkflow(runtime, execution.workflowKey);
     const signal = resolveSignal(runtime, task, nonEmpty(body.signal));
     await durable.signal(id, signal, body.payload);
     return { delivered: true };
+  }
+  if (
+    action === "commands" &&
+    runtime.descriptor.capabilities.command &&
+    "command" in durable &&
+    typeof durable.command === "function"
+  ) {
+    requireActive(execution);
+    const task =
+      findWorkflowForExecution(
+        runtime,
+        execution.workflowKey,
+        execution.workflowVersion
+      ) ?? requireWorkflow(runtime, execution.workflowKey);
+    const commandKey = nonEmpty(body.command);
+    const commandTask = resolveCommand(runtime, task, commandKey);
+    const idempotencyKey =
+      body.idempotencyKey === undefined
+        ? undefined
+        : nonEmpty(body.idempotencyKey);
+    const waitTimeoutMs = z
+      .number()
+      .int()
+      .min(500)
+      .max(30_000)
+      .optional()
+      .parse(body.waitTimeoutMs);
+    const effectiveWaitTimeoutMs =
+      String(execution.status) === "paused"
+        ? Math.min(waitTimeoutMs ?? 500, 500)
+        : waitTimeoutMs ?? 10_000;
+    try {
+      const result: unknown = await durable.command(
+        id,
+        commandTask,
+        body.input,
+        {
+          ...(idempotencyKey ? { idempotencyKey } : {}),
+          waitTimeoutMs: effectiveWaitTimeoutMs,
+        }
+      );
+      return {
+        accepted: true,
+        completed: true,
+        result: jsonSafe(result),
+      };
+    } catch (error) {
+      if (
+        errors.durableExecutionInvariantError.is(error) &&
+        error.message.includes("Command wait timed out")
+      ) {
+        return {
+          accepted: true,
+          completed: false,
+          pending: true,
+          message:
+            "Command accepted and queued; waiting for the execution to process it.",
+        };
+      }
+      throw error;
+    }
   }
   if (action === "cancel") {
     requireActive(execution);
@@ -79,6 +158,7 @@ export async function executionAction(
         "failed",
         "cancelled",
         "compensation_failed",
+        "continued_as_new",
       ].includes(execution.status)
     ) {
       throw new DurableHttpError(
@@ -86,7 +166,21 @@ export async function executionAction(
         "Only terminal or paused executions can be restarted."
       );
     }
-    requireWorkflow(runtime, execution.workflowKey);
+    if (execution.historyCollectedAt) {
+      throw new DurableHttpError(
+        409,
+        "Execution history was collected; start a new workflow run instead."
+      );
+    }
+    if (
+      !findWorkflowForExecution(
+        runtime,
+        execution.workflowKey,
+        execution.workflowVersion
+      )
+    ) {
+      requireWorkflow(runtime, execution.workflowKey);
+    }
     return {
       executionId: z
         .string()
@@ -97,6 +191,48 @@ export async function executionAction(
           )
         ),
     };
+  }
+  const operator = safeGetOperator(durable);
+  if (
+    action === "reset" &&
+    runtime.descriptor.capabilities.reset &&
+    typeof operator?.reset === "function"
+  ) {
+    if (
+      String(execution.status) !== "paused" &&
+      !isTerminal(execution.status)
+    ) {
+      throw new DurableHttpError(
+        409,
+        "Pause the execution before resetting to a checkpoint."
+      );
+    }
+    if (execution.historyCollectedAt) {
+      throw new DurableHttpError(
+        409,
+        "Execution history was collected and cannot be reset."
+      );
+    }
+    const beforeStep = nonEmpty(body.beforeStep);
+    const reason = nonEmpty(body.reason);
+    const idempotencyKey =
+      body.idempotencyKey === undefined
+        ? undefined
+        : nonEmpty(body.idempotencyKey);
+    const executionId = await operator.reset(id, {
+      beforeStep,
+      reason,
+      ...(idempotencyKey ? { idempotencyKey } : {}),
+    });
+    logger?.info(`Durable dashboard reset before '${beforeStep}': ${reason}`, {
+      data: {
+        runtimeId: runtime.descriptor.id,
+        executionId: id,
+        branchExecutionId: executionId,
+        beforeStep,
+      },
+    });
+    return { executionId };
   }
   if (
     action === "force-fail" ||

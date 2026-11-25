@@ -1,5 +1,6 @@
 /** Runtime-scoped Studio client using Runner Dev’s existing browser authentication. */
 import type {
+  StudioCommandResult,
   StudioExecutionDetail,
   StudioExecutionPage,
   StudioExecutionSummary,
@@ -28,13 +29,30 @@ export interface StudioApi {
   listExecutions(filters?: ExecutionFilters): Promise<StudioExecutionSummary[]>;
   listExecutionPage(filters?: ExecutionFilters): Promise<StudioExecutionPage>;
   getExecution(id: string): Promise<StudioExecutionDetail>;
-  startExecution(workflow: string, input: unknown): Promise<string>;
+  startExecution(
+    workflow: string,
+    input: unknown,
+    version?: number | null
+  ): Promise<string>;
   sendSignal(id: string, signal: string, payload: unknown): Promise<void>;
+  sendCommand(
+    id: string,
+    command: string,
+    input: unknown,
+    options?: { idempotencyKey?: string; waitTimeoutMs?: number }
+  ): Promise<StudioCommandResult>;
   cancelExecution(id: string): Promise<void>;
   retryExecution(id: string): Promise<void>;
   pauseExecution(id: string): Promise<void>;
   resumeExecution(id: string): Promise<void>;
   restartExecution(id: string, input?: unknown): Promise<string>;
+  resetExecution(
+    id: string,
+    beforeStep: string,
+    reason: string,
+    idempotencyKey?: string
+  ): Promise<string>;
+  exportReplay(id: string): Promise<unknown>;
   forceFailExecution(id: string, reason: string): Promise<void>;
   skipStep(id: string, stepId: string, reason: string): Promise<void>;
   editState(
@@ -134,11 +152,12 @@ export function createLiveApi(runtimeId: string): StudioApi {
           `/api/executions/${encodeURIComponent(id)}`
         )
       ).execution,
-    startExecution: async (workflow, input) =>
+    startExecution: async (workflow, input, version) =>
       (
         await request<{ executionId: string }>("POST", "/api/executions", {
           workflow,
           input,
+          ...(version !== undefined ? { version } : {}),
         })
       ).executionId,
     sendSignal: async (id, signal, payload) => {
@@ -151,6 +170,21 @@ export function createLiveApi(runtimeId: string): StudioApi {
         }
       );
     },
+    sendCommand: async (id, command, input, options) =>
+      await request<StudioCommandResult>(
+        "POST",
+        `/api/executions/${encodeURIComponent(id)}/commands`,
+        {
+          command,
+          input,
+          ...(options?.idempotencyKey
+            ? { idempotencyKey: options.idempotencyKey }
+            : {}),
+          ...(options?.waitTimeoutMs !== undefined
+            ? { waitTimeoutMs: options.waitTimeoutMs }
+            : {}),
+        }
+      ),
     cancelExecution: async (id) => {
       await request("POST", `/api/executions/${encodeURIComponent(id)}/cancel`);
     },
@@ -171,6 +205,25 @@ export function createLiveApi(runtimeId: string): StudioApi {
           input === undefined ? undefined : { input }
         )
       ).executionId,
+    resetExecution: async (id, beforeStep, reason, idempotencyKey) =>
+      (
+        await request<{ executionId: string }>(
+          "POST",
+          `/api/executions/${encodeURIComponent(id)}/reset`,
+          {
+            beforeStep,
+            reason,
+            ...(idempotencyKey ? { idempotencyKey } : {}),
+          }
+        )
+      ).executionId,
+    exportReplay: async (id) =>
+      (
+        await request<{ fixture: unknown }>(
+          "GET",
+          `/api/executions/${encodeURIComponent(id)}/replay`
+        )
+      ).fixture,
     forceFailExecution: async (id, reason) => {
       await request(
         "POST",

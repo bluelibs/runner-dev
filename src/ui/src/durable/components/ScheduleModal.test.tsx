@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { StudioWorkflow } from "../../../../durable/shared/types";
-import { workflow } from "../__tests__/fixtures";
+import { schedule, workflow } from "../__tests__/fixtures";
 import { studioApi } from "../__tests__/studioApi";
 import { WorkflowApiContext } from "../workflowFeed";
 import { ScheduleModal } from "./ScheduleModal";
@@ -103,4 +103,52 @@ test("hydrates version and preset when workflow details arrive asynchronously", 
     input: { orderId: "order-v2" },
     interval: 60000,
   });
+});
+
+test("clears invalid JSON errors when switching versions and omits catalog version on unversioned schedules", async () => {
+  const api = studioApi();
+  const onPreview = jest.fn().mockResolvedValue(["2026-11-25T10:01:00.000Z"]);
+  const { unmount } = render(
+    <WorkflowApiContext.Provider value={api}>
+      <ScheduleModal
+        workflows={[versionedWorkflow]}
+        busy={false}
+        onSave={jest.fn()}
+        onPreview={onPreview}
+        onClose={jest.fn()}
+      />
+    </WorkflowApiContext.Provider>
+  );
+
+  const editor = screen
+    .getAllByRole("textbox")
+    .find((element) => element.tagName === "TEXTAREA") as HTMLTextAreaElement;
+  fireEvent.change(editor, { target: { value: "{" } });
+  expect(
+    screen.getByText("Invalid JSON — fix the syntax to continue.")
+  ).toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText("Version"), {
+    target: { value: "1" },
+  });
+  expect(
+    screen.queryByText("Invalid JSON — fix the syntax to continue.")
+  ).toBeNull();
+  unmount();
+
+  render(
+    <WorkflowApiContext.Provider value={api}>
+      <ScheduleModal
+        schedule={schedule({ workflowVersion: undefined })}
+        workflows={[versionedWorkflow]}
+        busy={false}
+        onSave={jest.fn()}
+        onPreview={onPreview}
+        onClose={jest.fn()}
+      />
+    </WorkflowApiContext.Provider>
+  );
+
+  await waitFor(() => expect(onPreview).toHaveBeenCalled());
+  expect(screen.queryByText(/^v2$/)).toBeNull();
 });

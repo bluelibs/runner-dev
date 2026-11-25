@@ -160,6 +160,7 @@ export function StartModal({
       <div className="field">
         <span className="field-label">Input</span>
         <JsonEditor
+          key={`${workflowKey}:${selectedVersion ?? "unversioned"}`}
           presets={presets}
           value={text}
           validationMessage="Checked against this workflow's runtime input schema before a run is created."

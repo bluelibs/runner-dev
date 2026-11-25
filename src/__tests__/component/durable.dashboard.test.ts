@@ -6,6 +6,7 @@ import {
   run,
 } from "@bluelibs/runner";
 import {
+  ExecutionStatus,
   durableSupportResource,
   durableWorkflowTag,
   sqliteDurableResource,
@@ -694,6 +695,57 @@ describe("Durable dashboard Runner 6.10 SQLite, versioning, commands, reset, rep
       });
       expect(freshRun.status).toBe(201);
       expect(freshRun.body.executionId).toBeTruthy();
+
+      // Persisted schedule referencing an unregistered version rejects input updates (404)
+      const missingVersionScheduleId = "legacy-v99-schedule";
+      const now = new Date();
+      await service.getStore().createSchedule({
+        id: missingVersionScheduleId,
+        workflowKey: "orders",
+        workflowVersion: 99,
+        type: "interval",
+        pattern: "60000",
+        input: { name: "Old", wait: false },
+        status: "active",
+        nextRun: new Date(now.getTime() + 60_000),
+        createdAt: now,
+        updatedAt: now,
+      });
+      const patchMissingVersion = await client
+        .patch(
+          `${prefix}/schedules/${missingVersionScheduleId}?runtimeId=${rt.id}`
+        )
+        .set("Authorization", auth)
+        .send({ input: { name: "StillInvalidForV99", wait: false } });
+      expect(patchMissingVersion.status).toBe(404);
+
+      // Continuation chains longer than 25 links resolve tip status dynamically
+      for (let hop = 0; hop <= 30; hop += 1) {
+        const isLast = hop === 30;
+        await service.getStore().saveExecution({
+          id: `cont-chain-${hop}`,
+          workflowKey: "orders",
+          workflowVersion: 2,
+          input: { name: `Hop-${hop}`, wait: false },
+          status: isLast
+            ? ExecutionStatus.Completed
+            : ExecutionStatus.ContinuedAsNew,
+          attempt: 1,
+          maxAttempts: 1,
+          createdAt: now,
+          updatedAt: now,
+          ...(isLast
+            ? { completedAt: now }
+            : { continuedAsExecutionId: `cont-chain-${hop + 1}` }),
+        });
+      }
+      const chainRootDetail = await get(
+        `/executions/cont-chain-0?runtimeId=${rt.id}`
+      );
+      expect(chainRootDetail.status).toBe(200);
+      expect(chainRootDetail.body.execution.continuedChainTipStatus).toBe(
+        "completed"
+      );
     } finally {
       await close(server);
       await runtime.dispose();

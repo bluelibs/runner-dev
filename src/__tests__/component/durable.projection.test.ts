@@ -163,3 +163,38 @@ test("uses ordered history entries for command state snapshots, nesting, continu
     receiptExpireAt: new Date(at.getTime() + 3600_000).toISOString(),
   });
 });
+
+test("computeResettableSteps handles equal startedOrder groups, overlaps, and precomputed sets", () => {
+  const history: DurableHistoryEntry[] = [
+    { stepId: "__origin", kind: "origin", startedOrder: 0, completedOrder: 0 },
+    { stepId: "peer-a", kind: "step", startedOrder: 1, completedOrder: 1 },
+    { stepId: "peer-b", kind: "step", startedOrder: 1, completedOrder: 2 },
+    { stepId: "outer", kind: "step", startedOrder: 3, completedOrder: 6 },
+    { stepId: "overlap", kind: "step", startedOrder: 4, completedOrder: 4 },
+    { stepId: "after-all", kind: "step", startedOrder: 7, completedOrder: 7 },
+    { stepId: "still-running", kind: "step", startedOrder: 8 },
+    {
+      stepId: "blocked-tail",
+      kind: "step",
+      startedOrder: 9,
+      completedOrder: 9,
+    },
+  ];
+  expect(computeResettableSteps(history)).toEqual([
+    "peer-a",
+    "peer-b",
+    "outer",
+    "after-all",
+    "still-running",
+  ]);
+
+  const recorded: Execution = {
+    ...execution,
+    status: ExecutionStatus.Completed,
+    historyRecorded: true,
+  };
+  const customResettable = new Set(["after-all"]);
+  const nodes = observedTimeline(recorded, [], history, customResettable);
+  expect(nodes.find((n) => n.id === "peer-a")?.resettable).toBeUndefined();
+  expect(nodes.find((n) => n.id === "after-all")?.resettable).toBe(true);
+});

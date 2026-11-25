@@ -154,19 +154,19 @@ export async function scheduleAction(
         "A recurring schedule can update input, cron or interval only."
       );
     }
-    const task =
-      findWorkflowForExecution(
+    if ("input" in body) {
+      const task = requireWorkflow(
         runtime,
         existing.workflowKey,
-        existing.workflowVersion
-      ) ?? requireWorkflow(runtime, existing.workflowKey);
-    if (
-      "input" in body &&
-      task.inputSchema &&
-      typeof task.inputSchema === "object" &&
-      "parse" in task.inputSchema
-    ) {
-      task.inputSchema.parse(body.input);
+        existing.workflowVersion ?? null
+      );
+      if (
+        task.inputSchema &&
+        typeof task.inputSchema === "object" &&
+        "parse" in task.inputSchema
+      ) {
+        task.inputSchema.parse(body.input);
+      }
     }
     let updates: UpdateScheduleOptions;
     if (body.cron !== undefined || body.interval !== undefined) {

@@ -37,7 +37,7 @@ const auditInputSchema = z.object({
 const financeInputSchema = z.object({
   reference: z.string().min(1),
   amount: z.number().positive(),
-  mode: z.enum(["complete", "approval", "sleep", "fail"]).default("complete"),
+  mode: z.enum(["complete", "approval"]).default("complete"),
 });
 
 const updateShippingAddress = r
@@ -247,9 +247,11 @@ const orderProcessingV2 = r
     }
     let shipment: unknown = null;
     if (input.spawnShipment) {
+      const currentState = await ctx.getState<{ shippingCity?: string }>();
+      const destinationCity = currentState?.shippingCity ?? input.city;
       const childId = await ctx.workflow("start-shipment", fulfillShipment, {
         reference: input.reference,
-        city: input.city,
+        city: destinationCity,
       });
       const waited = await ctx.waitForExecution(fulfillShipment, childId, {
         timeoutMs: 30_000,

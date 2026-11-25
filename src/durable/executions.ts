@@ -87,9 +87,27 @@ const detailExtras = z.object({
     .optional(),
 });
 
+const executionConfigSchema = z
+  .object({
+    execution: z
+      .object({ maxContinuationDepth: z.number().int().positive() })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+function resolveMaxContinuationDepth(runtime: DashboardRuntime): number {
+  const rawConfig = runtime.store.resources.get(runtime.descriptor.id)?.config;
+  const parsed = executionConfigSchema.safeParse(rawConfig);
+  return parsed.success
+    ? parsed.data.execution?.maxContinuationDepth ?? 1000
+    : 1000;
+}
+
 async function resolveContinuedTipStatus(
   runtime: DashboardRuntime,
-  execution: Execution
+  execution: Execution,
+  backingStore: ReturnType<typeof getBackingStore>
 ): Promise<StudioExecutionStatus | undefined> {
   if (
     execution.status !== "continued_as_new" ||
@@ -97,10 +115,15 @@ async function resolveContinuedTipStatus(
   ) {
     return undefined;
   }
+  const maxDepth = resolveMaxContinuationDepth(runtime);
+  const visited = new Set<string>([execution.id]);
   let nextId: string | undefined = execution.continuedAsExecutionId;
-  for (let hops = 0; hops < 25 && nextId; hops += 1) {
-    const tipDetail = await runtime.durable.operator.getExecutionDetail(nextId);
-    const tip = tipDetail.execution;
+  for (let hops = 0; hops < maxDepth && nextId; hops += 1) {
+    if (visited.has(nextId)) break;
+    visited.add(nextId);
+    const tip: Execution | null = backingStore
+      ? await backingStore.getExecution(nextId)
+      : (await runtime.durable.operator.getExecutionDetail(nextId)).execution;
     if (!tip) break;
     if (tip.status !== "continued_as_new" || !tip.continuedAsExecutionId) {
       return tip.status;
@@ -132,7 +155,7 @@ export async function getExecutionDetail(
       backingStore?.listExecutionHistory
         ? backingStore.listExecutionHistory(id)
         : Promise.resolve([]),
-      resolveContinuedTipStatus(runtime, execution),
+      resolveContinuedTipStatus(runtime, execution, backingStore),
     ]);
   const extras = detailExtras.parse({ ...raw, ...execution });
   const resettableSteps =
@@ -154,7 +177,12 @@ export async function getExecutionDetail(
       ? { historyRecorded: execution.historyRecorded }
       : {}),
     ...(retention !== null ? { retention } : {}),
-    timeline: observedTimeline(execution, raw.steps, rawHistory),
+    timeline: observedTimeline(
+      execution,
+      raw.steps,
+      rawHistory,
+      new Set(resettableSteps)
+    ),
     edges: [],
     steps: raw.steps.map((step) => ({
       stepId: step.stepId,

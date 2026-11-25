@@ -87,22 +87,49 @@ export function formatRetention(
 export function computeResettableSteps(
   history: DurableHistoryEntry[]
 ): string[] {
+  if (history.length === 0) return [];
+  const byStart = [...history].sort((a, b) => a.startedOrder - b.startedOrder);
+  const eligible = new Set<string>();
+  let hasUnfinishedPrior = false;
+  let maxPriorCompletedOrder = -Infinity;
+
+  for (let index = 0; index < byStart.length; ) {
+    const startOrder = byStart[index].startedOrder;
+    let groupEnd = index + 1;
+    while (
+      groupEnd < byStart.length &&
+      byStart[groupEnd].startedOrder === startOrder
+    ) {
+      groupEnd += 1;
+    }
+
+    if (!hasUnfinishedPrior && maxPriorCompletedOrder < startOrder) {
+      for (let cursor = index; cursor < groupEnd; cursor += 1) {
+        const entry = byStart[cursor];
+        if (
+          !entry.parentStepId &&
+          entry.kind !== "origin" &&
+          entry.kind !== "command"
+        ) {
+          eligible.add(entry.stepId);
+        }
+      }
+    }
+
+    for (let cursor = index; cursor < groupEnd; cursor += 1) {
+      const entry = byStart[cursor];
+      if (entry.completedOrder === undefined) {
+        hasUnfinishedPrior = true;
+      } else if (entry.completedOrder > maxPriorCompletedOrder) {
+        maxPriorCompletedOrder = entry.completedOrder;
+      }
+    }
+
+    index = groupEnd;
+  }
+
   return history
-    .filter(
-      (entry) =>
-        !entry.parentStepId &&
-        entry.kind !== "origin" &&
-        entry.kind !== "command"
-    )
-    .filter((boundary) =>
-      history
-        .filter((other) => other.startedOrder < boundary.startedOrder)
-        .every(
-          (other) =>
-            other.completedOrder !== undefined &&
-            other.completedOrder < boundary.startedOrder
-        )
-    )
+    .filter((entry) => eligible.has(entry.stepId))
     .map((entry) => entry.stepId);
 }
 
@@ -266,17 +293,20 @@ function stepToTimelineNode(
 export function observedTimeline(
   execution: Execution,
   steps: StepResult[],
-  history?: DurableHistoryEntry[]
+  history?: DurableHistoryEntry[],
+  precomputedResettable?: ReadonlySet<string>
 ): StudioTimelineNode[] {
   const nodes: StudioTimelineNode[] = [];
   if (history && history.length > 0) {
     const sorted = [...history].sort((a, b) => a.startedOrder - b.startedOrder);
     const stepMap = new Map(steps.map((step) => [step.stepId, step]));
-    const resettable = new Set(
-      execution.historyRecorded && !execution.historyCollectedAt
-        ? computeResettableSteps(sorted)
-        : []
-    );
+    const resettable =
+      precomputedResettable ??
+      new Set(
+        execution.historyRecorded && !execution.historyCollectedAt
+          ? computeResettableSteps(sorted)
+          : []
+      );
     const coveredStepIds = new Set<string>();
 
     for (const entry of sorted) {

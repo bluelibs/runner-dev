@@ -186,7 +186,9 @@ export function ScheduleModal({
             Workflow{" "}
             {schedule?.workflowVersion !== undefined ? (
               <span className="version-badge">v{schedule.workflowVersion}</span>
-            ) : !hasMultipleVersions && workflow.version !== undefined ? (
+            ) : !schedule &&
+              !hasMultipleVersions &&
+              workflow.version !== undefined ? (
               <span className="version-badge">v{workflow.version}</span>
             ) : null}
           </span>
@@ -290,6 +292,7 @@ export function ScheduleModal({
       <div className="field">
         <span className="field-label">Input</span>
         <JsonEditor
+          key={`${workflowKey}:${selectedVersion ?? "unversioned"}`}
           presets={schedule ? [] : effectivePresets}
           value={text}
           validationMessage="Checked against this workflow's runtime input schema before the schedule is saved."

@@ -279,9 +279,20 @@ test("starts a selected workflow version from the multi-version StartModal", asy
   const startDialog = await screen.findByRole("dialog", {
     name: "Start execution",
   });
+  fireEvent.change(within(startDialog).getByRole("textbox"), {
+    target: { value: "{" },
+  });
+  expect(
+    within(startDialog).getByText("Invalid JSON — fix the syntax to continue.")
+  ).toBeInTheDocument();
   fireEvent.change(within(startDialog).getByLabelText("Version"), {
     target: { value: "1" },
   });
+  expect(
+    within(startDialog).queryByText(
+      "Invalid JSON — fix the syntax to continue."
+    )
+  ).toBeNull();
   fireEvent.click(
     within(startDialog).getByRole("button", { name: "Start execution" })
   );

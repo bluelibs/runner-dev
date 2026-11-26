@@ -2,7 +2,7 @@
 
 Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release ships; until then, changes collect under "Unreleased".
 
-## Unreleased
+## 6.10.0 — 2026-11-25
 
 ### Added
 
@@ -17,7 +17,7 @@ Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release sh
 
 ### Changed
 
-- Scaffolded `runner-dev new` projects target `@bluelibs/runner` `^6.10.0` (while `@bluelibs/runner-dev` retains `^6.6.0` peer compatibility).
+- Scaffolded `runner-dev new` projects target `@bluelibs/runner` `^6.10.0` and `@bluelibs/runner-dev` `^6.10.0` (while `@bluelibs/runner-dev` retains `^6.6.0` peer compatibility).
 - Durable Studio `StartExecution`, `CreateSchedule`, and `Restart` pass resolved task definitions for versioned workflow compatibility, allow restarting `continued_as_new` chains whose tip is terminal/paused, and map Runner durable conflict/invariant errors to HTTP `409` / `400`.
 
 ### Fixed

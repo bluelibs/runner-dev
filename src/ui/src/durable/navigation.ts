@@ -5,6 +5,7 @@ import type { DashboardStatusFilter } from "./dashboard";
 interface StudioLocation {
   view: StudioView;
   selectedId: string | null;
+  scheduleId: string | null;
   workflowFilter: string | null;
   statusFilter: DashboardStatusFilter;
   query: string;
@@ -26,6 +27,7 @@ function readLocation(): StudioLocation {
   const modal = params.get("modal");
   return {
     view:
+      requestedView === "catalog" ||
       requestedView === "overview" ||
       requestedView === "schedules" ||
       requestedView === "executions"
@@ -34,6 +36,7 @@ function readLocation(): StudioLocation {
         ? "executions"
         : "overview",
     selectedId: params.get("select"),
+    scheduleId: params.get("schedule"),
     workflowFilter: params.get("workflow"),
     statusFilter:
       statuses.find((status) => status === requestedStatus) ?? "all",
@@ -57,6 +60,7 @@ export function useStudioNavigation() {
       const values = {
         view: next.view,
         select: next.selectedId,
+        schedule: next.view === "schedules" ? next.scheduleId : null,
         workflow: next.workflowFilter,
         status: next.statusFilter === "all" ? null : next.statusFilter,
         query: next.query || null,

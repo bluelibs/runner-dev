@@ -29,7 +29,20 @@ test.each([600, 1200])(
     const onWorkflowFilter = jest.fn();
     render(
       <Sidebar
-        workflows={[workflow]}
+        workflows={[
+          { ...workflow, version: 1 },
+          {
+            ...workflow,
+            key: "returns",
+            title: "Returns",
+            versions: [2, 1].map((version) => ({
+              ...workflow,
+              taskId: `returns-v${version}`,
+              commands: [],
+              version,
+            })),
+          },
+        ]}
         view="executions"
         onView={jest.fn()}
         workflowFilter={null}
@@ -42,8 +55,13 @@ test.each([600, 1200])(
     );
     const toggle = screen.getByRole("button", { name: "Browse workflows" });
     fireEvent.click(toggle);
+    expect(
+      await screen.findByRole("button", {
+        name: "Returns 2 versions · Commerce",
+      })
+    ).toBeInTheDocument();
     const select = await screen.findByRole("button", {
-      name: "Order fulfillment Commerce",
+      name: "Order fulfillment v1 · Commerce",
     });
     select.focus();
     fireEvent.click(select);

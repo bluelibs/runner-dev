@@ -15,6 +15,7 @@ export function Schedules({
   available = true,
   dialogsAllowed = true,
   now: _now,
+  onViewRuns,
   onCreate,
   onUpdate,
   onPreview,
@@ -29,6 +30,7 @@ export function Schedules({
   available?: boolean;
   dialogsAllowed?: boolean;
   now: number;
+  onViewRuns: (id: string) => void;
   onCreate: (body: Record<string, unknown>) => Promise<void>;
   onUpdate: (id: string, body: Record<string, unknown>) => Promise<void>;
   onPreview: (body: Record<string, unknown>) => Promise<string[]>;
@@ -168,9 +170,15 @@ export function Schedules({
             {visible.map((schedule) => (
               <li key={schedule.id} className="schedule-row">
                 <div className="schedule-main">
-                  <span className="schedule-id">
+                  <button
+                    type="button"
+                    className="schedule-id schedule-runs-link"
+                    aria-label={`View runs for ${schedule.id}`}
+                    onClick={() => onViewRuns(schedule.id)}
+                  >
                     <code>{schedule.id}</code>
-                  </span>
+                    <span aria-hidden="true"> ↗</span>
+                  </button>
                   <span className="schedule-sub">
                     {schedule.workflowTitle}
                     {schedule.workflowVersion !== undefined ? (
@@ -182,6 +190,7 @@ export function Schedules({
                       </>
                     ) : null}{" "}
                     · {schedule.type} <code>{schedule.pattern}</code>
+                    {schedule.timezone && ` · ${schedule.timezone}`}
                   </span>
                   <span className="schedule-times">
                     next {formatDateTime(schedule.nextRun)} · last{" "}

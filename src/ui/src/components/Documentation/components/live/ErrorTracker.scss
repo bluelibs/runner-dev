@@ -1,0 +1,214 @@
+.telemetry-controls,
+.telemetry-views,
+.issue-actions,
+.issue-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.telemetry-views {
+  border-bottom: 1px solid var(--docs-border-primary);
+  margin: 0 0 18px;
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--docs-text-secondary);
+    padding: 10px 12px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    &[aria-pressed="true"] {
+      border-color: var(--docs-primary);
+      color: var(--docs-text-primary);
+    }
+  }
+}
+.issue-action,
+.live-controls .issue-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--docs-border-primary);
+  border-radius: 6px;
+  background: var(--docs-bg-primary);
+  color: var(--docs-text-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  &:hover {
+    background: var(--docs-hover-bg);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+}
+.issue-tracker {
+  background: var(--docs-bg-secondary);
+  border: 1px solid var(--docs-border-primary);
+  border-radius: 10px;
+  overflow: hidden;
+  .issue-heading,
+  .issue-list-head {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 20px 24px;
+  }
+  h3 {
+    margin: 0 0 5px;
+    font-size: 23px;
+    letter-spacing: -0.03em;
+  }
+  h4,
+  p {
+    margin: 0;
+  }
+  p,
+  time {
+    color: var(--docs-text-secondary);
+    font-size: 13px;
+  }
+  .issue-storage {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--docs-text-secondary);
+  }
+  .issue-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    border-block: 1px solid var(--docs-border-primary);
+    background: var(--docs-bg-primary);
+    div {
+      padding: 18px 24px;
+    }
+    div + div {
+      border-left: 1px solid var(--docs-border-primary);
+    }
+    dt {
+      color: var(--docs-text-secondary);
+      font-size: 12px;
+    }
+    dd {
+      margin: 5px 0 0;
+      font-size: 29px;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+    }
+  }
+  .issue-list-head input {
+    padding: 7px 10px;
+    font: inherit;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--docs-border-primary);
+    color: var(--docs-text-primary);
+    background: var(--docs-bg-primary);
+    width: 225px;
+    max-width: 100%;
+  }
+  .issue-row {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) 52px 85px 14px;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    padding: 14px 24px;
+    cursor: pointer;
+    border: 0;
+    border-top: 1px solid var(--docs-border-primary);
+    background: transparent;
+    color: var(--docs-text-primary);
+    font: inherit;
+    &:hover,
+    &:focus-visible {
+      background: var(--docs-hover-bg);
+    }
+  }
+  .issue-symbol {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: var(--docs-danger-bg);
+    color: var(--docs-error-text);
+  }
+  .issue-name {
+    min-width: 0;
+    strong,
+    small {
+      display: block;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    strong {
+      font-size: 14px;
+    }
+    small {
+      margin-top: 4px;
+      color: var(--docs-text-secondary);
+      font: 11px/1.5 monospace;
+    }
+  }
+  .issue-count {
+    display: grid;
+    gap: 4px;
+    text-align: right;
+    font-size: 13px;
+    i,
+    b {
+      display: block;
+      height: 3px;
+      border-radius: 2px;
+    }
+    i {
+      background: var(--docs-border-primary);
+    }
+    b {
+      background: var(--docs-error-text);
+      min-width: 2px;
+    }
+  }
+  time {
+    text-align: right;
+    font-size: 11px;
+  }
+  .issue-notice {
+    padding: 20px 24px;
+  }
+}
+@media (max-width: 700px) {
+  .issue-tracker {
+    .issue-row {
+      padding: 12px;
+      grid-template-columns: 26px minmax(0, 1fr) 32px;
+      gap: 9px;
+    }
+    .issue-row > time,
+    .issue-row > svg {
+      display: none;
+    }
+    .issue-heading,
+    .issue-list-head,
+    .issue-metrics div {
+      padding: 14px 12px;
+    }
+    .issue-metrics dd {
+      font-size: 24px;
+    }
+  }
+}

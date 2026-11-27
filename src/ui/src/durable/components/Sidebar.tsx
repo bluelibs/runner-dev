@@ -4,7 +4,7 @@ import type { StudioWorkflow } from "../../../../durable/shared/types";
 import { WorkflowNavigation } from "./WorkflowNavigation";
 import { WORKFLOW_SEARCH_THRESHOLD } from "../workflowCatalog";
 
-export type StudioView = "overview" | "executions" | "schedules";
+export type StudioView = "catalog" | "overview" | "executions" | "schedules";
 
 export function Sidebar({
   workflows,
@@ -82,6 +82,13 @@ export function Sidebar({
         >
           <span className="side-link-label">Overview</span>
           <span className="live-nav-mark" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={`side-link${view === "catalog" ? " active" : ""}`}
+          onClick={() => onView("catalog")}
+        >
+          <span className="side-link-label">Workflow catalog</span>
         </button>
         <button
           type="button"

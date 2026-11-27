@@ -47,6 +47,11 @@ interface LogEntry {
 interface RecentLogsProps {
   introspector: Introspector;
   logs: LogEntry[];
+  historySearch?: {
+    query: string;
+    setQuery: (value: string) => void;
+    loadMore?: () => void;
+  };
   onCorrelationIdClick?: (correlationId: string) => void;
 }
 
@@ -81,18 +86,21 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
   introspector,
   logs,
   onCorrelationIdClick,
+  historySearch,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedLogIndex, setSelectedLogIndex] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [localQuery, setLocalQuery] = useState("");
+  const searchQuery = historySearch?.query ?? localQuery;
+  const setSearchQuery = historySearch?.setQuery ?? setLocalQuery;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const fsSearchInputRef = useRef<HTMLInputElement>(null);
   const resources = useMemo(() => introspector.getResources(), [introspector]);
 
   const clearSearch = useCallback(() => {
     setSearchQuery("");
-    setSelectedLogIndex(null);
-  }, []);
+    setSelectedLog(null);
+  }, [setSearchQuery]);
 
   const formatTimestamp = (timestampMs: number): string => {
     const d = new Date(timestampMs);
@@ -109,16 +117,12 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
   };
 
   const visibleLogs = useMemo(() => {
+    if (historySearch) return [...logs].reverse();
     const base = isFullscreen ? logs : logs.slice(-50);
     const reversed = [...base].reverse();
     if (!searchQuery) return reversed;
     return reversed.filter((log) => fuzzyMatchLog(log, searchQuery));
-  }, [logs, isFullscreen, searchQuery]);
-
-  const selectedLog = useMemo(() => {
-    if (selectedLogIndex === null) return null;
-    return visibleLogs[selectedLogIndex] ?? null;
-  }, [selectedLogIndex, visibleLogs]);
+  }, [logs, isFullscreen, searchQuery, historySearch]);
 
   const selectedLogData = useMemo(() => {
     if (!selectedLog) {
@@ -227,7 +231,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
       // Escape cascade: detail modal and fullscreen overlay are handled by
       // BaseModal's stack. We only handle clearing the search query here.
       if (e.key === "Escape") {
-        if (selectedLogIndex === null && !isFullscreen && searchQuery) {
+        if (selectedLog === null && !isFullscreen && searchQuery) {
           clearSearch();
         }
       }
@@ -243,12 +247,24 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isFullscreen, selectedLogIndex, searchQuery, clearSearch]);
+  }, [isFullscreen, selectedLog, searchQuery, clearSearch]);
+
+  const matchCount = `${visibleLogs.length}${
+    historySearch?.loadMore ? "+" : ""
+  }`;
+  const olderMatches = historySearch?.loadMore && (
+    <button className="issue-action" onClick={historySearch.loadMore}>
+      Show older matches
+    </button>
+  );
 
   return (
     <div className="recent-logs live-section">
       <div className="recent-logs__header">
-        <h4 className="recent-logs__title">Recent Logs ({logs.length})</h4>
+        <h4 className="recent-logs__title">
+          {historySearch ? "Matching logs" : "Recent Logs"} ({logs.length}
+          {historySearch?.loadMore ? "+" : ""})
+        </h4>
         <div className="recent-logs__search">
           <span className="recent-logs__search-icon" aria-hidden="true">
             ⌕
@@ -261,7 +277,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setSelectedLogIndex(null);
+              setSelectedLog(null);
             }}
             aria-label="Search logs"
           />
@@ -278,7 +294,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
         </div>
         {searchQuery && (
           <span className="recent-logs__match-count">
-            {visibleLogs.length} match{visibleLogs.length !== 1 ? "es" : ""}
+            {matchCount} match{visibleLogs.length !== 1 ? "es" : ""}
           </span>
         )}
         <button
@@ -312,7 +328,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
             <div
               key={`${log.timestampMs}-${idx}`}
               className={`recent-logs__row recent-logs__row--compact`}
-              onClick={() => setSelectedLogIndex(idx)}
+              onClick={() => setSelectedLog(log)}
             >
               <span className="recent-logs__time">
                 {new Date(log.timestampMs).toLocaleTimeString()}
@@ -344,7 +360,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                 className="recent-logs__action"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedLogIndex(idx);
+                  setSelectedLog(log);
                 }}
                 title="View details"
               >
@@ -355,6 +371,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
         )}
       </div>
 
+      {olderMatches}
       <BaseModal
         isOpen={isFullscreen}
         onClose={() => setIsFullscreen(false)}
@@ -377,7 +394,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  setSelectedLogIndex(null);
+                  setSelectedLog(null);
                 }}
                 aria-label="Search logs"
                 autoFocus
@@ -399,7 +416,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                     searchQuery ? "" : "recent-logs-fs__match-count--hidden"
                   }`}
                 >
-                  {visibleLogs.length} match
+                  {matchCount} match
                   {visibleLogs.length !== 1 ? "es" : ""}
                 </span>
               </div>
@@ -426,7 +443,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
               <div
                 key={`fs-${log.timestampMs}-${idx}`}
                 className="recent-logs__row recent-logs__row--fullscreen"
-                onClick={() => setSelectedLogIndex(idx)}
+                onClick={() => setSelectedLog(log)}
               >
                 <span className="recent-logs-fs__time">
                   {formatTimestamp(log.timestampMs)}
@@ -450,7 +467,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                       className="recent-logs-fs__msg-more"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedLogIndex(idx);
+                        setSelectedLog(log);
                       }}
                     >
                       More
@@ -475,7 +492,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                   className="recent-logs-fs__action"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedLogIndex(idx);
+                    setSelectedLog(log);
                   }}
                 >
                   Details
@@ -484,11 +501,12 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
             ))
           )}
         </div>
+        {olderMatches}
       </BaseModal>
 
       <BaseModal
         isOpen={selectedLog !== null}
-        onClose={() => setSelectedLogIndex(null)}
+        onClose={() => setSelectedLog(null)}
         title="Log Details"
         size="lg"
         className="recent-logs-modal__panel"

@@ -16,7 +16,14 @@ const BACKEND_LABELS: Record<DurableRuntimeBackend, string> = {
 };
 
 function clearRuntimeFilters(url: URL) {
-  for (const key of ["select", "modal", "workflow", "status", "query"])
+  for (const key of [
+    "select",
+    "schedule",
+    "modal",
+    "workflow",
+    "status",
+    "query",
+  ])
     url.searchParams.delete(key);
 }
 

@@ -1,3 +1,4 @@
+import type { DurableCatalogEntry } from "../../../durable/shared/catalog";
 /** Runtime-scoped Studio client using Runner Dev’s existing browser authentication. */
 import type {
   StudioCommandResult,
@@ -23,6 +24,11 @@ export interface ExecutionFilters {
 }
 
 export interface StudioApi {
+  listCatalog(query: WorkflowQuery): Promise<{
+    entries: DurableCatalogEntry[];
+    total: number;
+    nextCursor: string | null;
+  }>;
   listWorkflowPage(query?: WorkflowQuery): Promise<WorkflowPage>;
   getWorkflow(key: string): Promise<StudioWorkflow>;
   listWorkflows(): Promise<StudioWorkflow[]>;
@@ -61,6 +67,7 @@ export interface StudioApi {
     result: unknown,
     reason: string
   ): Promise<void>;
+  listScheduleRuns(id: string, cursor?: string): Promise<StudioExecutionPage>;
   listSchedules(): Promise<StudioSchedule[]>;
   createSchedule(body: Record<string, unknown>): Promise<string>;
   previewSchedule(body: Record<string, unknown>): Promise<string[]>;
@@ -81,6 +88,14 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
   }
+}
+
+function workflowParams(query: WorkflowQuery) {
+  const params = new URLSearchParams();
+  if (query.query) params.set("query", query.query);
+  if (query.cursor) params.set("cursor", query.cursor);
+  params.set("limit", String(query.limit ?? 20));
+  return params;
 }
 
 export function createLiveApi(runtimeId: string): StudioApi {
@@ -150,13 +165,11 @@ export function createLiveApi(runtimeId: string): StudioApi {
   }
 
   const api: StudioApi = {
-    listWorkflowPage: (query = {}) => {
-      const params = new URLSearchParams();
-      if (query.query) params.set("query", query.query);
-      if (query.cursor) params.set("cursor", query.cursor);
-      params.set("limit", String(query.limit ?? 20));
-      return request("GET", `/api/workflows?${params}`);
-    },
+    listCatalog: (query) =>
+      request("GET", "/api/catalog?" + workflowParams(query)),
+    listWorkflowPage: (query = {}) =>
+      request("GET", "/api/workflows?" + workflowParams(query)),
+
     getWorkflow: async (key) =>
       (
         await request<{ workflow: StudioWorkflow }>(
@@ -277,6 +290,13 @@ export function createLiveApi(runtimeId: string): StudioApi {
         }
       );
     },
+    listScheduleRuns: (id, cursor) =>
+      request(
+        "GET",
+        `/api/schedules/${encodeURIComponent(id)}/runs${
+          cursor ? "?" + new URLSearchParams({ cursor }) : ""
+        }`
+      ),
     listSchedules: async () =>
       (await request<{ schedules: StudioSchedule[] }>("GET", "/api/schedules"))
         .schedules,

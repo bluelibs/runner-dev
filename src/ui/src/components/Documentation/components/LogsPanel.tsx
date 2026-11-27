@@ -1,55 +1,51 @@
 import React, { useState } from "react";
 import type { Introspector } from "../../../../../resources/models/Introspector";
-import { useLiveStream } from "../hooks/useLiveStream";
-import { RecentLogs } from "./live/RecentLogs";
-import { TraceView } from "./live/TraceView";
+import { DEFAULT_POLL_INTERVAL_MS } from "../hooks/useLiveStream";
+import { LogLevelFilter, type LevelFilter } from "./live/LogLevelFilter";
+import { ErrorTracker } from "./live/ErrorTracker";
+import { RetainedLogs } from "./live/RetainedLogs";
 import { DocIcon } from "./common/DocIcon";
 
 export function LogsPanel({ introspector }: { introspector: Introspector }) {
-  const { liveData, error, isActive, setIsActive, refresh } = useLiveStream({
-    detailed: true,
-  });
-  const [correlationId, setCorrelationId] = useState<string | null>(null);
+  const [active, setActive] = useState(true);
+  const [refreshKey, refresh] = useState(0);
+  const [query, setQuery] = useState("");
+  const [level, setLevel] = useState<LevelFilter>("");
+  const updates = {
+    active,
+    refreshKey,
+    pollInterval: DEFAULT_POLL_INTERVAL_MS,
+  };
   return (
     <div className="live-panel">
       <div className="live-header">
         <h2>
-          <DocIcon name="list" size={18} className="doc-icon--accent" /> Logs
+          <DocIcon name="list" size={18} className="doc-icon--accent" /> Log
+          explorer
         </h2>
-        <div className="live-controls">
+        <div className="live-controls telemetry-controls">
+          <button className="clean-button" onClick={() => setActive(!active)}>
+            {active ? "⏸ Pause" : "▶ Resume"} Updates
+          </button>
           <button
             className="clean-button"
-            onClick={() => setIsActive(!isActive)}
+            onClick={() => refresh(refreshKey + 1)}
           >
-            {isActive ? "⏸ Pause" : "▶ Resume"} Live Updates
-          </button>
-          <button className="clean-button" onClick={refresh}>
             Refresh
           </button>
+          <LogLevelFilter value={level} onChange={setLevel} />
         </div>
       </div>
-      {error ? (
-        <div className="live-error" role="alert">
-          Error loading logs: {error}
-          <button onClick={refresh}>Retry</button>
-        </div>
-      ) : !liveData ? (
-        <div className="live-loading">Loading logs…</div>
+      {level === "error" ? (
+        <ErrorTracker search={{ query, setQuery }} {...updates} />
       ) : (
-        <RecentLogs
+        <RetainedLogs
+          key={level}
+          query={query}
+          setQuery={setQuery}
+          {...updates}
+          level={level}
           introspector={introspector}
-          logs={liveData.logs}
-          onCorrelationIdClick={setCorrelationId}
-        />
-      )}
-      {correlationId && liveData && (
-        <TraceView
-          correlationId={correlationId}
-          logs={liveData.logs}
-          emissions={liveData.emissions}
-          errors={liveData.errors}
-          runs={liveData.runs}
-          onClose={() => setCorrelationId(null)}
         />
       )}
     </div>

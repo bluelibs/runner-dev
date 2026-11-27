@@ -6,6 +6,9 @@ export function studioApi(
   detail: StudioExecutionDetail = executionDetail()
 ): jest.Mocked<StudioApi> {
   return {
+    listCatalog: jest
+      .fn()
+      .mockResolvedValue({ entries: [], total: 0, nextCursor: null }),
     listWorkflowPage: jest
       .fn()
       .mockResolvedValue({ workflows: [workflow], total: 1, nextCursor: null }),
@@ -41,6 +44,12 @@ export function studioApi(
     forceFailExecution: jest.fn().mockResolvedValue(undefined),
     skipStep: jest.fn().mockResolvedValue(undefined),
     editState: jest.fn().mockResolvedValue(undefined),
+    listScheduleRuns: jest.fn().mockResolvedValue({
+      executions: [],
+      hasMore: false,
+      nextOffset: null,
+      nextCursor: null,
+    }),
     listSchedules: jest.fn().mockResolvedValue([schedule()]),
     createSchedule: jest.fn().mockResolvedValue("new-schedule"),
     previewSchedule: jest.fn().mockResolvedValue([]),

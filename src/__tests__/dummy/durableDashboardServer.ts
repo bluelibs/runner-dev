@@ -1,5 +1,7 @@
 import { r, run } from "@bluelibs/runner";
 import {
+  durableEventBridgeResource,
+  durableEventTag,
   durableSupportResource,
   durableWorkflowTag,
   memoryDurableResource,
@@ -19,6 +21,21 @@ const approval = r
   .event("approval")
   .meta({ title: "Approval decision" })
   .payloadSchema(z.object({ approved: z.boolean(), reviewer: z.string() }))
+  .build();
+
+const shipped = r
+  .event("shipment-dispatched")
+  .meta({
+    title: "Shipment dispatched",
+    description:
+      "Notify fulfillment listeners when a shipment leaves the warehouse.",
+  })
+  .tags([
+    durableEventTag.with({
+      key: "shipment-dispatched",
+      durable: sqliteDurable,
+    }),
+  ])
   .build();
 
 const orderInputSchema = z.object({
@@ -367,6 +384,8 @@ const app = r
   .meta({ title: "Operations Platform" })
   .register([
     durableSupportResource,
+    durableEventBridgeResource.with({}),
+    shipped,
     sqliteDurable.with({
       persist: { filename: ":memory:" },
       audit: { enabled: true },
@@ -543,7 +562,7 @@ async function main() {
   );
 
   // 8. Versioned SQLite schedules
-  await sqliteService.schedule(
+  await sqliteService.ensureSchedule(
     orderProcessingV2,
     orderInputSchema.parse({
       reference: "ORD-SCHED-1",
@@ -551,9 +570,9 @@ async function main() {
       mode: "complete",
       city: "Bucharest",
     }),
-    { interval: 300_000 }
+    { id: "order-queue-sweep", interval: 300_000 }
   );
-  await sqliteService.schedule(
+  await sqliteService.ensureSchedule(
     orderProcessingV2,
     orderInputSchema.parse({
       reference: "ORD-CRON-1",
@@ -561,7 +580,11 @@ async function main() {
       mode: "complete",
       city: "Cluj-Napoca",
     }),
-    { cron: "*/15 * * * *" }
+    {
+      id: "order-reconciliation",
+      cron: "*/15 * * * *",
+      timezone: "Europe/Bucharest",
+    }
   );
 
   // 9. Second runtime (`finance-memory`) so runtime selector displays both SQLite and Memory backends

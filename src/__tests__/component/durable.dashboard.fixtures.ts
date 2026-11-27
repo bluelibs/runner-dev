@@ -6,6 +6,8 @@ import {
   run,
 } from "@bluelibs/runner";
 import {
+  durableEventBridgeResource,
+  durableEventTag,
   durableSupportResource,
   durableWorkflowTag,
   memoryDurableResource,
@@ -25,6 +27,14 @@ export async function fixture(withRuntimes = true, legacySchemas = false) {
   const approved = defineEvent({
     id: "approved",
     payloadSchema: z.object({ approved: z.boolean() }),
+  });
+  const receipt = defineEvent({
+    id: "receipt",
+    meta: {
+      title: "Receipt issued",
+      description: "Deliver the receipt after settlement.",
+    },
+    tags: [durableEventTag.with({ key: "receipt-issued", durable: right })],
   });
   const inputSchema = legacySchemas
     ? z3.object({
@@ -70,6 +80,11 @@ export async function fixture(withRuntimes = true, legacySchemas = false) {
             left.with({ audit: { enabled: true } }),
             right.with({ audit: { enabled: true } }),
             approved,
+            receipt,
+            durableEventBridgeResource.with({
+              applyTo: [approved],
+              defaultDurable: left,
+            }),
             leftTask,
             rightTask,
           ]

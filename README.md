@@ -142,6 +142,10 @@ Runner 6.10 adds built-in SQLite (`SqliteStore` / `resources.sqliteWorkflow`) an
 
 ## Durable Workflow Dashboard
 
+Open **Durable → Workflow catalog** to see the selected runtime’s registered workflow versions and durable event routes, including definitions with no executions. Search by title, key or description. Each row shows the description from the task or event metadata. Bridge-selected events appear here automatically and run when the application emits them.
+
+In **Durable → Schedules**, select a recurring schedule ID to see its retained runs. Cron rows show the expression and configured time zone. Open a run to inspect its execution, or browse older history using the runtime cursor. The list uses the schedule-specific timer identity so two crons for the same workflow have separate histories.
+
 The docs sidebar shows **Durable** only when the backend reports an available application durable runtime in `/docs/data` (`hasDurable`). It opens `/durable` on the same Runner Dev server for a separate Durable Workflows dashboard. It attaches to the application's existing durable runtimes and uses the same Host checks and optional `RUNNER_DEV_HTTP_PASSWORD` authentication as `/docs`. It does not start another runtime or configure a backend.
 
 Select a runtime (identified with its backend badge such as `SQLITE`, `POSTGRES`, `REDIS`, `FILE MEMORY`, `MEMORY`, or `CUSTOM`) to browse its workflows, version variants, cursor-paginated execution history, ordered timeline, current waits, persisted steps, signals, audit, retention metadata, and schedules. Lists contain bounded summaries; full input/result/error payloads are read when opening execution details. Switching executions keeps the previous detail and active tab visible while the selected run loads; detail controls stay disabled until its data arrives. The dashboard also exposes version-targeted start and schedule creation, tracked `Send command` submission (`POST /durable/api/executions/:id/commands`), signal, cancel, retry, pause/resume/restart, `Reset to checkpoint` / inline `Reset before` branching (`POST /durable/api/executions/:id/reset`), portable replay fixture downloads (`GET /durable/api/executions/:id/replay`), recovery, schedule management, and operator repair actions. Retry is available for failed or compensation-failed runs and resumes from memoized progress; recovery applies to the selected runtime's backend. Operators have the same full-access trust boundary as the other DevTools endpoints.
@@ -739,12 +743,23 @@ The `live` resource records telemetry in memory, with optional persistence:
 Each category keeps the latest `maxEntries` entries (default 10000, set through `dev.with({ maxEntries })`, which must be a positive integer). Older entries are evicted without notice, including entries a cursor or stream has not read yet: `afterSequence` then resumes at the oldest entry still kept. Readers that must see every entry have to stay within the last `maxEntries` entries of each category; raise `maxEntries` for high-volume apps.
 
 
+### Log explorer and error tracker
+
+Open **Logs** to search the full retained history. Every word in the search must match somewhere in the message, level, source, correlation ID, or structured data. Matches start with the latest 50. Choose **Show older matches** to extend the list or **Export matching logs** to download every match as JSON.
+
+The error tracker keeps paired log data searchable and counts each matching exception once. Recording failures appear in the tracker and in `live.historyError`. The host continues running tasks, hooks and events when storage fails. ClickHouse checks for stale revisions before each write. Because this check and the insert are separate operations, configure one writer per live-history stream.
+
+Open the funnel icon in the log explorer toolbar and choose **Errors · grouped** or **Telemetry → Error tracker** to see the same issues. The tracker combines captured exceptions with error, critical and fatal logs. Repeated failures share a group when the source, exception type, message (with UUIDs normalized) and first stack frame match. A correlated logged copy with the same source, message and frame as a captured exception counts once. Counts and first/last seen reflect retained history. Inspect the latest 50 occurrences, their captured data, and the selected occurrence’s correlated logs or trace. **Copy agent prompt** includes the selected evidence and up to ten log messages. **Export issue JSON** includes every retained occurrence in the group and the selected trace (up to 200 entries per category).
+
+**Export trace JSON** downloads the entries in the open correlation timeline. **Export telemetry JSON** downloads the full retained logs, errors, events and runs. Under **Telemetry → Performance**, **Export performance JSON** downloads the task and hook aggregates for the displayed window and scope.
+
+[Log search](readmes/screenshots/telemetry/log-explorer-search.png) · [Log level filter](readmes/screenshots/telemetry/log-level-filter-menu.png) · [Grouped errors](readmes/screenshots/telemetry/telemetry-error-tracker.png) · [Issue details](readmes/screenshots/telemetry/telemetry-issue-details.png)
+
 ### Opt-in task and hook performance (APM)
 
 Enable with `dev.with({ apm: true })` (also supported by `resources.live.with()`).
-The **Telemetry** tab shows task and hook APM in separate views. The **Logs** tab provides focused log inspection
-and correlation traces. **Live** retains its original process health, logs, events and runs.
-The storage badge names the reported backend, including Redis and ClickHouse separately.
+The **Telemetry** tab shows task and hook APM in separate views. The storage badge identifies the APM backend. **Live** shows process health, logs, events and runs.
+
 Click a nonzero failure rate to inspect retained errors for that task or hook in the selected window and scope. Correlation IDs open the related trace and logs (up to 200 retained entries per category). Failure details start with the latest 50 matching runs and errors; scrolling automatically loads older retained errors in fixed-size pages; aggregate APM history may outlast those records.
 APM records every completed application task and hook, including failed calls,
 and excludes internal GraphQL tasks. Hook reactions include delegated task work. Timing uses a monotonic clock. Duration is inclusive
@@ -907,6 +922,19 @@ Each SQLite store owns a dedicated worker thread. Opening, restoration, SQL writ
 For direct `sqlitePersistence({ file })` users, `load()` is now async and must be awaited before recording restored sequences; `flush()` acknowledges accepted disk commits, `status()` returns `{ pendingEntries, error }`, and `close()` must be awaited. Existing synchronous custom providers remain supported. Large payload snapshotting and in-memory queries still consume application-thread CPU; the worker removes SQLite I/O and lock waits from that thread.
 
 Payloads and log data are saved as JSON snapshots: ordinary JSON fields survive; dates use their JSON representation, bigint and symbols become strings, functions become `"[Function]"`, and circular/repeated object references become `"[Circular]"`. Errors keep their name, message and stack. JavaScript object identity and prototypes are not restored.
+
+### Shared log and error storage
+
+Use the same `persistence` option for the log explorer, error tracker and trace history. Without a provider, DevTools searches the in-memory history. With a provider, DevTools restores the latest `maxEntries` per category before serving reads. Durable workflows and APM are optional.
+
+| Provider | Configuration for `dev.with({ persistence: ... })` | Connection |
+| --- | --- | --- |
+| SQLite | `resources.sqlitePersistence.with({ file: "./.runner-dev/history.sqlite" })` | Built-in Node SQLite |
+| Redis | `resources.redisPersistence.with({ url: "redis://localhost:6379", streamId: "checkout" })` | Install optional `ioredis`. Set `REDIS_USERNAME` and `REDIS_PASSWORD` as needed. |
+| ClickHouse | `resources.clickHousePersistence.with({ url: "http://localhost:8123", database: "default", streamId: "checkout" })` | Native HTTP. Set `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` as needed. |
+| PostgreSQL | `resources.postgresPersistence.with({ streamId: "checkout" })` | Install optional `pg`. Set `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` and standard pg SSL settings. |
+
+Give each active runtime a separate file or stream ID. Remote adapters snapshot records into a 10,000-entry bounded queue, flush every second or at 1,000 entries, and drain on graceful shutdown. A full queue rejects new entries. A failed write surfaces on subsequent writes, flush or shutdown. Abrupt termination can lose queued entries. Restarting with a lower cap evicts older records. PostgreSQL and ClickHouse create a table named `runner_dev_live_history`. ClickHouse reads the latest version of each slot with `FINAL`; background merges reclaim superseded rows. Redis stores one hash per stream and depends on the Redis server's persistence settings for recovery after Redis restarts.
 
 ### Custom persistence adapters
 

@@ -49,3 +49,11 @@
 .error-banner + .schedule-fields {
   margin-block-start: 20px;
 }
+
+.schedule-runs-link { cursor: pointer; border: 0; padding: 0; color: var(--text); background: transparent; text-align: left; align-self: flex-start; }
+.schedule-runs-link:hover, .schedule-runs-link:focus-visible { color: var(--info); text-decoration: underline; }
+.schedule-runs-body { padding: 0 20px 20px; overflow: auto; }
+.schedule-runs-list { list-style: none; padding: 0; }
+.schedule-runs-list button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.schedule-runs-list button:hover { background: var(--bg-hover); }
+.schedule-runs-list code { display: block; font-size: 11px; color: var(--text-dim); overflow-wrap: anywhere; }

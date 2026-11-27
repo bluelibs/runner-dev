@@ -19,7 +19,8 @@ export type ErrorSourceKind =
   | "HOOK"
   | "RESOURCE"
   | "MIDDLEWARE"
-  | "INTERNAL";
+  | "INTERNAL"
+  | "LOG";
 
 export type RunNodeKind = "TASK" | "HOOK";
 
@@ -90,6 +91,7 @@ export interface LiveCursorOptions {
 }
 
 export interface LogQueryOptions extends LiveCursorOptions {
+  search?: string;
   levels?: LogLevel[];
   messageIncludes?: string;
   correlationIds?: string[];
@@ -122,6 +124,8 @@ export interface RunQueryOptions extends LiveCursorOptions {
  * shorthand for `{ afterTimestamp: number }`.
  */
 export interface Live {
+  readonly persistenceError?: string | null;
+  readonly historyPersisted?: boolean;
   getApm?(
     windowMinutes?: number,
     scope?: import("./apm").ApmScope

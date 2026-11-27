@@ -1,3 +1,5 @@
+import { ScheduleRuns } from "./components/ScheduleRuns";
+import { WorkflowDirectory } from "./components/WorkflowDirectory";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   StudioExecutionDetail,
@@ -56,6 +58,7 @@ export function App({
   const {
     view,
     selectedId,
+    scheduleId,
     workflowFilter,
     statusFilter,
     query,
@@ -65,7 +68,10 @@ export function App({
   const setView = (view: StudioView) => navigate({ view, modal: null });
   const setSelectedId = (selectedId: string | null) => navigate({ selectedId });
   const setWorkflowFilter = (workflowFilter: string | null) =>
-    navigate({ workflowFilter });
+    navigate({
+      workflowFilter,
+      ...(view === "catalog" ? { view: "executions", selectedId: null } : {}),
+    });
   const setStatusFilter = (statusFilter: StatusFilter) =>
     navigate({ statusFilter });
   const setQuery = (query: string) => navigate({ query }, true);
@@ -141,7 +147,7 @@ export function App({
   }, []);
   const executionFeed = useExecutionFeed({
     api,
-    paused: view === "schedules",
+    paused: view === "schedules" || view === "catalog",
     onError: noteUnauthorized,
     workflowKey: workflowFilter ?? undefined,
     status: statusFilter === "all" ? undefined : statusFilter,
@@ -189,7 +195,7 @@ export function App({
   const scheduleFeed = usePollingFeed<StudioSchedule[]>(
     loadSchedules,
     [],
-    view !== "executions",
+    view === "schedules" || view === "overview",
     noteUnauthorized
   );
   const stuckFeed = usePollingFeed<StudioExecutionSummary[]>(
@@ -243,7 +249,8 @@ export function App({
       if (typing || target?.isContentEditable) return;
       if (event.key === "/") {
         event.preventDefault();
-        if (view === "overview") overviewSearchRef.current?.focus();
+        if (view === "overview" || view === "catalog")
+          overviewSearchRef.current?.focus();
         else searchRef.current?.focus();
       } else if (event.key === "n") {
         navigate({ modal: "start" });
@@ -540,7 +547,7 @@ export function App({
 
   const visibleFeeds: FeedNoticeState[] = [
     { label: "Workflow catalog", ...catalog, onRetry: catalog.refresh },
-    ...(view !== "executions"
+    ...(view === "schedules" || view === "overview"
       ? [{ label: "Schedules", ...scheduleFeed, onRetry: scheduleFeed.refresh }]
       : []),
     ...(view === "overview"
@@ -552,7 +559,7 @@ export function App({
           },
         ]
       : []),
-    ...(view !== "schedules"
+    ...(view === "executions" || view === "overview"
       ? [
           {
             label: "Executions",
@@ -597,7 +604,9 @@ export function App({
           recovering={recovering || busy}
         />
 
-        {view === "overview" ? (
+        {view === "catalog" ? (
+          <WorkflowDirectory api={api} searchRef={overviewSearchRef} />
+        ) : view === "overview" ? (
           <main className="overview-pane">
             <Overview
               supportsPause={runtime.capabilities.pause}
@@ -635,7 +644,8 @@ export function App({
               schedules={schedules}
               workflows={workflows}
               busy={busy}
-              dialogsAllowed={!modal}
+              onViewRuns={(id) => navigate({ scheduleId: id, modal: null })}
+              dialogsAllowed={!modal && !scheduleId}
               loading={scheduleFeed.loading}
               available={scheduleFeed.updatedAt !== null}
               now={now}
@@ -794,6 +804,24 @@ export function App({
           </>
         )}
 
+        {view === "schedules" && scheduleId && !modal && (
+          <ScheduleRuns
+            key={scheduleId}
+            api={api}
+            id={scheduleId}
+            onClose={() => navigate({ scheduleId: null })}
+            onOpen={(selectedId) =>
+              navigate({
+                view: "executions",
+                selectedId,
+                scheduleId: null,
+                workflowFilter: null,
+                query: "",
+                statusFilter: "all",
+              })
+            }
+          />
+        )}
         {starting && workflows.length > 0 ? (
           <StartModal
             workflows={workflows}

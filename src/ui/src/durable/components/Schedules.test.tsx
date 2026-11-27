@@ -27,6 +27,7 @@ function props() {
     workflows: [workflow],
     busy: false,
     now: Date.parse(timestamp),
+    onViewRuns: jest.fn(),
     onCreate: jest.fn().mockResolvedValue(undefined),
     onUpdate: jest.fn().mockResolvedValue(undefined),
     onPreview: jest.fn().mockResolvedValue([timestamp]),

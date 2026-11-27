@@ -1,3 +1,5 @@
+import { listScheduleRuns } from "./scheduleRuns";
+import { durableCatalog } from "./catalog";
 import type { Logger, Store } from "@bluelibs/runner";
 import { errors } from "@bluelibs/runner";
 import express from "express";
@@ -43,6 +45,14 @@ async function dispatch(
   }
   const { runtimeId } = querySchema.parse(req.query);
   const runtime = selectRuntime(store, runtimeId);
+  if (method === "GET" && pathname === "/catalog") {
+    const { workflows: entries, ...page } = workflowPage(
+      durableCatalog(runtime),
+      workflowQuerySchema.parse(req.query)
+    );
+    res.json({ entries, ...page });
+    return;
+  }
   if (method === "GET" && pathname === "/workflows") {
     res.json(
       workflowPage(
@@ -117,6 +127,17 @@ async function dispatch(
   }
   if (pathname === "/schedules/preview" && method === "POST") {
     res.json(previewSchedule(req.body));
+    return;
+  }
+  const scheduleRuns = pathname.match(/^\/schedules\/([^/]+)\/runs$/);
+  if (method === "GET" && scheduleRuns) {
+    res.json(
+      await listScheduleRuns(
+        runtime,
+        decodeURIComponent(scheduleRuns[1]),
+        req.query
+      )
+    );
     return;
   }
   const scheduleMatch = pathname.match(

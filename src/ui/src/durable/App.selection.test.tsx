@@ -3,7 +3,7 @@ import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { StudioApi } from "./api";
 import { App } from "./App";
-import { execution, executionDetail } from "./__tests__/fixtures";
+import { execution, executionDetail, schedule } from "./__tests__/fixtures";
 import { studioApi } from "./__tests__/studioApi";
 
 const runtime = {
@@ -149,4 +149,99 @@ test("shows an initial load failure without a selection prompt and resumes on th
   expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "false");
   await receive("run-1");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("the workflow catalog opens from navigation and searches event descriptions", async () => {
+  const { api } = await setup(false);
+  const entry = {
+    kind: "Durable event" as const,
+    title: "Order paid",
+    key: "paid",
+    description: "Issue receipt",
+    category: "Durable event",
+  };
+  api.listCatalog.mockResolvedValue({
+    entries: [entry],
+    total: 1,
+    nextCursor: null,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Workflow catalog" }));
+  expect(await screen.findByText("Issue receipt")).toBeVisible();
+  expect(screen.getByText("Durable event")).toBeVisible();
+  const search = screen.getByRole("searchbox", {
+    name: "Search the workflow catalog",
+  });
+  api.listCatalog.mockResolvedValue({
+    entries: [],
+    total: 1,
+    nextCursor: null,
+  });
+  fireEvent.change(search, { target: { value: "missing" } });
+  expect(
+    await screen.findByText("No matching workflows or events.")
+  ).toBeVisible();
+  expect(api.listCatalog).toHaveBeenLastCalledWith({
+    query: "missing",
+    cursor: undefined,
+  });
+});
+
+test("opens a cron's own runs and follows a run to its execution detail", async () => {
+  const { api } = await setup(false);
+  api.listSchedules.mockResolvedValue([
+    schedule({
+      type: "cron",
+      pattern: "0 8 * * *",
+      timezone: "Europe/Bucharest",
+    }),
+  ]);
+  api.listScheduleRuns.mockResolvedValue({
+    executions: [execution()],
+    hasMore: false,
+    nextCursor: null,
+    nextOffset: null,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Schedules" }));
+  expect(await screen.findByText("0 8 * * *")).toBeVisible();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "View runs for daily-orders" })
+  );
+  const dialog = await screen.findByRole("dialog", { name: "Schedule runs" });
+  fireEvent.click(await within(dialog).findByRole("button", { name: /run-1/ }));
+  expect(api.listScheduleRuns).toHaveBeenCalledWith("daily-orders", undefined);
+  expect(new URLSearchParams(location.search).get("select")).toBe("run-1");
+  expect(new URLSearchParams(location.search).get("view")).toBe("executions");
+});
+
+test("can return to the previous catalog page after loading the next page fails", async () => {
+  const { api } = await setup(false);
+  const page = {
+    entries: [
+      {
+        kind: "Workflow" as const,
+        key: "orders",
+        title: "Ship orders",
+        description: "",
+        category: "sales",
+      },
+    ],
+    total: 2,
+    nextCursor: "1",
+  };
+  api.listCatalog
+    .mockResolvedValueOnce(page)
+    .mockRejectedValueOnce(new Error("Catalog offline"))
+    .mockResolvedValueOnce(page);
+  fireEvent.click(screen.getByRole("button", { name: "Workflow catalog" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Next page" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Catalog offline");
+  expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Previous page" }));
+  expect(
+    await screen.findByRole("heading", { name: "Ship orders" })
+  ).toBeVisible();
+  expect(api.listCatalog).toHaveBeenLastCalledWith({
+    query: "",
+    cursor: undefined,
+  });
 });

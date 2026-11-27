@@ -84,7 +84,7 @@ export function WorkflowNavigation({
       {workflows.slice(start, end).map((workflow) => {
         const versionBadge =
           workflow.versions && workflow.versions.length > 1
-            ? `${workflow.versions.length}v`
+            ? `${workflow.versions.length} versions`
             : workflow.version !== undefined
             ? `v${workflow.version}`
             : null;

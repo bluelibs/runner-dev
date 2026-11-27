@@ -1,3 +1,8 @@
+import {
+  redisPersistenceResource,
+  postgresPersistenceResource,
+  clickHousePersistenceResource,
+} from "./resources/live/remote/resources";
 import { redisApmPersistenceResource } from "./resources/live/redisApmPersistence.resource";
 import { clickHouseApmPersistenceResource } from "./resources/live/clickHouseApmPersistence.resource";
 import { serverResource } from "./resources/server.resource";
@@ -71,6 +76,9 @@ export const resources = {
   graphql,
   dev,
   coverage,
+  redisPersistence: redisPersistenceResource,
+  postgresPersistence: postgresPersistenceResource,
+  clickHousePersistence: clickHousePersistenceResource,
   sqlitePersistence: sqlitePersistenceResource,
   clickHouseApmPersistence: clickHouseApmPersistenceResource,
   redisApmPersistence: redisApmPersistenceResource,

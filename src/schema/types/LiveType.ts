@@ -1,3 +1,4 @@
+import { historyRecordingError } from "../../resources/live/observeHistory";
 import {
   GraphQLFloat,
   GraphQLID,
@@ -23,6 +24,7 @@ import type {
   EmissionEntry as LiveEmissionEntry,
   ErrorEntry as LiveErrorEntry,
 } from "../../resources/live.resource";
+import { errorGroupsField } from "./errorGroupsField";
 import { ApmType, ApmScopeType } from "./ApmType";
 import { BaseElementInterface } from "./AllType";
 import { EventType } from "./EventType";
@@ -385,6 +387,18 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
         context.live.getApm?.(args.windowMinutes ?? 30, args.scope ?? "all") ??
         null,
     },
+    errorGroups: errorGroupsField(ErrorEntryType),
+    historyError: {
+      type: GraphQLString,
+      description:
+        "Most recent instrumentation or persistence failure for this runtime.",
+      resolve: (_root, _args, ctx) => historyRecordingError(ctx.live),
+    },
+    historyPersisted: {
+      description: "Whether a live history persistence provider is configured.",
+      type: GraphQLBoolean,
+      resolve: (_root, _args, ctx) => ctx.live.historyPersisted ?? null,
+    },
     systemInfo: {
       description: "Host CPU, RAM, platform and Node.js version",
       type: new GraphQLNonNull(SystemInfoType),
@@ -468,6 +482,7 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
       resolve: (_root, args: LiveLogsArgs, ctx) =>
         ctx.live.getLogs({
           ...toLiveCursorOptions(args),
+          search: args.filter?.search ?? undefined,
           levels: args.filter?.levels ?? undefined,
           messageIncludes: args.filter?.messageIncludes ?? undefined,
           correlationIds: args.filter?.correlationIds ?? undefined,
@@ -578,6 +593,7 @@ export const SourceKindEnum = new GraphQLEnumType({
     RESOURCE: { value: "RESOURCE" },
     MIDDLEWARE: { value: "MIDDLEWARE" },
     INTERNAL: { value: "INTERNAL" },
+    LOG: { value: "LOG" },
   },
 });
 
@@ -590,6 +606,11 @@ export const LogFilterInput = new GraphQLInputObjectType({
     levels: {
       description: "Only include specific levels",
       type: new GraphQLList(new GraphQLNonNull(LogLevelEnum)),
+    },
+    search: {
+      type: GraphQLString,
+      description:
+        "All case-insensitive tokens must match across message, level, source, correlation ID or recorded data.",
     },
     messageIncludes: {
       description: "Substring match inside message",

@@ -7,6 +7,8 @@ import type {
 import { ApmFailuresModal } from "./ApmFailuresModal";
 import type { FailureSelection } from "./apmFailureDetails";
 import "./ApmPanel.scss";
+import { downloadTelemetry } from "./telemetryExport";
+import { TelemetryExportButton } from "./TelemetryExportButton";
 
 import {
   ApmPerformanceTable,
@@ -241,6 +243,10 @@ export function ApmPanel({
         </p>
       )}
       <footer>
+        <TelemetryExportButton
+          label="Export performance JSON"
+          onExport={() => downloadTelemetry("performance", snapshot)}
+        />
         <span>Inclusive duration · includes delegated work · {kind} only</span>
         <span>
           {snapshot.maxStorage

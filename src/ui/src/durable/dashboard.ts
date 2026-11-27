@@ -38,6 +38,7 @@ export interface DashboardModel {
     failed: number;
     cancelled: number;
     stuck: number;
+    needsAttention: number;
     successRate: number | null;
     activeSchedules: number;
     pausedSchedules: number;
@@ -114,8 +115,8 @@ function buildInsights(metrics: DashboardModel["metrics"]): DashboardInsight[] {
       ? {
           tone: "info",
           label: "Reliability",
-          title: "No finished runs in view",
-          detail: "Success rate will appear after an execution finishes.",
+          title: "Success rate unavailable",
+          detail: "The rate includes completed, failed, and cancelled runs.",
         }
       : metrics.failed > 0
       ? {
@@ -248,6 +249,11 @@ export function buildDashboardModel({
     failed,
     cancelled,
     stuck: stuck.length,
+    needsAttention: new Set(
+      [...executions.filter((run) => isFailed(run.status)), ...stuck].map(
+        (run) => run.id
+      )
+    ).size,
     successRate: percent(completed, finished),
     activeSchedules: schedules.filter(
       (schedule) => schedule.status === "active"

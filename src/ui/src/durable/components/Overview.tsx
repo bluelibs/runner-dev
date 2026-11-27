@@ -112,7 +112,7 @@ export function Overview({
       }),
     [filtered, filteredIds, now, stuck, visibleSchedules, visibleWorkflows]
   );
-  const attentionCount = model.metrics.failed + model.metrics.stuck;
+  const historyAvailable = refreshedAt !== null || (!loading && !error);
 
   return (
     <div className="overview">
@@ -198,9 +198,9 @@ export function Overview({
           </button>
         ) : null}
       </p>
-      {refreshedAt !== null || (!loading && !error) ? (
-        <>
-          <section className="metric-grid" aria-label="Key metrics">
+      <section className="metric-grid" aria-label="Key metrics">
+        {historyAvailable ? (
+          <>
             <Metric
               label={
                 totalExecutionCount === undefined
@@ -229,7 +229,7 @@ export function Overview({
               }
               detail={
                 model.metrics.successRate === null
-                  ? "no finished runs loaded"
+                  ? "no completed, failed, or cancelled runs loaded"
                   : "of loaded finished runs"
               }
               tone="green"
@@ -237,46 +237,52 @@ export function Overview({
             <Metric
               label="Needs attention"
               value={
-                stuckAvailable ? attentionCount : `${model.metrics.failed}+`
+                stuckAvailable
+                  ? model.metrics.needsAttention
+                  : `${model.metrics.failed}+`
               }
               detail={`${model.metrics.failed} failed · ${
                 stuckAvailable
                   ? `${model.metrics.stuck} stuck`
                   : "stuck data unavailable"
               } in loaded runs`}
-              tone={attentionCount > 0 ? "red" : "green"}
+              tone={model.metrics.needsAttention > 0 ? "red" : "green"}
             />
-            <Metric
-              label="Active schedules"
-              value={schedulesAvailable ? model.metrics.activeSchedules : "—"}
-              detail={
-                schedulesAvailable
-                  ? `${model.metrics.pausedSchedules} paused`
-                  : "schedule data unavailable"
-              }
-              tone="amber"
-            />
-          </section>
+          </>
+        ) : null}
+        <Metric
+          label="Active schedules"
+          value={schedulesAvailable ? model.metrics.activeSchedules : "—"}
+          detail={
+            schedulesAvailable
+              ? `${model.metrics.pausedSchedules} paused`
+              : "schedule data unavailable"
+          }
+          tone="amber"
+        />
+      </section>
 
-          <section className="insight-strip" aria-label="Insights">
-            {model.insights
-              .filter(
-                (insight) =>
-                  (insight.label !== "Automation" || schedulesAvailable) &&
-                  (insight.label !== "Flow" || stuckAvailable)
-              )
-              .map((insight) => (
-                <article
-                  key={insight.label}
-                  className={`insight-card ${insight.tone}`}
-                >
-                  <p>{insight.label}</p>
-                  <strong>{insight.title}</strong>
-                  <span>{insight.detail}</span>
-                </article>
-              ))}
-          </section>
+      <section className="insight-strip" aria-label="Insights">
+        {model.insights
+          .filter((insight) =>
+            insight.label === "Automation"
+              ? schedulesAvailable
+              : historyAvailable && (insight.label !== "Flow" || stuckAvailable)
+          )
+          .map((insight) => (
+            <article
+              key={insight.label}
+              className={`insight-card ${insight.tone}`}
+            >
+              <p>{insight.label}</p>
+              <strong>{insight.title}</strong>
+              <span>{insight.detail}</span>
+            </article>
+          ))}
+      </section>
 
+      {historyAvailable ? (
+        <>
           <section className="dashboard-chart-grid">
             <article className="dashboard-panel activity-panel">
               <PanelHead

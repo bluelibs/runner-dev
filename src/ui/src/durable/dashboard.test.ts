@@ -26,6 +26,7 @@ test("counts live, failed and cancelled runs separately and excludes future acti
     failed: 2,
     cancelled: 1,
     stuck: 1,
+    needsAttention: 2,
     successRate: 25,
     activeSchedules: 1,
     pausedSchedules: 1,
@@ -75,7 +76,7 @@ test("reports unknown reliability when no executions have finished", () => {
     });
   expect(build([]).metrics.successRate).toBeNull();
   expect(build([]).insights.map((item) => item.title)).toEqual([
-    "No finished runs in view",
+    "Success rate unavailable",
     "Loaded runs are quiet",
     "0 active schedules",
   ]);

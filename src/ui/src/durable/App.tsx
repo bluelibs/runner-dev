@@ -463,12 +463,12 @@ export function App({
     if (actionPending.current) return;
     try {
       const nextId = await mutate(() => api.restartExecution(id));
-      if (!ownsRuntime()) return;
+      if (!ownsSelection(id)) return;
       navigate({ selectedId: nextId, modal: null });
       pushToast("success", `Restarted as ${truncateMiddle(nextId)}.`);
       void refreshLists();
     } catch (error) {
-      if (!ownsRuntime()) return;
+      if (!ownsSelection(id)) return;
       if (!noteUnauthorized(error))
         pushToast(
           "error",

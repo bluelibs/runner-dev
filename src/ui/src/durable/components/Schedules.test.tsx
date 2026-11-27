@@ -146,3 +146,23 @@ test("ignores out-of-order cadence previews, gates save on current validation, a
   expect(preview).toHaveBeenLastCalledWith({ delay: 0 });
   expect(submit).toBeEnabled();
 });
+
+test("retries a failed preview with the same cadence and preserves the schedule draft", async () => {
+  const options = props();
+  options.onPreview.mockRejectedValueOnce(new Error("Preview offline"));
+  render(<Schedules {...options} />);
+  fireEvent.click(screen.getByRole("button", { name: "New schedule" }));
+  const dialog = within(screen.getByRole("dialog"));
+  const save = dialog.getByRole("button", { name: "Create schedule" });
+  const editor = dialog.getByRole("textbox", { name: "JSON input" });
+  fireEvent.change(editor, { target: { value: '{"keep":true}' } });
+  const retry = await dialog.findByRole("button", { name: "Retry preview" });
+  expect(save).toBeDisabled();
+  fireEvent.click(retry);
+  expect(save).toBeDisabled();
+  await waitFor(() => expect(save).toBeEnabled());
+  expect(options.onPreview.mock.calls[1]).toEqual(
+    options.onPreview.mock.calls[0]
+  );
+  expect(editor).toHaveValue('{"keep":true}');
+});

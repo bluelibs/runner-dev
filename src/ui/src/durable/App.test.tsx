@@ -271,6 +271,7 @@ test("keeps execution errors visible when auxiliary reads succeed and allows a l
   expect(await screen.findByText("Executions unavailable")).toBeInTheDocument();
   expect(screen.queryByText("Runtime unavailable")).toBeNull();
   expect(screen.queryByText("No failures in view")).toBeNull();
+  expect(await screen.findByText("1 active schedule")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Schedules" })).toBeEnabled();
   api.listExecutionPage.mockResolvedValue({
     executions: [],
@@ -280,7 +281,7 @@ test("keeps execution errors visible when auxiliary reads succeed and allows a l
     hasMore: false,
   });
   fireEvent.click(screen.getByRole("button", { name: "Retry executions" }));
-  await screen.findByText("No finished runs in view");
+  await screen.findByText("Success rate unavailable");
   expect(screen.queryByText("Executions unavailable")).toBeNull();
 });
 

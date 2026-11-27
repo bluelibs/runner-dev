@@ -94,7 +94,13 @@ export function ScheduleModal({
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
-  const previewKey = JSON.stringify([cadence, cadenceValue, timezone]);
+  const [previewAttempt, setPreviewAttempt] = useState(0);
+  const previewKey = JSON.stringify([
+    cadence,
+    cadenceValue,
+    timezone,
+    previewAttempt,
+  ]);
   const [preview, setPreview] = useState<{
     key: string;
     fires: string[];
@@ -345,7 +351,18 @@ export function ScheduleModal({
         </div>
         <div className="schedule-preview" aria-live="polite">
           <span className="field-label">Next fires · your local time</span>
-          {previewError ? <em>{previewError}</em> : null}
+          {previewError ? (
+            <>
+              <em>{previewError}</em>
+              <button
+                type="button"
+                className="btn ghost small"
+                onClick={() => setPreviewAttempt((attempt) => attempt + 1)}
+              >
+                Retry preview
+              </button>
+            </>
+          ) : null}
           {!previewError && !currentPreview ? (
             <em>
               {cadenceValid

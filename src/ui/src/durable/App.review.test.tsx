@@ -204,3 +204,25 @@ test("a pending checkpoint reset cannot replace a selection restored by browser 
   expect(new URLSearchParams(window.location.search).get("select")).toBe("B");
   expect(screen.queryByRole("dialog")).toBeNull();
 });
+
+test("a late restart leaves a restored execution selected in the same runtime", async () => {
+  restore("/durable?runtimeId=orders&select=A");
+  const api = studioApi(executionDetail({ id: "A", status: "failed" }));
+  let finish!: (id: string) => void;
+  api.restartExecution.mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  render(<App api={api} runtime={runtime} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Restart" }));
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", {
+      name: "Restart execution",
+    })
+  );
+  expect(api.restartExecution).toHaveBeenCalledWith("A");
+  restore("/durable?runtimeId=orders&select=B");
+  await act(async () => finish("restarted-A"));
+  expect(new URLSearchParams(window.location.search).get("select")).toBe("B");
+});

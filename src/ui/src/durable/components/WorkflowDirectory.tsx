@@ -66,19 +66,22 @@ function CatalogPages({ api, query }: { api: StudioApi; query: string }) {
       window.clearTimeout(timer);
     };
   }, [api, cursor, query, attempt]);
-  if (error)
-    return (
-      <p role="alert">
-        {error}{" "}
-        <button className="btn ghost small" onClick={() => retry(attempt + 1)}>
-          Retry
-        </button>
-      </p>
-    );
-  if (!result) return <p role="status">Loading catalog…</p>;
+  const next = result?.nextCursor;
   return (
     <>
-      {result.entries.length ? (
+      {error ? (
+        <p role="alert">
+          {error}{" "}
+          <button
+            className="btn ghost small"
+            onClick={() => retry(attempt + 1)}
+          >
+            Retry
+          </button>
+        </p>
+      ) : !result ? (
+        <p role="status">Loading catalog…</p>
+      ) : result.entries.length ? (
         <ul className="directory-entries">
           {result.entries.map((entry) => (
             <li key={JSON.stringify([entry.kind, entry.key, entry.version])}>
@@ -110,10 +113,10 @@ function CatalogPages({ api, query }: { api: StudioApi; query: string }) {
             Previous page
           </button>
         )}
-        {result.nextCursor !== null && (
+        {next && (
           <button
             className="btn ghost small"
-            onClick={() => setCursors([...cursors, result.nextCursor!])}
+            onClick={() => setCursors([...cursors, next])}
           >
             Next page
           </button>

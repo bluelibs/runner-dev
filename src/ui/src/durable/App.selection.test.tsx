@@ -212,3 +212,36 @@ test("opens a cron's own runs and follows a run to its execution detail", async 
   expect(new URLSearchParams(location.search).get("select")).toBe("run-1");
   expect(new URLSearchParams(location.search).get("view")).toBe("executions");
 });
+
+test("can return to the previous catalog page after loading the next page fails", async () => {
+  const { api } = await setup(false);
+  const page = {
+    entries: [
+      {
+        kind: "Workflow" as const,
+        key: "orders",
+        title: "Ship orders",
+        description: "",
+        category: "sales",
+      },
+    ],
+    total: 2,
+    nextCursor: "1",
+  };
+  api.listCatalog
+    .mockResolvedValueOnce(page)
+    .mockRejectedValueOnce(new Error("Catalog offline"))
+    .mockResolvedValueOnce(page);
+  fireEvent.click(screen.getByRole("button", { name: "Workflow catalog" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Next page" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Catalog offline");
+  expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Previous page" }));
+  expect(
+    await screen.findByRole("heading", { name: "Ship orders" })
+  ).toBeVisible();
+  expect(api.listCatalog).toHaveBeenLastCalledWith({
+    query: "",
+    cursor: undefined,
+  });
+});

@@ -1,0 +1,10 @@
+.workflow-directory { max-width: 950px; margin: 0 auto; padding: clamp(18px, 4vw, 48px); }
+.workflow-directory input { width: min(100%, 420px); padding: 9px 12px; background: var(--bg-overlay); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; }
+.directory-entries { list-style: none; padding: 0; margin: 24px 0 16px; }
+.directory-entries li { border-top: 1px solid var(--border); padding: 16px 0; overflow-wrap: anywhere; }
+.directory-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.directory-heading h2 { margin: 0; font-size: 16px; }
+.directory-heading span { font: 12px var(--font-mono); color: var(--info); }
+.directory-entries p { color: var(--text-dim); margin: 6px 0; }
+.directory-entries code { color: var(--text-muted); font: 12px var(--font-mono); }
+.workflow-directory nav { display: flex; gap: 12px; }

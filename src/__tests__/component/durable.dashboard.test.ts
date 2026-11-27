@@ -85,6 +85,31 @@ describe("Durable dashboard generic application integration", () => {
     ).toBe(400);
   });
 
+  test("lists routed event and workflow definitions before execution, with per-runtime metadata and description search", async () => {
+    const right = await testApp.get(
+      `/catalog?runtimeId=${rightId}&query=settlement`
+    );
+    expect(right.status).toBe(200);
+    expect(right.body).toMatchObject({
+      total: 2,
+      entries: [
+        {
+          kind: "Durable event",
+          key: "receipt-issued",
+          description: "Deliver the receipt after settlement.",
+        },
+      ],
+    });
+    const left = await testApp.get(`/catalog?runtimeId=${leftId}`);
+    expect(left.body.entries).toEqual([
+      expect.objectContaining({
+        kind: "Durable event",
+        key: expect.stringContaining("approved"),
+      }),
+      expect.objectContaining({ kind: "Workflow", key: "leftFlow" }),
+    ]);
+  });
+
   test("starts real runs, cursor lists, observed steps and detail never cross runtimes", async () => {
     const response = await testApp.post(`/executions?runtimeId=${leftId}`, {
       workflow: "leftFlow",

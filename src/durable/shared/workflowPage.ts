@@ -5,17 +5,16 @@ export interface WorkflowQuery {
   cursor?: string;
   limit?: number;
 }
-export interface WorkflowPage {
-  workflows: StudioWorkflow[];
+export interface WorkflowPage<T = StudioWorkflow> {
+  workflows: T[];
   total: number;
   nextCursor: string | null;
 }
 
 /** The registered catalog is immutable; cursors are positions in that registry, not filtered offsets. */
-export function workflowPage(
-  catalog: StudioWorkflow[],
-  query: WorkflowQuery = {}
-): WorkflowPage {
+export function workflowPage<
+  T extends Pick<StudioWorkflow, "key" | "title" | "category" | "description">
+>(catalog: T[], query: WorkflowQuery = {}): WorkflowPage<T> {
   const limit = query.limit ?? 20;
   const start = query.cursor === undefined ? 0 : Number(query.cursor);
   if (
@@ -30,7 +29,7 @@ export function workflowPage(
     );
   }
   const needle = (query.query ?? "").trim().toLowerCase();
-  const workflows: StudioWorkflow[] = [];
+  const workflows: T[] = [];
   for (let index = start; index < catalog.length; index++) {
     const workflow = catalog[index];
     if (

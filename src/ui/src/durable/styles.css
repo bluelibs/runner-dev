@@ -1937,6 +1937,7 @@ fieldset.detail-actions, .schedule-fields { min-width: 0; margin: 0; padding: 0;
   .sidebar .side-foot .demo-note { margin: 0; }
 }
 @media (max-width: 600px) {
+  .side-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .schedule-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; }
   .schedule-main { grid-column: 1 / -1; overflow-wrap: anywhere; }
   .schedule-actions { justify-content: flex-end; }

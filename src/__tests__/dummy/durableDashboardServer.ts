@@ -1,5 +1,7 @@
 import { r, run } from "@bluelibs/runner";
 import {
+  durableEventBridgeResource,
+  durableEventTag,
   durableSupportResource,
   durableWorkflowTag,
   memoryDurableResource,
@@ -19,6 +21,21 @@ const approval = r
   .event("approval")
   .meta({ title: "Approval decision" })
   .payloadSchema(z.object({ approved: z.boolean(), reviewer: z.string() }))
+  .build();
+
+const shipped = r
+  .event("shipment-dispatched")
+  .meta({
+    title: "Shipment dispatched",
+    description:
+      "Notify fulfillment listeners when a shipment leaves the warehouse.",
+  })
+  .tags([
+    durableEventTag.with({
+      key: "shipment-dispatched",
+      durable: sqliteDurable,
+    }),
+  ])
   .build();
 
 const orderInputSchema = z.object({
@@ -367,6 +384,8 @@ const app = r
   .meta({ title: "Operations Platform" })
   .register([
     durableSupportResource,
+    durableEventBridgeResource.with({}),
+    shipped,
     sqliteDurable.with({
       persist: { filename: ":memory:" },
       audit: { enabled: true },

@@ -19,3 +19,10 @@
 .runtime-empty .btn { margin-right: 8px; }
 .offline .btn { margin: 10px 8px; }
 @media (max-width: 700px) { .runtime-live { display: none; } .runtime-bar { gap: 10px; padding: 0 12px; } .runtime-picker select { max-width: 180px; } }
+
+@media (max-width: 480px) {
+  .runtime-bar { gap: 8px; }
+  .runtime-back { white-space: nowrap; }
+  .runtime-picker { min-width: 0; gap: 6px; }
+  .runtime-picker select { min-width: 0; }
+}

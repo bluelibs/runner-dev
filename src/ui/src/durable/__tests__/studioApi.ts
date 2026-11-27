@@ -6,6 +6,9 @@ export function studioApi(
   detail: StudioExecutionDetail = executionDetail()
 ): jest.Mocked<StudioApi> {
   return {
+    listCatalog: jest
+      .fn()
+      .mockResolvedValue({ entries: [], total: 0, nextCursor: null }),
     listWorkflowPage: jest
       .fn()
       .mockResolvedValue({ workflows: [workflow], total: 1, nextCursor: null }),

@@ -26,6 +26,7 @@ function readLocation(): StudioLocation {
   const modal = params.get("modal");
   return {
     view:
+      requestedView === "catalog" ||
       requestedView === "overview" ||
       requestedView === "schedules" ||
       requestedView === "executions"

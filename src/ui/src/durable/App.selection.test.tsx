@@ -150,3 +150,38 @@ test("shows an initial load failure without a selection prompt and resumes on th
   await receive("run-1");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
+
+test("the workflow catalog opens from navigation and searches event descriptions", async () => {
+  const { api } = await setup(false);
+  const entry = {
+    kind: "Durable event" as const,
+    title: "Order paid",
+    key: "paid",
+    description: "Issue receipt",
+    category: "Durable event",
+  };
+  api.listCatalog.mockResolvedValue({
+    entries: [entry],
+    total: 1,
+    nextCursor: null,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Workflow catalog" }));
+  expect(await screen.findByText("Issue receipt")).toBeVisible();
+  expect(screen.getByText("Durable event")).toBeVisible();
+  const search = screen.getByRole("searchbox", {
+    name: "Search the workflow catalog",
+  });
+  api.listCatalog.mockResolvedValue({
+    entries: [],
+    total: 1,
+    nextCursor: null,
+  });
+  fireEvent.change(search, { target: { value: "missing" } });
+  expect(
+    await screen.findByText("No matching workflows or events.")
+  ).toBeVisible();
+  expect(api.listCatalog).toHaveBeenLastCalledWith({
+    query: "missing",
+    cursor: undefined,
+  });
+});

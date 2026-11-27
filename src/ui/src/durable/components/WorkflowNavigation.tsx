@@ -81,21 +81,32 @@ export function WorkflowNavigation({
         </button>
       ) : null}
       <div aria-hidden="true" style={{ height: start * 32, flexShrink: 0 }} />
-      {workflows.slice(start, end).map((workflow) => (
-        <button
-          key={workflow.key}
-          type="button"
-          style={{ height: 32, minHeight: 32, flexShrink: 0 }}
-          className={`side-link small${
-            selectedKey === workflow.key ? " active" : ""
-          }`}
-          onClick={() => onSelect(workflow.key)}
-          title={workflow.description}
-        >
-          <span className="side-link-label">{workflow.title}</span>
-          <span className="side-cat">{workflow.category}</span>
-        </button>
-      ))}
+      {workflows.slice(start, end).map((workflow) => {
+        const versionBadge =
+          workflow.versions && workflow.versions.length > 1
+            ? `${workflow.versions.length}v`
+            : workflow.version !== undefined
+            ? `v${workflow.version}`
+            : null;
+        return (
+          <button
+            key={workflow.key}
+            type="button"
+            style={{ height: 32, minHeight: 32, flexShrink: 0 }}
+            className={`side-link small${
+              selectedKey === workflow.key ? " active" : ""
+            }`}
+            onClick={() => onSelect(workflow.key)}
+            title={workflow.description}
+          >
+            <span className="side-link-label">{workflow.title}</span>
+            <span className="side-cat">
+              {versionBadge ? `${versionBadge} · ` : ""}
+              {workflow.category}
+            </span>
+          </button>
+        );
+      })}
       <div
         aria-hidden="true"
         style={{ height: (workflows.length - end) * 32, flexShrink: 0 }}

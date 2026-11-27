@@ -77,24 +77,40 @@ async function readRunnerDevCompactGuide(): Promise<string> {
     return packageDoc.content;
   }
 
-  const localFallbackPath = path.resolve(
-    __dirname,
-    "../../skills/core/references/readmes/COMPACT_GUIDE.md"
-  );
-  let localFallback: string;
-  try {
-    localFallback = await fs.readFile(localFallbackPath, "utf8");
-  } catch (error) {
-    const reason =
-      error instanceof Error ? error.message : "Unknown filesystem error";
-    throw new Error(
-      `Runner-Dev compact guide could not be read at ${localFallbackPath}: ${reason}`
-    );
+  const localFallbackPaths = [
+    path.resolve(
+      __dirname,
+      "../../skills/core/references/readmes/COMPACT_GUIDE.md"
+    ),
+    path.resolve(__dirname, "../../readmes/COMPACT_GUIDE.md"),
+  ];
+  let localFallback: string | null = null;
+  let lastError: unknown = null;
+  let lastErrorPath = localFallbackPaths[0];
+  for (const candidatePath of localFallbackPaths) {
+    try {
+      const content = await fs.readFile(candidatePath, "utf8");
+      if (content) {
+        localFallback = content;
+        break;
+      }
+    } catch (error) {
+      lastError = error;
+      lastErrorPath = candidatePath;
+    }
   }
-
   if (!localFallback) {
+    if (lastError) {
+      const reason =
+        lastError instanceof Error
+          ? lastError.message
+          : "Unknown filesystem error";
+      throw new Error(
+        `Runner-Dev compact guide could not be read at ${lastErrorPath}: ${reason}`
+      );
+    }
     throw new Error(
-      `Runner-Dev compact guide is empty at ${localFallbackPath}.`
+      `Runner-Dev compact guide is empty at ${localFallbackPaths[0]}.`
     );
   }
 

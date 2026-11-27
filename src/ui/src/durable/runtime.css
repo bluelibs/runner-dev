@@ -5,6 +5,11 @@
 .runtime-picker label { color: var(--text-muted); font-size: 12px; }
 .runtime-picker select { max-width: 360px; background: var(--bg-overlay); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 10px; }
 .runtime-live { font-size: 10px; letter-spacing: .1em; color: var(--text-muted); }
+.backend-badge { padding: 2px 7px; border-radius: 5px; border: 1px solid var(--border-strong); background: var(--neutral-soft); color: var(--text-dim); font: 600 10px/1.4 var(--font-mono); letter-spacing: .06em; white-space: nowrap; }
+.backend-badge.backend-sqlite { border-color: rgba(56, 189, 248, 0.35); background: var(--info-soft); color: var(--info); }
+.backend-badge.backend-postgres { border-color: rgba(94, 106, 210, 0.45); background: var(--accent-soft); color: #b9bff5; }
+.backend-badge.backend-redis { border-color: rgba(245, 165, 36, 0.35); background: var(--warning-soft); color: var(--warning); }
+.backend-badge.backend-persistent-memory { border-color: rgba(76, 183, 130, 0.35); background: var(--success-soft); color: var(--success); }
 .studio { height: calc(100vh - 48px); }
 .runtime-empty { min-height: 100vh; padding: 28px; }
 .runtime-empty-content { max-width: 560px; margin: 22vh auto 0; }

@@ -19,6 +19,10 @@ import { RegisteredByInfoBlock } from "./common/RegisteredByInfoBlock";
 import { OverviewIdLink } from "./common/OverviewIdLink";
 import type { DocumentationMode } from "../../../../../resources/docsPayload";
 import { useIsCatalogDocumentation } from "../context/DocumentationModeContext";
+import {
+  getDurableEventConfigFromTags,
+  hasDurableEventTag,
+} from "../../../../../resources/models/durable.tools";
 
 export interface EventCardProps {
   event: Event;
@@ -81,6 +85,11 @@ export const EventCard: React.FC<EventCardProps> = ({
     ? introspector.getRpcLaneResourceForEvent(event.id)
     : null;
   const isGlobalEvent = event.id === "*";
+  const durableEventConfig = getDurableEventConfigFromTags(event.tagsDetailed);
+  const isDurableEvent =
+    durableEventConfig !== null
+      ? durableEventConfig.enabled
+      : hasDurableEventTag(event.tags);
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [fileContent, setFileContent] = React.useState<string | null>(null);
@@ -146,6 +155,9 @@ export const EventCard: React.FC<EventCardProps> = ({
             : event.meta?.title || formatId(event.id)}
           {isGlobalEvent && (
             <span className="event-card__global-badge">GLOBAL</span>
+          )}
+          {isDurableEvent && (
+            <span className="event-card__global-badge">DURABLE</span>
           )}
         </>
       }
@@ -242,6 +254,19 @@ export const EventCard: React.FC<EventCardProps> = ({
           <InfoBlock prefix="event-card" label="Parallel:">
             {event.parallel ? "Yes" : "No"}
           </InfoBlock>
+
+          {isDurableEvent && (
+            <InfoBlock prefix="event-card" label="Durable Event:">
+              <div className="event-card__tags">
+                <span>
+                  Key: <code>{durableEventConfig?.key ?? event.id}</code>
+                </span>
+                {durableEventConfig?.compensation && (
+                  <span>compensation: {durableEventConfig.compensation}</span>
+                )}
+              </div>
+            </InfoBlock>
+          )}
 
           {event.eventLane && (
             <InfoBlock prefix="event-card" label="Event Lane:">

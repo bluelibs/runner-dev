@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudioExecutionDetail } from "../../../durable/shared/types";
 import type { StudioApi } from "./api";
 
@@ -8,6 +8,8 @@ export function useExecutionDetail(api: StudioApi, selectedId: string | null) {
     id: string;
     message: string;
   } | null>(null);
+  const activeIdRef = useRef<string | null>(selectedId);
+  activeIdRef.current = selectedId;
 
   useEffect(() => {
     if (!selectedId) {
@@ -42,6 +44,20 @@ export function useExecutionDetail(api: StudioApi, selectedId: string | null) {
     };
   }, [api, selectedId]);
 
+  const refresh = useCallback(() => {
+    const targetId = selectedId;
+    if (!targetId) return;
+    void api
+      .getExecution(targetId)
+      .then((next) => {
+        if (activeIdRef.current === targetId) {
+          setDetail(next);
+          setFailure(null);
+        }
+      })
+      .catch(() => undefined);
+  }, [api, selectedId]);
+
   const error = failure?.id === selectedId ? failure.message : "";
   const switching = Boolean(selectedId && detail?.id !== selectedId);
   return {
@@ -49,5 +65,6 @@ export function useExecutionDetail(api: StudioApi, selectedId: string | null) {
     error,
     switching,
     loading: switching && !error,
+    refresh,
   };
 }

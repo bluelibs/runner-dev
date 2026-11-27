@@ -5,7 +5,11 @@ import type { ErrorRequestHandler, Request, Response } from "express";
 import z from "zod";
 import { discoverRuntimes, selectRuntime, workflowCatalog } from "./runtime";
 import { DurableHttpError, isZodValidationError, requireValue } from "./errors";
-import { getExecutionDetail, listExecutions } from "./executions";
+import {
+  exportReplayFixture,
+  getExecutionDetail,
+  listExecutions,
+} from "./executions";
 import { toSummary } from "./projection";
 import { executionAction, startExecution } from "./actions";
 import {
@@ -74,11 +78,14 @@ async function dispatch(
     const action = executionMatch[2];
     if (method === "GET" && action === undefined)
       res.json({ execution: await getExecutionDetail(runtime, id) });
+    else if (method === "GET" && action === "replay")
+      res.json(await exportReplayFixture(runtime, id));
     else if (
       method === "POST" &&
       action &&
       [
         "signals",
+        "commands",
         "cancel",
         "retry",
         "force-fail",
@@ -87,6 +94,7 @@ async function dispatch(
         "pause",
         "resume",
         "restart",
+        "reset",
       ].includes(action)
     ) {
       res
@@ -166,12 +174,22 @@ export function createDurableRouter(
     let status = 500;
     if (error instanceof DurableHttpError) status = error.status;
     else if (
+      errors.durableOperatorUnsupportedStoreCapabilityError?.is?.(error) ||
+      errors.durableLifecycleUnsupportedStoreCapabilityError?.is?.(error) ||
+      errors.durablePauseRejectedError?.is?.(error) ||
+      errors.durableResumeRejectedError?.is?.(error) ||
+      errors.durableRestartRejectedError?.is?.(error) ||
+      errors.durableRestartIdempotencyConflictError?.is?.(error)
+    )
+      status = 409;
+    else if (
       isZodValidationError(error) ||
       error instanceof SyntaxError ||
       error instanceof URIError ||
       errors.matchError.is(error) ||
       errors.validationError.is(error) ||
-      errors.durableExecutionInvariantError.is(error)
+      errors.durableExecutionInvariantError.is(error) ||
+      errors.durableScheduleConfigError?.is?.(error)
     )
       status = 400;
     else {

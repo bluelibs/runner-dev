@@ -2,7 +2,33 @@
 
 Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release ships; until then, changes collect under "Unreleased".
 
-## Unreleased
+## 6.10.0 — 2026-11-27
+
+### Added
+
+- **Runner 6.10 Durable Studio support:**
+  - **Storage backend discovery & badges:** Detects `SqliteStore` (`SQLITE`), `PostgresStore` (`POSTGRES`), `RedisStore` (`REDIS`), `PersistentMemoryStore` (`FILE MEMORY`), `MemoryStore` (`MEMORY`), and custom stores (`CUSTOM`), advertising `command`, `reset`, and `replay` capabilities dynamically alongside `pause`/`resume`/`restart`/`state`.
+  - **Multi-version workflows:** Allows multiple workflow `version` tasks under one shared `key`, shows `vN` / `Nv` badges across the overview, sidebar, execution list, schedules, and detail headers, and adds a `Version` selector with per-version presets in `StartModal` and `ScheduleModal`.
+  - **Tracked workflow commands:** Added `POST /durable/api/executions/:id/commands` and the `Send command` modal (`CommandModal`) with schema validation, optional `idempotencyKey`, and graceful queued/pending feedback on paused runs.
+  - **Ordered history, checkpoint branching & replay export:** Incorporates `store.listExecutionHistory()` (`command`, `state`, `continue`, nested `parentStepId` steps, and `stateAfter` snapshots) into timelines, adds `POST /durable/api/executions/:id/reset` with `ResetDialog` / inline `Reset before` buttons and clickable `Branched from` lineage banners, and adds `GET /durable/api/executions/:id/replay` fixture export.
+  - **Two-stage retention visibility:** Displays history/receipt retention policies and collection timestamps in the Data tab, marks collected executions with `History collected` guardrails, and preserves completion receipts and results.
+- **Docs UI durable metadata:** Added durable workflow `Version: vN` rendering to `TaskCard` and `DURABLE` badge + bridge key/compensation metadata to `EventCard` (`tags.durableEvent`).
+- **Upgraded local durable preview (`npm run play:durable`):** Serves both an in-memory SQLite durable runtime (`operations-sqlite`) and a memory runtime (`finance-memory`) with multi-version workflows, live commands, checkpoint reset branches, paused/sleeping/failed runs, and a history-collected retention example using `timers: { pollIntervalMs }`.
+
+### Changed
+
+- Scaffolded `runner-dev new` projects target `@bluelibs/runner` `^6.10.0` and `@bluelibs/runner-dev` `^6.10.0` (while `@bluelibs/runner-dev` retains `^6.6.0` peer compatibility).
+- Durable Studio `StartExecution`, `CreateSchedule`, and `Restart` pass resolved task definitions for versioned workflow compatibility, allow restarting `continued_as_new` chains whose tip is terminal/paused, and map Runner durable conflict/invariant errors to HTTP `409` / `400`.
+
+### Fixed
+
+- Durable Studio keeps the last successful data visible when a feed fails and lets operators retry each feed independently. Stalled reads time out after 30 seconds. A failed refresh after a successful write reports a read error.
+- Schedule forms retain drafts after rejected saves, validate the current cadence preview, and ask for confirmation before deletion.
+- Execution actions guard against duplicate submissions and stale selections. Browser Back and Forward restore the selected runtime, view, execution, and filters. Dialogs restore keyboard focus, and workflow navigation collapses on narrow screens.
+
+- Avoided duplicate durable workflow key errors in `discoverRuntimes` when multiple immutable versions share a workflow `key`.
+- Fixed Windows fallback reading `COMPACT_GUIDE.md` in `readRunnerDevCompactGuide` and Windows git symlink stub handling in `scripts/pack-npm-skills.mjs`.
+- Terminal executions without a recorded result now show their final status in the Data tab.
 
 ## 6.9.2 — 2026-11-12
 

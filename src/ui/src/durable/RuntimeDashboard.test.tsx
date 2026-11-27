@@ -100,3 +100,21 @@ test("restores runtime scope on Back/Forward and clears incompatible filters on 
   fireEvent(window, new PopStateEvent("popstate"));
   expect(screen.getByTestId("studio").textContent).toBe("orders");
 });
+
+test("displays backend badges when runtimes advertise a storage backend", async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      runtimes: [
+        { id: "ops", title: "Operations", backend: "sqlite", capabilities },
+        { id: "fin", title: "Finance", backend: "memory", capabilities },
+      ],
+    }),
+  });
+  render(<RuntimeDashboard />);
+  expect(await screen.findByText("SQLITE")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Runtime"), {
+    target: { value: "fin" },
+  });
+  expect(await screen.findByText("MEMORY")).toBeTruthy();
+});

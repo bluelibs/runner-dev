@@ -164,3 +164,43 @@ test("history cannot stack a start dialog over an open schedule draft", async ()
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
   expect(screen.getByRole("dialog")).toHaveAccessibleName("Start execution");
 });
+
+test("a pending checkpoint reset cannot replace a selection restored by browser history", async () => {
+  restore("/durable?runtimeId=orders&select=A");
+  const api = studioApi(
+    executionDetail({
+      id: "A",
+      status: "paused",
+      historyRecorded: true,
+      resettableSteps: ["validate"],
+    })
+  );
+  let finish!: (branch: string) => void;
+  api.resetExecution.mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  render(
+    <App
+      api={api}
+      runtime={{
+        ...runtime,
+        capabilities: { ...runtime.capabilities, reset: true },
+      }}
+    />
+  );
+  fireEvent.click(await screen.findByText("Operate ▾"));
+  fireEvent.click(screen.getByRole("button", { name: "Reset to checkpoint" }));
+  const dialog = within(screen.getByRole("dialog"));
+  fireEvent.change(dialog.getByLabelText("Reason"), {
+    target: { value: "Retry validation" },
+  });
+  fireEvent.click(dialog.getByRole("button", { name: "Create branch" }));
+  expect(api.resetExecution).toHaveBeenCalledTimes(1);
+  expect(dialog.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  restore("/durable?runtimeId=orders&select=B");
+  await act(async () => finish("branch-from-A"));
+  expect(new URLSearchParams(window.location.search).get("select")).toBe("B");
+  expect(screen.queryByRole("dialog")).toBeNull();
+});

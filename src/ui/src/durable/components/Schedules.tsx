@@ -172,8 +172,16 @@ export function Schedules({
                     <code>{schedule.id}</code>
                   </span>
                   <span className="schedule-sub">
-                    {schedule.workflowTitle} · {schedule.type}{" "}
-                    <code>{schedule.pattern}</code>
+                    {schedule.workflowTitle}
+                    {schedule.workflowVersion !== undefined ? (
+                      <>
+                        {" "}
+                        <span className="version-badge">
+                          v{schedule.workflowVersion}
+                        </span>
+                      </>
+                    ) : null}{" "}
+                    · {schedule.type} <code>{schedule.pattern}</code>
                   </span>
                   <span className="schedule-times">
                     next {formatDateTime(schedule.nextRun)} · last{" "}

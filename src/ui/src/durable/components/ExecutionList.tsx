@@ -136,7 +136,20 @@ export function ExecutionList({
                   <span className={`status-dot tone-${meta.tone}`} />
                   <span className="exec-main">
                     <span className="exec-title">
-                      {execution.workflowTitle}
+                      <span className="exec-title-text">
+                        {execution.workflowTitle}
+                      </span>
+                      {execution.workflowVersion !== undefined ? (
+                        <span className="version-badge">
+                          v{execution.workflowVersion}
+                        </span>
+                      ) : null}
+                      {execution.resetFromExecutionId ? (
+                        <span className="micro-badge">branch</span>
+                      ) : null}
+                      {execution.historyCollectedAt ? (
+                        <span className="micro-badge">collected</span>
+                      ) : null}
                     </span>
                     <span className="exec-sub">
                       <code>{truncateId(execution.id, 10)}</code>

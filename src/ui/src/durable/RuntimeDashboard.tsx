@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import type { DurableRuntimeDescriptor } from "../../../durable/shared/runtime";
+import type {
+  DurableRuntimeBackend,
+  DurableRuntimeDescriptor,
+} from "../../../durable/shared/runtime";
 import { App } from "./App";
 import { createLiveApi } from "./api";
+
+const BACKEND_LABELS: Record<DurableRuntimeBackend, string> = {
+  sqlite: "SQLITE",
+  postgres: "POSTGRES",
+  redis: "REDIS",
+  "persistent-memory": "FILE MEMORY",
+  memory: "MEMORY",
+  custom: "CUSTOM",
+};
 
 export function RuntimeDashboard() {
   const [runtimes, setRuntimes] = useState<DurableRuntimeDescriptor[]>([]);
@@ -141,6 +153,16 @@ export function RuntimeDashboard() {
               </option>
             ))}
           </select>
+          {runtime.backend ? (
+            <span
+              className={`backend-badge backend-${runtime.backend}`}
+              title={`Durable persistence backend: ${
+                BACKEND_LABELS[runtime.backend]
+              }`}
+            >
+              {BACKEND_LABELS[runtime.backend]}
+            </span>
+          ) : null}
         </div>
         <span className="runtime-live">LIVE APPLICATION</span>
       </header>

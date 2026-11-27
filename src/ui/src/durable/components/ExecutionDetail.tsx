@@ -2,6 +2,7 @@ import type { DurableRuntimeCapabilities } from "../../../../durable/shared/runt
 import { useState } from "react";
 import type {
   StudioExecutionDetail,
+  StudioRetentionSchedule,
   StudioWorkflow,
 } from "../../../../durable/shared/types";
 import { isLiveStatus } from "../../../../durable/shared/statuses";
@@ -13,6 +14,20 @@ import { StatusPill } from "./StatusPill";
 import { Timeline } from "./Timeline";
 
 type Tab = "timeline" | "relations" | "signals" | "data" | "audit";
+
+function formatRetentionLabel(
+  schedule: StudioRetentionSchedule | undefined
+): string {
+  if (!schedule || schedule === "retain") return "Retain";
+  if (schedule === "delete") return "Delete immediately";
+  const ms = schedule.afterMs;
+  if (ms === 0) return "Immediately (0ms)";
+  if (ms % 86_400_000 === 0) return `After ${ms / 86_400_000}d`;
+  if (ms % 3_600_000 === 0) return `After ${ms / 3_600_000}h`;
+  if (ms % 60_000 === 0) return `After ${ms / 60_000}m`;
+  if (ms % 1000 === 0) return `After ${ms / 1000}s`;
+  return `After ${ms}ms`;
+}
 
 const AUDIT_LABELS: Record<string, string> = {
   execution_status_changed: "Status changed",
@@ -35,11 +50,14 @@ export function ExecutionDetail({
   workflow,
   now,
   onSignal,
+  onCommand,
   onCancel,
   onRetry,
   onPause,
   onResume,
   onRestart,
+  onReset,
+  onExportReplay,
   onForceFail,
   onSkip,
   onEdit,
@@ -53,11 +71,14 @@ export function ExecutionDetail({
   workflow: StudioWorkflow | undefined;
   now: number;
   onSignal: (signalId?: string) => void;
+  onCommand?: () => void;
   onCancel: () => void;
   onRetry: () => void;
   onPause: () => void;
   onResume: () => void;
   onRestart: () => void;
+  onReset?: (beforeStep?: string) => void;
+  onExportReplay?: () => void;
   onForceFail: () => void;
   onSkip: () => void;
   onEdit: () => void;
@@ -75,9 +96,22 @@ export function ExecutionDetail({
       (detail.continuedChainTipStatus !== undefined &&
         (!isLiveStatus(detail.continuedChainTipStatus) ||
           detail.continuedChainTipStatus === "paused")));
+  const matchingVersion = workflow?.versions?.find(
+    (entry) => entry.version === (detail.workflowVersion ?? null)
+  );
+  const workflowSignals = matchingVersion?.signals ?? workflow?.signals ?? [];
+  const workflowCommands =
+    matchingVersion?.commands ?? workflow?.commands ?? [];
   const waitingSignals = detail.timeline.filter(
     (node) => node.state === "waiting" && node.wait?.signalId
   );
+  const canReset =
+    detail.historyRecorded === true &&
+    !detail.historyCollectedAt &&
+    (!live || paused) &&
+    (detail.resettableSteps?.length ?? 0) > 0;
+  const canExportReplay =
+    detail.historyRecorded === true && !detail.historyCollectedAt;
 
   async function copyId() {
     try {
@@ -96,7 +130,15 @@ export function ExecutionDetail({
       <header className="detail-head">
         <div className="detail-title-row">
           <div>
-            <h2>{detail.workflowTitle}</h2>
+            <div className="detail-heading-line">
+              <h2>{detail.workflowTitle}</h2>
+              {detail.workflowVersion !== undefined ? (
+                <span className="version-badge">v{detail.workflowVersion}</span>
+              ) : null}
+              {detail.historyCollectedAt ? (
+                <span className="micro-badge">History collected</span>
+              ) : null}
+            </div>
             <button
               type="button"
               className="id-copy"
@@ -110,6 +152,33 @@ export function ExecutionDetail({
         </div>
         {detail.position ? (
           <p className="detail-position">{detail.position}</p>
+        ) : null}
+        {detail.resetFromExecutionId ? (
+          <div className="branch-banner">
+            <span>
+              Branched from{" "}
+              <button
+                type="button"
+                className="inline-link"
+                onClick={() => onOpenExecution(detail.resetFromExecutionId!)}
+              >
+                <code>{truncateId(detail.resetFromExecutionId, 16)}</code>
+              </button>
+              {detail.resetBeforeStep ? (
+                <>
+                  {" "}
+                  before <code>{detail.resetBeforeStep}</code>
+                </>
+              ) : null}
+              {detail.resetReason ? ` — ${detail.resetReason}` : null}
+            </span>
+          </div>
+        ) : null}
+        {detail.historyCollectedAt ? (
+          <div className="info-banner">
+            History collected on {formatDateTime(detail.historyCollectedAt)}.
+            The completion receipt and result remain preserved.
+          </div>
         ) : null}
         <div className="detail-facts">
           <span>
@@ -134,7 +203,7 @@ export function ExecutionDetail({
           aria-busy={busy}
           aria-label="Execution actions"
         >
-          {(workflow?.signals.length ?? 0) > 0 || waitingSignals.length > 0 ? (
+          {workflowSignals.length > 0 || waitingSignals.length > 0 ? (
             <button
               type="button"
               className="btn primary"
@@ -147,6 +216,17 @@ export function ExecutionDetail({
               }
             >
               Send signal
+            </button>
+          ) : null}
+          {capabilities.command && workflowCommands.length > 0 && onCommand ? (
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={!live}
+              onClick={onCommand}
+              title="Submit a tracked command to this execution"
+            >
+              Send command
             </button>
           ) : null}
           {canRetry ? (
@@ -168,7 +248,17 @@ export function ExecutionDetail({
             </button>
           ) : null}
           {capabilities.restart && canRestart ? (
-            <button type="button" className="btn ghost" onClick={onRestart}>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={Boolean(detail.historyCollectedAt)}
+              title={
+                detail.historyCollectedAt
+                  ? "Execution history was collected; start a fresh run with explicit input."
+                  : undefined
+              }
+              onClick={onRestart}
+            >
               Restart
             </button>
           ) : null}
@@ -181,6 +271,40 @@ export function ExecutionDetail({
               <button type="button" onClick={onEdit}>
                 Edit state
               </button>
+              {capabilities.reset && onReset ? (
+                <button
+                  type="button"
+                  disabled={!canReset}
+                  onClick={() => onReset()}
+                  title={
+                    canReset
+                      ? "Create a checkpoint branch before a completed top-level step"
+                      : detail.historyCollectedAt
+                      ? "History was collected"
+                      : !detail.historyRecorded
+                      ? "No ordered history recorded for this execution"
+                      : live && !paused
+                      ? "Pause the execution first"
+                      : "No eligible top-level checkpoint boundary"
+                  }
+                >
+                  Reset to checkpoint
+                </button>
+              ) : null}
+              {capabilities.replay && onExportReplay ? (
+                <button
+                  type="button"
+                  disabled={!canExportReplay}
+                  onClick={onExportReplay}
+                  title={
+                    canExportReplay
+                      ? "Download portable replay fixture JSON"
+                      : "Replay export requires recorded, uncollected history"
+                  }
+                >
+                  Export replay fixture
+                </button>
+              ) : null}
               <button type="button" onClick={onExport}>
                 Export JSON
               </button>
@@ -244,13 +368,28 @@ export function ExecutionDetail({
 
       <div className="tab-body">
         {tab === "timeline" ? (
-          <Timeline
-            nodes={detail.timeline}
-            edges={detail.edges}
-            now={now}
-            onSignal={onSignal}
-            disabled={busy}
-          />
+          detail.historyCollectedAt && detail.timeline.length === 0 ? (
+            <div className="empty-list">
+              <p className="empty-title">History collected</p>
+              <p className="empty-sub">
+                Completed step checkpoints and inputs were cleaned up under the
+                retention policy. The completion receipt and result remain under
+                Data.
+              </p>
+            </div>
+          ) : (
+            <Timeline
+              nodes={detail.timeline}
+              edges={detail.edges}
+              now={now}
+              onSignal={onSignal}
+              disabled={busy}
+              canReset={Boolean(capabilities.reset && canReset && onReset)}
+              onResetBeforeStep={
+                onReset ? (stepId) => onReset(stepId) : undefined
+              }
+            />
+          )
         ) : null}
         {tab === "relations" ? (
           <ExecutionRelations
@@ -264,12 +403,18 @@ export function ExecutionDetail({
           <div className="data-tab">
             <section>
               <h3>Input</h3>
-              <JsonView value={detail.input} label="input" />
+              {detail.historyCollectedAt &&
+              (detail.input === undefined || detail.input === null) ? (
+                <p className="muted">
+                  Input stripped when execution history was collected.
+                </p>
+              ) : (
+                <JsonView value={detail.input} label="input" />
+              )}
             </section>
             <section>
               <h3>Result</h3>
-              {detail.status === "completed" ||
-              (detail.result !== null && detail.result !== undefined) ? (
+              {detail.result !== null && detail.result !== undefined ? (
                 <JsonView value={detail.result} label="result" />
               ) : (
                 <p className="muted">
@@ -299,6 +444,41 @@ export function ExecutionDetail({
                 </>
               )}
             </section>
+            {detail.retention || detail.historyCollectedAt ? (
+              <section>
+                <h3>Retention</h3>
+                <div className="retention-grid">
+                  <div>
+                    <span className="retention-label">History</span>
+                    <strong>
+                      {formatRetentionLabel(detail.retention?.onComplete)}
+                    </strong>
+                    {detail.historyCollectedAt ? (
+                      <em>
+                        Collected {formatDateTime(detail.historyCollectedAt)}
+                      </em>
+                    ) : detail.retention?.historyCollectAt ? (
+                      <em>
+                        Eligible{" "}
+                        {formatDateTime(detail.retention.historyCollectAt)}
+                      </em>
+                    ) : null}
+                  </div>
+                  <div>
+                    <span className="retention-label">Receipts</span>
+                    <strong>
+                      {formatRetentionLabel(detail.retention?.receipts)}
+                    </strong>
+                    {detail.retention?.receiptExpireAt ? (
+                      <em>
+                        Expires{" "}
+                        {formatDateTime(detail.retention.receiptExpireAt)}
+                      </em>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
+            ) : null}
             {detail.error?.stack ? (
               <section>
                 <h3>Error stack</h3>
@@ -309,6 +489,23 @@ export function ExecutionDetail({
               <section>
                 <h3>Workflow</h3>
                 <p className="muted">{workflow.description}</p>
+                <div className="workflow-meta-pills">
+                  {detail.workflowVersion !== undefined ? (
+                    <span className="version-badge">
+                      Version v{detail.workflowVersion}
+                    </span>
+                  ) : null}
+                  {workflow.concurrency ? (
+                    <span className="micro-badge">
+                      Concurrency: {workflow.concurrency}
+                    </span>
+                  ) : null}
+                  {workflowCommands.map((cmd) => (
+                    <span key={cmd.taskKey} className="micro-badge">
+                      Command: {cmd.title}
+                    </span>
+                  ))}
+                </div>
                 {workflow.taskId ? (
                   <a
                     href={`/docs#element-${encodeURIComponent(

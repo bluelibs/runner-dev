@@ -64,6 +64,9 @@ export const NODE_KIND_META: Record<StudioNodeKind, { label: string }> = {
   switch: { label: "Branch" },
   child: { label: "Child workflow" },
   note: { label: "Note" },
+  command: { label: "Command" },
+  state: { label: "State" },
+  continue: { label: "Continue as new" },
 };
 
 /** True when the status is a live, non-terminal execution state. */

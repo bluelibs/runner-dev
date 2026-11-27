@@ -44,6 +44,12 @@ export function studioApi(
     forceFailExecution: jest.fn().mockResolvedValue(undefined),
     skipStep: jest.fn().mockResolvedValue(undefined),
     editState: jest.fn().mockResolvedValue(undefined),
+    listScheduleRuns: jest.fn().mockResolvedValue({
+      executions: [],
+      hasMore: false,
+      nextOffset: null,
+      nextCursor: null,
+    }),
     listSchedules: jest.fn().mockResolvedValue([schedule()]),
     createSchedule: jest.fn().mockResolvedValue("new-schedule"),
     previewSchedule: jest.fn().mockResolvedValue([]),

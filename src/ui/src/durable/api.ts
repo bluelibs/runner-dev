@@ -67,6 +67,7 @@ export interface StudioApi {
     result: unknown,
     reason: string
   ): Promise<void>;
+  listScheduleRuns(id: string, cursor?: string): Promise<StudioExecutionPage>;
   listSchedules(): Promise<StudioSchedule[]>;
   createSchedule(body: Record<string, unknown>): Promise<string>;
   previewSchedule(body: Record<string, unknown>): Promise<string[]>;
@@ -289,6 +290,13 @@ export function createLiveApi(runtimeId: string): StudioApi {
         }
       );
     },
+    listScheduleRuns: (id, cursor) =>
+      request(
+        "GET",
+        `/api/schedules/${encodeURIComponent(id)}/runs${
+          cursor ? "?" + new URLSearchParams({ cursor }) : ""
+        }`
+      ),
     listSchedules: async () =>
       (await request<{ schedules: StudioSchedule[] }>("GET", "/api/schedules"))
         .schedules,

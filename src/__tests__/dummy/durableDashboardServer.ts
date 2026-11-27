@@ -562,7 +562,7 @@ async function main() {
   );
 
   // 8. Versioned SQLite schedules
-  await sqliteService.schedule(
+  await sqliteService.ensureSchedule(
     orderProcessingV2,
     orderInputSchema.parse({
       reference: "ORD-SCHED-1",
@@ -570,9 +570,9 @@ async function main() {
       mode: "complete",
       city: "Bucharest",
     }),
-    { interval: 300_000 }
+    { id: "order-queue-sweep", interval: 300_000 }
   );
-  await sqliteService.schedule(
+  await sqliteService.ensureSchedule(
     orderProcessingV2,
     orderInputSchema.parse({
       reference: "ORD-CRON-1",
@@ -580,7 +580,11 @@ async function main() {
       mode: "complete",
       city: "Cluj-Napoca",
     }),
-    { cron: "*/15 * * * *" }
+    {
+      id: "order-reconciliation",
+      cron: "*/15 * * * *",
+      timezone: "Europe/Bucharest",
+    }
   );
 
   // 9. Second runtime (`finance-memory`) so runtime selector displays both SQLite and Memory backends

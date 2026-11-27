@@ -1,3 +1,4 @@
+import { listScheduleRuns } from "./scheduleRuns";
 import { durableCatalog } from "./catalog";
 import type { Logger, Store } from "@bluelibs/runner";
 import { errors } from "@bluelibs/runner";
@@ -126,6 +127,17 @@ async function dispatch(
   }
   if (pathname === "/schedules/preview" && method === "POST") {
     res.json(previewSchedule(req.body));
+    return;
+  }
+  const scheduleRuns = pathname.match(/^\/schedules\/([^/]+)\/runs$/);
+  if (method === "GET" && scheduleRuns) {
+    res.json(
+      await listScheduleRuns(
+        runtime,
+        decodeURIComponent(scheduleRuns[1]),
+        req.query
+      )
+    );
     return;
   }
   const scheduleMatch = pathname.match(

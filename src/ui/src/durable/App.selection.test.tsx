@@ -3,7 +3,7 @@ import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { StudioApi } from "./api";
 import { App } from "./App";
-import { execution, executionDetail } from "./__tests__/fixtures";
+import { execution, executionDetail, schedule } from "./__tests__/fixtures";
 import { studioApi } from "./__tests__/studioApi";
 
 const runtime = {
@@ -184,4 +184,31 @@ test("the workflow catalog opens from navigation and searches event descriptions
     query: "missing",
     cursor: undefined,
   });
+});
+
+test("opens a cron's own runs and follows a run to its execution detail", async () => {
+  const { api } = await setup(false);
+  api.listSchedules.mockResolvedValue([
+    schedule({
+      type: "cron",
+      pattern: "0 8 * * *",
+      timezone: "Europe/Bucharest",
+    }),
+  ]);
+  api.listScheduleRuns.mockResolvedValue({
+    executions: [execution()],
+    hasMore: false,
+    nextCursor: null,
+    nextOffset: null,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Schedules" }));
+  expect(await screen.findByText("0 8 * * *")).toBeVisible();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "View runs for daily-orders" })
+  );
+  const dialog = await screen.findByRole("dialog", { name: "Schedule runs" });
+  fireEvent.click(await within(dialog).findByRole("button", { name: /run-1/ }));
+  expect(api.listScheduleRuns).toHaveBeenCalledWith("daily-orders", undefined);
+  expect(new URLSearchParams(location.search).get("select")).toBe("run-1");
+  expect(new URLSearchParams(location.search).get("view")).toBe("executions");
 });

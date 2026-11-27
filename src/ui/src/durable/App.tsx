@@ -1,3 +1,4 @@
+import { ScheduleRuns } from "./components/ScheduleRuns";
 import { WorkflowDirectory } from "./components/WorkflowDirectory";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
@@ -57,6 +58,7 @@ export function App({
   const {
     view,
     selectedId,
+    scheduleId,
     workflowFilter,
     statusFilter,
     query,
@@ -642,7 +644,8 @@ export function App({
               schedules={schedules}
               workflows={workflows}
               busy={busy}
-              dialogsAllowed={!modal}
+              onViewRuns={(id) => navigate({ scheduleId: id, modal: null })}
+              dialogsAllowed={!modal && !scheduleId}
               loading={scheduleFeed.loading}
               available={scheduleFeed.updatedAt !== null}
               now={now}
@@ -801,6 +804,24 @@ export function App({
           </>
         )}
 
+        {view === "schedules" && scheduleId && !modal && (
+          <ScheduleRuns
+            key={scheduleId}
+            api={api}
+            id={scheduleId}
+            onClose={() => navigate({ scheduleId: null })}
+            onOpen={(selectedId) =>
+              navigate({
+                view: "executions",
+                selectedId,
+                scheduleId: null,
+                workflowFilter: null,
+                query: "",
+                statusFilter: "all",
+              })
+            }
+          />
+        )}
         {starting && workflows.length > 0 ? (
           <StartModal
             workflows={workflows}

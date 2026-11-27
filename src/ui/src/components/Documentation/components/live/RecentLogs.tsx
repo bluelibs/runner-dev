@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../../../LoadingSkeleton";
 import React, {
   useCallback,
   useEffect,
@@ -48,6 +49,9 @@ interface RecentLogsProps {
   introspector: Introspector;
   logs: LogEntry[];
   historySearch?: {
+    pending?: boolean;
+    appending?: boolean;
+    unavailable?: string;
     query: string;
     setQuery: (value: string) => void;
     loadMore?: () => void;
@@ -249,21 +253,26 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isFullscreen, selectedLog, searchQuery, clearSearch]);
 
+  const hasCount = !historySearch?.pending && !historySearch?.unavailable;
   const matchCount = `${visibleLogs.length}${
     historySearch?.loadMore ? "+" : ""
   }`;
-  const olderMatches = historySearch?.loadMore && (
-    <button className="issue-action" onClick={historySearch.loadMore}>
-      Show older matches
-    </button>
+  const olderMatches = historySearch?.appending ? (
+    <LoadingSkeleton label="Loading older matches" rows={1} />
+  ) : (
+    historySearch?.loadMore && (
+      <button className="issue-action" onClick={historySearch.loadMore}>
+        Show older matches
+      </button>
+    )
   );
 
   return (
     <div className="recent-logs live-section">
       <div className="recent-logs__header">
         <h4 className="recent-logs__title">
-          {historySearch ? "Matching logs" : "Recent Logs"} ({logs.length}
-          {historySearch?.loadMore ? "+" : ""})
+          {historySearch ? "Matching logs" : "Recent Logs"}{" "}
+          {hasCount && `(${logs.length}${historySearch?.loadMore ? "+" : ""})`}
         </h4>
         <div className="recent-logs__search">
           <span className="recent-logs__search-icon" aria-hidden="true">
@@ -292,7 +301,7 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
             </button>
           )}
         </div>
-        {searchQuery && (
+        {searchQuery && hasCount && (
           <span className="recent-logs__match-count">
             {matchCount} match{visibleLogs.length !== 1 ? "es" : ""}
           </span>
@@ -313,7 +322,10 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
           isFullscreen ? "recent-logs__list--expanded" : ""
         }`}
       >
-        {searchQuery && visibleLogs.length === 0 ? (
+        {historySearch?.pending ? (
+          <LoadingSkeleton label="Loading matching logs" />
+        ) : historySearch?.unavailable ? null : searchQuery &&
+          visibleLogs.length === 0 ? (
           <div className="recent-logs__empty">
             <span className="recent-logs__empty-icon">
               <DocIcon name="diagnostics" size={20} />
@@ -413,7 +425,9 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
                 </button>
                 <span
                   className={`recent-logs-fs__match-count ${
-                    searchQuery ? "" : "recent-logs-fs__match-count--hidden"
+                    searchQuery && hasCount
+                      ? ""
+                      : "recent-logs-fs__match-count--hidden"
                   }`}
                 >
                   {matchCount} match
@@ -428,7 +442,13 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
         )}
       >
         <div className="recent-logs-fs__content">
-          {searchQuery && visibleLogs.length === 0 ? (
+          {historySearch?.pending ? (
+            <LoadingSkeleton label="Loading matching logs" />
+          ) : historySearch?.unavailable ? (
+            <p className="recent-logs-fs__empty" role="alert">
+              {historySearch.unavailable}
+            </p>
+          ) : searchQuery && visibleLogs.length === 0 ? (
             <div className="recent-logs-fs__empty">
               <span className="recent-logs-fs__empty-icon">
                 <DocIcon name="diagnostics" size={20} />

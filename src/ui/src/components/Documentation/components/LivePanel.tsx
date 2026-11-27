@@ -1,4 +1,5 @@
 ﻿import React, { useState } from "react";
+import { LoadingSkeleton } from "../../LoadingSkeleton";
 import { RecentLogs } from "./live/RecentLogs";
 import { RecentEvents } from "./live/RecentEvents";
 import { RecentRuns } from "./live/RecentRuns";
@@ -90,9 +91,8 @@ export const LivePanel: React.FC<LivePanelProps> = ({
     return (
       <div className="live-panel live-panel--loading">
         <LivePanelHeader />
-        <div className="live-loading">
-          <DocIcon name="live" size={14} /> Loading live data...
-        </div>
+        <LoadingSkeleton label="Loading live metrics" layout="metrics" />
+        <LoadingSkeleton label="Loading recent activity" />
       </div>
     );
   }

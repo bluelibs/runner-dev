@@ -14,6 +14,7 @@ export interface BaseModalProps {
   isOpen: boolean;
   /** Called when the user requests closing the modal (Escape, backdrop click). */
   onClose: () => void;
+  closeButtonRef?: React.Ref<HTMLButtonElement>;
   /** Optional title rendered in the default header. If `renderHeader` is
    *  provided, this is ignored. */
   title?: string;
@@ -82,6 +83,7 @@ function lockBodyScroll(): () => void {
 export const BaseModal: React.FC<BaseModalProps> = ({
   isOpen,
   onClose,
+  closeButtonRef,
   title,
   subtitle,
   size = "lg",
@@ -192,6 +194,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
         <div className="base-modal__header-right">
           <span className="base-modal__esc-hint">ESC to close</span>
           <button
+            ref={closeButtonRef}
             className="base-modal__close"
             onClick={onClose}
             aria-label="Close modal"
@@ -205,6 +208,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
         <div className="base-modal__header-right">
           <span className="base-modal__esc-hint">ESC to close</span>
           <button
+            ref={closeButtonRef}
             className="base-modal__close"
             onClick={onClose}
             aria-label="Close modal"

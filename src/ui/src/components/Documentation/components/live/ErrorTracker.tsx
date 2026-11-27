@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../../../LoadingSkeleton";
 import React, { useCallback, useState } from "react";
 import {
   useHistoryQuery,
@@ -20,7 +21,9 @@ export function ErrorTracker({
   const [limit, setLimit] = useState(25);
   const [selected, setSelected] = useState<IssueSummary | null>(null);
   const load = useCallback(() => loadTracker(filter), [filter]);
-  const { snapshot, failure } = useHistoryQuery(load, updates);
+  const { snapshot, failure } = useHistoryQuery(load, updates, {
+    debounceMs: filter ? 150 : 0,
+  });
   const groups = snapshot?.errorGroups ?? [];
   const total = groups.reduce((sum, group) => sum + group.count, 0);
 
@@ -50,6 +53,9 @@ export function ErrorTracker({
         <p className="issue-notice" role="alert">
           {failure}
         </p>
+      )}
+      {!snapshot && !failure && (
+        <LoadingSkeleton label="Loading issue counts" layout="metrics" />
       )}
       {snapshot && (
         <dl className="issue-metrics">
@@ -129,7 +135,7 @@ export function ErrorTracker({
           )}
         </>
       ) : (
-        !failure && <p className="issue-notice">Loading error history…</p>
+        !failure && <LoadingSkeleton label="Loading error history" />
       )}
       {selected && (
         <IssueInspector summary={selected} onClose={() => setSelected(null)} />

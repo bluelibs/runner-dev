@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../../../LoadingSkeleton";
 import React, { useEffect, useState } from "react";
 import { BaseModal } from "../modals";
 import { DocIcon } from "../common/DocIcon";
@@ -75,7 +76,11 @@ export function IssueInspector({
             <button onClick={() => setAttempt(attempt + 1)}>Retry</button>
           </p>
         ) : !issue ? (
-          <p>Loading occurrences…</p>
+          <LoadingSkeleton
+            label="Loading occurrences"
+            layout="detail"
+            rows={3}
+          />
         ) : (
           <>
             <label className="occurrence-picker">
@@ -167,7 +172,7 @@ function OccurrenceEvidence({
             <button onClick={() => setAttempt(attempt + 1)}>Retry</button>
           </p>
         ) : loading ? (
-          <p>Loading logs…</p>
+          <LoadingSkeleton label="Loading correlated logs" rows={3} />
         ) : trace?.logs.length ? (
           <ul className="issue-logs">
             {trace.logs.slice(-5).map((log) => (

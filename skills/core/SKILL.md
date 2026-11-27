@@ -43,6 +43,8 @@ The docs sidebar exposes **Durable** only when the backend's `/docs/data` payloa
 
 The error tracker keeps paired log data searchable and counts each matching exception once. Recording failures appear in the tracker and in `live.historyError`. The host continues running tasks, hooks and events when storage fails. ClickHouse checks for stale revisions before each write. Because this check and the insert are separate operations, configure one writer per live-history stream.
 
+Telemetry and Logs show placeholders while loading results. Opening a correlated trace displays its dialog immediately.
+
 The log explorer searches full retained history by case-insensitive terms across fields. Its toolbar filter (**Errors · grouped**) and **Telemetry → Error tracker** open the same issue inspector, including standalone error-level logs, correlated logs, generated agent prompts and JSON exports. Telemetry also exports all retained records or the current APM snapshot. Use `resources.sqlitePersistence`, `resources.redisPersistence`, `resources.clickHousePersistence` or `resources.postgresPersistence` with `dev.with({ persistence })` for shared history. The remote providers use one stream ID per active runtime. See the compact guide for driver and connection settings.
 
 ## Telemetry persistence

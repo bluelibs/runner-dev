@@ -154,14 +154,46 @@ function buildTimeline(
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const TraceView: React.FC<TraceViewProps> = ({
+export function TraceDialog({
+  correlationId,
+  onClose,
+  closeButtonRef,
+  children,
+}: Pick<TraceViewProps, "correlationId" | "onClose"> & {
+  children: React.ReactNode;
+  closeButtonRef?: React.Ref<HTMLButtonElement>;
+}) {
+  return (
+    <BaseModal
+      isOpen
+      onClose={onClose}
+      closeButtonRef={closeButtonRef}
+      title="Trace View"
+      subtitle={correlationId}
+      size="xl"
+      className="trace-view__panel"
+      ariaLabel={`Trace view for ${correlationId}`}
+    >
+      {children}
+    </BaseModal>
+  );
+}
+
+export function TraceView({ onClose, ...data }: TraceViewProps) {
+  return (
+    <TraceDialog correlationId={data.correlationId} onClose={onClose}>
+      <TraceTimeline {...data} />
+    </TraceDialog>
+  );
+}
+
+export function TraceTimeline({
   correlationId,
   logs,
   emissions,
   errors,
   runs,
-  onClose,
-}) => {
+}: Omit<TraceViewProps, "onClose">) {
   const timeline = useMemo(
     () => buildTimeline(correlationId, logs, emissions, errors, runs),
     [correlationId, logs, emissions, errors, runs]
@@ -190,15 +222,7 @@ export const TraceView: React.FC<TraceViewProps> = ({
   }, [timeline]);
 
   return (
-    <BaseModal
-      isOpen
-      onClose={onClose}
-      title="Trace View"
-      subtitle={correlationId}
-      size="xl"
-      className="trace-view__panel"
-      ariaLabel={`Trace view for ${correlationId}`}
-    >
+    <>
       {/* Stats bar */}
       <div className="trace-view__stats">
         {(Object.keys(stats) as TraceEntryKind[]).map((kind) => (
@@ -333,9 +357,9 @@ export const TraceView: React.FC<TraceViewProps> = ({
           </span>
         </div>
       )}
-    </BaseModal>
+    </>
   );
-};
+}
 
 /** Render a detail value — try to parse JSON for rich display, otherwise show raw. */
 function renderDetailValue(value: unknown): React.ReactNode {

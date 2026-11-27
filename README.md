@@ -749,6 +749,8 @@ Open **Logs** to search the full retained history. Every word in the search must
 
 The error tracker keeps paired log data searchable and counts each matching exception once. Recording failures appear in the tracker and in `live.historyError`. The host continues running tasks, hooks and events when storage fails. ClickHouse checks for stale revisions before each write. Because this check and the insert are separate operations, configure one writer per live-history stream.
 
+Telemetry and Logs show placeholders while loading results. Opening a correlated trace displays its dialog immediately.
+
 Open the funnel icon in the log explorer toolbar and choose **Errors · grouped** or **Telemetry → Error tracker** to see the same issues. The tracker combines captured exceptions with error, critical and fatal logs. Repeated failures share a group when the source, exception type, message (with UUIDs normalized) and first stack frame match. A correlated logged copy with the same source, message and frame as a captured exception counts once. Counts and first/last seen reflect retained history. Inspect the latest 50 occurrences, their captured data, and the selected occurrence’s correlated logs or trace. **Copy agent prompt** includes the selected evidence and up to ten log messages. **Export issue JSON** includes every retained occurrence in the group and the selected trace (up to 200 entries per category).
 
 **Export trace JSON** downloads the entries in the open correlation timeline. **Export telemetry JSON** downloads the full retained logs, errors, events and runs. Under **Telemetry → Performance**, **Export performance JSON** downloads the task and hook aggregates for the displayed window and scope.

@@ -2,6 +2,14 @@
 
 Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release ships; until then, changes collect under "Unreleased".
 
+## 6.11.0 — 2026-11-27
+
+- Search retained logs by message, source, level, correlation ID, and structured data. Open **Errors · grouped** from the log filter or **Telemetry → Error tracker** to inspect duplicate counts, individual occurrences, and correlated traces.
+- Copy an investigation prompt for a selected occurrence, or export filtered logs, issues, traces, performance summaries, and retained telemetry as JSON.
+- Store live history in Redis, ClickHouse, or PostgreSQL alongside the existing memory and SQLite options. The tracker reports recording failures while application tasks, hooks, and events continue running.
+- Browse registered workflow versions and durable events in **Durable → Workflow catalog**. Search names, keys, and descriptions before the first execution.
+- Open a cron or interval schedule in **Durable → Schedules** to see its retained runs and inspect an execution. Cron rows show the expression and configured time zone.
+
 ## 6.10.0 — 2026-11-27
 
 ### Added

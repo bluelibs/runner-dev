@@ -62,7 +62,7 @@ export function RetainedLogs({
           setQuery: search,
           pending: !snapshot && pending,
           appending: Boolean(snapshot && pending),
-          unavailable: !snapshot && Boolean(failure),
+          unavailable: snapshot ? undefined : failure,
           loadMore:
             snapshot && snapshot.length > limit
               ? () => setLimit(limit + 50)

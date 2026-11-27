@@ -157,14 +157,17 @@ function buildTimeline(
 export function TraceDialog({
   correlationId,
   onClose,
+  closeButtonRef,
   children,
 }: Pick<TraceViewProps, "correlationId" | "onClose"> & {
   children: React.ReactNode;
+  closeButtonRef?: React.Ref<HTMLButtonElement>;
 }) {
   return (
     <BaseModal
       isOpen
       onClose={onClose}
+      closeButtonRef={closeButtonRef}
       title="Trace View"
       subtitle={correlationId}
       size="xl"

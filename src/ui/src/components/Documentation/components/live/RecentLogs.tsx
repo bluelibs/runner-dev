@@ -51,7 +51,7 @@ interface RecentLogsProps {
   historySearch?: {
     pending?: boolean;
     appending?: boolean;
-    unavailable?: boolean;
+    unavailable?: string;
     query: string;
     setQuery: (value: string) => void;
     loadMore?: () => void;
@@ -444,8 +444,11 @@ export const RecentLogs: React.FC<RecentLogsProps> = ({
         <div className="recent-logs-fs__content">
           {historySearch?.pending ? (
             <LoadingSkeleton label="Loading matching logs" />
-          ) : historySearch?.unavailable ? null : searchQuery &&
-            visibleLogs.length === 0 ? (
+          ) : historySearch?.unavailable ? (
+            <p className="recent-logs-fs__empty" role="alert">
+              {historySearch.unavailable}
+            </p>
+          ) : searchQuery && visibleLogs.length === 0 ? (
             <div className="recent-logs-fs__empty">
               <span className="recent-logs-fs__empty-icon">
                 <DocIcon name="diagnostics" size={20} />

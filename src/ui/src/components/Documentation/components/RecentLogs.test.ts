@@ -55,6 +55,25 @@ describe("RecentLogs", () => {
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   });
 
+  it("shows a failed retained search inside the fullscreen log view", () => {
+    render(
+      React.createElement(RecentLogs, {
+        introspector: createIntrospectorMock(),
+        logs: [],
+        historySearch: {
+          query: "orders",
+          setQuery: jest.fn(),
+          unavailable: "History connection lost",
+        },
+      })
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enter full screen" }));
+    expect(screen.getByRole("alert").textContent).toBe(
+      "History connection lost"
+    );
+    expect(screen.queryByText("No logs found")).toBeNull();
+  });
+
   it("renders overview-style source labels while keeping canonical anchors", () => {
     const target = document.createElement("div");
     target.id = "element-enhanced-app.features.tasks.server";

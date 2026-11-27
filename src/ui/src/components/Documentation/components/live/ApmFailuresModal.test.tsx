@@ -15,8 +15,17 @@ jest.mock("../modals", () => ({
   ),
 }));
 jest.mock("./TraceView", () => ({
-  TraceDialog: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
+  TraceDialog: ({
+    children,
+    closeButtonRef,
+  }: {
+    children: React.ReactNode;
+    closeButtonRef: React.Ref<HTMLButtonElement>;
+  }) => (
+    <div>
+      <button ref={closeButtonRef}>Close trace</button>
+      {children}
+    </div>
   ),
   TraceTimeline: ({ correlationId }: { correlationId: string }) => (
     <div>Trace for {correlationId}</div>
@@ -57,7 +66,14 @@ it("opens the correlated trace and shows retained error stack details", async ()
     await screen.findByRole("button", { name: "View trace & logs" })
   );
   expect(screen.getByRole("status", { name: "Loading trace" })).toBeTruthy();
-  fireEvent.click(await screen.findByRole("button", { name: "Retry trace" }));
+  const retryButton = await screen.findByRole("button", {
+    name: "Retry trace",
+  });
+  retryButton.focus();
+  fireEvent.click(retryButton);
+  expect(document.activeElement).toBe(
+    screen.getByRole("button", { name: "Close trace" })
+  );
   expect(screen.getByRole("status", { name: "Loading trace" })).toBeTruthy();
   expect(await screen.findByText("Trace for order-1")).toBeTruthy();
   expect(trace).toHaveBeenCalledWith("order-1");

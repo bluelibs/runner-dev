@@ -71,6 +71,19 @@ Register `devTools` in the root. `persistence` accepts a provider resource or co
 
 SQLite uses the built-in `node:sqlite`, loaded lazily, with no npm runtime dependency. Use Node 22.13+ or 24+ (22.5–22.12 needs `--experimental-sqlite`), a stable file path, one file per app/runtime, and a gitignored database directory. Parent directories are created. Each store owns a worker thread for opening, restoration, batched SQL, eviction and closing. Recording synchronously validates/snapshots and queues before notification; disk commits happen asynchronously in atomic batches. Queues hold at most 10,000 pending/in-flight entries, with batches of 1000 and a 1-second flush interval. Queue overflow rejects new entries; write failures latch and surface via status/subsequent recording/flush/close. Graceful disposal drains and closes; abrupt termination may lose pending entries. Open/restore failures reject startup. Direct SQLite users must await load() before restored recording and await close(); flush() acknowledges commits and status() returns pendingEntries/error. The cap counts rows, not bytes; SQLite reuses freed pages. Payloads restore as JSON snapshots (errors retain name/message/stack; bigint/symbols become strings, functions `[Function]`, circular/repeated references `[Circular]`, dates JSON strings).
 
+### Shared log and error storage
+
+Use the same `persistence` option for the log explorer, error tracker and trace history. Without a provider, DevTools searches the in-memory history. With a provider, DevTools restores the latest `maxEntries` per category before serving reads. Durable workflows and APM are optional.
+
+| Provider | Configuration for `dev.with({ persistence: ... })` | Connection |
+| --- | --- | --- |
+| SQLite | `resources.sqlitePersistence.with({ file: "./.runner-dev/history.sqlite" })` | Built-in Node SQLite |
+| Redis | `resources.redisPersistence.with({ url: "redis://localhost:6379", streamId: "checkout" })` | Install optional `ioredis`. Set `REDIS_USERNAME` and `REDIS_PASSWORD` as needed. |
+| ClickHouse | `resources.clickHousePersistence.with({ url: "http://localhost:8123", database: "default", streamId: "checkout" })` | Native HTTP. Set `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` as needed. |
+| PostgreSQL | `resources.postgresPersistence.with({ streamId: "checkout" })` | Install optional `pg`. Set `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` and standard pg SSL settings. |
+
+Give each active runtime a separate file or stream ID. Remote adapters snapshot records into a 10,000-entry bounded queue, flush every second or at 1,000 entries, and drain on graceful shutdown. A full queue rejects new entries. A failed write surfaces on subsequent writes, flush or shutdown. Abrupt termination can lose queued entries. Restarting with a lower cap evicts older records. PostgreSQL and ClickHouse create a table named `runner_dev_live_history`. ClickHouse reads the latest version of each slot with `FINAL`; background merges reclaim superseded rows. Redis stores one hash per stream and depends on the Redis server's persistence settings for recovery after Redis restarts.
+
 Custom persistence resources return exported `LivePersistence` directly. `load({ maxEntries })` may be sync or async; it trims every category and returns `{ entries: LivePersistedEntry[], lastSequence }` in unique ascending sequence order; `lastSequence` includes evicted records, or `0` for a new store. Synchronous `append({ kind, entry }, { maxEntries })` returns `undefined`, accepting an atomic commit or immutable snapshot into a bounded queue, or throws. Buffered providers must drain on disposal and expose failures; committed batches atomically update records, sequences and eviction. Promise writes are rejected at compile time and guarded at runtime; invalid provider values fail startup. Validate before committing (SQLite validates serialized records) to prevent invalid snapshots from poisoning restart recovery. `kind` is `log`, `emission`, `error` or `run`. The provider resource owns setup and cleanup through `init()`/`dispose()`; Runner disposes initialized providers if restoration fails. Use `dev.with({ persistence: myProviderResource })`. `LivePersistenceResource`/`LivePersistenceSource` describe accepted references. See README's custom resource example; avoid provider dependencies on live itself (cycles).
 
 Expected endpoints after the app starts:
@@ -141,12 +154,21 @@ The timeline shows observed persisted history and the current activity, rather t
 
 For a local example in this repository, run `npm run build:ui` followed by `npm run play:durable`, then open `http://localhost:31339/durable`. This starts a two-runtime application (`operations-sqlite` + `finance-memory`) with multi-version workflows, tracked commands, a checkpoint branch, a paused run, and a history-collected retention example.
 
+### Log explorer and error tracker
+
+Open **Logs** to search the full retained history. Every word in the search must match somewhere in the message, level, source, correlation ID, or structured data. Matches start with the latest 50. Choose **Show older matches** to extend the list or **Export matching logs** to download every match as JSON.
+
+Open the funnel icon in the log explorer toolbar and choose **Errors · grouped** or **Telemetry → Error tracker** to see the same issues. The tracker combines captured exceptions with error, critical and fatal logs. Repeated failures share a group when the source, exception type, message (with UUIDs normalized) and first stack frame match. A correlated logged copy with the same source, message and frame as a captured exception counts once. Counts and first/last seen reflect retained history. Inspect the latest 50 occurrences, their captured data, and the selected occurrence’s correlated logs or trace. **Copy agent prompt** includes the selected evidence and up to ten log messages. **Export issue JSON** includes every retained occurrence in the group and the selected trace (up to 200 entries per category).
+
+**Export trace JSON** downloads the entries in the open correlation timeline. **Export telemetry JSON** downloads the full retained logs, errors, events and runs. Under **Telemetry → Performance**, **Export performance JSON** downloads the task and hook aggregates for the displayed window and scope.
+
+[Log search](screenshots/telemetry/log-explorer-search.png) · [Log level filter](screenshots/telemetry/log-level-filter-menu.png) · [Grouped errors](screenshots/telemetry/telemetry-error-tracker.png) · [Issue details](screenshots/telemetry/telemetry-issue-details.png)
+
 ### Opt-in task and hook performance (APM)
 
 Enable with `dev.with({ apm: true })` (also supported by `resources.live.with()`).
-The **Telemetry** tab shows task and hook APM in separate views. The **Logs** tab provides focused log inspection
-and correlation traces. **Live** retains its original process health, logs, events and runs.
-The storage badge names the reported backend, including Redis and ClickHouse separately.
+The **Telemetry** tab shows task and hook APM in separate views. The storage badge identifies the APM backend. **Live** shows process health, logs, events and runs.
+
 Click a nonzero failure rate to inspect retained errors for that task or hook in the selected window and scope. Correlation IDs open the related trace and logs (up to 200 retained entries per category). Failure details start with the latest 50 matching runs and errors; scrolling automatically loads older retained errors in fixed-size pages; aggregate APM history may outlast those records.
 APM records every completed application task and hook, including failed calls,
 and excludes internal GraphQL tasks. Hook reactions include delegated task work. Timing uses a monotonic clock. Duration is inclusive

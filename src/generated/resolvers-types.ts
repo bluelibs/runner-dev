@@ -483,6 +483,8 @@ export type Live = {
   cpu: CpuStats;
   /** Event emissions with optional cursor (afterSequence or afterTimestamp), filters and last N */
   emissions: Array<EmissionEntry>;
+  /** Errors grouped across retained live history, newest recorded group first. */
+  errorGroups: Array<LiveErrorGroup>;
   /** Errors captured with optional cursor (afterSequence or afterTimestamp), filters and last N */
   errors: Array<ErrorEntry>;
   /** Event loop statistics */
@@ -491,6 +493,8 @@ export type Live = {
   gc: GcStats;
   /** Per-resource health report. Only includes resources with a health() probe defined. */
   healthReport: Maybe<ResourceHealthReport>;
+  /** Whether a live history persistence provider is configured. */
+  historyPersisted: Maybe<Scalars['Boolean']['output']>;
   /** Live logs with optional cursor (afterSequence or afterTimestamp), filters and last N */
   logs: Array<LogEntry>;
   /** Process memory usage */
@@ -516,6 +520,13 @@ export type LiveEmissionsArgs = {
   beforeSequence: InputMaybe<Scalars['Float']['input']>;
   filter: InputMaybe<EmissionFilterInput>;
   last: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+/** Real-time telemetry access: logs, event emissions, errors, runs, and system health. */
+export type LiveErrorGroupsArgs = {
+  id: InputMaybe<Scalars['ID']['input']>;
+  search: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -560,6 +571,22 @@ export type LiveRunsArgs = {
   last: InputMaybe<Scalars['Int']['input']>;
 };
 
+export type LiveErrorGroup = {
+  __typename?: 'LiveErrorGroup';
+  count: Scalars['Int']['output'];
+  firstSeenMs: Scalars['Float']['output'];
+  id: Scalars['ID']['output'];
+  lastSeenMs: Scalars['Float']['output'];
+  latest: ErrorEntry;
+  /** Retained occurrences in descending sequence order. Omit last for the whole group. */
+  occurrences: Array<ErrorEntry>;
+};
+
+
+export type LiveErrorGroupOccurrencesArgs = {
+  last: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type LogEntry = {
   __typename?: 'LogEntry';
   /** Correlation id for tracing */
@@ -586,6 +613,8 @@ export type LogFilterInput = {
   levels: InputMaybe<Array<LogLevelEnum>>;
   /** Substring match inside message */
   messageIncludes: InputMaybe<Scalars['String']['input']>;
+  /** All case-insensitive tokens must match across message, level, source, correlation ID or recorded data. */
+  search: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Supported log levels. Runner's logger emits trace, debug, info, warn, error and critical; fatal and log only come from entries recorded directly through Live.recordLog. */
@@ -1314,6 +1343,7 @@ export type ShellCompletionOption = {
 export type SourceKindEnum =
   | 'HOOK'
   | 'INTERNAL'
+  | 'LOG'
   | 'MIDDLEWARE'
   | 'RESOURCE'
   | 'TASK';
@@ -1694,7 +1724,8 @@ export type ResolversTypes = ResolversObject<{
   IsolationChannels: ResolverTypeWrapper<IsolationChannels>;
   IsolationExportsMode: null;
   IsolationWhitelistEntry: ResolverTypeWrapper<IsolationWhitelistEntry>;
-  Live: ResolverTypeWrapper<Omit<Live, 'emissions' | 'errors' | 'runs'> & { emissions: Array<ResolversTypes['EmissionEntry']>, errors: Array<ResolversTypes['ErrorEntry']>, runs: Array<ResolversTypes['RunRecord']> }>;
+  Live: ResolverTypeWrapper<Omit<Live, 'emissions' | 'errorGroups' | 'errors' | 'runs'> & { emissions: Array<ResolversTypes['EmissionEntry']>, errorGroups: Array<ResolversTypes['LiveErrorGroup']>, errors: Array<ResolversTypes['ErrorEntry']>, runs: Array<ResolversTypes['RunRecord']> }>;
+  LiveErrorGroup: ResolverTypeWrapper<Omit<LiveErrorGroup, 'latest' | 'occurrences'> & { latest: ResolversTypes['ErrorEntry'], occurrences: Array<ResolversTypes['ErrorEntry']> }>;
   LogEntry: ResolverTypeWrapper<LogEntry>;
   LogFilterInput: LogFilterInput;
   LogLevelEnum: LogLevelEnum;
@@ -1778,7 +1809,8 @@ export type ResolversParentTypes = ResolversObject<{
   InterceptorOwnersSnapshot: InterceptorOwnersSnapshot;
   IsolationChannels: IsolationChannels;
   IsolationWhitelistEntry: IsolationWhitelistEntry;
-  Live: Omit<Live, 'emissions' | 'errors' | 'runs'> & { emissions: Array<ResolversParentTypes['EmissionEntry']>, errors: Array<ResolversParentTypes['ErrorEntry']>, runs: Array<ResolversParentTypes['RunRecord']> };
+  Live: Omit<Live, 'emissions' | 'errorGroups' | 'errors' | 'runs'> & { emissions: Array<ResolversParentTypes['EmissionEntry']>, errorGroups: Array<ResolversParentTypes['LiveErrorGroup']>, errors: Array<ResolversParentTypes['ErrorEntry']>, runs: Array<ResolversParentTypes['RunRecord']> };
+  LiveErrorGroup: Omit<LiveErrorGroup, 'latest' | 'occurrences'> & { latest: ResolversParentTypes['ErrorEntry'], occurrences: Array<ResolversParentTypes['ErrorEntry']> };
   LogEntry: LogEntry;
   LogFilterInput: LogFilterInput;
   MemoryStats: MemoryStats;
@@ -2053,14 +2085,25 @@ export type LiveResolvers<ContextType = CustomGraphQLContext, ParentType extends
   apm: Resolver<Maybe<ResolversTypes['ApmSnapshot']>, ParentType, ContextType, LiveApmArgs>;
   cpu: Resolver<ResolversTypes['CpuStats'], ParentType, ContextType>;
   emissions: Resolver<Array<ResolversTypes['EmissionEntry']>, ParentType, ContextType, LiveEmissionsArgs>;
+  errorGroups: Resolver<Array<ResolversTypes['LiveErrorGroup']>, ParentType, ContextType, LiveErrorGroupsArgs>;
   errors: Resolver<Array<ResolversTypes['ErrorEntry']>, ParentType, ContextType, LiveErrorsArgs>;
   eventLoop: Resolver<ResolversTypes['EventLoopStats'], ParentType, ContextType, LiveEventLoopArgs>;
   gc: Resolver<ResolversTypes['GcStats'], ParentType, ContextType, LiveGcArgs>;
   healthReport: Resolver<Maybe<ResolversTypes['ResourceHealthReport']>, ParentType, ContextType>;
+  historyPersisted: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   logs: Resolver<Array<ResolversTypes['LogEntry']>, ParentType, ContextType, LiveLogsArgs>;
   memory: Resolver<ResolversTypes['MemoryStats'], ParentType, ContextType>;
   runs: Resolver<Array<ResolversTypes['RunRecord']>, ParentType, ContextType, LiveRunsArgs>;
   systemInfo: Resolver<ResolversTypes['SystemInfo'], ParentType, ContextType>;
+}>;
+
+export type LiveErrorGroupResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['LiveErrorGroup'] = ResolversParentTypes['LiveErrorGroup']> = ResolversObject<{
+  count: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  firstSeenMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  lastSeenMs: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  latest: Resolver<ResolversTypes['ErrorEntry'], ParentType, ContextType>;
+  occurrences: Resolver<Array<ResolversTypes['ErrorEntry']>, ParentType, ContextType, LiveErrorGroupOccurrencesArgs>;
 }>;
 
 export type LogEntryResolvers<ContextType = CustomGraphQLContext, ParentType extends ResolversParentTypes['LogEntry'] = ResolversParentTypes['LogEntry']> = ResolversObject<{
@@ -2565,6 +2608,7 @@ export type Resolvers<ContextType = CustomGraphQLContext> = ResolversObject<{
   IsolationExportsMode: IsolationExportsModeResolvers;
   IsolationWhitelistEntry: IsolationWhitelistEntryResolvers<ContextType>;
   Live: LiveResolvers<ContextType>;
+  LiveErrorGroup: LiveErrorGroupResolvers<ContextType>;
   LogEntry: LogEntryResolvers<ContextType>;
   MemoryStats: MemoryStatsResolvers<ContextType>;
   Meta: MetaResolvers<ContextType>;

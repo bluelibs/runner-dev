@@ -95,27 +95,28 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   children,
 }) => {
   const stack = useModalStack();
+  const { push, remove } = stack;
   const modalIdRef = useRef<ModalId | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
   // ------- Stack registration -------
   // We wrap onClose so Escape via the stack only fires for modals that want it.
+  const closeHandler = useRef(onClose);
+  closeHandler.current = onClose;
   const guardedClose = useCallback(() => {
-    if (closeOnEscape) onClose();
-  }, [closeOnEscape, onClose]);
+    if (closeOnEscape) closeHandler.current();
+  }, [closeOnEscape]);
 
   useEffect(() => {
-    if (isOpen) {
-      modalIdRef.current = stack.push(guardedClose);
-    }
+    if (!isOpen) return;
+    const id = push(guardedClose);
+    modalIdRef.current = id;
     return () => {
-      if (modalIdRef.current) {
-        stack.remove(modalIdRef.current);
-        modalIdRef.current = null;
-      }
+      remove(id);
+      modalIdRef.current = null;
     };
-  }, [isOpen, guardedClose, stack]);
+  }, [isOpen, guardedClose, push, remove]);
 
   // ------- Scroll lock (first modal only) -------
   useEffect(() => {

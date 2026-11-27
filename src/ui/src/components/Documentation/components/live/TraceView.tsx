@@ -8,6 +8,8 @@ import type {
 } from "../../hooks/useLiveStream";
 import { BaseModal } from "../modals";
 import { DocIcon } from "../common/DocIcon";
+import { downloadTelemetry } from "./telemetryExport";
+import { TelemetryExportButton } from "./TelemetryExportButton";
 import "./TraceView.scss";
 
 // ─── Unified timeline entry ──────────────────────────────────────────────────
@@ -212,6 +214,15 @@ export const TraceView: React.FC<TraceViewProps> = ({
         <span className="trace-view__stat trace-view__stat--total">
           {timeline.length} total
         </span>
+        <TelemetryExportButton
+          label="Export trace JSON"
+          onExport={() =>
+            downloadTelemetry("trace", {
+              correlationId,
+              timeline: timeline.map(({ kind, raw }) => ({ kind, entry: raw })),
+            })
+          }
+        />
       </div>
 
       {/* Timeline */}

@@ -50,6 +50,7 @@ const persistedEntrySchema = z.discriminatedUnion("kind", [
         "RESOURCE",
         "MIDDLEWARE",
         "INTERNAL",
+        "LOG",
       ]),
       message: z.string(),
       stack: z.string().nullish(),

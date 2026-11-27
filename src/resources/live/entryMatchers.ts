@@ -1,3 +1,4 @@
+import { historySearch } from "./searchHistory";
 import { idsMatch } from "./idCanonicalizer";
 import type {
   EmissionEntry,
@@ -67,6 +68,7 @@ function correlatedWith<T extends { correlationId?: string | null }>(
 
 export function buildLogMatcher(options: LogQueryOptions): Predicate<LogEntry> {
   return allOf<LogEntry>([
+    historySearch(options.search) ?? null,
     oneOf(options.levels, (entry) => entry.level),
     messageContains(options.messageIncludes),
     correlatedWith(options.correlationIds),

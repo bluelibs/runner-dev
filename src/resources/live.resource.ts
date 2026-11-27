@@ -194,6 +194,7 @@ const liveService = defineResource({
     };
 
     return {
+      historyPersisted: persistenceStore !== undefined,
       getApm: (windowMinutes, scope) => apm.snapshot(windowMinutes, scope),
       recordLog(level, message, data, correlationId, sourceId) {
         append({

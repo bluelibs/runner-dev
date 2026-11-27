@@ -1,0 +1,114 @@
+@use "./telemetrySelect";
+
+.issue-body {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  h3,
+  h4,
+  p {
+    margin: 0;
+  }
+  h3 {
+    font-size: 21px;
+    overflow-wrap: anywhere;
+  }
+  h4 {
+    font-size: 13px;
+  }
+  p,
+  label,
+  summary {
+    font-size: 13px;
+    color: var(--docs-text-secondary);
+  }
+  pre,
+  .issue-prompt {
+    box-sizing: border-box;
+    background: var(--docs-bg-primary);
+    border: 1px solid var(--docs-border-primary);
+    border-radius: 6px;
+    padding: 12px;
+    color: var(--docs-text-primary);
+    font: 12px/1.6 monospace;
+  }
+  pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 170px;
+    overflow: auto;
+    margin: 8px 0 0;
+  }
+  .issue-prompt {
+    width: 100%;
+    min-height: 200px;
+    resize: vertical;
+  }
+  .issue-facts {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    border-block: 1px solid var(--docs-border-primary);
+    padding: 12px 0;
+    margin: 0;
+    font-size: 12px;
+    dt {
+      color: var(--docs-text-muted);
+    }
+    dd {
+      margin: 4px 0 0;
+    }
+  }
+  .occurrence-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  select {
+    width: auto;
+    max-width: 100%;
+    background: var(--docs-bg-secondary);
+    color: var(--docs-text-primary);
+    border-radius: 5px;
+    border: 1px solid var(--docs-border-primary);
+    padding-block: 7px;
+    @include telemetrySelect.inset-chevron;
+  }
+  .issue-section-head {
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .issue-logs {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .issue-logs li {
+    display: grid;
+    grid-template-columns: auto 45px minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+    border-top: 1px solid var(--docs-border-primary);
+    padding: 7px 0;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  time,
+  .issue-actions span {
+    font-size: 11px;
+    color: var(--docs-text-secondary);
+  }
+  .issue-logs b {
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+  .issue-actions {
+    border-top: 1px solid var(--docs-border-primary);
+    padding-top: 14px;
+  }
+  .issue-action--primary {
+    background: var(--docs-text-primary);
+    color: var(--docs-bg-primary);
+  }
+}

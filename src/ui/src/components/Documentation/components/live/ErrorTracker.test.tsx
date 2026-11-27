@@ -106,3 +106,21 @@ it("distinguishes an unavailable feed from an empty history", async () => {
   );
   await screen.findByText("No errors in retained history.");
 });
+
+it("keeps focus and removes earlier results when a different search fails", async () => {
+  request
+    .mockResolvedValueOnce({
+      live: { errorGroups: [group], historyError: "queue full" },
+    })
+    .mockRejectedValueOnce(new Error("Search offline"));
+  render(<ErrorTracker active={false} refreshKey={0} pollInterval={2000} />);
+  await screen.findByText("Provider timed out");
+  expect(screen.getByRole("alert").textContent).toContain("queue full");
+  const search = screen.getByRole("searchbox");
+  search.focus();
+  fireEvent.change(search, { target: { value: "different" } });
+  expect(document.activeElement).toBe(search);
+  expect(screen.queryByText("Provider timed out")).toBeNull();
+  await screen.findByText("Search offline");
+  expect(screen.queryByText("Provider timed out")).toBeNull();
+});

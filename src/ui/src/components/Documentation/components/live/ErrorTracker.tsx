@@ -41,40 +41,47 @@ export function ErrorTracker({
           </span>
         )}
       </header>
+      {snapshot?.historyError && (
+        <p className="issue-notice" role="alert">
+          History recording failed: {snapshot.historyError}
+        </p>
+      )}
       {failure && (
         <p className="issue-notice" role="alert">
           {failure}
         </p>
       )}
+      {snapshot && (
+        <dl className="issue-metrics">
+          <div>
+            <dt>Distinct issues</dt>
+            <dd>{groups.length.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Occurrences</dt>
+            <dd>{total.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Repeat occurrences</dt>
+            <dd>{(total - groups.length).toLocaleString()}</dd>
+          </div>
+        </dl>
+      )}
+      <div className="issue-list-head">
+        <h4>Recent issues</h4>
+        <input
+          type="search"
+          aria-label="Filter issues"
+          placeholder="Search error history…"
+          value={filter}
+          onChange={(e) => {
+            setFilter(e.target.value);
+            setLimit(25);
+          }}
+        />
+      </div>
       {snapshot ? (
         <>
-          <dl className="issue-metrics">
-            <div>
-              <dt>Distinct issues</dt>
-              <dd>{groups.length.toLocaleString()}</dd>
-            </div>
-            <div>
-              <dt>Occurrences</dt>
-              <dd>{total.toLocaleString()}</dd>
-            </div>
-            <div>
-              <dt>Repeat occurrences</dt>
-              <dd>{(total - groups.length).toLocaleString()}</dd>
-            </div>
-          </dl>
-          <div className="issue-list-head">
-            <h4>Recent issues</h4>
-            <input
-              type="search"
-              aria-label="Filter issues"
-              placeholder="Search error history…"
-              value={filter}
-              onChange={(e) => {
-                setFilter(e.target.value);
-                setLimit(25);
-              }}
-            />
-          </div>
           {groups.slice(0, limit).map((group) => (
             <button
               className="issue-row"

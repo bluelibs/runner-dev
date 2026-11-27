@@ -52,14 +52,19 @@ export function errorGroupsField(
       ctx: CustomGraphQLContext
     ) => {
       const logs = ctx.live.getLogs({ levels: ["error", "critical", "fatal"] });
-      const groups = groupErrors(
-        combineErrorRecords(ctx.live.getErrors(), logs),
-        args.id
+      const { entries, pairedLogs } = combineErrorRecords(
+        ctx.live.getErrors(),
+        logs
       );
+      const groups = groupErrors(entries, args.id);
       const matches = historySearch(args.search);
-      return matches
-        ? groups.filter((group) => group.occurrences.some(matches))
-        : groups;
+      if (!matches) return groups;
+      return groups.filter((group) =>
+        group.occurrences.some((entry) => {
+          const log = pairedLogs.get(entry);
+          return matches(entry) || (log && matches(log));
+        })
+      );
     },
   };
 }

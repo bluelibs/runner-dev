@@ -1,3 +1,4 @@
+import { observeHistory } from "./live/observeHistory";
 import { resources, defineResource, type Store } from "@bluelibs/runner";
 import { graphqlQueryCliTask } from "./graphql.query.cli.task";
 import { graphqlQueryTask } from "./graphql.query.task";
@@ -45,7 +46,9 @@ const overrideEventManagerEmittor = defineResource({
           typeof emission?.source === "string"
             ? emission.source
             : emission?.source?.id ?? null;
-        live.recordEmission(emission.id, emission.data, emitterId);
+        observeHistory(live, () =>
+          live.recordEmission(emission.id, emission.data, emitterId)
+        );
         return next(emission);
       });
     });
@@ -76,17 +79,19 @@ const hookInterceptors = defineResource({
         } catch (error) {
           durationMs = performance.now() - startedAt;
           hookError = error;
-          live.recordError(hook.id, "HOOK", error);
+          observeHistory(live, () => live.recordError(hook.id, "HOOK", error));
           throw error;
         } finally {
-          live.recordRun(
-            hook.id,
-            "HOOK",
-            durationMs,
-            ok,
-            hookError,
-            parentId,
-            rootId
+          observeHistory(live, () =>
+            live.recordRun(
+              hook.id,
+              "HOOK",
+              durationMs,
+              ok,
+              hookError,
+              parentId,
+              rootId
+            )
           );
         }
       });
@@ -132,17 +137,19 @@ const taskInterceptors = defineResource({
         } catch (error) {
           durationMs = performance.now() - startedAt;
           taskError = error;
-          live.recordError(id, "TASK", error);
+          observeHistory(live, () => live.recordError(id, "TASK", error));
           throw error;
         } finally {
-          live.recordRun(
-            id,
-            "TASK",
-            durationMs,
-            ok,
-            taskError,
-            parentId,
-            rootId
+          observeHistory(live, () =>
+            live.recordRun(
+              id,
+              "TASK",
+              durationMs,
+              ok,
+              taskError,
+              parentId,
+              rootId
+            )
           );
         }
       });

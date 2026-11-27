@@ -165,3 +165,48 @@ test("normalizes UUIDs and pairs each correlated exception with at most one logg
     ],
   });
 });
+
+test("paired log metadata remains searchable and distinct exception types at the same frame remain separate", async () => {
+  const entry = {
+    sourceId: "charge",
+    message: "invalid",
+    timestampMs: 1,
+    correlationId: "order-1",
+  };
+  const stack = (name: string) => name + ": invalid\n    at charge (pay.ts:7)";
+  const contextValue = {
+    live: {
+      getErrors: () => [
+        {
+          ...entry,
+          sourceKind: "TASK",
+          sequence: 1,
+          stack: stack("TypeError"),
+        },
+      ],
+      getLogs: () =>
+        ["RangeError", "TypeError"].map((name, i) => ({
+          ...entry,
+          level: "error",
+          sequence: 2 + i,
+          data: {
+            region: name === "TypeError" ? "north" : "south",
+            error: { stack: stack(name) },
+          },
+        })),
+    },
+  };
+  const result = await graphql({
+    schema,
+    contextValue,
+    source: `{live{
+    north:errorGroups(search:"north") { count latest {sequence} }
+    south:errorGroups(search:"south") { count latest {sequence} }
+  }}`,
+  });
+  expect(result.errors).toBeUndefined();
+  expect(result.data?.live).toEqual({
+    north: [{ count: 1, latest: { sequence: 1 } }],
+    south: [{ count: 1, latest: { sequence: 2 } }],
+  });
+});

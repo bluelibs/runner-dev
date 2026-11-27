@@ -1,3 +1,5 @@
+import { telemetry } from "../../resources/telemetry.resource";
+import { historyRecordingError } from "../../resources/live/observeHistory";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -226,4 +228,62 @@ describe("persistence provider resources", () => {
       await runtime.dispose();
     }
   });
+});
+
+test("instrumentation preserves task results, original errors and event delivery during a storage outage", async () => {
+  const failure = new Error("payment declined");
+  const received = jest.fn();
+  const paid = r.event("paid").build();
+  const notify = r
+    .hook("notify")
+    .on(paid)
+    .run(async () => {
+      received();
+    })
+    .build();
+  const ok = r
+    .task("success")
+    .run(async () => 42)
+    .build();
+  const bad = r
+    .task("failure")
+    .run(async () => {
+      throw failure;
+    })
+    .build();
+  const provider = r
+    .resource("offline")
+    .init(
+      async (): Promise<LivePersistence> => ({
+        ...store(),
+        append() {
+          throw new Error("storage offline");
+        },
+      })
+    )
+    .build();
+  const app = r
+    .resource("outage")
+    .register([
+      resources.live.with({ persistence: provider }),
+      telemetry,
+      paid,
+      notify,
+      ok,
+      bad,
+    ])
+    .build();
+  const runtime = await run(app, quietRuntime);
+  try {
+    const live = runtime.getResourceValue(resources.live);
+    await expect(runtime.runTask(ok)).resolves.toBe(42);
+    await expect(runtime.runTask(bad)).rejects.toBe(failure);
+    await runtime.emitEvent(paid);
+    expect(received).toHaveBeenCalledTimes(1);
+    expect(historyRecordingError(live)).toBe("storage offline");
+    expect(live.getRuns()).toEqual([]);
+    expect(() => live.recordLog("info", "manual")).toThrow("storage offline");
+  } finally {
+    await runtime.dispose();
+  }
 });

@@ -1,3 +1,4 @@
+import { errorStackIdentity } from "./errorGroups";
 import type { ErrorEntry, LogEntry } from "./types";
 
 const logErrors = new WeakMap<LogEntry, ErrorEntry>();
@@ -35,20 +36,28 @@ export function combineErrorRecords(errors: ErrorEntry[], logs: LogEntry[]) {
       e.correlationId,
       e.sourceId,
       e.message,
-      e.stack?.match(/^\s*at (.+)$/m)?.[1] ?? "",
+      ...errorStackIdentity(e),
     ]);
-  const copies = new Map<string, number>();
-  for (const error of errors) {
+  const copies = new Map<string, ErrorEntry[]>();
+  const pairedLogs = new Map<ErrorEntry, LogEntry>();
+  for (let i = errors.length - 1; i >= 0; i--) {
+    const error = errors[i];
     const key = identity(error);
-    if (key) copies.set(key, (copies.get(key) ?? 0) + 1);
+    if (!key) continue;
+    const queue = copies.get(key) ?? [];
+    queue.push(error);
+    copies.set(key, queue);
   }
   const combined = [...errors];
   for (const log of logs) {
     const entry = fromLog(log);
     const key = identity(entry);
-    const remaining = key ? copies.get(key) ?? 0 : 0;
-    if (key && remaining) copies.set(key, remaining - 1);
+    const captured = key ? copies.get(key)?.pop() : undefined;
+    if (captured) pairedLogs.set(captured, log);
     else combined.push(entry);
   }
-  return combined.sort((a, b) => a.sequence - b.sequence);
+  return {
+    entries: combined.sort((a, b) => a.sequence - b.sequence),
+    pairedLogs,
+  };
 }

@@ -1,3 +1,4 @@
+import { historyRecordingError } from "../../resources/live/observeHistory";
 import {
   GraphQLFloat,
   GraphQLID,
@@ -387,6 +388,12 @@ export const LiveType = new GraphQLObjectType<unknown, CustomGraphQLContext>({
         null,
     },
     errorGroups: errorGroupsField(ErrorEntryType),
+    historyError: {
+      type: GraphQLString,
+      description:
+        "Most recent instrumentation or persistence failure for this runtime.",
+      resolve: (_root, _args, ctx) => historyRecordingError(ctx.live),
+    },
     historyPersisted: {
       description: "Whether a live history persistence provider is configured.",
       type: GraphQLBoolean,

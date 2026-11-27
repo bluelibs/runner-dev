@@ -1,3 +1,4 @@
+import { observeHistory } from "./live/observeHistory";
 import {
   resources,
   defineResource,
@@ -194,6 +195,9 @@ const liveService = defineResource({
     };
 
     return {
+      get persistenceError() {
+        return persistenceStore?.status?.().error ?? null;
+      },
       historyPersisted: persistenceStore !== undefined,
       getApm: (windowMinutes, scope) => apm.snapshot(windowMinutes, scope),
       recordLog(level, message, data, correlationId, sourceId) {
@@ -305,15 +309,17 @@ export const live = defineResource({
     logger.onLog((log) => {
       if (!context.active) return;
       const correlationId = getCorrelationId();
-      liveService.recordLog(
-        log.level,
-        String(log.message),
-        {
-          ...log.data,
-          ...(log.error ? { error: log.error } : {}),
-        },
-        correlationId,
-        log.source
+      observeHistory(liveService, () =>
+        liveService.recordLog(
+          log.level,
+          String(log.message),
+          {
+            ...log.data,
+            ...(log.error ? { error: log.error } : {}),
+          },
+          correlationId,
+          log.source
+        )
       );
     });
 

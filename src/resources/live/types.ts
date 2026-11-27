@@ -124,6 +124,7 @@ export interface RunQueryOptions extends LiveCursorOptions {
  * shorthand for `{ afterTimestamp: number }`.
  */
 export interface Live {
+  readonly persistenceError?: string | null;
   readonly historyPersisted?: boolean;
   getApm?(
     windowMinutes?: number,

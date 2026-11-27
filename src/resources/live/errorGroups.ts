@@ -3,12 +3,17 @@ import type { ErrorEntry } from "./types";
 
 const fingerprints = new WeakMap<ErrorEntry, string>();
 
-function fingerprint(error: ErrorEntry): string {
-  const cached = fingerprints.get(error);
-  if (cached) return cached;
+export function errorStackIdentity(error: ErrorEntry) {
   const stack = error.stack ?? "";
   const frame = stack.match(/^\s*at (.+)$/m)?.[1]?.trim() ?? "";
   const name = stack.match(/^([\w.$]+):/)?.[1] ?? "";
+  return [name, frame] as const;
+}
+
+function fingerprint(error: ErrorEntry): string {
+  const cached = fingerprints.get(error);
+  if (cached) return cached;
+  const [name, frame] = errorStackIdentity(error);
   // Ignore per-request UUIDs, while preserving error codes and numeric values.
   const message = error.message.replace(
     /\b[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}\b/gi,

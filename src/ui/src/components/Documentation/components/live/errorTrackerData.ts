@@ -14,6 +14,7 @@ interface IssueDetail extends IssueSummary {
   occurrences: ErrorEntry[];
 }
 interface TrackerSnapshot {
+  historyError: string | null;
   historyPersisted: boolean | null;
   errorGroups: IssueSummary[];
 }
@@ -22,7 +23,7 @@ const SUMMARY =
   "id count firstSeenMs lastSeenMs latest { sourceKind sourceId message }";
 export async function loadTracker(search: string): Promise<TrackerSnapshot> {
   const data = await graphqlRequest<{ live: TrackerSnapshot }>(
-    `query ErrorTracker($search: String) { live { historyPersisted errorGroups(search: $search) { ${SUMMARY} } } }`,
+    `query ErrorTracker($search: String) { live { historyError historyPersisted errorGroups(search: $search) { ${SUMMARY} } } }`,
     { search }
   );
   return data.live;

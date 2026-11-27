@@ -151,6 +151,7 @@ export function remoteHistory(database: SlotDatabase) {
       lastSequence = sequence;
       return undefined;
     },
+    status: writer.status,
     flush: writer.flush,
     async close() {
       try {

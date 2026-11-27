@@ -19,6 +19,7 @@ export interface LivePersistenceOptions {
 }
 
 export interface LivePersistence {
+  status?(): { error: string | null };
   /** Trim each category to the cap before returning retained history. */
   load(
     options: LivePersistenceOptions

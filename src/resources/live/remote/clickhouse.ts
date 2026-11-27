@@ -70,6 +70,12 @@ export async function clickHouseHistory(
         : [];
     },
     async commit(changes, revision) {
+      const current = await request(
+        "SELECT max(revision) FROM runner_dev_live_history WHERE stream={stream:String} AND slot='meta' FORMAT TabSeparated",
+        { param_stream: config.streamId }
+      );
+      if (current.trim() !== String(revision - 1))
+        throw new Error("Live history stream has another writer.");
       // A synchronous insert into one partition and one block publishes the slots and watermark together.
       await request(
         "INSERT INTO runner_dev_live_history FORMAT JSONEachRow\n" +

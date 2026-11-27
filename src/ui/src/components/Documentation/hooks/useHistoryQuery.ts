@@ -11,23 +11,28 @@ export function useHistoryQuery<T>(
   load: () => Promise<T>,
   { active, refreshKey, pollInterval }: HistoryUpdates
 ) {
-  const [snapshot, setSnapshot] = useState<T | null>(null);
-  const [failure, setFailure] = useState("");
+  const [result, setResult] = useState<{
+    load: typeof load;
+    snapshot: T | null;
+    failure: string;
+  }>();
   useEffect(() => {
     let disposed = false;
     let timer: ReturnType<typeof setTimeout>;
     async function refresh() {
       try {
         const value = await load();
-        if (!disposed) {
-          setSnapshot(value);
-          setFailure("");
-        }
+        if (!disposed) setResult({ load, snapshot: value, failure: "" });
       } catch (error) {
         if (!disposed)
-          setFailure(
-            error instanceof Error ? error.message : "Could not load history."
-          );
+          setResult((previous) => ({
+            load,
+            snapshot: previous?.load === load ? previous.snapshot : null,
+            failure:
+              error instanceof Error
+                ? error.message
+                : "Could not load history.",
+          }));
       } finally {
         if (!disposed && active) timer = setTimeout(refresh, pollInterval);
       }
@@ -38,5 +43,5 @@ export function useHistoryQuery<T>(
       clearTimeout(timer);
     };
   }, [load, active, refreshKey, pollInterval]);
-  return { snapshot, failure };
+  return result?.load === load ? result : { snapshot: null, failure: "" };
 }

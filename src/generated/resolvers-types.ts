@@ -493,6 +493,8 @@ export type Live = {
   gc: GcStats;
   /** Per-resource health report. Only includes resources with a health() probe defined. */
   healthReport: Maybe<ResourceHealthReport>;
+  /** Most recent instrumentation or persistence failure for this runtime. */
+  historyError: Maybe<Scalars['String']['output']>;
   /** Whether a live history persistence provider is configured. */
   historyPersisted: Maybe<Scalars['Boolean']['output']>;
   /** Live logs with optional cursor (afterSequence or afterTimestamp), filters and last N */
@@ -2090,6 +2092,7 @@ export type LiveResolvers<ContextType = CustomGraphQLContext, ParentType extends
   eventLoop: Resolver<ResolversTypes['EventLoopStats'], ParentType, ContextType, LiveEventLoopArgs>;
   gc: Resolver<ResolversTypes['GcStats'], ParentType, ContextType, LiveGcArgs>;
   healthReport: Resolver<Maybe<ResolversTypes['ResourceHealthReport']>, ParentType, ContextType>;
+  historyError: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   historyPersisted: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   logs: Resolver<Array<ResolversTypes['LogEntry']>, ParentType, ContextType, LiveLogsArgs>;
   memory: Resolver<ResolversTypes['MemoryStats'], ParentType, ContextType>;

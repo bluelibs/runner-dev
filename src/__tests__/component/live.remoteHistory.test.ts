@@ -1,3 +1,4 @@
+import { clickHouseHistory } from "../../resources/live/remote/clickhouse";
 import {
   remoteHistory,
   type StoredSlot,
@@ -85,7 +86,43 @@ test("a failed batch latches and close still releases the connection", async () 
   await store.load(options);
   store.append(record, options);
   await expect(store.flush()).rejects.toThrow("write failed");
+  expect(store.status?.().error).toBe("write failed");
   expect(() => store.append(record, options)).toThrow("write failed");
   await expect(store.close()).rejects.toThrow("write failed");
   expect(close).toHaveBeenCalled();
+});
+
+test("ClickHouse rejects a stale writer before it can overwrite newer history slots", async () => {
+  let revision = 0;
+  let inserts = 0;
+  const fetchMock = jest
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(async (_url, init) => {
+      const sql = String(init?.body);
+      if (sql.startsWith("SELECT max(revision)"))
+        return new Response(String(revision));
+      if (sql.startsWith("INSERT")) {
+        revision++;
+        inserts++;
+      }
+      return new Response("");
+    });
+  try {
+    const options = { maxEntries: 10 };
+    const connection = { url: "http://localhost:8123", streamId: "test" };
+    const first = await clickHouseHistory(connection);
+    const stale = await clickHouseHistory(connection);
+    await Promise.all([first.load(options), stale.load(options)]);
+    const record: LivePersistedEntry = {
+      kind: "log",
+      entry: { sequence: 1, timestampMs: 1, level: "info", message: "test" },
+    };
+    first.append(record, options);
+    await first.close();
+    stale.append(record, options);
+    await expect(stale.close()).rejects.toThrow("another writer");
+    expect(inserts).toBe(1);
+  } finally {
+    fetchMock.mockRestore();
+  }
 });

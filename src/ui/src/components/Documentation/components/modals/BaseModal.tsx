@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useModalStack, type ModalId } from "./ModalStackContext";
 import "./BaseModal.scss";
@@ -103,7 +103,9 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   // ------- Stack registration -------
   // We wrap onClose so Escape via the stack only fires for modals that want it.
   const closeHandler = useRef(onClose);
-  closeHandler.current = onClose;
+  useLayoutEffect(() => {
+    closeHandler.current = onClose;
+  }, [onClose]);
   const guardedClose = useCallback(() => {
     if (closeOnEscape) closeHandler.current();
   }, [closeOnEscape]);

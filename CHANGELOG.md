@@ -2,7 +2,7 @@
 
 Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release ships; until then, changes collect under "Unreleased".
 
-## 6.10.0 — 2026-11-25
+## 6.10.0 — 2026-11-27
 
 ### Added
 
@@ -22,9 +22,13 @@ Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release sh
 
 ### Fixed
 
+- Durable Studio keeps the last successful data visible when a feed fails and lets operators retry each feed independently. Stalled reads time out after 30 seconds. A failed refresh after a successful write reports a read error.
+- Schedule forms retain drafts after rejected saves, let operators retry a failed cadence preview in place, and ask for confirmation before deletion.
+- Execution actions guard against duplicate submissions and stale selections. Browser Back and Forward restore the selected runtime, view, execution, and filters. The overview shows available schedule metrics during a history outage and counts each execution needing attention once. Dialogs restore keyboard focus, and workflow navigation collapses on narrow screens.
+
 - Avoided duplicate durable workflow key errors in `discoverRuntimes` when multiple immutable versions share a workflow `key`.
 - Fixed Windows fallback reading `COMPACT_GUIDE.md` in `readRunnerDevCompactGuide` and Windows git symlink stub handling in `scripts/pack-npm-skills.mjs`.
-- Fixed terminal executions without results showing an accurate `"No result recorded."` message instead of a still-running placeholder.
+- Terminal executions without a recorded result now show their final status in the Data tab.
 
 ## 6.9.2 — 2026-11-12
 

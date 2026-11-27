@@ -15,6 +15,9 @@ import { useExecutionFeed } from "./executionFeed";
 import { useExecutionDetail } from "./useExecutionDetail";
 import { WorkflowApiContext } from "./workflowFeed";
 import type { DashboardStatusFilter } from "./dashboard";
+import { usePollingFeed } from "./usePollingFeed";
+import { useStudioNavigation } from "./navigation";
+import { FeedNotices, type FeedNoticeState } from "./components/FeedNotice";
 import { CommandModal } from "./components/CommandModal";
 import { ExecutionDetail } from "./components/ExecutionDetail";
 import { ExecutionList } from "./components/ExecutionList";
@@ -43,19 +46,6 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "cancelled", label: "Cancelled" },
 ];
 
-function readParams(): URLSearchParams {
-  if (typeof window === "undefined") return new URLSearchParams();
-  return new URLSearchParams(window.location.search);
-}
-
-function initialView(): StudioView {
-  const PARAMS = readParams();
-  const requested = PARAMS.get("view");
-  if (requested === "schedules" || requested === "executions") return requested;
-  if (PARAMS.has("select") || PARAMS.has("modal")) return "executions";
-  return "overview";
-}
-
 export function App({
   api,
   runtime,
@@ -63,14 +53,29 @@ export function App({
   api: StudioApi;
   runtime: DurableRuntimeDescriptor;
 }) {
-  const locked = false;
+  const {
+    view,
+    selectedId,
+    workflowFilter,
+    statusFilter,
+    query,
+    modal,
+    navigate,
+  } = useStudioNavigation();
+  const setView = (view: StudioView) => navigate({ view, modal: null });
+  const setSelectedId = (selectedId: string | null) => navigate({ selectedId });
+  const setWorkflowFilter = (workflowFilter: string | null) =>
+    navigate({ workflowFilter });
+  const setStatusFilter = (statusFilter: StatusFilter) =>
+    navigate({ statusFilter });
+  const setQuery = (query: string) => navigate({ query }, true);
+  const starting = modal === "start";
+  const signalling = modal === "signal";
+  const setStarting = (open: boolean) =>
+    navigate({ modal: open ? "start" : null });
+  const setSignalling = (open: boolean) =>
+    navigate({ modal: open ? "signal" : null });
   const [workflows, setWorkflows] = useState<StudioWorkflow[]>([]);
-  const [schedules, setSchedules] = useState<StudioSchedule[]>([]);
-  const [stuck, setStuck] = useState<StudioExecutionSummary[]>([]);
-  const [view, setView] = useState<StudioView>(initialView);
-  const [selectedId, setSelectedId] = useState<string | null>(() =>
-    readParams().get("select")
-  );
   const {
     detail,
     error: detailError,
@@ -78,15 +83,6 @@ export function App({
     loading: loadingDetail,
     refresh: refreshDetail,
   } = useExecutionDetail(api, selectedId);
-  const [workflowFilter, setWorkflowFilter] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [query, setQuery] = useState("");
-  const [starting, setStarting] = useState(
-    () => readParams().get("modal") === "start"
-  );
-  const [signalling, setSignalling] = useState(
-    () => readParams().get("modal") === "signal"
-  );
   const [commanding, setCommanding] = useState(false);
   const [resettingStep, setResettingStep] = useState<string | null>(null);
   const [signalPreset, setSignalPreset] = useState<string | undefined>(
@@ -98,12 +94,31 @@ export function App({
   const [operatorAction, setOperatorAction] = useState<OperatorAction | null>(
     null
   );
+  useEffect(() => {
+    setConfirming(null);
+    setOperatorAction(null);
+    setCommanding(false);
+    setResettingStep(null);
+  }, [selectedId, modal]);
   const [busy, setBusy] = useState(false);
+  const [modalError, setModalError] = useState("");
+  useEffect(() => setModalError(""), [modal]);
   const [recovering, setRecovering] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [offline, setOffline] = useState(false);
+  const [unauthorized, setUnauthorized] = useState(false);
+  const actionPending = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const ownsRuntime = () =>
+    mounted.current &&
+    (new URLSearchParams(window.location.search).get("runtimeId") ??
+      runtime.id) === runtime.id;
   const [now, setNow] = useState(() => Date.now());
-  const [refreshedAt, setRefreshedAt] = useState(() => Date.now());
   const searchRef = useRef<HTMLInputElement>(null);
   const overviewSearchRef = useRef<HTMLInputElement>(null);
   const toastSequence = useRef(0);
@@ -119,29 +134,21 @@ export function App({
 
   const noteUnauthorized = useCallback((error: unknown): boolean => {
     if (error instanceof ApiError && error.status === 401) {
-      setOffline(true);
+      setUnauthorized(true);
       return true;
     }
     return false;
   }, []);
-  const handleFeedError = useCallback(
-    (error: unknown) => {
-      if (noteUnauthorized(error)) return;
-      setOffline(true);
-    },
-    [noteUnauthorized]
-  );
   const executionFeed = useExecutionFeed({
     api,
-    paused: locked,
-    onError: handleFeedError,
+    paused: view === "schedules",
+    onError: noteUnauthorized,
     workflowKey: workflowFilter ?? undefined,
     status: statusFilter === "all" ? undefined : statusFilter,
     executionId: query.trim() || undefined,
   });
   const executions = executionFeed.executions;
   useEffect(() => {
-    if (locked) return;
     let active = true;
     const keys = [
       ...new Set(
@@ -170,56 +177,49 @@ export function App({
     return () => {
       active = false;
     };
-  }, [api, locked, workflowFilter, detail?.workflowKey, pushToast]);
+  }, [api, workflowFilter, detail?.workflowKey, pushToast]);
 
-  const refreshAuxiliaryLists = useCallback(async () => {
-    const [nextSchedules, nextStuck] = await Promise.all([
-      api.listSchedules(),
-      api.listStuck(),
+  const loadCatalog = useCallback(
+    async () => (await api.listWorkflowPage()).workflows,
+    [api]
+  );
+  const loadSchedules = useCallback(() => api.listSchedules(), [api]);
+  const loadStuck = useCallback(() => api.listStuck(), [api]);
+  const catalog = usePollingFeed(loadCatalog, [], true, noteUnauthorized, null);
+  const scheduleFeed = usePollingFeed<StudioSchedule[]>(
+    loadSchedules,
+    [],
+    view !== "executions",
+    noteUnauthorized
+  );
+  const stuckFeed = usePollingFeed<StudioExecutionSummary[]>(
+    loadStuck,
+    [],
+    view === "overview",
+    noteUnauthorized
+  );
+  const schedules = scheduleFeed.data;
+  const stuck = stuckFeed.data;
+  useEffect(() => {
+    setWorkflows((current) => [
+      ...catalog.data,
+      ...current.filter(
+        (item) => !catalog.data.some((next) => next.key === item.key)
+      ),
     ]);
-    setSchedules(nextSchedules);
-    setStuck(nextStuck);
-    setRefreshedAt(Date.now());
-    setOffline(false);
-  }, [api]);
+  }, [catalog.data]);
 
-  const refreshLists = useCallback(async () => {
-    await Promise.all([executionFeed.refreshHead(), refreshAuxiliaryLists()]);
-  }, [executionFeed.refreshHead, refreshAuxiliaryLists]);
-
+  const refreshLists = async () => {
+    await Promise.all([
+      executionFeed.refreshHead(),
+      scheduleFeed.refresh(),
+      stuckFeed.refresh(),
+    ]);
+  };
   const previewSchedule = useCallback(
     (body: Record<string, unknown>) => api.previewSchedule(body),
     [api]
   );
-
-  useEffect(() => {
-    if (locked) return;
-    let mounted = true;
-    api
-      .listWorkflowPage()
-      .then((next) => {
-        if (mounted) setWorkflows(next.workflows);
-      })
-      .catch((error: unknown) => {
-        if (!mounted) return;
-        if (noteUnauthorized(error)) return;
-        setOffline(true);
-      });
-    refreshAuxiliaryLists().catch((error: unknown) => {
-      if (!mounted) return;
-      if (noteUnauthorized(error)) return;
-      setOffline(true);
-    });
-    const timer = window.setInterval(() => {
-      refreshAuxiliaryLists().catch((error: unknown) => {
-        noteUnauthorized(error);
-      });
-    }, 2500);
-    return () => {
-      mounted = false;
-      window.clearInterval(timer);
-    };
-  }, [api, locked, noteUnauthorized, refreshAuxiliaryLists]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -230,13 +230,9 @@ export function App({
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (
-        starting ||
-        signalling ||
-        commanding ||
-        resettingStep !== null ||
-        confirming ||
-        operatorAction ||
-        locked
+        unauthorized ||
+        event.defaultPrevented ||
+        document.querySelector('[aria-modal="true"]')
       )
         return;
       const target = event.target as HTMLElement | null;
@@ -244,27 +240,18 @@ export function App({
         target?.tagName === "INPUT" ||
         target?.tagName === "TEXTAREA" ||
         target?.tagName === "SELECT";
-      if (typing) return;
+      if (typing || target?.isContentEditable) return;
       if (event.key === "/") {
         event.preventDefault();
         if (view === "overview") overviewSearchRef.current?.focus();
         else searchRef.current?.focus();
       } else if (event.key === "n") {
-        setStarting(true);
+        navigate({ modal: "start" });
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [
-    starting,
-    signalling,
-    commanding,
-    resettingStep,
-    confirming,
-    operatorAction,
-    locked,
-    view,
-  ]);
+  }, [view, navigate, unauthorized]);
 
   const counts = useMemo(
     () => ({
@@ -275,23 +262,50 @@ export function App({
     [executions]
   );
 
-  async function act(label: string, fn: () => Promise<void>) {
+  // A ref closes the gap before React renders the pending state.
+  async function mutate<T>(fn: () => Promise<T>): Promise<T> {
+    if (actionPending.current)
+      throw new Error("Another operation is still pending.");
+    actionPending.current = true;
     setBusy(true);
     try {
-      await fn();
-      refreshDetail();
-      await refreshLists();
-    } catch (error) {
-      if (noteUnauthorized(error)) return;
-      pushToast(
-        "error",
-        error instanceof ApiError
-          ? `${label}: ${error.message}`
-          : `Failed to ${label}.`
-      );
+      return await fn();
     } finally {
-      setBusy(false);
+      actionPending.current = false;
+      if (ownsRuntime()) setBusy(false);
     }
+  }
+
+  async function act(label: string, fn: () => Promise<void>) {
+    if (actionPending.current) return;
+    try {
+      await mutate(fn);
+      if (!ownsRuntime()) return;
+      refreshDetail();
+      void refreshLists();
+    } catch (error) {
+      if (!ownsRuntime()) return;
+      if (!noteUnauthorized(error))
+        pushToast(
+          "error",
+          `${label}: ${
+            error instanceof Error ? error.message : "Operation failed."
+          }`
+        );
+    }
+  }
+
+  async function saveSchedule(fn: () => Promise<unknown>, message: string) {
+    try {
+      await mutate(fn);
+    } catch (error) {
+      noteUnauthorized(error);
+      throw error;
+    }
+    if (!ownsRuntime()) return;
+    pushToast("success", message);
+    // Read failures belong to their feeds; the write already succeeded.
+    void refreshLists();
   }
 
   async function startWorkflow(
@@ -299,49 +313,63 @@ export function App({
     input: unknown,
     version?: number | null
   ) {
-    setBusy(true);
+    if (actionPending.current) return;
+    setModalError("");
     try {
-      const executionId =
+      const executionId = await mutate(() =>
         version === undefined
-          ? await api.startExecution(workflow, input)
-          : await api.startExecution(workflow, input, version);
-      setStarting(false);
-      setView("executions");
-      setWorkflowFilter(null);
-      setStatusFilter("all");
-      setQuery("");
-      setSelectedId(executionId);
+          ? api.startExecution(workflow, input)
+          : api.startExecution(workflow, input, version)
+      );
+      if (!ownsRuntime()) return;
+      navigate({
+        modal: null,
+        view: "executions",
+        workflowFilter: null,
+        statusFilter: "all",
+        query: "",
+        selectedId: executionId,
+      });
       pushToast("success", `Started ${truncateMiddle(executionId)}.`);
-      await refreshLists();
+      void refreshLists();
     } catch (error) {
-      if (!noteUnauthorized(error)) {
-        pushToast(
-          "error",
-          error instanceof ApiError ? error.message : "Failed to start."
+      if (!ownsRuntime()) return;
+      if (!noteUnauthorized(error))
+        setModalError(
+          error instanceof Error ? error.message : "Failed to start."
         );
-      }
-    } finally {
-      setBusy(false);
     }
   }
 
+  function ownsSelection(id: string) {
+    return (
+      ownsRuntime() &&
+      new URLSearchParams(window.location.search).get("select") === id
+    );
+  }
+
   async function sendSignal(signal: string, payload: unknown) {
-    if (!selectedId) return;
-    setBusy(true);
+    if (
+      !selectedId ||
+      actionPending.current ||
+      switchingExecution ||
+      detail?.id !== selectedId
+    )
+      return;
+    const targetId = selectedId;
+    setModalError("");
     try {
-      await api.sendSignal(selectedId, signal, payload);
+      await mutate(() => api.sendSignal(targetId, signal, payload));
+      if (!ownsSelection(targetId)) return;
       setSignalling(false);
       pushToast("success", `Delivered ${signal}.`);
       refreshDetail();
     } catch (error) {
-      if (!noteUnauthorized(error)) {
-        pushToast(
-          "error",
-          error instanceof ApiError ? error.message : "Failed to signal."
+      if (!ownsSelection(targetId)) return;
+      if (!noteUnauthorized(error))
+        setModalError(
+          error instanceof Error ? error.message : "Failed to signal."
         );
-      }
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -350,12 +378,15 @@ export function App({
     input: unknown,
     idempotencyKey?: string
   ) {
-    if (!selectedId) return;
-    setBusy(true);
+    if (!selectedId || detail?.id !== selectedId || actionPending.current)
+      return;
     try {
-      const outcome = await api.sendCommand(selectedId, command, input, {
-        ...(idempotencyKey ? { idempotencyKey } : {}),
-      });
+      const outcome = await mutate(() =>
+        api.sendCommand(selectedId, command, input, {
+          ...(idempotencyKey ? { idempotencyKey } : {}),
+        })
+      );
+      if (!ownsSelection(selectedId)) return;
       setCommanding(false);
       pushToast(
         outcome.completed ? "success" : "info",
@@ -364,16 +395,14 @@ export function App({
           : outcome.message ?? `Command ${command} queued.`
       );
       refreshDetail();
-      await refreshLists();
+      void refreshLists();
     } catch (error) {
-      if (!noteUnauthorized(error)) {
+      if (ownsSelection(selectedId) && !noteUnauthorized(error)) {
         pushToast(
           "error",
           error instanceof ApiError ? error.message : "Failed to send command."
         );
       }
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -382,35 +411,32 @@ export function App({
     reason: string,
     idempotencyKey?: string
   ) {
-    if (!selectedId) return;
-    setBusy(true);
+    if (!selectedId || detail?.id !== selectedId || actionPending.current)
+      return;
     try {
-      const branchId = await api.resetExecution(
-        selectedId,
-        beforeStep,
-        reason,
-        idempotencyKey
+      const branchId = await mutate(() =>
+        api.resetExecution(selectedId, beforeStep, reason, idempotencyKey)
       );
+      if (!ownsSelection(selectedId)) return;
       setResettingStep(null);
       setSelectedId(branchId);
       pushToast("success", `Branched as ${truncateMiddle(branchId)}.`);
-      await refreshLists();
+      void refreshLists();
     } catch (error) {
-      if (!noteUnauthorized(error)) {
+      if (ownsSelection(selectedId) && !noteUnauthorized(error)) {
         pushToast(
           "error",
           error instanceof ApiError ? error.message : "Failed to reset."
         );
       }
-    } finally {
-      setBusy(false);
     }
   }
 
   async function exportReplayFixture(detailToExport: StudioExecutionDetail) {
-    setBusy(true);
+    if (actionPending.current) return;
     try {
-      const fixture = await api.exportReplay(detailToExport.id);
+      const fixture = await mutate(() => api.exportReplay(detailToExport.id));
+      if (!ownsSelection(detailToExport.id)) return;
       const payload = JSON.stringify(fixture, null, 2);
       const url = URL.createObjectURL(
         new Blob([payload], { type: "application/json" })
@@ -422,7 +448,7 @@ export function App({
       URL.revokeObjectURL(url);
       pushToast("success", "Replay fixture exported.");
     } catch (error) {
-      if (!noteUnauthorized(error)) {
+      if (ownsSelection(detailToExport.id) && !noteUnauthorized(error)) {
         pushToast(
           "error",
           error instanceof ApiError
@@ -430,27 +456,24 @@ export function App({
             : "Failed to export replay fixture."
         );
       }
-    } finally {
-      setBusy(false);
     }
   }
 
   async function restartExecution(id: string) {
-    setBusy(true);
+    if (actionPending.current) return;
     try {
-      const nextId = await api.restartExecution(id);
-      setSelectedId(nextId);
+      const nextId = await mutate(() => api.restartExecution(id));
+      if (!ownsSelection(id)) return;
+      navigate({ selectedId: nextId, modal: null });
       pushToast("success", `Restarted as ${truncateMiddle(nextId)}.`);
-      await refreshLists();
+      void refreshLists();
     } catch (error) {
-      if (!noteUnauthorized(error)) {
+      if (!ownsSelection(id)) return;
+      if (!noteUnauthorized(error))
         pushToast(
           "error",
-          error instanceof ApiError ? error.message : "Failed to restart."
+          error instanceof Error ? error.message : "Failed to restart."
         );
-      }
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -494,13 +517,13 @@ export function App({
       ]
     : [];
 
-  if (offline) {
+  if (unauthorized) {
     return (
       <div className="offline">
-        <h1>Runtime unavailable</h1>
+        <h1>Authentication required</h1>
         <p>
-          Could not connect to {runtime.title}. Reconnect to Runner Dev and try
-          again.
+          Your session for {runtime.title} needs authentication. Sign in to
+          Runner Dev and retry.
         </p>
         <button
           className="btn primary"
@@ -515,9 +538,37 @@ export function App({
     );
   }
 
+  const visibleFeeds: FeedNoticeState[] = [
+    { label: "Workflow catalog", ...catalog, onRetry: catalog.refresh },
+    ...(view !== "executions"
+      ? [{ label: "Schedules", ...scheduleFeed, onRetry: scheduleFeed.refresh }]
+      : []),
+    ...(view === "overview"
+      ? [
+          {
+            label: "Stuck executions",
+            ...stuckFeed,
+            onRetry: stuckFeed.refresh,
+          },
+        ]
+      : []),
+    ...(view !== "schedules"
+      ? [
+          {
+            label: "Executions",
+            ...executionFeed,
+            onRetry: executionFeed.retry,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <WorkflowApiContext.Provider value={api}>
       <div className="studio">
+        <div className="studio-notices">
+          <FeedNotices feeds={visibleFeeds} now={now} />
+        </div>
         <Sidebar
           workflows={workflows}
           view={view}
@@ -528,6 +579,7 @@ export function App({
           totalExecutionCount={executionFeed.totalCount ?? undefined}
           hasMoreExecutions={executionFeed.hasMore}
           stuckCount={stuck.length}
+          stuckAvailable={stuckFeed.updatedAt !== null && !stuckFeed.error}
           onRecover={() =>
             act("Recover", async () => {
               setRecovering(true);
@@ -542,7 +594,7 @@ export function App({
               }
             })
           }
-          recovering={recovering}
+          recovering={recovering || busy}
         />
 
         {view === "overview" ? (
@@ -560,12 +612,18 @@ export function App({
               workflowFilter={workflowFilter}
               onWorkflowFilter={setWorkflowFilter}
               onOpenExecution={(executionId) => {
-                setSelectedId(executionId);
-                setView("executions");
+                navigate({ selectedId: executionId, view: "executions" });
               }}
               onStart={() => setStarting(true)}
               searchRef={overviewSearchRef}
-              refreshedAt={refreshedAt}
+              refreshedAt={executionFeed.updatedAt}
+              loading={executionFeed.loading}
+              error={executionFeed.error}
+              schedulesAvailable={
+                scheduleFeed.updatedAt !== null && !scheduleFeed.error
+              }
+              stuckAvailable={stuckFeed.updatedAt !== null && !stuckFeed.error}
+              onBrowse={() => navigate({ view: "executions" })}
               now={now}
               totalExecutionCount={executionFeed.totalCount ?? undefined}
               hasMoreExecutions={executionFeed.hasMore}
@@ -577,18 +635,21 @@ export function App({
               schedules={schedules}
               workflows={workflows}
               busy={busy}
+              dialogsAllowed={!modal}
+              loading={scheduleFeed.loading}
+              available={scheduleFeed.updatedAt !== null}
               now={now}
               onCreate={(body) =>
-                act("Create schedule", async () => {
-                  await api.createSchedule(body);
-                  pushToast("success", "Schedule created.");
-                })
+                saveSchedule(
+                  () => api.createSchedule(body),
+                  "Schedule created."
+                )
               }
               onUpdate={(id, body) =>
-                act("Update schedule", async () => {
-                  await api.updateSchedule(id, body);
-                  pushToast("success", "Schedule updated.");
-                })
+                saveSchedule(
+                  () => api.updateSchedule(id, body),
+                  "Schedule updated."
+                )
               }
               onPreview={previewSchedule}
               onPause={(id) => act("Pause", () => api.pauseSchedule(id))}
@@ -659,7 +720,7 @@ export function App({
                 hasPrevious={executionFeed.hasPrevious}
                 onLoadPrevious={executionFeed.loadPrevious}
                 error={executionFeed.error}
-                onRefresh={executionFeed.refreshHead}
+                showErrorNotice={false}
                 loadedCount={executions.length}
                 filtered={
                   query.trim() !== "" ||
@@ -682,6 +743,7 @@ export function App({
               {detail ? (
                 <ExecutionDetail
                   disabled={switchingExecution}
+                  busy={busy}
                   capabilities={runtime.capabilities}
                   detail={detail}
                   workflow={selectedWorkflow}
@@ -736,15 +798,28 @@ export function App({
           <StartModal
             workflows={workflows}
             initialWorkflow={workflowFilter}
+            operationError={modalError}
             busy={busy}
             onStart={startWorkflow}
             onClose={() => setStarting(false)}
           />
         ) : null}
-        {signalling && detail ? (
-          detailSignals.length > 0 ? (
+        {signalling && selectedId ? (
+          switchingExecution || !detail || detail.id !== selectedId ? (
+            <Modal
+              title="Send signal"
+              subtitle="Loading the selected execution"
+              onClose={() => setSignalling(false)}
+            >
+              <p role={detailError ? "alert" : "status"}>
+                {detailError || "Loading execution…"}
+              </p>
+            </Modal>
+          ) : detailSignals.length > 0 ? (
             <SignalModal
+              key={selectedId}
               signals={detailSignals}
+              error={modalError}
               initialSignal={signalPreset ?? waitingSignalId}
               busy={busy}
               onSend={sendSignal}
@@ -773,7 +848,11 @@ export function App({
             </Modal>
           )
         ) : null}
-        {commanding && detail && detailCommands.length > 0 ? (
+        {!modal &&
+        commanding &&
+        detail &&
+        detail.id === selectedId &&
+        detailCommands.length > 0 ? (
           <CommandModal
             commands={detailCommands}
             busy={busy}
@@ -781,7 +860,10 @@ export function App({
             onClose={() => setCommanding(false)}
           />
         ) : null}
-        {resettingStep !== null && detail ? (
+        {!modal &&
+        resettingStep !== null &&
+        detail &&
+        detail.id === selectedId ? (
           <ResetDialog
             detail={detail}
             initialStepId={resettingStep || undefined}
@@ -790,7 +872,7 @@ export function App({
             onClose={() => setResettingStep(null)}
           />
         ) : null}
-        {confirming === "cancel" && selectedId ? (
+        {!modal && confirming === "cancel" && selectedId ? (
           <ConfirmDialog
             title="Cancel execution"
             message="Request cancellation? Running steps observe it cooperatively; waits resolve as cancelled."
@@ -803,7 +885,7 @@ export function App({
             onClose={() => setConfirming(null)}
           />
         ) : null}
-        {confirming === "retry" && selectedId ? (
+        {!modal && confirming === "retry" && selectedId ? (
           <ConfirmDialog
             title="Retry execution"
             message="Roll the execution back to pending and resume it from memoized steps?"
@@ -815,7 +897,7 @@ export function App({
             onClose={() => setConfirming(null)}
           />
         ) : null}
-        {confirming === "restart" && selectedId ? (
+        {!modal && confirming === "restart" && selectedId ? (
           <ConfirmDialog
             title="Restart execution"
             message="Start a fresh run from this execution's input? Steps re-run from the beginning with no carried state."
@@ -828,7 +910,7 @@ export function App({
             onClose={() => setConfirming(null)}
           />
         ) : null}
-        {confirming === "force-fail" && selectedId ? (
+        {!modal && confirming === "force-fail" && selectedId ? (
           <ReasonDialog
             title="Force fail"
             message="Mark the execution failed immediately."
@@ -843,7 +925,7 @@ export function App({
             onClose={() => setConfirming(null)}
           />
         ) : null}
-        {operatorAction && detail ? (
+        {!modal && operatorAction && detail ? (
           <OperatorDialog
             action={operatorAction}
             detail={detail}

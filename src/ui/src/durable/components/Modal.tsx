@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { StudioInputPreset } from "../../../../durable/shared/types";
 
 export function Modal({
@@ -6,23 +7,101 @@ export function Modal({
   subtitle,
   onClose,
   children,
+  busy = false,
 }: {
   title: string;
   subtitle?: string;
   onClose: () => void;
   children: ReactNode;
+  busy?: boolean;
 }) {
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+  const backdrop = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  const pending = useRef(busy);
+  close.current = onClose;
+  pending.current = busy;
+  useLayoutEffect(() => {
+    const previousFocus = document.activeElement;
+    const background = Array.from(document.body.children).filter(
+      (element) => element !== backdrop.current
+    );
+    const previousInert = background.map((element) =>
+      element.hasAttribute("inert")
+    );
+    background.forEach((element) => element.setAttribute("inert", ""));
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusable = () =>
+      Array.from(
+        dialog.current?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]'
+        ) ?? []
+      ).filter(
+        (element) =>
+          !element.matches(":disabled") && !element.closest("[hidden]")
+      );
+    const focusFirst = () => (focusable()[0] ?? dialog.current)?.focus();
+    if (!dialog.current?.contains(document.activeElement)) focusFirst();
+    const onFocus = (event: FocusEvent) => {
+      if (
+        event.target instanceof Node &&
+        !dialog.current?.contains(event.target)
+      )
+        focusFirst();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!pending.current) close.current();
+      }
+      if (event.key === "Tab") {
+        event.preventDefault();
+        const items = focusable();
+        const index = items.findIndex(
+          (item) => item === document.activeElement
+        );
+        const nextIndex =
+          index < 0
+            ? event.shiftKey
+              ? items.length - 1
+              : 0
+            : (index + (event.shiftKey ? -1 : 1) + items.length) % items.length;
+        (items[nextIndex] ?? dialog.current)?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("focusin", onFocus);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("focusin", onFocus);
+      background.forEach((element, index) => {
+        if (!previousInert[index]) element.removeAttribute("inert");
+      });
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected)
+        previousFocus.focus();
+    };
+  }, []);
 
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
+  useLayoutEffect(() => {
+    // Disabling the focused submit button can move browser focus to the body.
+    if (!dialog.current?.contains(document.activeElement))
+      dialog.current?.focus();
+  }, [busy]);
+
+  return createPortal(
+    <div
+      ref={backdrop}
+      className="modal-backdrop"
+      onClick={() => {
+        if (!busy) onClose();
+      }}
+    >
       <div
+        ref={dialog}
+        tabIndex={-1}
         className="modal"
         role="dialog"
         aria-modal="true"
@@ -39,13 +118,15 @@ export function Modal({
             className="icon-btn"
             onClick={onClose}
             aria-label="Close"
+            disabled={busy}
           >
             ✕
           </button>
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -138,6 +219,7 @@ export function JsonEditor({
       <textarea
         className="json-input"
         spellCheck={false}
+        aria-label="JSON input"
         value={value}
         onChange={(event) => apply(event.target.value)}
         rows={10}

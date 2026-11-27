@@ -8,12 +8,14 @@ export function StartModal({
   workflows,
   initialWorkflow,
   busy,
+  operationError,
   onStart,
   onClose,
 }: {
   workflows: StudioWorkflow[];
   initialWorkflow: string | null;
   busy: boolean;
+  operationError?: string;
   onStart: (workflow: string, input: unknown, version?: number | null) => void;
   onClose: () => void;
 }) {
@@ -104,7 +106,13 @@ export function StartModal({
       title="Start execution"
       subtitle="Pick a workflow and shape its input."
       onClose={onClose}
+      busy={busy}
     >
+      {operationError ? (
+        <p className="error-banner" role="alert">
+          {operationError}
+        </p>
+      ) : null}
       <div className="field">
         <span className="field-label">
           Workflow{" "}
@@ -172,7 +180,12 @@ export function StartModal({
         />
       </div>
       <div className="modal-actions">
-        <button type="button" className="btn ghost" onClick={onClose}>
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={busy}
+          onClick={onClose}
+        >
           Cancel
         </button>
         <button

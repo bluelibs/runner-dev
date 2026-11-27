@@ -48,6 +48,7 @@ export function ResetDialog({
       title="Reset to checkpoint"
       subtitle="Create a new branch execution keeping completed steps before the selected boundary. The source execution stays unchanged."
       onClose={onClose}
+      busy={busy}
     >
       <label className="field">
         <span className="field-label">Re-run starting at step</span>
@@ -89,7 +90,12 @@ export function ResetDialog({
         />
       </label>
       <div className="modal-actions">
-        <button type="button" className="btn ghost" onClick={onClose}>
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={busy}
+          onClick={onClose}
+        >
           Cancel
         </button>
         <button

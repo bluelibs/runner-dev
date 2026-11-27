@@ -71,6 +71,44 @@ test("reports discovery errors and retries without inventing a connected runtime
   expect(await screen.findByTestId("studio")).toBeTruthy();
 });
 
+test("restores runtime scope on Back/Forward and clears incompatible filters on a deliberate switch", async () => {
+  window.history.replaceState(
+    null,
+    "",
+    "/durable?runtimeId=orders&view=executions&select=run-1&workflow=orders&status=failed&query=run-1&modal=signal"
+  );
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      runtimes: [
+        { id: "orders", title: "Orders", capabilities },
+        { id: "finance", title: "Finance", capabilities },
+      ],
+    }),
+  });
+  render(<RuntimeDashboard />);
+  await screen.findByTestId("studio");
+  fireEvent.change(screen.getByLabelText("Runtime"), {
+    target: { value: "finance" },
+  });
+  expect(window.location.search).toBe("?runtimeId=finance&view=executions");
+  window.history.replaceState(
+    null,
+    "",
+    "/durable?runtimeId=orders&select=run-1"
+  );
+  fireEvent(window, new PopStateEvent("popstate"));
+  expect(screen.getByTestId("studio").textContent).toBe("orders");
+  window.history.replaceState(
+    null,
+    "",
+    "/durable?runtimeId=retired&select=stale&modal=signal"
+  );
+  fireEvent(window, new PopStateEvent("popstate"));
+  expect(window.location.search).toBe("?runtimeId=orders");
+  expect(screen.getByTestId("studio").textContent).toBe("orders");
+});
+
 test("displays backend badges when runtimes advertise a storage backend", async () => {
   global.fetch = jest.fn().mockResolvedValue({
     ok: true,

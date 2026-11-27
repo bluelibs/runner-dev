@@ -26,6 +26,7 @@ test("counts live, failed and cancelled runs separately and excludes future acti
     failed: 2,
     cancelled: 1,
     stuck: 1,
+    needsAttention: 2,
     successRate: 25,
     activeSchedules: 1,
     pausedSchedules: 1,
@@ -54,7 +55,7 @@ test("counts live, failed and cancelled runs separately and excludes future acti
       total: 0,
       live: 0,
       failed: 0,
-      successRate: 100,
+      successRate: null,
     },
   ]);
   expect(model.insights.map((item) => item.title)).toEqual([
@@ -64,7 +65,7 @@ test("counts live, failed and cancelled runs separately and excludes future acti
   ]);
 });
 
-test("reports quiet and healthy states when no executions have finished", () => {
+test("reports unknown reliability when no executions have finished", () => {
   const build = (executions: ReturnType<typeof execution>[]) =>
     buildDashboardModel({
       executions,
@@ -73,10 +74,10 @@ test("reports quiet and healthy states when no executions have finished", () => 
       workflows: [workflow],
       nowMs: Date.parse(timestamp),
     });
-  expect(build([]).metrics.successRate).toBe(100);
+  expect(build([]).metrics.successRate).toBeNull();
   expect(build([]).insights.map((item) => item.title)).toEqual([
-    "No failures in view",
-    "Runtime is quiet",
+    "Success rate unavailable",
+    "Loaded runs are quiet",
     "0 active schedules",
   ]);
   expect(build([execution()]).insights[1]).toMatchObject({

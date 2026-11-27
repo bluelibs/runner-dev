@@ -211,6 +211,7 @@ test("encodes execution identities and sends JSON only when the operation has a 
   );
   expect(replayOptions).toEqual({
     method: "GET",
+    signal: expect.any(AbortSignal),
     headers: undefined,
     body: undefined,
   });

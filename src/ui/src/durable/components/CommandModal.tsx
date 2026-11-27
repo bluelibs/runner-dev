@@ -28,6 +28,7 @@ export function CommandModal({
       title="Send command"
       subtitle="Submit a tracked command serialized under execution ownership."
       onClose={onClose}
+      busy={busy}
     >
       <label className="field">
         <span className="field-label">Command</span>
@@ -69,7 +70,12 @@ export function CommandModal({
         />
       </label>
       <div className="modal-actions">
-        <button type="button" className="btn ghost" onClick={onClose}>
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={busy}
+          onClick={onClose}
+        >
           Cancel
         </button>
         <button

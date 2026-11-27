@@ -171,6 +171,7 @@ export function Timeline({
   edges,
   now,
   onSignal,
+  disabled = false,
   canReset = false,
   onResetBeforeStep,
 }: {
@@ -178,6 +179,7 @@ export function Timeline({
   edges: StudioGraphEdge[];
   now: number;
   onSignal: (signalId: string) => void;
+  disabled?: boolean;
   canReset?: boolean;
   onResetBeforeStep?: (stepId: string) => void;
 }) {
@@ -259,6 +261,7 @@ export function Timeline({
                   {node.state === "waiting" && node.wait?.signalId ? (
                     <button
                       type="button"
+                      disabled={disabled}
                       className="btn small primary"
                       onClick={() => onSignal(node.wait!.signalId!)}
                     >
@@ -268,6 +271,7 @@ export function Timeline({
                   {showReset ? (
                     <button
                       type="button"
+                      disabled={disabled}
                       className="btn small ghost"
                       onClick={() => onResetBeforeStep!(node.id)}
                       title={`Branch execution re-running from '${node.id}'`}

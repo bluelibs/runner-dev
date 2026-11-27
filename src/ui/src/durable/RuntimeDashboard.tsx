@@ -15,6 +15,25 @@ const BACKEND_LABELS: Record<DurableRuntimeBackend, string> = {
   custom: "CUSTOM",
 };
 
+function clearRuntimeFilters(url: URL) {
+  for (const key of ["select", "modal", "workflow", "status", "query"])
+    url.searchParams.delete(key);
+}
+
+function restoreRuntime(runtimes: DurableRuntimeDescriptor[]) {
+  const url = new URL(window.location.href);
+  const requested = url.searchParams.get("runtimeId");
+  const selected =
+    runtimes.find((runtime) => runtime.id === requested) ?? runtimes[0];
+  if (!selected) return "";
+  if (requested !== selected.id) {
+    if (requested !== null) clearRuntimeFilters(url);
+    url.searchParams.set("runtimeId", selected.id);
+    window.history.replaceState(null, "", url);
+  }
+  return selected.id;
+}
+
 export function RuntimeDashboard() {
   const [runtimes, setRuntimes] = useState<DurableRuntimeDescriptor[]>([]);
   const [selected, setSelected] = useState("");
@@ -36,14 +55,7 @@ export function RuntimeDashboard() {
           await response.json();
         if (controller.signal.aborted) return;
         setRuntimes(payload.runtimes);
-        const requested = new URLSearchParams(window.location.search).get(
-          "runtimeId"
-        );
-        setSelected(
-          payload.runtimes.find((item) => item.id === requested)?.id ??
-            payload.runtimes[0]?.id ??
-            ""
-        );
+        setSelected(restoreRuntime(payload.runtimes));
       } catch (failure) {
         if (!controller.signal.aborted)
           setError(
@@ -58,14 +70,19 @@ export function RuntimeDashboard() {
     void load();
     return () => controller.abort();
   }, [revision]);
+  useEffect(() => {
+    const restore = () => setSelected(restoreRuntime(runtimes));
+    // Normalize the runtime before the Studio reads the restored execution filters.
+    window.addEventListener("popstate", restore, true);
+    return () => window.removeEventListener("popstate", restore, true);
+  }, [runtimes]);
   const api = useMemo(() => createLiveApi(selected), [selected]);
   const runtime = runtimes.find((item) => item.id === selected);
   function selectRuntime(id: string) {
     const url = new URL(window.location.href);
     url.searchParams.set("runtimeId", id);
-    url.searchParams.delete("select");
-    url.searchParams.delete("modal");
-    window.history.replaceState(null, "", url);
+    clearRuntimeFilters(url);
+    window.history.pushState(null, "", url);
     setSelected(id);
   }
   if (loading || error || !runtime) {

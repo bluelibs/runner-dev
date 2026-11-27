@@ -7,8 +7,7 @@ import {
 } from "../../hooks/useHistoryQuery";
 import { graphqlRequest } from "../../utils/graphqlClient";
 import { RecentLogs } from "./RecentLogs";
-import { loadRetainedTrace } from "./apmFailureDetails";
-import { TraceView } from "./TraceView";
+import { RetainedTraceDialog } from "./RetainedTraceDialog";
 import { downloadTelemetry } from "./telemetryExport";
 import { TelemetryExportButton } from "./TelemetryExportButton";
 
@@ -48,7 +47,10 @@ export function RetainedLogs({
     () => findLogs(query, level, limit + 1),
     [query, level, limit]
   );
-  const { snapshot, failure } = useHistoryQuery(load, updates);
+  const { snapshot, failure, pending } = useHistoryQuery(load, updates, {
+    debounceMs: query ? 150 : 0,
+    retainKey: JSON.stringify([level, query]),
+  });
   return (
     <>
       {failure && <p role="alert">{failure}</p>}
@@ -58,6 +60,9 @@ export function RetainedLogs({
         historySearch={{
           query,
           setQuery: search,
+          pending: !snapshot && pending,
+          appending: Boolean(snapshot && pending),
+          unavailable: !snapshot && Boolean(failure),
           loadMore:
             snapshot && snapshot.length > limit
               ? () => setLimit(limit + 50)
@@ -78,34 +83,12 @@ export function RetainedLogs({
         />
       </div>
       {correlationId && (
-        <LogTrace
+        <RetainedTraceDialog
           key={correlationId}
           id={correlationId}
           onClose={() => setCorrelationId("")}
         />
       )}
     </>
-  );
-}
-
-function LogTrace({ id, onClose }: { id: string; onClose: () => void }) {
-  const [attempt, retry] = useState(0);
-  const load = useCallback(() => loadRetainedTrace(id), [id]);
-  const { snapshot, failure } = useHistoryQuery(load, {
-    active: false,
-    pollInterval: 0,
-    refreshKey: attempt,
-  });
-  if (failure)
-    return (
-      <p role="alert">
-        {failure}{" "}
-        <button onClick={() => retry(attempt + 1)}>Retry trace</button>
-      </p>
-    );
-  return snapshot ? (
-    <TraceView {...snapshot} correlationId={id} onClose={onClose} />
-  ) : (
-    <p>Loading trace…</p>
   );
 }

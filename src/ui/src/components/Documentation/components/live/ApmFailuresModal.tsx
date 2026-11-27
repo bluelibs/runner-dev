@@ -1,13 +1,12 @@
+import { LoadingSkeleton } from "../../../LoadingSkeleton";
 import React, { useEffect, useRef, useState } from "react";
 import { BaseModal } from "../modals";
-import { TraceView } from "./TraceView";
+import { RetainedTraceDialog } from "./RetainedTraceDialog";
 import {
   loadFailureDetails,
-  loadRetainedTrace,
   type FailureSelection,
   mergeFailurePages,
   type FailureDetailsPage,
-  type RetainedTrace,
 } from "./apmFailureDetails";
 import { VirtualFailureList } from "./VirtualFailureList";
 import "./ApmFailuresModal.scss";
@@ -27,11 +26,7 @@ export function ApmFailuresModal({
   const generation = useRef(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [trace, setTrace] = useState<{
-    correlationId: string;
-    data: RetainedTrace;
-  } | null>(null);
-  const [loadingTrace, setLoadingTrace] = useState<string | null>(null);
+  const [traceId, setTraceId] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     generation.current++;
@@ -82,19 +77,6 @@ export function ApmFailuresModal({
       }
     }
   }
-  async function openTrace(correlationId: string) {
-    setLoadingTrace(correlationId);
-    setError(null);
-    try {
-      setTrace({ correlationId, data: await loadRetainedTrace(correlationId) });
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "Could not load the trace."
-      );
-    } finally {
-      setLoadingTrace(null);
-    }
-  }
   return (
     <>
       <BaseModal
@@ -106,9 +88,9 @@ export function ApmFailuresModal({
         className="apm-failures"
       >
         <p className="apm-failures__note">
-          Last {selection.windowMinutes} minutes · {selection.scope} calls ·{" "}
-          {failures?.length ?? 0} failure details loaded. Performance history
-          and error details have separate retention.
+          Last {selection.windowMinutes} minutes · {selection.scope} calls
+          {failures && ` · ${failures.length} failure details loaded`}.
+          Performance history and error details have separate retention.
         </p>
         {error && <p role="alert">{error}</p>}
         {!page && error && (
@@ -116,7 +98,13 @@ export function ApmFailuresModal({
             Retry loading errors
           </button>
         )}
-        {!failures && !error && <p>Loading failure details…</p>}
+        {!failures && !error && (
+          <LoadingSkeleton
+            label="Loading failure details"
+            layout="detail"
+            rows={3}
+          />
+        )}
         {failures?.length === 0 && (
           <p>
             No matching failure details were found in the loaded pages. APM
@@ -135,21 +123,21 @@ export function ApmFailuresModal({
             loading={loadingMore}
             error={!!error}
             onLoadMore={() => void loadMore()}
-            onTrace={(id) => void openTrace(id)}
-            loadingTrace={loadingTrace}
+            onTrace={setTraceId}
+            loadingTrace={traceId}
           />
         )}
-        {trace && (
+        {traceId && (
           <p className="apm-failures__note">
             Trace shows up to 200 retained records per category.
           </p>
         )}
       </BaseModal>
-      {trace && (
-        <TraceView
-          correlationId={trace.correlationId}
-          {...trace.data}
-          onClose={() => setTrace(null)}
+      {traceId && (
+        <RetainedTraceDialog
+          key={traceId}
+          id={traceId}
+          onClose={() => setTraceId(null)}
         />
       )}
     </>

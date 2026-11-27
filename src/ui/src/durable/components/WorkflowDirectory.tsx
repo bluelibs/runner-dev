@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 import { useEffect, useState, type RefObject } from "react";
 import type { StudioApi } from "../api";
 import "../directory.css";
@@ -80,7 +81,7 @@ function CatalogPages({ api, query }: { api: StudioApi; query: string }) {
           </button>
         </p>
       ) : !result ? (
-        <p role="status">Loading catalog…</p>
+        <LoadingSkeleton label="Loading catalog" layout="detail" />
       ) : result.entries.length ? (
         <ul className="directory-entries">
           {result.entries.map((entry) => (

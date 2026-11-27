@@ -2,6 +2,10 @@
 
 Notable changes to `@bluelibs/runner-dev`. Versions are chosen when a release ships; until then, changes collect under "Unreleased".
 
+## 6.11.1 — 2026-11-27
+
+- Telemetry, log searches, and Durable catalog and schedule views show skeletons while data loads. Correlated traces open immediately, and background refreshes keep the current results visible.
+
 ## 6.11.0 — 2026-11-27
 
 - Search retained logs by message, source, level, correlation ID, and structured data. Open **Errors · grouped** from the log filter or **Telemetry → Error tracker** to inspect duplicate counts, individual occurrences, and correlated traces.

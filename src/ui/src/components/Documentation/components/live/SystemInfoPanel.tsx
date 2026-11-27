@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { LoadingSkeleton } from "../../../LoadingSkeleton";
 import { graphqlRequest } from "../../utils/graphqlClient";
 import "./SystemInfoPanel.scss";
 
@@ -73,10 +74,12 @@ export function SystemInfoPanel() {
             <span className="system-info__detail">Runtime version</span>
           </div>
         </div>
-      ) : (
-        <p className="system-info__status" role={error ? "status" : undefined}>
-          {error ? "Host details unavailable" : "Loading host details…"}
+      ) : error ? (
+        <p className="system-info__status" role="status">
+          Host details unavailable
         </p>
+      ) : (
+        <LoadingSkeleton label="Loading host details" layout="metrics" />
       )}
     </section>
   );

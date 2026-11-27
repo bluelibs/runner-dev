@@ -165,3 +165,19 @@ it("shows the byte budget without exposing the large sample safety ceiling", asy
   expect(await screen.findByText("512 / 1024 KB · 5 samples")).toBeTruthy();
   expect(screen.queryByText(/10,000,000 samples retained/)).toBeNull();
 });
+
+it("keeps scope controls mounted while the selected scope's metrics load", async () => {
+  request
+    .mockResolvedValueOnce({ live: { apm: snapshot } })
+    .mockImplementationOnce(() => new Promise(() => {}));
+  renderPanel();
+  await screen.findByRole("link", { name: "app.checkout" });
+  const direct = screen.getByRole("button", { name: "Direct calls" });
+  direct.focus();
+  fireEvent.click(direct);
+  expect(document.activeElement).toBe(direct);
+  expect(
+    screen.getByRole("status", { name: "Loading performance metrics" })
+  ).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "app.checkout" })).toBeNull();
+});

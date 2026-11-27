@@ -167,3 +167,17 @@ test("retries a failed preview with the same cadence and preserves the schedule 
   );
   expect(editor).toHaveValue('{"keep":true}');
 });
+
+test("reserves space for the first schedule request and keeps a known empty result during refresh", () => {
+  const options = { ...props(), schedules: [], loading: true };
+  const view = render(<Schedules {...options} available={false} />);
+  expect(
+    screen.getByRole("status", { name: "Loading schedules" })
+  ).toBeVisible();
+  expect(screen.queryByText("No schedules")).toBeNull();
+  view.rerender(<Schedules {...options} available />);
+  expect(screen.getByText("No schedules")).toBeVisible();
+  expect(
+    screen.queryByRole("status", { name: "Loading schedules" })
+  ).toBeNull();
+});

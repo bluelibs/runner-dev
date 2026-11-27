@@ -124,3 +124,24 @@ it("keeps focus and removes earlier results when a different search fails", asyn
   await screen.findByText("Search offline");
   expect(screen.queryByText("Provider timed out")).toBeNull();
 });
+
+it("reserves space during the first request and keeps loaded rows visible on refresh", async () => {
+  request
+    .mockResolvedValueOnce({ live: { errorGroups: [group] } })
+    .mockImplementationOnce(() => new Promise(() => {}));
+  const view = render(
+    <ErrorTracker active={false} refreshKey={0} pollInterval={1000} />
+  );
+  expect(
+    screen.getByRole("status", { name: "Loading error history" })
+  ).toBeTruthy();
+  expect(screen.queryByText("No errors in retained history.")).toBeNull();
+  await screen.findByText(group.latest.message);
+  view.rerender(
+    <ErrorTracker active={false} refreshKey={1} pollInterval={1000} />
+  );
+  expect(
+    screen.queryByRole("status", { name: "Loading error history" })
+  ).toBeNull();
+  expect(screen.getByText(group.latest.message)).toBeTruthy();
+});

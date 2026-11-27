@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 import { useCallback, useState } from "react";
 import type { StudioApi } from "../api";
 import { useHistoryQuery } from "../../components/Documentation/hooks/useHistoryQuery";
@@ -25,11 +26,15 @@ export function ScheduleRuns({
     () => api.listScheduleRuns(id, cursor),
     [api, id, cursor]
   );
-  const { snapshot, failure } = useHistoryQuery(load, {
-    active: !cursor,
-    refreshKey: revision,
-    pollInterval: 5000,
-  });
+  const { snapshot, failure } = useHistoryQuery(
+    load,
+    {
+      active: !cursor,
+      refreshKey: revision,
+      pollInterval: 5000,
+    },
+    { debounceMs: 0 }
+  );
   const next = snapshot?.nextCursor;
   return (
     <Modal title="Schedule runs" subtitle={id} onClose={onClose}>
@@ -45,7 +50,9 @@ export function ScheduleRuns({
             </button>
           </p>
         )}
-        {!snapshot && !failure && <p role="status">Loading runs…</p>}
+        {!snapshot && !failure && (
+          <LoadingSkeleton label="Loading runs" layout="detail" />
+        )}
         {snapshot &&
           (snapshot.executions.length ? (
             <ul className="schedule-runs-list">

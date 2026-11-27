@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 import { useEffect, useMemo, useState } from "react";
 import type {
   StudioSchedule,
@@ -146,14 +147,12 @@ export function Schedules({
           </span>
         </div>
       ) : null}
-      {schedules.length === 0 ? (
+      {schedules.length === 0 && loading && !available ? (
+        <LoadingSkeleton label="Loading schedules" layout="detail" />
+      ) : schedules.length === 0 ? (
         <div className="empty-list">
           <p className="empty-title">
-            {loading
-              ? "Loading schedules…"
-              : available
-              ? "No schedules"
-              : "Schedules have not loaded"}
+            {available ? "No schedules" : "Schedules have not loaded"}
           </p>
           <p className="empty-sub">
             Schedules fire workflows without anyone pressing start.

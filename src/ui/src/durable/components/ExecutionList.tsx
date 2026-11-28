@@ -1,3 +1,4 @@
+import { RuntimeHint } from "./RuntimeHint";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { EXECUTION_STATUS_META } from "../../../../durable/shared/statuses";
 import type { StudioExecutionSummary } from "../../../../durable/shared/types";
@@ -112,6 +113,7 @@ export function ExecutionList({
                 : "Try a broader search or remove a filter."
               : "Start a workflow to watch it move through steps, sleeps and signals."}
           </p>
+          {!loading && !error && !hasMore && <RuntimeHint />}
         </div>
       ) : (
         <ul className="exec-list">

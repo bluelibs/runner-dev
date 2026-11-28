@@ -177,7 +177,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         <>
           <TopologyActionButton
             focus={{ kind: "task", id: task.id }}
-            title="Open task blast radius"
+            title="Open task relationships"
           />
           {mode !== "catalog" && (
             <button

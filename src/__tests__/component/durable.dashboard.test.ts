@@ -193,14 +193,14 @@ describe("Durable dashboard generic application integration", () => {
     expect(detail.signals[0].history[0].payload.approved).toBe(true);
   });
 
-  test("creates, validates and operates real runtime-scoped schedules", async () => {
+  test("lists application-owned schedules and operates them only on their runtime", async () => {
     const response = await testApp.post(`/schedules?runtimeId=${leftId}`, {
       workflow: "leftFlow",
       input: { name: "Schedule", wait: false },
       interval: 600000,
     });
-    expect(response.status).toBe(201);
-    const id = response.body.scheduleId;
+    expect(response.status).toBe(405);
+    const id = await testApp.seedSchedule("daily", 600000, "Schedule");
     expect(
       (await testApp.get(`/schedules?runtimeId=${leftId}`)).body.schedules
     ).toHaveLength(1);
@@ -230,8 +230,7 @@ describe("Durable dashboard generic application integration", () => {
     ).toBe(400);
     expect(
       (
-        await testApp.post(`/schedules?runtimeId=${leftId}`, {
-          workflow: "leftFlow",
+        await testApp.post(`/schedules/preview?runtimeId=${leftId}`, {
           interval: 1000,
           delay: 1000,
         })
@@ -547,13 +546,11 @@ describe("Durable dashboard Runner 6.10 SQLite, versioning, commands, reset, rep
       expect(v1Detail.result).toEqual({ version: 1, name: "Legacy" });
 
       // Versioned schedule
-      const schedRes = await post(`/schedules?runtimeId=${rt.id}`, {
-        workflow: "orders",
-        version: 2,
-        input: { name: "Scheduled", wait: false },
-        interval: 600_000,
-      });
-      expect(schedRes.status).toBe(201);
+      await service.schedule(
+        orderV2,
+        { name: "Scheduled", wait: false },
+        { interval: 600000 }
+      );
       const schedules = (await get(`/schedules?runtimeId=${rt.id}`)).body
         .schedules;
       expect(schedules[0].workflowVersion).toBe(2);

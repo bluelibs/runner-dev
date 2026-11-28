@@ -1,17 +1,12 @@
 /** @jest-environment jsdom */
 
 import React from "react";
-import { render } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { Event, Hook, Task } from "../../../../../schema/model";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import { TopologyPanel } from "./TopologyPanel";
 
-const mockBaseModal = jest.fn((_props: { subtitle?: string }) => null);
-
-jest.mock("./modals", () => ({
-  BaseModal: (props: { subtitle?: string }) => mockBaseModal(props),
-}));
-jest.mock("./TopologyPanelView", () => ({ TopologyPanelView: () => null }));
+jest.mock("./chat/ChatUtils", () => ({ copyToClipboard: jest.fn() }));
 
 const buildTask: Task = {
   id: "task.build",
@@ -41,8 +36,9 @@ describe("TopologyPanel", () => {
     window.location.hash = "";
   });
 
-  it("reports filtered-out impact in the fullscreen blast subtitle", () => {
-    window.location.hash = "#topology/task/task.build";
+  it("restores a shared two-step path through a filtered event", () => {
+    window.location.hash =
+      "#topology/task/task.build?radius=2&why=hook.shipped";
     const introspector = new Introspector({
       data: {
         tasks: [buildTask],
@@ -70,11 +66,10 @@ describe("TopologyPanel", () => {
       })
     );
 
-    expect(mockBaseModal).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        subtitle:
-          "Blast radius · 2 affected (1 hidden by filters) within 2 hops",
-      })
-    );
+    const path = within(screen.getByRole("region", { name: "Impact path" }));
+    expect(path.getAllByRole("listitem")).toHaveLength(3);
+    expect(path.getByText("emits")).toBeTruthy();
+    expect(path.getByText("is handled by")).toBeTruthy();
+    expect(screen.getByText("1 hidden by filters")).toBeTruthy();
   });
 });

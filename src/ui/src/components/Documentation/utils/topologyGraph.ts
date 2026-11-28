@@ -18,7 +18,6 @@ import {
   MAX_TOPOLOGY_RADIUS,
   getDefaultTopologyFocus,
 } from "./topologyGraph.state";
-import { layoutBlast, layoutMindmap } from "./topologyGraph.layout";
 export {
   DEFAULT_TOPOLOGY_RADIUS,
   TOPOLOGY_STORAGE_KEY,
@@ -64,6 +63,10 @@ export interface TopologyFocus {
 }
 
 export interface TopologyHashState {
+  radius?: number;
+  why?: string;
+  owner?: string;
+  paths?: boolean;
   focus: TopologyFocus | null;
   view: TopologyViewMode;
 }
@@ -73,7 +76,6 @@ export interface TopologyProjectionOptions {
   focusKind?: TopologyFocusKind | null;
   view: TopologyViewMode;
   radius: number;
-  autoOrder?: boolean;
   visibleIds?: Set<string> | null;
 }
 
@@ -101,8 +103,6 @@ interface TraversalRelation {
 }
 
 interface TopologyNodeRecord extends BaseDescriptor {
-  x: number;
-  y: number;
   depth: number;
   order: number;
   parentId: string | null;
@@ -123,8 +123,6 @@ export interface TopologyGraphNode {
   description?: string | null;
   filePath?: string | null;
   icon: string;
-  x: number;
-  y: number;
   depth: number;
   order: number;
   parentId: string | null;
@@ -216,7 +214,6 @@ export function buildTopologyProjection(
         Math.round(options.radius || DEFAULT_TOPOLOGY_RADIUS)
       )
     ),
-    autoOrder: options.autoOrder ?? true,
   };
   const visibleIds = options.visibleIds ?? null;
 
@@ -259,13 +256,15 @@ export function buildTopologyProjection(
       state.view === "mindmap" && focus.kind === "resource";
     // Terminal contract nodes get a record (so the edge renders) but never
     // expand: their neighbors are not affected by the focus.
-    const relations = current.terminal
-      ? []
-      : getTraversalRelations(introspector, descriptor, {
-          includeRegisters: shouldIncludeRegisters,
-          impact: state.view === "blast",
-          includeContract: state.view === "blast" && current.depth === 0,
-        });
+    const relations =
+      current.terminal ||
+      (state.view === "blast" && current.depth >= state.radius)
+        ? []
+        : getTraversalRelations(introspector, descriptor, {
+            includeRegisters: shouldIncludeRegisters,
+            impact: state.view === "blast",
+            includeContract: state.view === "blast" && current.depth === 0,
+          });
 
     // Each dequeue is a first visit or a contract partner upgraded by a later
     // downstream reach (see shouldEnqueueReach); both take this entry's place.
@@ -363,12 +362,6 @@ export function buildTopologyProjection(
     return Boolean(source?.isVisible && target?.isVisible);
   }).length;
 
-  if (state.view === "mindmap") {
-    layoutMindmap(nodeList, focus.id, state.autoOrder);
-  } else {
-    layoutBlast(nodeList, focus.id, state.autoOrder);
-  }
-
   const normalizedNodes = nodeList
     .slice()
     .sort((a, b) => a.order - b.order)
@@ -380,8 +373,6 @@ export function buildTopologyProjection(
       description: node.description,
       filePath: node.filePath,
       icon: node.icon,
-      x: node.x,
-      y: node.y,
       depth: node.depth,
       order: node.order,
       parentId: node.parentId,
@@ -438,8 +429,6 @@ function shouldEnqueueReach(
 function createNodeRecord(descriptor: BaseDescriptor): TopologyNodeRecord {
   return {
     ...descriptor,
-    x: 0,
-    y: 0,
     depth: 0,
     order: 0,
     parentId: null,
@@ -460,8 +449,6 @@ function createFallbackNode(focus: TopologyFocus): TopologyGraphNode {
     label: formatId(focus.id),
     subtitle: focus.id,
     icon: getDocumentationIcon(focus.kind),
-    x: 500,
-    y: 500,
     depth: 0,
     order: 0,
     parentId: null,
@@ -487,6 +474,26 @@ interface TraversalFlags {
    * intermediate node's type is unchanged, only its behavior.
    */
   includeContract: boolean;
+}
+
+export function directTopologyRelations(
+  source: Introspector,
+  focus: TopologyFocus
+) {
+  const node = resolveNodeDescriptor(source, focus.id);
+  if (!node) return [];
+  const relations = getTraversalRelations(source, node, {
+    includeRegisters: true,
+    impact: false,
+    includeContract: false,
+  });
+  if (node.kind === "task" || node.kind === "hook" || node.kind === "tag") {
+    relations.push({
+      kind: "used-by",
+      targets: resolveMany(source, getImpactDependents(source, node.id)),
+    });
+  }
+  return dedupeRelations(relations);
 }
 
 function getTraversalRelations(
@@ -546,7 +553,7 @@ function getTraversalRelations(
       kind: "used-by",
       targets: resolveMany(
         introspector,
-        getResourceConsumerIds(introspector, resource.id)
+        getImpactDependents(introspector, resource.id)
       ),
     });
     relations.push({
@@ -816,8 +823,7 @@ function getImpactRelations(
 
 /**
  * Reverse dependency scan: tasks/hooks/resources that would behave
- * differently if `id` changed. Matches getResourceConsumerIds for resources
- * plus durable-resource users; generalizes to any kind for blast traversal.
+ * differently if `id` changed, including durable-resource users.
  */
 function getImpactDependents(introspector: Introspector, id: string): string[] {
   const dependentIds = new Set<string>();
@@ -865,30 +871,6 @@ function getRegisteredById(
   return typeof registeredBy === "string" && registeredBy.length > 0
     ? registeredBy
     : null;
-}
-
-function getResourceConsumerIds(
-  introspector: Introspector,
-  resourceId: string
-): string[] {
-  const consumerIds = new Set<string>();
-
-  for (const consumer of introspector.getTasksUsingResource(resourceId)) {
-    consumerIds.add(consumer.id);
-  }
-
-  for (const candidate of introspector.getResources()) {
-    if (candidate.id === resourceId) continue;
-    if (
-      ensureStringArray(candidate.dependsOn).some((depId) =>
-        idsMatchLike(depId, resourceId)
-      )
-    ) {
-      consumerIds.add(candidate.id);
-    }
-  }
-
-  return Array.from(consumerIds);
 }
 
 function idsMatchLike(candidateId: string, referenceId: string): boolean {
@@ -962,7 +944,7 @@ function resolveNodeDescriptor(
   return null;
 }
 
-function resolveFocus(
+export function resolveFocus(
   introspector: Introspector,
   focusId?: string | null,
   focusKind?: TopologyFocusKind | null

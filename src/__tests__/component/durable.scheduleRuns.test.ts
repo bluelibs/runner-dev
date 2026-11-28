@@ -15,15 +15,7 @@ test("drills into actual ticks and excludes manual starts and similarly named sc
     const manual = await app.post("/executions?runtimeId=" + left, config);
     expect(manual.status).toBe(201);
     for (const id of ["billing", "billing:eu"]) {
-      expect(
-        (
-          await app.post("/schedules?runtimeId=" + left, {
-            ...config,
-            id,
-            interval: 120,
-          })
-        ).status
-      ).toBe(201);
+      await app.seedSchedule(id, 120, "billing");
     }
     async function read(id: string) {
       const res = await app.get(

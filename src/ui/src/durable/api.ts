@@ -69,7 +69,6 @@ export interface StudioApi {
   ): Promise<void>;
   listScheduleRuns(id: string, cursor?: string): Promise<StudioExecutionPage>;
   listSchedules(): Promise<StudioSchedule[]>;
-  createSchedule(body: Record<string, unknown>): Promise<string>;
   previewSchedule(body: Record<string, unknown>): Promise<string[]>;
   updateSchedule(id: string, body: Record<string, unknown>): Promise<void>;
   pauseSchedule(id: string): Promise<void>;
@@ -300,9 +299,6 @@ export function createLiveApi(runtimeId: string): StudioApi {
     listSchedules: async () =>
       (await request<{ schedules: StudioSchedule[] }>("GET", "/api/schedules"))
         .schedules,
-    createSchedule: async (body) =>
-      (await request<{ scheduleId: string }>("POST", "/api/schedules", body))
-        .scheduleId,
     previewSchedule: async (body) =>
       (
         await request<{ fires: string[] }>(

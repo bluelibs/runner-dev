@@ -156,10 +156,10 @@ test("history cannot stack a start dialog over an open schedule draft", async ()
     "/durable?runtimeId=orders&view=schedules"
   );
   render(<App api={studioApi()} runtime={runtime} />);
-  const create = await screen.findByRole("button", { name: "New schedule" });
-  await waitFor(() => expect(create).toBeEnabled());
-  fireEvent.click(create);
-  expect(screen.getByRole("dialog")).toHaveAccessibleName("New schedule");
+  const edit = await screen.findByRole("button", { name: "Edit" });
+  await waitFor(() => expect(edit).toBeEnabled());
+  fireEvent.click(edit);
+  expect(screen.getByRole("dialog")).toHaveAccessibleName("Edit schedule");
   restore("/durable?runtimeId=orders&view=schedules&modal=start");
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
   expect(screen.getByRole("dialog")).toHaveAccessibleName("Start execution");

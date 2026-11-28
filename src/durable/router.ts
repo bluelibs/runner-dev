@@ -14,12 +14,7 @@ import {
 } from "./executions";
 import { toSummary } from "./projection";
 import { executionAction, startExecution } from "./actions";
-import {
-  createSchedule,
-  previewSchedule,
-  scheduleAction,
-  toSchedule,
-} from "./schedules";
+import { previewSchedule, scheduleAction, toSchedule } from "./schedules";
 import { workflowPage } from "./shared/workflowPage";
 
 const querySchema = z.object({ runtimeId: z.string().min(1).optional() });
@@ -120,9 +115,10 @@ async function dispatch(
           toSchedule(runtime, schedule)
         ),
       });
-    else if (method === "POST")
-      res.status(201).json(await createSchedule(runtime, req.body));
-    else throw new DurableHttpError(405, "Method not allowed.");
+    else if (method === "POST") {
+      res.set("Allow", "GET");
+      throw new DurableHttpError(405, "Create schedules in the application.");
+    } else throw new DurableHttpError(405, "Method not allowed.");
     return;
   }
   if (pathname === "/schedules/preview" && method === "POST") {

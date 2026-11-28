@@ -1,11 +1,7 @@
 /** @jest-environment node */
 
 import type { TopologyGraphNode } from "../utils/topologyGraph";
-import {
-  formatBlastSubtitle,
-  groupImpactNodes,
-  summarizeImpact,
-} from "./topologyPanel.utils";
+import { groupImpactNodes } from "./topologyPanel.utils";
 
 function createNode(
   id: string,
@@ -17,8 +13,6 @@ function createNode(
     label: id,
     subtitle: id,
     icon: "task",
-    x: 0,
-    y: 0,
     depth: 1,
     order: 0,
     parentId: null,
@@ -48,29 +42,6 @@ const blastNodes: TopologyGraphNode[] = [
   createNode("task.emitter", { terminal: true }),
   createNode("task.hiddenEmitter", { terminal: true, isVisible: false }),
 ];
-
-describe("summarizeImpact", () => {
-  it("counts the true downstream set and reports hidden nodes apart", () => {
-    expect(summarizeImpact(blastNodes)).toEqual({
-      affected: 4,
-      direct: 2,
-      transitive: 2,
-      contract: 2,
-      hiddenAffected: 2,
-      hiddenContract: 1,
-    });
-  });
-
-  it("keeps contract partners out of Affected", () => {
-    const summary = summarizeImpact([
-      createNode("event.focus", { depth: 0, isFocus: true }),
-      createNode("task.emitter", { terminal: true }),
-    ]);
-
-    expect(summary.affected).toBe(0);
-    expect(summary.contract).toBe(1);
-  });
-});
 
 describe("groupImpactNodes", () => {
   it("lists visible nodes per group and counts the hidden ones", () => {
@@ -115,35 +86,5 @@ describe("groupImpactNodes", () => {
       "task.1",
       "task.2",
     ]);
-  });
-});
-
-describe("formatBlastSubtitle", () => {
-  it("mentions hidden affected nodes and contract partners", () => {
-    expect(formatBlastSubtitle(summarizeImpact(blastNodes), 3)).toBe(
-      "Blast radius · 4 affected (2 hidden by filters) within 3 hops · 2 contract partners"
-    );
-  });
-
-  it("stays short when nothing is hidden and nobody shares the contract", () => {
-    const summary = summarizeImpact([
-      createNode("task.focus", { depth: 0, isFocus: true }),
-      createNode("event.emitted", { kind: "event" }),
-    ]);
-
-    expect(formatBlastSubtitle(summary, 1)).toBe(
-      "Blast radius · 1 affected within 1 hop"
-    );
-  });
-
-  it("uses the singular for one contract partner", () => {
-    const summary = summarizeImpact([
-      createNode("error.focus", { depth: 0, isFocus: true }),
-      createNode("task.thrower", { terminal: true }),
-    ]);
-
-    expect(formatBlastSubtitle(summary, 2)).toBe(
-      "Blast radius · 0 affected within 2 hops · 1 contract partner"
-    );
   });
 });

@@ -78,41 +78,6 @@ export function toSchedule(
   };
 }
 
-const optionalVersionSchema = z
-  .union([z.number().int().positive(), z.null()])
-  .optional();
-
-export async function createSchedule(
-  runtime: DashboardRuntime,
-  input: unknown
-): Promise<{ scheduleId: string }> {
-  const body = bodyRecord(input);
-  const version = optionalVersionSchema.parse(body.version);
-  const task = requireWorkflow(runtime, nonEmpty(body.workflow), version);
-  const options = parseCadence(body);
-  if (body.id !== undefined) {
-    const id = nonEmpty(body.id);
-    if (options.cron !== undefined)
-      return {
-        scheduleId: await runtime.durable.ensureSchedule(task, body.input, {
-          ...options,
-          id,
-        }),
-      };
-    if (options.interval !== undefined)
-      return {
-        scheduleId: await runtime.durable.ensureSchedule(task, body.input, {
-          ...options,
-          id,
-        }),
-      };
-    throw new DurableHttpError(400, "One-time schedules cannot specify an id.");
-  }
-  return {
-    scheduleId: await runtime.durable.schedule(task, body.input, options),
-  };
-}
-
 export function previewSchedule(input: unknown): { fires: string[] } {
   const options = parseCadence(bodyRecord(input));
   const fires: string[] = [];

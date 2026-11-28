@@ -8,3 +8,9 @@
 .directory-entries p { color: var(--text-dim); margin: 6px 0; }
 .directory-entries code { color: var(--text-muted); font: 12px var(--font-mono); }
 .workflow-directory nav { display: flex; gap: 12px; }
+
+.directory-entries li { position: relative; }
+.directory-workflow { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.directory-workflow::after { content: ""; position: absolute; inset: 0; }
+.directory-workflow:hover, .directory-workflow:focus-visible { color: var(--info); text-decoration: underline; }
+.directory-workflow:focus-visible::after { outline: 2px solid var(--info); outline-offset: -2px; }

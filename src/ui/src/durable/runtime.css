@@ -3,7 +3,9 @@
 .runtime-back:hover { color: var(--text); }
 .runtime-picker { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .runtime-picker label { color: var(--text-muted); font-size: 12px; }
-.runtime-picker select { max-width: 360px; background: var(--bg-overlay); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 10px; }
+.runtime-select { position: relative; display: inline-flex; min-width: 0; }
+.runtime-select::after { content: ""; position: absolute; inset-inline-end: 14px; top: 50%; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+.runtime-picker select { appearance: none; max-width: 360px; background: var(--bg-overlay); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 10px; padding-inline-end: 34px; }
 .runtime-live { font-size: 10px; letter-spacing: .1em; color: var(--text-muted); }
 .backend-badge { padding: 2px 7px; border-radius: 5px; border: 1px solid var(--border-strong); background: var(--neutral-soft); color: var(--text-dim); font: 600 10px/1.4 var(--font-mono); letter-spacing: .06em; white-space: nowrap; }
 .backend-badge.backend-sqlite { border-color: rgba(56, 189, 248, 0.35); background: var(--info-soft); color: var(--info); }

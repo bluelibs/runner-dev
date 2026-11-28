@@ -26,13 +26,8 @@ test.each([3, 4])(
       const runtimeId = runtimes.body.runtimes.find((entry: { id: string }) =>
         entry.id.endsWith(".left")
       ).id;
-      const created = await app.post(`/schedules?runtimeId=${runtimeId}`, {
-        workflow: "leftFlow",
-        input: { name: "Original", wait: false },
-        interval: 600000,
-      });
-      expect(created.status).toBe(201);
-      const route = `${app.prefix}/schedules/${created.body.scheduleId}?runtimeId=${runtimeId}`;
+      const id = await app.seedSchedule("validation", 600000, "Original");
+      const route = `${app.prefix}/schedules/${id}?runtimeId=${runtimeId}`;
       const invalid = await app.client
         .patch(route)
         .set("Authorization", app.auth)

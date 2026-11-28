@@ -1,9 +1,8 @@
 import React from "react";
+import type { TopologyFocus, TopologyViewMode } from "../utils/topologyGraph";
 import {
   defaultViewForKind,
   openTopologyFocus,
-  type TopologyFocus,
-  type TopologyViewMode,
 } from "../utils/topologyGraph.state";
 
 export interface TopologyActionButtonProps {

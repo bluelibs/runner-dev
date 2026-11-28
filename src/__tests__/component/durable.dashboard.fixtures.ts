@@ -111,7 +111,25 @@ export async function fixture(withRuntimes = true, legacySchemas = false) {
       .post(prefix + path)
       .set("Authorization", auth)
       .send(body);
-  return { runtime, server, client, auth, prefix, get, post, logger };
+  const seedSchedule = (id: string, interval: number, name: string) =>
+    runtime
+      .getResourceValue(left)
+      .ensureSchedule(
+        store.resolveRegisteredDefinition(leftTask),
+        { name, wait: false },
+        { id, interval }
+      );
+  return {
+    seedSchedule,
+    runtime,
+    server,
+    client,
+    auth,
+    prefix,
+    get,
+    post,
+    logger,
+  };
 }
 
 export async function close(server: Server): Promise<void> {

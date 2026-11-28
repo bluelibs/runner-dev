@@ -137,17 +137,19 @@ export function RuntimeDashboard() {
         <div className="runtime-picker">
           <span className="conn-dot" />
           <label htmlFor="durable-runtime">Runtime</label>
-          <select
-            id="durable-runtime"
-            value={selected}
-            onChange={(event) => selectRuntime(event.target.value)}
-          >
-            {runtimes.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.title}
-              </option>
-            ))}
-          </select>
+          <span className="runtime-select">
+            <select
+              id="durable-runtime"
+              value={selected}
+              onChange={(event) => selectRuntime(event.target.value)}
+            >
+              {runtimes.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+          </span>
           {runtime.backend ? (
             <span
               className={`backend-badge backend-${runtime.backend}`}

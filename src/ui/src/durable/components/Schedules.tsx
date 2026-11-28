@@ -1,23 +1,19 @@
+import { RuntimeHint } from "./RuntimeHint";
 import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 import { useEffect, useMemo, useState } from "react";
-import type {
-  StudioSchedule,
-  StudioWorkflow,
-} from "../../../../durable/shared/types";
+import type { StudioSchedule } from "../../../../durable/shared/types";
 import { formatDateTime } from "../format";
 import { ConfirmDialog } from "./Modal";
 import { ScheduleModal } from "./ScheduleModal";
 
 export function Schedules({
   schedules,
-  workflows,
   busy,
   loading = false,
   available = true,
   dialogsAllowed = true,
   now: _now,
   onViewRuns,
-  onCreate,
   onUpdate,
   onPreview,
   onPause,
@@ -25,26 +21,22 @@ export function Schedules({
   onRemove,
 }: {
   schedules: StudioSchedule[];
-  workflows: StudioWorkflow[];
   busy: boolean;
   loading?: boolean;
   available?: boolean;
   dialogsAllowed?: boolean;
   now: number;
   onViewRuns: (id: string) => void;
-  onCreate: (body: Record<string, unknown>) => Promise<void>;
   onUpdate: (id: string, body: Record<string, unknown>) => Promise<void>;
   onPreview: (body: Record<string, unknown>) => Promise<string[]>;
   onPause: (id: string) => void;
   onResume: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
-  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<StudioSchedule | null>(null);
   const [deleting, setDeleting] = useState<StudioSchedule | null>(null);
   useEffect(() => {
     if (!dialogsAllowed) {
-      setCreating(false);
       setEditing(null);
       setDeleting(null);
     }
@@ -93,18 +85,9 @@ export function Schedules({
         <div>
           <h2>Schedules</h2>
           <p className="muted">
-            Cron, interval and one-time timers that start workflows on their
-            own.
+            Recurring workflows started by cron or interval schedules.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn primary"
-          disabled={workflows.length === 0 || busy}
-          onClick={() => setCreating(true)}
-        >
-          New schedule
-        </button>
       </div>
       {showScaleTools ? (
         <div className="schedule-toolbar">
@@ -152,11 +135,15 @@ export function Schedules({
       ) : schedules.length === 0 ? (
         <div className="empty-list">
           <p className="empty-title">
-            {available ? "No schedules" : "Schedules have not loaded"}
+            {available
+              ? "No schedules in this runtime"
+              : "Schedules have not loaded"}
           </p>
           <p className="empty-sub">
-            Schedules fire workflows without anyone pressing start.
+            The application registers its recurring schedules with the runtime
+            that owns them.
           </p>
+          {available && <RuntimeHint />}
         </div>
       ) : filtered.length === 0 ? (
         <div className="empty-list">
@@ -270,22 +257,9 @@ export function Schedules({
           onClose={() => setDeleting(null)}
         />
       ) : null}
-      {dialogsAllowed && creating ? (
-        <ScheduleModal
-          workflows={workflows}
-          busy={busy}
-          onPreview={onPreview}
-          onSave={async (body) => {
-            await onCreate(body);
-            setCreating(false);
-          }}
-          onClose={() => setCreating(false)}
-        />
-      ) : null}
       {dialogsAllowed && editing ? (
         <ScheduleModal
           schedule={editing}
-          workflows={workflows}
           busy={busy}
           onPreview={onPreview}
           onSave={async (body) => {

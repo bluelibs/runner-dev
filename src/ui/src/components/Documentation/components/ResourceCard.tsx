@@ -270,7 +270,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
         <>
           <TopologyActionButton
             focus={{ kind: "resource", id: resource.id }}
-            title="Open resource mindmap"
+            title="Open resource relationships"
             className="btn--primary"
           />
           {!isCatalogMode && (

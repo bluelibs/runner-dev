@@ -1,3 +1,4 @@
+import { RuntimeHint } from "./RuntimeHint";
 import { LoadingSkeleton } from "../../components/LoadingSkeleton";
 import { useEffect, useState, type RefObject } from "react";
 import type { StudioApi } from "../api";
@@ -6,9 +7,11 @@ import "../directory.css";
 export function WorkflowDirectory({
   api,
   searchRef,
+  onWorkflowSelect,
 }: {
   api: StudioApi;
   searchRef: RefObject<HTMLInputElement>;
+  onWorkflowSelect: (key: string) => void;
 }) {
   const [query, setQuery] = useState("");
   return (
@@ -25,13 +28,26 @@ export function WorkflowDirectory({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <CatalogPages key={query} api={api} query={query} />
+        <CatalogPages
+          key={query}
+          api={api}
+          query={query}
+          onWorkflowSelect={onWorkflowSelect}
+        />
       </section>
     </main>
   );
 }
 
-function CatalogPages({ api, query }: { api: StudioApi; query: string }) {
+function CatalogPages({
+  api,
+  query,
+  onWorkflowSelect,
+}: {
+  api: StudioApi;
+  query: string;
+  onWorkflowSelect: (key: string) => void;
+}) {
   const [cursors, setCursors] = useState<Array<string | undefined>>([
     undefined,
   ]);
@@ -87,7 +103,20 @@ function CatalogPages({ api, query }: { api: StudioApi; query: string }) {
           {result.entries.map((entry) => (
             <li key={JSON.stringify([entry.kind, entry.key, entry.version])}>
               <div className="directory-heading">
-                <h2>{entry.title}</h2>
+                <h2>
+                  {entry.kind === "Workflow" ? (
+                    <button
+                      type="button"
+                      className="directory-workflow"
+                      onClick={() => onWorkflowSelect(entry.key)}
+                      title={`View executions for ${entry.title} across all versions`}
+                    >
+                      {entry.title}
+                    </button>
+                  ) : (
+                    entry.title
+                  )}
+                </h2>
                 <span>
                   {entry.kind}
                   {entry.version != null && ` · v${entry.version}`}
@@ -99,11 +128,14 @@ function CatalogPages({ api, query }: { api: StudioApi; query: string }) {
           ))}
         </ul>
       ) : (
-        <p>
-          {query
-            ? "No matching workflows or events."
-            : "No workflows or durable events registered for this runtime."}
-        </p>
+        <div>
+          <p>
+            {query.trim()
+              ? "No matching workflows or events."
+              : "No workflows or durable events registered for this runtime."}
+          </p>
+          <RuntimeHint />
+        </div>
       )}
       <nav aria-label="Catalog pages">
         {cursors.length > 1 && (

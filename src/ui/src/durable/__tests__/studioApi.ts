@@ -51,7 +51,6 @@ export function studioApi(
       nextCursor: null,
     }),
     listSchedules: jest.fn().mockResolvedValue([schedule()]),
-    createSchedule: jest.fn().mockResolvedValue("new-schedule"),
     previewSchedule: jest.fn().mockResolvedValue([]),
     updateSchedule: jest.fn().mockResolvedValue(undefined),
     pauseSchedule: jest.fn().mockResolvedValue(undefined),

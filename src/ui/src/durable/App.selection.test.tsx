@@ -168,6 +168,7 @@ test("the workflow catalog opens from navigation and searches event descriptions
   fireEvent.click(screen.getByRole("button", { name: "Workflow catalog" }));
   expect(await screen.findByText("Issue receipt")).toBeVisible();
   expect(screen.getByText("Durable event")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Order paid" })).toBeNull();
   const search = screen.getByRole("searchbox", {
     name: "Search the workflow catalog",
   });
@@ -179,6 +180,9 @@ test("the workflow catalog opens from navigation and searches event descriptions
   fireEvent.change(search, { target: { value: "missing" } });
   expect(
     await screen.findByText("No matching workflows or events.")
+  ).toBeVisible();
+  expect(
+    screen.getByText(/check the runtime selected at the top right/i)
   ).toBeVisible();
   expect(api.listCatalog).toHaveBeenLastCalledWith({
     query: "missing",
@@ -244,4 +248,49 @@ test("can return to the previous catalog page after loading the next page fails"
     query: "",
     cursor: undefined,
   });
+});
+
+test("a catalog workflow opens its runtime-scoped executions and clears stale execution filters", async () => {
+  window.history.replaceState(
+    null,
+    "",
+    "/durable?runtimeId=runtime-1&view=catalog&workflow=previous&select=old&status=failed&query=old"
+  );
+  const api = studioApi();
+  api.listCatalog.mockResolvedValue({
+    entries: [
+      {
+        kind: "Workflow",
+        key: "orders",
+        version: 2,
+        title: "Ship orders",
+        category: "Sales",
+        description: "Ship paid orders.",
+      },
+    ],
+    total: 1,
+    nextCursor: null,
+  });
+  api.listExecutionPage.mockResolvedValue({
+    executions: [],
+    total: 0,
+    hasMore: false,
+    nextCursor: null,
+    nextOffset: null,
+  });
+  render(<App api={api} runtime={runtime} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Ship orders" }));
+  expect(
+    Object.fromEntries(new URLSearchParams(window.location.search))
+  ).toEqual({ runtimeId: "runtime-1", view: "executions", workflow: "orders" });
+  expect(
+    await screen.findByText(/check the runtime selected at the top right/i)
+  ).toBeVisible();
+  expect(api.listExecutionPage).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      workflowKey: "orders",
+      status: undefined,
+      executionId: undefined,
+    })
+  );
 });

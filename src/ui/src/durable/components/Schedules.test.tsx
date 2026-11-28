@@ -10,7 +10,7 @@ import {
 import "@testing-library/jest-dom";
 import { Schedules } from "./Schedules";
 import { ScheduleModal } from "./ScheduleModal";
-import { schedule, timestamp, workflow } from "../__tests__/fixtures";
+import { schedule, timestamp } from "../__tests__/fixtures";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -24,11 +24,9 @@ function deferred<T>() {
 function props() {
   return {
     schedules: [schedule()],
-    workflows: [workflow],
     busy: false,
     now: Date.parse(timestamp),
     onViewRuns: jest.fn(),
-    onCreate: jest.fn().mockResolvedValue(undefined),
     onUpdate: jest.fn().mockResolvedValue(undefined),
     onPreview: jest.fn().mockResolvedValue([timestamp]),
     onPause: jest.fn(),
@@ -38,41 +36,36 @@ function props() {
 }
 afterEach(() => jest.useRealTimers());
 
-test.each(["create", "update"])(
-  "retains the %s draft on rejection, prevents pending dismissal, and closes after retry succeeds",
-  async (mode) => {
-    const options = props();
-    const save = mode === "create" ? options.onCreate : options.onUpdate;
-    const pending = deferred<void>();
-    save.mockReturnValueOnce(pending.promise);
-    render(<Schedules {...options} />);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: mode === "create" ? "New schedule" : "Edit",
-      })
-    );
-    const dialog = screen.getByRole("dialog");
-    const editor = within(dialog).getByRole("textbox", { name: "JSON input" });
-    fireEvent.change(editor, { target: { value: '{"draft":42}' } });
-    const submit = within(dialog).getByRole("button", {
-      name: mode === "create" ? "Create schedule" : "Save changes",
-    });
-    await waitFor(() => expect(submit).toBeEnabled());
-    fireEvent.click(submit);
-    fireEvent.click(submit);
-    expect(save).toHaveBeenCalledTimes(1);
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(dialog).toBeInTheDocument();
-    await act(async () => pending.reject(new Error("Input rejected")));
-    expect(within(dialog).getByRole("alert")).toHaveTextContent(
-      "Input rejected"
-    );
-    expect(editor).toHaveValue('{"draft":42}');
-    fireEvent.click(submit);
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(save).toHaveBeenCalledTimes(2);
-  }
-);
+test("retains the existing schedule draft on rejection, prevents pending dismissal, and closes after retry succeeds", async () => {
+  const options = props();
+  const save = options.onUpdate;
+  const pending = deferred<void>();
+  save.mockReturnValueOnce(pending.promise);
+  render(<Schedules {...options} />);
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Edit",
+    })
+  );
+  const dialog = screen.getByRole("dialog");
+  const editor = within(dialog).getByRole("textbox", { name: "JSON input" });
+  fireEvent.change(editor, { target: { value: '{"draft":42}' } });
+  const submit = within(dialog).getByRole("button", {
+    name: "Save changes",
+  });
+  await waitFor(() => expect(submit).toBeEnabled());
+  fireEvent.click(submit);
+  fireEvent.click(submit);
+  expect(save).toHaveBeenCalledTimes(1);
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(dialog).toBeInTheDocument();
+  await act(async () => pending.reject(new Error("Input rejected")));
+  expect(within(dialog).getByRole("alert")).toHaveTextContent("Input rejected");
+  expect(editor).toHaveValue('{"draft":42}');
+  fireEvent.click(submit);
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(save).toHaveBeenCalledTimes(2);
+});
 
 test("requires explicit deletion confirmation and preserves active filters as the list shrinks", () => {
   const options = props();
@@ -103,7 +96,7 @@ test("requires explicit deletion confirmation and preserves active filters as th
   expect(options.onRemove).toHaveBeenCalledWith("schedule-0");
 });
 
-test("ignores out-of-order cadence previews, gates save on current validation, and accepts zero delay", async () => {
+test("ignores out-of-order cadence previews, gates save on current validation, and rejects nonpositive intervals", async () => {
   jest.useFakeTimers();
   const older = deferred<string[]>();
   const newer = deferred<string[]>();
@@ -114,7 +107,7 @@ test("ignores out-of-order cadence previews, gates save on current validation, a
     .mockResolvedValue([timestamp]);
   render(
     <ScheduleModal
-      workflows={[workflow]}
+      schedule={schedule()}
       busy={false}
       onSave={jest.fn()}
       onPreview={preview}
@@ -125,7 +118,7 @@ test("ignores out-of-order cadence previews, gates save on current validation, a
   fireEvent.change(screen.getByLabelText("Milliseconds"), {
     target: { value: "120000" },
   });
-  const submit = screen.getByRole("button", { name: "Create schedule" });
+  const submit = screen.getByRole("button", { name: "Save changes" });
   expect(submit).toBeDisabled();
   await act(async () => jest.advanceTimersByTime(180));
   await act(async () => newer.resolve([timestamp]));
@@ -137,24 +130,19 @@ test("ignores out-of-order cadence previews, gates save on current validation, a
     target: { value: "1.5" },
   });
   expect(submit).toBeDisabled();
-  fireEvent.change(screen.getByLabelText("Cadence"), {
-    target: { value: "delay" },
-  });
   fireEvent.change(screen.getByLabelText("Milliseconds"), {
     target: { value: "0" },
   });
-  await act(async () => jest.advanceTimersByTime(180));
-  expect(preview).toHaveBeenLastCalledWith({ delay: 0 });
-  expect(submit).toBeEnabled();
+  expect(submit).toBeDisabled();
 });
 
 test("retries a failed preview with the same cadence and preserves the schedule draft", async () => {
   const options = props();
   options.onPreview.mockRejectedValueOnce(new Error("Preview offline"));
   render(<Schedules {...options} />);
-  fireEvent.click(screen.getByRole("button", { name: "New schedule" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
   const dialog = within(screen.getByRole("dialog"));
-  const save = dialog.getByRole("button", { name: "Create schedule" });
+  const save = dialog.getByRole("button", { name: "Save changes" });
   const editor = dialog.getByRole("textbox", { name: "JSON input" });
   fireEvent.change(editor, { target: { value: '{"keep":true}' } });
   const retry = await dialog.findByRole("button", { name: "Retry preview" });
@@ -174,9 +162,10 @@ test("reserves space for the first schedule request and keeps a known empty resu
   expect(
     screen.getByRole("status", { name: "Loading schedules" })
   ).toBeVisible();
-  expect(screen.queryByText("No schedules")).toBeNull();
+  expect(screen.queryByText("No schedules in this runtime")).toBeNull();
   view.rerender(<Schedules {...options} available />);
-  expect(screen.getByText("No schedules")).toBeVisible();
+  expect(screen.getByText("No schedules in this runtime")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "New schedule" })).toBeNull();
   expect(
     screen.queryByRole("status", { name: "Loading schedules" })
   ).toBeNull();

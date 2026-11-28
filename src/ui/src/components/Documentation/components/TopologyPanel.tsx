@@ -1,37 +1,25 @@
 import React from "react";
-import {
-  type Event,
-  type Hook,
-  type Middleware,
-  type Resource,
-  type Tag,
-  type Task,
+import { DocIcon } from "./common/DocIcon";
+import type {
+  Task,
+  Event,
+  Hook,
+  Middleware,
+  Resource,
+  Tag,
 } from "../../../../../schema/model";
-import { Introspector } from "../../../../../resources/models/Introspector";
-import {
-  buildTopologyProjection,
-  collectSearchTopologyVisibleIds,
-  type TopologyGraphNode,
-  type TopologyViewMode,
-} from "../utils/topologyGraph";
+import type { Introspector } from "../../../../../resources/models/Introspector";
+import { buildTopologyCatalog } from "../utils/topologyCatalog";
+import { resolveFocus } from "../utils/topologyGraph";
 import {
   buildTopologyHash,
-  DEFAULT_TOPOLOGY_RADIUS,
-  defaultViewForKind,
-  getDefaultTopologyFocus,
   parseTopologyHash,
+  DEFAULT_TOPOLOGY_RADIUS,
 } from "../utils/topologyGraph.state";
-import { BaseModal } from "./modals";
-import {
-  buildInitialTopologyPanelState,
-  normalizeTopologyRadius,
-  persistTopologyPanelState,
-  readStoredTopologyPanelState,
-  type TopologyPanelState,
-} from "./topologyPanelState";
-import { formatBlastSubtitle, summarizeImpact } from "./topologyPanel.utils";
-import { TopologyPanelView } from "./TopologyPanelView";
-import { getMatchingTopologyNodeIds } from "./topologyNavigator.utils";
+import { TopologyBrowse } from "./TopologyBrowse";
+import { CopyTopologyLink, TopologyImpactPanel } from "./TopologyImpactPaths";
+import { TopologyCatalogContext } from "./TopologyOwnerGroups";
+import { TopologyRelationships } from "./TopologyRelationships";
 import "./TopologyPanel.scss";
 
 export interface TopologyPanelProps {
@@ -46,7 +34,13 @@ export interface TopologyPanelProps {
   tags: Tag[];
 }
 
-export const TopologyPanel: React.FC<TopologyPanelProps> = ({
+function subscribeHash(listener: () => void) {
+  window.addEventListener("hashchange", listener);
+  return () => window.removeEventListener("hashchange", listener);
+}
+const currentHash = () => window.location.hash;
+
+export function TopologyPanel({
   introspector,
   tasks,
   resources,
@@ -56,309 +50,142 @@ export const TopologyPanel: React.FC<TopologyPanelProps> = ({
   errors,
   asyncContexts,
   tags,
-}) => {
-  const visibleIds = React.useMemo(() => {
-    const ids = new Set<string>();
-    for (const item of [
-      ...tasks,
-      ...resources,
-      ...events,
-      ...hooks,
-      ...middlewares,
-      ...errors,
-      ...asyncContexts,
-      ...tags,
-    ] as Array<{ id: string }>) {
-      ids.add(item.id);
-    }
-    return ids;
-  }, [
-    asyncContexts,
-    events,
-    hooks,
-    middlewares,
-    resources,
-    tasks,
-    tags,
-    errors,
-  ]);
-
-  const initialState = React.useMemo<TopologyPanelState>(
-    () => buildInitialTopologyPanelState(introspector),
+}: TopologyPanelProps) {
+  const hash = React.useSyncExternalStore(subscribeHash, currentHash, () => "");
+  const route = parseTopologyHash(hash);
+  const catalog = React.useMemo(
+    () => buildTopologyCatalog(introspector),
     [introspector]
   );
-
-  const [state, setState] = React.useState<TopologyPanelState>(initialState);
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
-  const [navigatorQuery, setNavigatorQuery] = React.useState("");
-  const stateRef = React.useRef(state);
-  React.useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
-  const baseGraph = React.useMemo(
+  const visibleIds = React.useMemo(
     () =>
-      buildTopologyProjection(introspector, {
-        focusId: state.focus.id,
-        focusKind: state.focus.kind,
-        view: state.view,
-        radius: state.radius,
-        autoOrder: state.autoOrder,
-        visibleIds,
-      }),
-    [
-      introspector,
-      state.autoOrder,
-      state.focus.id,
-      state.focus.kind,
-      state.radius,
-      state.view,
-      visibleIds,
-    ]
+      new Set(
+        [
+          ...tasks,
+          ...resources,
+          ...events,
+          ...hooks,
+          ...middlewares,
+          ...errors,
+          ...asyncContexts,
+          ...tags,
+        ].map((item) => item.id)
+      ),
+    [tasks, resources, events, hooks, middlewares, errors, asyncContexts, tags]
   );
-
-  const searchedVisibleIds = React.useMemo(() => {
-    const matchingIds = getMatchingTopologyNodeIds(
-      baseGraph.nodes,
-      state.focus.id,
-      navigatorQuery
-    );
-    if (!matchingIds) return visibleIds;
-
-    return collectSearchTopologyVisibleIds(
-      baseGraph.nodes,
-      state.focus.id,
-      matchingIds
-    );
-  }, [baseGraph.nodes, navigatorQuery, state.focus.id, visibleIds]);
-
-  const graph = React.useMemo(
-    () =>
-      buildTopologyProjection(introspector, {
-        focusId: state.focus.id,
-        focusKind: state.focus.kind,
-        view: state.view,
-        radius: state.radius,
-        autoOrder: state.autoOrder,
-        visibleIds: searchedVisibleIds,
-      }),
-    [
-      introspector,
-      searchedVisibleIds,
-      state.autoOrder,
-      state.focus.id,
-      state.focus.kind,
-      state.radius,
-      state.view,
-    ]
+  const requested = route?.focus;
+  const focus = React.useMemo(
+    () => requested && resolveFocus(introspector, requested.id, requested.kind),
+    [introspector, requested?.id, requested?.kind]
   );
-
-  const selectedNode = graph.selectedNode;
-  const nodeMap = React.useMemo(
-    () => new Map(graph.nodes.map((node) => [node.id, node] as const)),
-    [graph.nodes]
-  );
-  const canOpenSelectedCard = nodeMap.has(selectedNode.id);
-
-  const commitState = React.useCallback(
-    (patch: Partial<TopologyPanelState>, updateHash = true) => {
-      const next = {
-        ...stateRef.current,
-        ...patch,
-      };
-      stateRef.current = next;
-      setState(next);
-      persistTopologyPanelState(next);
-
-      if (updateHash && typeof window !== "undefined") {
-        const nextHash = buildTopologyHash({
-          focus: next.focus,
-          view: next.view,
-        });
-        if (window.location.hash !== nextHash) {
-          window.location.hash = nextHash;
-        }
-      }
-    },
-    []
-  );
-
-  React.useEffect(() => {
-    const handleHashChange = () => {
-      const parsedHash = parseTopologyHash(window.location.hash);
-      const storedState = readStoredTopologyPanelState();
-      const current = stateRef.current;
-
-      if (parsedHash?.focus) {
-        const next: TopologyPanelState = {
-          focus: parsedHash.focus,
-          view: parsedHash.view ?? defaultViewForKind(parsedHash.focus.kind),
-          radius: current.radius,
-          autoOrder: current.autoOrder,
-          isNavigatorOpen: current.isNavigatorOpen,
-        };
-        stateRef.current = next;
-        setState(next);
-        persistTopologyPanelState(next);
-        return;
-      }
-
-      if (window.location.hash.startsWith("#topology")) {
-        const next = storedState ?? {
-          focus: getDefaultTopologyFocus(introspector) ?? current.focus,
-          view: current.view,
-          radius: current.radius,
-          autoOrder: current.autoOrder,
-          isNavigatorOpen: current.isNavigatorOpen,
-        };
-        stateRef.current = next;
-        setState(next);
-        persistTopologyPanelState(next);
-      }
-    };
-
-    window.addEventListener("hashchange", handleHashChange);
-    handleHashChange();
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [introspector]);
-
-  const setRadius = (radius: number) => {
-    commitState(
-      {
-        radius: normalizeTopologyRadius(radius),
-      },
-      false
-    );
-  };
-
-  const setView = (view: TopologyViewMode) => {
-    commitState({ view }, true);
-  };
-
-  const toggleAutoOrder = () => {
-    commitState(
-      {
-        autoOrder: !stateRef.current.autoOrder,
-      },
-      false
-    );
-  };
-
-  const toggleNavigator = () => {
-    commitState(
-      {
-        isNavigatorOpen: !stateRef.current.isNavigatorOpen,
-      },
-      false
-    );
-  };
-
-  const refocus = (node: TopologyGraphNode) => {
-    commitState(
-      {
-        focus: {
-          kind: node.kind,
-          id: node.id,
-        },
-      },
-      true
-    );
-  };
-
-  const resetToRoot = () => {
-    const defaultFocus = getDefaultTopologyFocus(introspector) ?? state.focus;
-    commitState(
-      {
-        focus: defaultFocus,
-        view: defaultViewForKind(defaultFocus.kind),
-        radius: DEFAULT_TOPOLOGY_RADIUS,
-        autoOrder: true,
-        isNavigatorOpen: stateRef.current.isNavigatorOpen,
-      },
-      false
-    );
-    if (typeof window !== "undefined") {
-      const nextHash = buildTopologyHash({
-        focus: defaultFocus,
-        view: defaultViewForKind(defaultFocus.kind),
-      });
-      window.location.hash = nextHash;
-    }
-  };
-
-  const openSelectedCard = () => {
-    if (!canOpenSelectedCard) return;
-    if (typeof window === "undefined") return;
-    window.location.hash = `#element-${selectedNode.id}`;
-  };
-
-  const openFullscreen = () => setIsFullscreen(true);
-  const closeFullscreen = () => setIsFullscreen(false);
-
-  const fullscreenTitle = "Topology";
-  const fullscreenSubtitle =
-    state.view === "blast"
-      ? formatBlastSubtitle(summarizeImpact(graph.nodes), graph.radius)
-      : `Mindmap · ${graph.summary.visibleNodes} visible nodes`;
-
-  return (
-    <>
+  const entry = focus && catalog.elements.get(focus.id);
+  const [query, setQuery] = React.useState("");
+  React.useEffect(() => setQuery(""), [focus?.id]);
+  if (!requested || !entry || entry.kind !== requested.kind)
+    return (
       <section id="topology" className="docs-section topology-panel">
-        <TopologyPanelView
-          graph={graph}
-          nodeMap={nodeMap}
-          selectedNode={selectedNode}
-          view={state.view}
-          autoOrder={state.autoOrder}
-          isNavigatorOpen={state.isNavigatorOpen}
-          navigatorQuery={navigatorQuery}
-          isFullscreen={isFullscreen}
-          canOpenSelectedCard={canOpenSelectedCard}
-          onSelectNode={refocus}
-          onNavigatorQueryChange={setNavigatorQuery}
-          onViewChange={setView}
-          onRadiusChange={setRadius}
-          onReset={resetToRoot}
-          onOpenSelectedCard={openSelectedCard}
-          onToggleFullscreen={openFullscreen}
-          onToggleAutoOrder={toggleAutoOrder}
-          onToggleNavigator={toggleNavigator}
+        <h2>
+          <DocIcon name="topology" size={21} className="doc-icon--accent" />
+          Topology
+        </h2>
+        {requested && <p>This element is unavailable in this catalog.</p>}
+        <TopologyBrowse
+          key={route?.owner ?? ""}
+          catalog={catalog}
+          owner={route?.owner}
         />
       </section>
-
-      <BaseModal
-        isOpen={isFullscreen}
-        onClose={closeFullscreen}
-        title={fullscreenTitle}
-        subtitle={fullscreenSubtitle}
-        size="fullscreen"
-        className="topology-panel__modal"
-        ariaLabel="Topology fullscreen view"
-      >
-        <div className="topology-panel topology-panel--fullscreen">
-          <TopologyPanelView
-            graph={graph}
-            nodeMap={nodeMap}
-            selectedNode={selectedNode}
-            view={state.view}
-            autoOrder={state.autoOrder}
-            isNavigatorOpen={state.isNavigatorOpen}
-            navigatorQuery={navigatorQuery}
-            isFullscreen={isFullscreen}
-            canOpenSelectedCard={canOpenSelectedCard}
-            showHero={false}
-            onSelectNode={refocus}
-            onNavigatorQueryChange={setNavigatorQuery}
-            onViewChange={setView}
-            onRadiusChange={setRadius}
-            onReset={resetToRoot}
-            onOpenSelectedCard={openSelectedCard}
-            onToggleFullscreen={closeFullscreen}
-            onToggleAutoOrder={toggleAutoOrder}
-            onToggleNavigator={toggleNavigator}
+    );
+  const paths = Boolean(route?.paths || route?.why);
+  const radius = route?.radius ?? DEFAULT_TOPOLOGY_RADIUS;
+  const link = (showPaths: boolean, why?: string) =>
+    buildTopologyHash({
+      focus: entry,
+      view: "blast",
+      paths: showPaths,
+      radius,
+      why,
+    });
+  return (
+    <TopologyCatalogContext.Provider value={catalog}>
+      <section id="topology" className="docs-section topology-panel">
+        <TopologyBrowse key={entry.id} catalog={catalog} focus={entry.id} />
+        <header className="relations-header">
+          <div>
+            <h2>
+              <DocIcon
+                name={entry.kind}
+                size={22}
+                className="doc-icon--accent"
+              />
+              {entry.label}
+            </h2>
+            <div className="relations-meta">
+              <span>{entry.kind}</span>
+              <code>{entry.id}</code>
+            </div>
+            {entry.description && <p>{entry.description}</p>}
+          </div>
+          <div className="relations-actions">
+            <a href={`#element-${entry.id}`}>
+              <DocIcon name="external" size={13} /> Open card
+            </a>
+            {!route?.why && <CopyTopologyLink hash={link(paths)} />}
+          </div>
+        </header>
+        <div className="relations-tools docs-section-tabs">
+          <nav aria-label="Relationship views">
+            <a
+              className={
+                !paths
+                  ? "docs-section-tab docs-section-tab--active"
+                  : "docs-section-tab"
+              }
+              href={link(false)}
+              aria-current={!paths ? "page" : undefined}
+            >
+              <DocIcon name="list" size={14} /> Relationships
+            </a>
+            <a
+              className={
+                paths
+                  ? "docs-section-tab docs-section-tab--active"
+                  : "docs-section-tab"
+              }
+              href={link(true)}
+              aria-current={paths ? "page" : undefined}
+            >
+              <DocIcon name="tree" size={14} /> Impact paths
+            </a>
+          </nav>
+          <input
+            type="search"
+            aria-label="Filter relationships"
+            placeholder="Filter this list…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-      </BaseModal>
-    </>
+        {paths ? (
+          <TopologyImpactPanel
+            source={introspector}
+            catalog={catalog}
+            focus={entry}
+            radius={radius}
+            why={route?.why}
+            visibleIds={visibleIds}
+            query={query}
+          />
+        ) : (
+          <TopologyRelationships
+            source={introspector}
+            catalog={catalog}
+            focus={entry}
+            visibleIds={visibleIds}
+            query={query}
+          />
+        )}
+      </section>
+    </TopologyCatalogContext.Provider>
   );
-};
+}

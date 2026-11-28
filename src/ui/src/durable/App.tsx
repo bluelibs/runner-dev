@@ -70,7 +70,16 @@ export function App({
   const setWorkflowFilter = (workflowFilter: string | null) =>
     navigate({
       workflowFilter,
-      ...(view === "catalog" ? { view: "executions", selectedId: null } : {}),
+      ...(view === "catalog"
+        ? {
+            view: "executions",
+            selectedId: null,
+            scheduleId: null,
+            statusFilter: "all",
+            query: "",
+            modal: null,
+          }
+        : {}),
     });
   const setStatusFilter = (statusFilter: StatusFilter) =>
     navigate({ statusFilter });
@@ -605,7 +614,11 @@ export function App({
         />
 
         {view === "catalog" ? (
-          <WorkflowDirectory api={api} searchRef={overviewSearchRef} />
+          <WorkflowDirectory
+            api={api}
+            searchRef={overviewSearchRef}
+            onWorkflowSelect={setWorkflowFilter}
+          />
         ) : view === "overview" ? (
           <main className="overview-pane">
             <Overview
@@ -642,19 +655,12 @@ export function App({
           <main className="schedules-pane">
             <Schedules
               schedules={schedules}
-              workflows={workflows}
               busy={busy}
               onViewRuns={(id) => navigate({ scheduleId: id, modal: null })}
               dialogsAllowed={!modal && !scheduleId}
               loading={scheduleFeed.loading}
               available={scheduleFeed.updatedAt !== null}
               now={now}
-              onCreate={(body) =>
-                saveSchedule(
-                  () => api.createSchedule(body),
-                  "Schedule created."
-                )
-              }
               onUpdate={(id, body) =>
                 saveSchedule(
                   () => api.updateSchedule(id, body),

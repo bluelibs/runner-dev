@@ -9,7 +9,12 @@ import {
 } from "@testing-library/react";
 import { App } from "./App";
 import { ApiError } from "./api";
-import { executionDetail, timestamp, workflow } from "./__tests__/fixtures";
+import {
+  executionDetail,
+  schedule,
+  timestamp,
+  workflow,
+} from "./__tests__/fixtures";
 import { studioApi } from "./__tests__/studioApi";
 
 const runtime = {
@@ -293,33 +298,33 @@ test("isolates schedule failures, retries them, and keeps a successful save succ
   expect(
     await screen.findByRole("heading", { name: "Workflow health" })
   ).toBeInTheDocument();
-  api.listSchedules.mockResolvedValue([]);
+  api.listSchedules.mockResolvedValue([schedule()]);
   fireEvent.click(screen.getByRole("button", { name: "Retry schedules" }));
   await waitFor(() =>
     expect(screen.queryByText("Schedules unavailable")).toBeNull()
   );
   fireEvent.click(screen.getByRole("button", { name: "Schedules" }));
-  fireEvent.click(await screen.findByRole("button", { name: "New schedule" }));
-  const dialog = screen.getByRole("dialog", { name: "New schedule" });
-  const save = within(dialog).getByRole("button", { name: "Create schedule" });
+  fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+  const dialog = screen.getByRole("dialog", { name: "Edit schedule" });
+  const save = within(dialog).getByRole("button", { name: "Save changes" });
   await waitFor(() => expect(save).toBeEnabled());
   api.listSchedules.mockRejectedValue(new Error("Refresh offline"));
   fireEvent.click(save);
-  expect(await screen.findByText("Schedule created.")).toBeInTheDocument();
+  expect(await screen.findByText("Schedule updated.")).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(await screen.findByText("Schedules unavailable")).toBeInTheDocument();
-  expect(api.createSchedule).toHaveBeenCalledTimes(1);
+  expect(api.updateSchedule).toHaveBeenCalledTimes(1);
 });
 
 test("suppresses global shortcuts inside a schedule dialog", async () => {
   render(<App api={studioApi()} runtime={runtime} />);
   fireEvent.click(screen.getByRole("button", { name: "Schedules" }));
-  fireEvent.click(await screen.findByRole("button", { name: "New schedule" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
   fireEvent.keyDown(screen.getByRole("button", { name: "Close" }), {
     key: "n",
   });
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
-  expect(screen.getByRole("dialog")).toHaveAccessibleName("New schedule");
+  expect(screen.getByRole("dialog")).toHaveAccessibleName("Edit schedule");
 });
 
 test.each(["failed", "cancelled", "completed"] as const)(

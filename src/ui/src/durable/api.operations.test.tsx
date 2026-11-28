@@ -217,16 +217,15 @@ test("encodes execution identities and sends JSON only when the operation has a 
   });
 });
 
-test("uses the schedule REST methods and unwraps creation and preview responses", async () => {
+test("uses the schedule REST methods and unwraps preview responses", async () => {
   const fires = ["2026-10-08T10:01:00.000Z"];
   const fetchMock = jest.fn().mockResolvedValue({
     ok: true,
-    json: async () => ({ scheduleId: "schedule/1", fires }),
+    json: async () => ({ fires }),
   });
   global.fetch = fetchMock;
   const api = createLiveApi("runtime-1");
   const body = { workflow: "orders", interval: 60000 };
-  expect(await api.createSchedule(body)).toBe("schedule/1");
   expect(await api.previewSchedule(body)).toEqual(fires);
   await api.updateSchedule("schedule/1", body);
   await api.pauseSchedule("schedule/1");
@@ -239,7 +238,6 @@ test("uses the schedule REST methods and unwraps creation and preview responses"
       options.body,
     ])
   ).toEqual([
-    ["/durable/api/schedules", "POST", JSON.stringify(body)],
     ["/durable/api/schedules/preview", "POST", JSON.stringify(body)],
     ["/durable/api/schedules/schedule%2F1", "PATCH", JSON.stringify(body)],
     ["/durable/api/schedules/schedule%2F1/pause", "POST", undefined],

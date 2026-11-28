@@ -58,11 +58,18 @@ export function getDefaultTopologyFocus(
 export function buildTopologyHash(input: {
   focus: TopologyFocus | null;
   view: TopologyViewMode;
+  radius?: number;
+  why?: string;
+  paths?: boolean;
 }): string {
   const params = new URLSearchParams();
   if (input.view !== "blast") {
     params.set("view", input.view);
   }
+
+  if (input.radius !== undefined) params.set("radius", String(input.radius));
+  if (input.paths && !input.why) params.set("panel", "paths");
+  if (input.why) params.set("why", input.why);
 
   const focusPath = input.focus
     ? `${input.focus.kind}/${encodeURIComponent(input.focus.id)}`
@@ -89,7 +96,16 @@ export function parseTopologyHash(
   const query = new URLSearchParams(queryPart);
   const view = query.get("view") === "mindmap" ? "mindmap" : "blast";
 
+  const radius = Number(query.get("radius"));
+  const why = query.get("why");
+  const owner = query.get("owner");
   return {
+    ...(Number.isInteger(radius) && radius > 0 && radius <= MAX_TOPOLOGY_RADIUS
+      ? { radius }
+      : {}),
+    ...(why ? { why } : {}),
+    ...(query.get("panel") === "paths" ? { paths: true } : {}),
+    ...(owner ? { owner } : {}),
     focus: focusKind && focusId ? { kind: focusKind, id: focusId } : null,
     view,
   };

@@ -545,6 +545,24 @@ describe("Durable dashboard Runner 6.10 SQLite, versioning, commands, reset, rep
       expect(v1Detail.workflowVersion).toBe(1);
       expect(v1Detail.result).toEqual({ version: 1, name: "Legacy" });
 
+      // A one-time start is a timer and cannot be edited as a recurring schedule.
+      const onceId = await service.schedule(
+        orderV2,
+        { name: "One time", wait: false },
+        { delay: 600000 }
+      );
+      expect(
+        (await get(`/schedules?runtimeId=${rt.id}`)).body.schedules
+      ).toHaveLength(0);
+      expect(
+        (
+          await client
+            .patch(`${prefix}/schedules/${onceId}?runtimeId=${rt.id}`)
+            .set("Authorization", auth)
+            .send({ interval: 500 })
+        ).status
+      ).toBe(404);
+
       // Versioned schedule
       await service.schedule(
         orderV2,

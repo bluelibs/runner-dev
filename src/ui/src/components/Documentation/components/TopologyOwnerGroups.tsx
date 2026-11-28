@@ -7,16 +7,21 @@ export const TopologyCatalogContext =
 function OwnerGroup<T extends TopologyFocus>({
   label,
   members,
-  selected,
+  selectedIndex,
   render,
 }: {
   label: string;
   members: T[];
-  selected: boolean;
+  selectedIndex: number;
   render: (node: T) => React.ReactNode;
 }) {
   const [limit, setLimit] = React.useState(40);
-  const [expanded, setExpanded] = React.useState(selected);
+  const [expanded, setExpanded] = React.useState(selectedIndex >= 0);
+  React.useEffect(() => {
+    if (selectedIndex >= 0) setExpanded(true);
+  }, [selectedIndex]);
+  const selectedOutsidePage =
+    selectedIndex >= limit ? members[selectedIndex] : undefined;
   return (
     <div>
       <button
@@ -30,6 +35,7 @@ function OwnerGroup<T extends TopologyFocus>({
       {expanded && (
         <>
           {members.slice(0, limit).map(render)}
+          {selectedOutsidePage && render(selectedOutsidePage)}
           {limit < members.length && (
             <button
               type="button"
@@ -69,13 +75,15 @@ export function TopologyOwnerGroups<T extends TopologyFocus>({
   return (
     <>
       {Array.from(owners, ([owner, members]) => {
-        const selected = members.some((item) => item.id === selectedId);
+        const selectedIndex = members.findIndex(
+          (item) => item.id === selectedId
+        );
         return (
           <OwnerGroup
-            key={JSON.stringify([owner, selected])}
+            key={owner}
             label={catalog.elements.get(owner)?.label ?? "Unassigned"}
             members={members}
-            selected={selected}
+            selectedIndex={selectedIndex}
             render={render}
           />
         );

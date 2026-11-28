@@ -3,7 +3,7 @@ import type { StudioSchedule } from "../../../../durable/shared/types";
 import { formatDateTime } from "../format";
 import { JsonEditor, Modal } from "./Modal";
 
-type Cadence = "interval" | "cron";
+type Cadence = StudioSchedule["type"];
 
 export function ScheduleModal({
   schedule,
@@ -18,9 +18,7 @@ export function ScheduleModal({
   onPreview: (body: Record<string, unknown>) => Promise<string[]>;
   onClose: () => void;
 }) {
-  const [cadence, setCadence] = useState<Cadence>(
-    schedule.type === "cron" ? "cron" : "interval"
-  );
+  const [cadence, setCadence] = useState<Cadence>(schedule.type);
   const [cadenceValue, setCadenceValue] = useState(schedule.pattern ?? "60000");
   const [timezone, setTimezone] = useState(schedule.timezone ?? "UTC");
   const initialInput = schedule.input;

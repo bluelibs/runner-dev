@@ -25,7 +25,10 @@ export function buildTopologyCatalog(source: Introspector) {
   function add(kind: TopologyFocus["kind"], group: BaseElement[]) {
     for (const item of group) {
       const label = item.meta?.title || item.id.split(".").pop() || item.id;
-      const owner = item.registeredBy ?? registrations.get(item.id);
+      const explicitOwner =
+        item.registeredBy && source.getResource(item.registeredBy);
+      const owner =
+        (explicitOwner && explicitOwner.id) || registrations.get(item.id);
       const entry = {
         id: item.id,
         kind,

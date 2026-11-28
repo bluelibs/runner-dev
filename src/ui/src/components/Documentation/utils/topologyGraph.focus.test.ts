@@ -1,9 +1,11 @@
 /** @jest-environment node */
 
 import type { Event, Hook, Resource, Task } from "../../../../../schema/model";
+import { buildTopologyCatalog } from "./topologyCatalog";
 import { Introspector } from "../../../../../resources/models/Introspector";
 import {
   buildTopologyProjection,
+  directTopologyRelations,
   type TopologyGraphProjection,
 } from "./topologyGraph";
 
@@ -109,4 +111,52 @@ describe("topology focus named by a short id", () => {
 
     expect(graph.focus).toEqual({ kind: "task", id: "missing" });
   });
+});
+
+test("canonical dependencies and typed focuses distinguish IDs with the same suffix", () => {
+  const source = new Introspector({
+    data: {
+      tasks: [
+        { ...readerTask, id: "billing.delivery", dependsOn: [] },
+        {
+          ...readerTask,
+          id: "consumer",
+          dependsOn: ["delivery"],
+          registeredBy: "billing",
+        },
+      ],
+      resources: [
+        { ...dbResource, id: "delivery", dependsOn: [] },
+        { ...dbResource, id: "app.billing", registers: ["consumer"] },
+      ],
+      hooks: [],
+      events: [],
+      middlewares: [],
+      tags: [],
+      rootId: null,
+    },
+  });
+  expect(buildTopologyCatalog(source).elements.get("consumer")?.owner).toBe(
+    "app.billing"
+  );
+  const neighborhood = (id: string, kind: "resource" | "task") =>
+    directTopologyRelations(source, { id, kind })
+      .filter((edge) => edge.kind === "used-by")
+      .flatMap((edge) => edge.targets.map((node) => node.id));
+  expect(neighborhood("delivery", "resource")).toEqual(["consumer"]);
+  expect(neighborhood("delivery", "task")).toEqual([]);
+  const project = (id: string, kind: "task" | "resource") =>
+    buildTopologyProjection(source, {
+      focusId: id,
+      focusKind: kind,
+      radius: 2,
+      view: "blast",
+    }).nodes.map((node) => node.id);
+  expect(project("delivery", "resource")).toEqual(["delivery", "consumer"]);
+  expect(project("delivery", "task")).toEqual(["billing.delivery"]);
+  expect(
+    directTopologyRelations(source, { kind: "task", id: "consumer" }).find(
+      (edge) => edge.kind === "depends-on"
+    )?.targets[0]
+  ).toMatchObject({ kind: "resource", id: "delivery" });
 });

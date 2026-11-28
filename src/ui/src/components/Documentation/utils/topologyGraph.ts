@@ -218,6 +218,7 @@ export function buildTopologyProjection(
   const visibleIds = options.visibleIds ?? null;
 
   const queue: Array<{
+    kind: TopologyFocusKind;
     id: string;
     depth: number;
     parentId: string | null;
@@ -232,6 +233,7 @@ export function buildTopologyProjection(
   let order = 0;
 
   queue.push({
+    kind: focus.kind,
     id: focus.id,
     depth: 0,
     parentId: null,
@@ -245,7 +247,11 @@ export function buildTopologyProjection(
     const current = queue[cursor];
     if (!current) continue;
 
-    const descriptor = resolveNodeDescriptor(introspector, current.id);
+    const descriptor = resolveNodeDescriptor(
+      introspector,
+      current.id,
+      current.kind
+    );
     if (!descriptor) continue;
 
     const isVisible =
@@ -314,6 +320,7 @@ export function buildTopologyProjection(
         ) {
           queuedReach.set(target.id, reach);
           queue.push({
+            kind: target.kind,
             id: target.id,
             depth: nextDepth,
             parentId: descriptor.id,
@@ -480,7 +487,7 @@ export function directTopologyRelations(
   source: Introspector,
   focus: TopologyFocus
 ) {
-  const node = resolveNodeDescriptor(source, focus.id);
+  const node = resolveNodeDescriptor(source, focus.id, focus.kind);
   if (!node) return [];
   const relations = getTraversalRelations(source, node, {
     includeRegisters: true,
@@ -498,17 +505,14 @@ export function directTopologyRelations(
 
 function getTraversalRelations(
   introspector: Introspector,
-  descriptor: BaseDescriptor,
+  descriptor: TopologyResolvedNode,
   flags: TraversalFlags
 ): TraversalRelation[] {
   if (flags.impact) {
     return getImpactRelations(introspector, descriptor, flags.includeContract);
   }
 
-  const resolved = resolveNodeDescriptor(introspector, descriptor.id);
-  if (!resolved) return [];
-
-  const element = resolved.element;
+  const element = descriptor.element;
   const relations: TraversalRelation[] = [];
   const includeRegisters = flags.includeRegisters;
 
@@ -602,10 +606,7 @@ function getTraversalRelations(
     });
     relations.push({
       kind: "emitted-by",
-      targets: resolveMany(
-        introspector,
-        introspector.getEmittersOfEvent(event.id).map((item) => item.id)
-      ),
+      targets: resolveMany(introspector, getEmitterIds(introspector, event.id)),
     });
     return dedupeRelations(relations);
   }
@@ -712,13 +713,10 @@ function getTaggedElementIds(tag: Tag): string[] {
  */
 function getImpactRelations(
   introspector: Introspector,
-  descriptor: BaseDescriptor,
+  descriptor: TopologyResolvedNode,
   includeContract: boolean
 ): TraversalRelation[] {
-  const resolved = resolveNodeDescriptor(introspector, descriptor.id);
-  if (!resolved) return [];
-
-  const element = resolved.element;
+  const element = descriptor.element;
   const relations: TraversalRelation[] = [];
 
   if (
@@ -754,7 +752,7 @@ function getImpactRelations(
         kind: "emitted-by",
         targets: resolveMany(
           introspector,
-          introspector.getEmittersOfEvent(event.id).map((item) => item.id)
+          getEmitterIds(introspector, event.id)
         ),
         terminal: true,
       });
@@ -802,14 +800,12 @@ function getImpactRelations(
   }
 
   if (descriptor.kind === "tag") {
-    const handlers = introspector.getTagHandlers(descriptor.id);
     relations.push({
       kind: "used-by",
-      targets: resolveMany(introspector, [
-        ...handlers.tasks.map((item) => item.id),
-        ...handlers.hooks.map((item) => item.id),
-        ...handlers.resources.map((item) => item.id),
-      ]),
+      targets: resolveMany(
+        introspector,
+        getImpactDependents(introspector, descriptor.id)
+      ),
     });
     relations.push({
       kind: "tagged",
@@ -821,28 +817,29 @@ function getImpactRelations(
   return relations;
 }
 
+function taskHookResources(source: Introspector) {
+  return [...source.getTasks(), ...source.getHooks(), ...source.getResources()];
+}
+
+function getEmitterIds(source: Introspector, eventId: string) {
+  return taskHookResources(source)
+    .filter((item) => ensureStringArray(item.emits).includes(eventId))
+    .map((item) => item.id);
+}
+
 /**
  * Reverse dependency scan: tasks/hooks/resources that would behave
  * differently if `id` changed, including durable-resource users.
  */
 function getImpactDependents(introspector: Introspector, id: string): string[] {
   const dependentIds = new Set<string>();
-  for (const dependent of introspector.getTasksUsingResource(id)) {
-    dependentIds.add(dependent.id);
-  }
-  for (const candidate of introspector.getResources()) {
-    if (candidate.id === id) continue;
+  for (const item of taskHookResources(introspector)) {
     if (
-      ensureStringArray(candidate.dependsOn).some((depId) =>
-        idsMatchLike(depId, id)
-      )
+      item.id !== id &&
+      (ensureStringArray(item.dependsOn).includes(id) ||
+        ("durableResourceId" in item && item.durableResourceId === id))
     ) {
-      dependentIds.add(candidate.id);
-    }
-  }
-  for (const task of introspector.getTasks()) {
-    if (task.id !== id && task.durableResourceId === id) {
-      dependentIds.add(task.id);
+      dependentIds.add(item.id);
     }
   }
   return Array.from(dependentIds);
@@ -858,7 +855,7 @@ function appendRegisteredByRelation(
 
   relations.push({
     kind: "registered-by",
-    targets: resolveMany(introspector, [registeredBy]),
+    targets: resolveMany(introspector, [registeredBy], "resource"),
   });
 }
 
@@ -871,10 +868,6 @@ function getRegisteredById(
   return typeof registeredBy === "string" && registeredBy.length > 0
     ? registeredBy
     : null;
-}
-
-function idsMatchLike(candidateId: string, referenceId: string): boolean {
-  return candidateId === referenceId || candidateId.endsWith(`.${referenceId}`);
 }
 
 function dedupeRelations(relations: TraversalRelation[]): TraversalRelation[] {
@@ -899,12 +892,13 @@ function dedupeRelations(relations: TraversalRelation[]): TraversalRelation[] {
 
 function resolveMany(
   introspector: Introspector,
-  ids: string[]
+  ids: string[],
+  kind?: TopologyFocusKind
 ): BaseDescriptor[] {
   const result: BaseDescriptor[] = [];
   const seen = new Set<string>();
   for (const id of ids) {
-    const descriptor = resolveNodeDescriptor(introspector, id);
+    const descriptor = resolveNodeDescriptor(introspector, id, kind);
     if (!descriptor || seen.has(descriptor.id)) continue;
     seen.add(descriptor.id);
     result.push(descriptor);
@@ -912,33 +906,53 @@ function resolveMany(
   return result;
 }
 
+function findExactKind(
+  source: Introspector,
+  id: string
+): TopologyFocusKind | undefined {
+  if (source.taskMap.has(id)) return "task";
+  if (source.resourceMap.has(id)) return "resource";
+  if (source.hookMap.has(id)) return "hook";
+  if (source.eventMap.has(id)) return "event";
+  if (source.middlewareMap.has(id)) return "middleware";
+  if (source.errorMap.has(id)) return "error";
+  if (source.asyncContextMap.has(id)) return "asyncContext";
+  if (source.tagMap.has(id)) return "tag";
+  return undefined;
+}
+
 function resolveNodeDescriptor(
   introspector: Introspector,
-  id: string
+  id: string,
+  requestedKind?: TopologyFocusKind | null
 ): TopologyResolvedNode | null {
-  const task = introspector.getTask(id);
+  const kind = requestedKind ?? findExactKind(introspector, id);
+  const task = (!kind || kind === "task") && introspector.getTask(id);
   if (task) return { ...describeTask(task), element: task };
 
-  const resource = introspector.getResource(id);
+  const resource =
+    (!kind || kind === "resource") && introspector.getResource(id);
   if (resource) return { ...describeResource(resource), element: resource };
 
-  const hook = introspector.getHook(id);
+  const hook = (!kind || kind === "hook") && introspector.getHook(id);
   if (hook) return { ...describeHook(hook), element: hook };
 
-  const event = introspector.getEvent(id);
+  const event = (!kind || kind === "event") && introspector.getEvent(id);
   if (event) return { ...describeEvent(event), element: event };
 
-  const middleware = introspector.getMiddleware(id);
+  const middleware =
+    (!kind || kind === "middleware") && introspector.getMiddleware(id);
   if (middleware)
     return { ...describeMiddleware(middleware), element: middleware };
 
-  const error = introspector.getError(id);
+  const error = (!kind || kind === "error") && introspector.getError(id);
   if (error) return { ...describeError(error), element: error };
 
-  const context = introspector.getAsyncContext(id);
+  const context =
+    (!kind || kind === "asyncContext") && introspector.getAsyncContext(id);
   if (context) return { ...describeAsyncContext(context), element: context };
 
-  const tag = introspector.getTag(id);
+  const tag = (!kind || kind === "tag") && introspector.getTag(id);
   if (tag) return { ...describeTag(tag), element: tag };
 
   return null;
@@ -954,8 +968,8 @@ export function resolveFocus(
     // that the introspector resolves by suffix, while traversal records
     // nodes under canonical ids. A raw id would let a cycle back to the
     // focus re-record it as a child of its own neighbor.
-    const descriptor = resolveNodeDescriptor(introspector, focusId);
-    if (descriptor && (!focusKind || descriptor.kind === focusKind)) {
+    const descriptor = resolveNodeDescriptor(introspector, focusId, focusKind);
+    if (descriptor) {
       return { kind: descriptor.kind, id: descriptor.id };
     }
     if (focusKind) return { kind: focusKind, id: focusId };

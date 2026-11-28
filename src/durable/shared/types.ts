@@ -337,7 +337,7 @@ export interface StudioSchedule {
   workflowKey: string;
   workflowTitle: string;
   workflowVersion?: number;
-  type: string;
+  type: "cron" | "interval";
   pattern: string;
   timezone?: string;
   input: unknown;

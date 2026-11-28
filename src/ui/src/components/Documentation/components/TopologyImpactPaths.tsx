@@ -50,8 +50,12 @@ function explain(nodes: Map<string, TopologyGraphNode>, id: string) {
 }
 
 export function CopyTopologyLink({ hash }: { hash: string }) {
+  return <CopyLinkButton key={hash} hash={hash} />;
+}
+
+function CopyLinkButton({ hash }: { hash: string }) {
   const [status, setStatus] = React.useState("");
-  React.useEffect(() => setStatus(""), [hash]);
+
   return (
     <>
       <button

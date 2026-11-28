@@ -123,16 +123,40 @@ test("browses one ownership branch, jumps across branches and restores a shared 
 
 test("expands a high-fanout event by owning feature and reopens the shared listener", () => {
   navigate("#topology/event/stripe.event?radius=1&panel=paths");
-  app(20);
-  const group = screen.getAllByRole("button", { name: "billing (21)" })[0];
+  app(64);
+  const group = screen.getAllByRole("button", { name: "billing (65)" })[0];
   expect(group.getAttribute("aria-expanded")).toBe("false");
   expect(
-    screen.queryByRole("link", { name: "View path to listener19" })
+    screen.queryByRole("link", { name: "View path to listener63" })
   ).toBeNull();
   fireEvent.click(group);
-  const why = screen.getByRole("link", { name: "View path to listener19" });
+  fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+  const why = screen.getByRole("link", { name: "View path to listener63" });
   navigate(why.getAttribute("href")!);
   expect(
     screen.getByRole("region", { name: "Impact path" }).textContent
-  ).toContain("listener19");
+  ).toContain("listener63");
+  navigate(
+    screen.getByRole("link", { name: "Close path" }).getAttribute("href")!
+  );
+  expect(
+    screen.getByRole("link", { name: "View path to listener63" })
+  ).toBeTruthy();
+});
+
+test("a late clipboard write belongs to the view that requested it", async () => {
+  let finish!: (ok: boolean) => void;
+  jest.mocked(copyToClipboard).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  navigate("#topology/event/stripe.event?radius=1");
+  app();
+  fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+  navigate(
+    screen.getByRole("link", { name: "Impact paths" }).getAttribute("href")!
+  );
+  await act(async () => finish(true));
+  expect(screen.queryByText("Link copied")).toBeNull();
 });

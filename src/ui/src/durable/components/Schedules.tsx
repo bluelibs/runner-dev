@@ -85,8 +85,7 @@ export function Schedules({
         <div>
           <h2>Schedules</h2>
           <p className="muted">
-            Cron, interval and one-time timers that start workflows on their
-            own.
+            Recurring workflows started by cron or interval schedules.
           </p>
         </div>
       </div>
